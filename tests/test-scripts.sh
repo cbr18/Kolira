@@ -579,94 +579,38 @@ else
   fail "kit uninstaller (--no-gui) did not remove the CLI"
 fi
 
-# --- 12. Rust core ships with the GUI install --------------------------------
-# The GUI can run on two cores; the Rust one is a shared library the app loads
-# from <appdir>/lib and falls back to the CLI core when it is absent.
-echo "=== Section 12: Rust core installation ==="
+# --- 12. The GUI install ships no Rust library --------------------------------
+# The second core (libkde_theme_core.so) was removed; the installer must not
+# reference rust flags or install any library.
+echo "=== Section 12: no Rust library in the GUI install ==="
 
-RUST_LIB_SRC="$SCRIPT_DIR/gui/qt-app/src/core/rust_core/target/release/libkde_theme_core.so"
 FAKE_HOME_RUST="$TMP_ROOT/fake-home-rust"
 mkdir -p "$FAKE_HOME_RUST"
 
 if bash "$SCRIPT_DIR/scripts/install-kde-theme-manager.sh" --help 2>&1 |
   grep -q -- "--with-rust"; then
-  ok "installer documents --with-rust / --no-rust"
+  fail "installer --help still documents the removed --with-rust / --no-rust"
 else
-  fail "installer --help does not mention the Rust flags"
+  ok "installer --help has no Rust library flags"
 fi
 
-# --no-rust must never install a library.
 if env -i HOME="$FAKE_HOME_RUST" XDG_DATA_HOME="$FAKE_HOME_RUST/.local/share" \
   PATH="/usr/bin:/bin" \
-  bash "$SCRIPT_DIR/scripts/install-kde-theme-manager.sh" --no-venv --no-rust >/dev/null 2>&1; then
+  bash "$SCRIPT_DIR/scripts/install-kde-theme-manager.sh" --no-venv >/dev/null 2>&1; then
   if [ -e "$FAKE_HOME_RUST/.local/share/kde-theme-manager/lib" ]; then
-    fail "--no-rust still installed a Rust library"
+    fail "installer still creates a Rust library directory"
   else
-    ok "--no-rust installs no Rust core"
+    ok "installer installs no Rust library"
   fi
 else
-  fail "--no-rust install failed"
+  fail "GUI install (--no-venv) failed"
 fi
 
-# The library loader must resolve the path the installer uses. Both layouts are
-# checked: the installed copy first, the cargo build tree as a fallback.
-loader_check() { # home description
-  env -i HOME="$1" python3 -c '
-import sys
-sys.path.insert(0, sys.argv[1])
-from core.rust_core import find_library
-print(find_library() or "none")
-' "$2/src"
-}
-
-if [ -f "$RUST_LIB_SRC" ]; then
-  rm -rf "$FAKE_HOME_RUST/.local/share/kde-theme-manager"
-  env -i HOME="$FAKE_HOME_RUST" XDG_DATA_HOME="$FAKE_HOME_RUST/.local/share" \
-    PATH="/usr/bin:/bin" \
-    bash "$SCRIPT_DIR/scripts/install-kde-theme-manager.sh" --no-venv >/dev/null 2>&1
-
-  installed_lib="$FAKE_HOME_RUST/.local/share/kde-theme-manager/lib/libkde_theme_core.so"
-  if [ -f "$installed_lib" ]; then
-    ok "prebuilt Rust library installed into <appdir>/lib"
-  else
-    fail "prebuilt Rust library was not installed"
-  fi
-
-  if [ -f "$installed_lib" ] &&
-    cmp -s "$RUST_LIB_SRC" "$installed_lib"; then
-    ok "installed Rust library is the built one"
-  else
-    fail "installed Rust library differs from the built one"
-  fi
-
-  resolved="$(loader_check "$FAKE_HOME_RUST" \
-    "$FAKE_HOME_RUST/.local/share/kde-theme-manager")"
-  case "$resolved" in
-    "$FAKE_HOME_RUST/.local/share/kde-theme-manager/lib/libkde_theme_core.so")
-      ok "the app resolves the installed Rust core (no env override needed)"
-      ;;
-    *) fail "the app resolved an unexpected library: $resolved" ;;
-  esac
-
-  # The library is part of the app directory: uninstalling must take it away.
-  env -i HOME="$FAKE_HOME_RUST" XDG_DATA_HOME="$FAKE_HOME_RUST/.local/share" \
-    PATH="/usr/bin:/bin" \
-    bash "$SCRIPT_DIR/scripts/uninstall-kde-theme-manager.sh" --force >/dev/null 2>&1
-  if [ -e "$FAKE_HOME_RUST/.local/share/kde-theme-manager/lib" ]; then
-    fail "uninstall left the Rust core behind"
-  else
-    ok "uninstall removes the Rust core"
-  fi
+# The installed app copy must not carry the ctypes binding either.
+if [ -e "$FAKE_HOME_RUST/.local/share/kde-theme-manager/src/core/rust_core.py" ]; then
+  fail "installed app still ships src/core/rust_core.py"
 else
-  # A fresh clone has no target/ tree: the installer must warn, not fail, and
-  # the app must fall back to the CLI core.
-  out="$(env -i HOME="$FAKE_HOME_RUST" XDG_DATA_HOME="$FAKE_HOME_RUST/.local/share" \
-    PATH="/usr/bin:/bin" \
-    bash "$SCRIPT_DIR/scripts/install-kde-theme-manager.sh" --no-venv 2>&1)"
-  case "$out" in
-    *"CLI core"*) ok "missing Rust core warns about the CLI fallback" ;;
-    *) fail "missing Rust core produced no warning: $out" ;;
-  esac
+  ok "installed app ships no rust_core.py binding"
 fi
 
 
@@ -727,6 +671,186 @@ MOCK
   else
     ok "apply does not write command help into kdeglobals"
   fi
+fi
+
+# --- 14. manifest.json, describe and custom components -------------------------
+echo "=== Section 14: manifest.json / describe / components ==="
+
+MAN_HOME="$TMP_ROOT/man-home"
+mkdir -p "$MAN_HOME/.config"
+printf '[General]\nAccentColor=5,6,7\n' > "$MAN_HOME/.config/kdeglobals"
+
+# save writes the formal manifest.json (schema v1) next to the legacy
+# manifest.txt, which older tools still read.
+if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" save man-profile --components=kdeglobals >/dev/null 2>&1; then
+  ok "save man-profile"
+else
+  fail "save man-profile"
+fi
+man_root="$MAN_HOME/.config/theme-profile/profiles/man-profile"
+if [ -f "$man_root/manifest.json" ]; then
+  ok "save writes manifest.json"
+else
+  fail "save did not write manifest.json"
+fi
+if [ -f "$man_root/manifest.txt" ]; then
+  ok "legacy manifest.txt is still written"
+else
+  fail "legacy manifest.txt missing"
+fi
+if grep -q '"schema_version": 1' "$man_root/manifest.json" \
+  && grep -q '"name": "man-profile"' "$man_root/manifest.json" \
+  && grep -q 'kdeglobals' "$man_root/manifest.json"; then
+  ok "manifest.json carries schema, name and the saved components"
+else
+  fail "manifest.json content is wrong"
+fi
+
+# describe --set / describe round-trips through manifest.json.
+if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" describe man-profile --set="Dark glass" >/dev/null 2>&1; then
+  ok "describe --set exits 0"
+else
+  fail "describe --set failed"
+fi
+desc="$(HOME="$MAN_HOME" "$CLI_DIR/theme-profile" describe man-profile 2>/dev/null)"
+if [ "$desc" = "Dark glass" ]; then
+  ok "describe reads the description back"
+else
+  fail "describe round-trip broken (got: $desc)"
+fi
+if grep -q '"description": "Dark glass"' "$man_root/manifest.json"; then
+  ok "description lands in manifest.json"
+else
+  fail "description missing from manifest.json"
+fi
+if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" describe no-such-profile --set=x >/dev/null 2>&1; then
+  fail "describe on a missing profile should fail"
+else
+  ok "describe rejects a missing profile"
+fi
+
+# save --description writes the description in one step.
+if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" save desc-profile \
+    --components=kdeglobals --description="in one step" >/dev/null 2>&1 \
+  && [ "$(HOME="$MAN_HOME" "$CLI_DIR/theme-profile" describe desc-profile 2>/dev/null)" = "in one step" ]; then
+  ok "save --description round-trips"
+else
+  fail "save --description round-trip broken"
+fi
+
+# components CRUD: the registry lives in components.json next to the profiles.
+comp_file="$MAN_HOME/.config/theme-profile/components.json"
+comp_json='{"id":"myapp","name":"My App","category":"Custom","config_paths":[".config/myapp/settings.json"],"description":"test"}'
+if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" components add "$comp_json" >/dev/null 2>&1; then
+  ok "components add"
+else
+  fail "components add failed"
+fi
+if [ -f "$comp_file" ] && grep -q '"schema_version": 1' "$comp_file" && grep -q '"myapp"' "$comp_file"; then
+  ok "components.json is written with schema v1"
+else
+  fail "components.json missing or malformed"
+fi
+if [ "$(HOME="$MAN_HOME" "$CLI_DIR/theme-profile" components list 2>/dev/null)" = "myapp" ]; then
+  ok "components list returns the new id"
+else
+  fail "components list did not return myapp"
+fi
+if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" components add "$comp_json" >/dev/null 2>&1; then
+  fail "components add with a duplicate id should fail"
+else
+  ok "components add rejects a duplicate id"
+fi
+if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" components add \
+    '{"id":"../escape","config_paths":[".config/x"]}' >/dev/null 2>&1; then
+  fail "components add with a traversal id should fail"
+else
+  ok "components add rejects a traversal id"
+fi
+comp_json_v2='{"id":"myapp","name":"My App 2","category":"Custom","config_paths":[".config/myapp/settings.json"],"description":"v2"}'
+if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" components edit "$comp_json_v2" >/dev/null 2>&1 \
+  && grep -q 'My App 2' "$comp_file"; then
+  ok "components edit updates the entry"
+else
+  fail "components edit failed"
+fi
+if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" components remove myapp >/dev/null 2>&1 \
+  && [ -z "$(HOME="$MAN_HOME" "$CLI_DIR/theme-profile" components list 2>/dev/null)" ]; then
+  ok "components remove deletes the entry"
+else
+  fail "components remove failed"
+fi
+
+# --- 15. Custom component end-to-end: file sync + reload command ---------------
+echo "=== Section 15: custom component (mock app) ==="
+
+APP_HOME="$TMP_ROOT/app-home"
+mkdir -p "$APP_HOME/.config/mockapp"
+printf 'theme=dark\n' > "$APP_HOME/.config/mockapp/settings.conf"
+
+# Mock the Plasma session commands (apply stops/starts the shell) and provide
+# the mock app's reload command, which records its invocations.
+MOCK_BIN_APP="$TMP_ROOT/mock-bin-app"
+mkdir -p "$MOCK_BIN_APP"
+for cmd in systemctl qdbus6 kbuildsycoca6; do
+  cat > "$MOCK_BIN_APP/$cmd" <<'MOCK'
+#!/usr/bin/env bash
+exit 0
+MOCK
+  chmod +x "$MOCK_BIN_APP/$cmd"
+done
+RELOAD_LOG="$TMP_ROOT/reload.log"
+cat > "$MOCK_BIN_APP/mockapp-reload" <<MOCK
+#!/usr/bin/env bash
+echo "reloaded" >> "$RELOAD_LOG"
+MOCK
+chmod +x "$MOCK_BIN_APP/mockapp-reload"
+
+# Register the custom component: one config file + a reload command.
+# (Registration validates the command's binary via PATH, so the mock dir must
+# be on PATH for every CLI call that touches the registry.)
+APP_PATH="$MOCK_BIN_APP:$PATH"
+app_json='{"id":"mockapp","name":"Mock App","category":"Custom","config_paths":[".config/mockapp/settings.conf"],"reload_command":"mockapp-reload","supports_live_reload":true}'
+if HOME="$APP_HOME" PATH="$APP_PATH" "$CLI_DIR/theme-profile" components add "$app_json" >/dev/null 2>&1; then
+  ok "custom component registered"
+else
+  fail "custom component registration"
+fi
+
+# Save it into a profile, change the live file, apply: the profile value must
+# come back and the reload command must have fired.
+if HOME="$APP_HOME" PATH="$APP_PATH" "$CLI_DIR/theme-profile" save app-profile --components=mockapp >/dev/null 2>&1; then
+  ok "save with the custom component"
+else
+  fail "save with the custom component"
+fi
+printf 'theme=light\n' > "$APP_HOME/.config/mockapp/settings.conf"
+if HOME="$APP_HOME" PATH="$APP_PATH" "$CLI_DIR/theme-profile" apply app-profile --components=mockapp >/dev/null 2>&1; then
+  ok "apply with the custom component"
+else
+  fail "apply with the custom component"
+fi
+
+synced="$(cat "$APP_HOME/.config/mockapp/settings.conf" 2>/dev/null)"
+if [ "$synced" = "theme=dark" ]; then
+  ok "custom component file restored from the profile"
+else
+  fail "custom component file not restored (got: $synced)"
+fi
+
+if [ -f "$RELOAD_LOG" ] && grep -q reloaded "$RELOAD_LOG"; then
+  ok "reload command fired after apply"
+else
+  fail "reload command did not fire"
+fi
+
+# A shell-injection reload command must be rejected at registration.
+if HOME="$APP_HOME" "$CLI_DIR/theme-profile" components add \
+    '{"id":"evil","config_paths":[".config/mockapp/settings.conf"],"reload_command":"sh -c echo hi; rm -rf x"}' \
+    >/dev/null 2>&1; then
+  fail "components add accepted a reload command with shell metacharacters"
+else
+  ok "components add rejects shell metacharacters in reload_command"
 fi
 
 

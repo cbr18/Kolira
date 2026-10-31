@@ -207,7 +207,7 @@ Kirigami.ScrollablePage {
                         id: coreCombo
                         Layout.fillWidth: true
                         Kirigami.FormData.label: qsTr("Core")
-                        model: ["rust", "cli", "auto"]
+                        model: ["core", "auto"]
                         onActivated: settingsController.coreBackend = currentText
                         Binding {
                             target: coreCombo
@@ -220,11 +220,9 @@ Kirigami.ScrollablePage {
                     Label {
                         Layout.fillWidth: true
                         wrapMode: Text.WordWrap
-                        text: settingsController.rustCoreBuilt
-                              ? qsTr("Running: %1 — restart the app to switch.").arg(settingsController.activeCore)
-                              : qsTr("Running: %1. The Rust library is not built; the app "
-                                     + "falls back to the CLI core. `cargo build --release` "
-                                     + "in src/core/rust_core.").arg(settingsController.activeCore)
+                        // Single core: both values name it; the choice is only
+                        // recorded for the next start.
+                        text: qsTr("Running: %1 — restart the app to apply.").arg(settingsController.activeCore)
                         color: ThemeColors.fgColor(page.glassMode)
                         opacity: 0.7
                         font.pointSize: TypeScale.caption

@@ -95,20 +95,21 @@ theme-profile status
 theme-profile list
 ```
 
-### Rolling back the GUI core
+### GUI core
 
-The app can run on the Rust core (`libkde_theme_core.so`, the default) or the
-CLI core (shells to the Rust `theme-profile`). If the Rust core misbehaves,
-go back to the CLI core — no reinstall needed:
+The app runs on a single core — a Python adapter that shells out to the Rust
+CLI (`theme-profile`, `wallpaper-*`). The former second core
+(`libkde_theme_core.so`) was removed, so there is nothing to roll back between
+cores; `--core`/`KTM_CORE` accept only `core` (or `auto`, the same thing):
 
 ```bash
-kde-theme-manager --core cli      # this run
-KTM_CORE=cli kde-theme-manager    # or via the environment
-# Settings → Core → cli persists the choice for the next start
+kde-theme-manager --core core      # this run (the only core)
+KTM_CORE=core kde-theme-manager    # or via the environment
+# Settings → Core persists the choice for the next start
 ```
 
-`--core cli` is persisted too, so it survives restarts. The setting is stored
-in `~/.config/theme-profile/app-preferences.json` (`"core_backend": "cli"`),
+`--core core` is persisted too, so it survives restarts. The setting is stored
+in `~/.config/theme-profile/app-preferences.json` (`"core_backend": "core"`),
 which can also be edited by hand while the app is closed:
 
 ```bash
@@ -117,23 +118,14 @@ import json, os, pathlib
 root = pathlib.Path(os.environ.get("XDG_CONFIG_HOME", pathlib.Path.home() / ".config"))
 path = root / "theme-profile" / "app-preferences.json"
 data = json.loads(path.read_text())
-data["core_backend"] = "cli"
+data["core_backend"] = "core"
 path.write_text(json.dumps(data, indent=2) + "\n")
 PY
 ```
 
-If the library is the problem, remove it — the app then reports the CLI core
-and keeps working:
-
-```bash
-rm ~/.local/share/kde-theme-manager/lib/libkde_theme_core.so
-kde-theme-manager --list-cores   # → rust NOT AVAILABLE
-```
-
-Per-operation differences worth knowing when switching: profile writes
-(apply/save/diff) are native Rust in both cores; the CLI core reaches them
-through the `theme-profile` binary and the library through FFI. `tests/test_gui.py::TestCoreParity`
-fails if that ever drifts.
+All profile mutations (apply/save/diff) run natively in the Rust CLI binary —
+the Python core adapter only invokes it and parses the output, so there are no
+per-core behavioural differences to worry about.
 
 ---
 

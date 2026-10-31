@@ -23,13 +23,15 @@
 
 ### 🔄 В процессе / Нужно доделать
 
-#### 1. Добавить `--components` в bash `theme-profile` (критично для гранулярности)
-```bash
-# В ~/theme-profile-kit/files/bin/theme-profile
-# Добавить парсинг --components=kwin,gtk3,kitty
-# Фильтровать TRACKED_PATHS по префиксам компонентов
-```
-**Оценка**: 30-60 мин
+#### 1. Одно ядро вместо двух — ✅ сделано (не закоммичено)
+Два ядра (Rust-библиотека + CLI-адаптер) сведены к одному — CLI-адаптер
+(`core/cli_core.py`, бэкенд `core`). Удалено: `core/rust_core.py`, FFI-слой
+(`libkde_theme_core.so`, cdylib), Rust-трейты без потребителей, `rustCoreBuilt`
+в контроллерах/QML, persist-ветка в `__main__`, флаги `--with-rust/--no-rust`
+в установщике. Тесты переписаны под одно ядро (скипов нет).
+Осталось по `docs/PLAN-THEME-MODEL.md`: GUI для этапов A/B (описание в
+карточках, страница «Приложения»), выполнение `reload_command`, редактор
+параметров (этап C).
 
 #### 2. Исправить QML баги и UX
 - [ ] ProfileRadioButton: правильная группировка (ExclusiveGroup)
@@ -52,16 +54,16 @@
   компонент только для `.desktop` с `X-KDE-GlobalAccel-CommandShortcut=true`, а
   голый `doRegister` не давал рабочего шортката. См. `gui/qt-app/README.md`.
 
-#### 5. Авто-детект Zen Browser профиля
-```python
-# Вместо хардкода .zen/gp0y8wrv.Default (release)/
-# Найти: find ~/.zen -name "user.js" -path "*/Default*" | head -1
-```
+#### 5. Авто-детект Zen Browser профиля — ✅ сделано в 0.5.0
+`zen_profile_dir()` в Rust (`tracked_apps.rs`) и Python (`tracked_apps.py`)
+сканирует `~/.zen` и берёт первый профиль с `user.js`.
 
 #### 6. Тесты и CI
-- [ ] pytest для core логики
+- [x] GitHub Actions: rust (hard gate) + python-gui + security (non-strict)
+- [x] pytest для core логики (`tests/test_gui.py`: 150 passed, skipped нет —
+      свёртка двух ядер в одно завершена; покрыты manifest.json и CRUD
+      пользовательских компонентов)
 - [ ] pytest-qt для контроллеров
-- [ ] GitHub Actions: lint (ruff), typecheck (mypy), test
 
 ---
 
@@ -95,14 +97,16 @@
 > module (milliseconds instead of ~300 ms; one optional D-Bus call for
 > loaded effects) with strict JSONC/INI readers, a real
 > `kwin_glass` (better-blur-dx) and Zen auto-detection; the GUI diff runs
-> off-thread. Two cores remain: `rust` (library, default) and `cli` (adapter to
-> the Rust CLI). Файлы Rust-крейта:
+> off-thread. Файлы Rust-крейта:
 > `src/core/rust_core/src/{lib,types,paths,profile,wallpaper,tracked_apps,
-> settings,config_parser,status}.rs` + `src/bin/`; Python-биндинг —
-> `src/core/rust_core.py`; CLI-адаптер — `src/core/cli_core.py`.
-> Переключение: `--core rust|cli|auto`, `$KTM_CORE`, *Settings → Core*;
-> Rust — по умолчанию, без собранной библиотеки приложение работает на
-> CLI-ядре.
+> settings,config_parser,status}.rs` + `src/bin/`; Python-адаптер —
+> `src/core/cli_core.py`.
+>
+> **Сделано (текущее дерево).** Два ядра сведены к одному: Rust-библиотека
+> (`libkde_theme_core.so`), FFI-слой и Python-биндинг `rust_core.py` удалены
+> полностью, остался единый бэкенд `core` — CLI-адаптер. Переключение:
+> `--core core|auto`, `$KTM_CORE`, *Settings → Core* (все значения именуют
+> одно ядро).
 
 ### Архитектура
 ```
@@ -152,7 +156,8 @@ src/
   extern "C" fn save_settings(settings: Settings) -> ResultCode
   ```
 - [ ] Memory management: `free_profile_list`, `free_component_list`, etc.
-- [ ] Build: `cargo build --release` → `libkde_theme_core.so`
+- [ ] Build: `cargo build --release` → ~~`libkde_theme_core.so`~~ (отменено:
+  FFI-ядро удалено вместе со вторым core; сборка даёт только CLI-бинарники)
 
 #### Phase 2: Python Bindings (cffi / pyo3)
 - [ ] Вариант A: `cffi` — загрузка `.so` через `ctypes`/`cffi`, сохраняем Python controllers
@@ -246,7 +251,7 @@ plasma-applet/
 | QML полировка | QML, Kirigami | 4-8ч |
 | Dogfooding (glass blur) | Qt Wayland, KWin | 2-4ч |
 | System Tray | QSystemTrayIcon | 4-6ч |
-| Rust Core FFI | Rust, C FFI, cffi/pyo3 | 20-40ч |
+| Rust Core FFI | ~~Rust, C FFI, cffi/pyo3~~ — отменено: ядро одно (CLI-адаптер) | — |
 | Config parsers (Rust) | Rust, serde, toml, ini | 10-20ч |
 | Plasma Applet | C++, Qt6, KDE Frameworks | 30-60ч |
 
@@ -287,12 +292,12 @@ mypy src/
 # Тесты
 pytest
 
-# Сборка Rust core (v0.4)
+# Сборка Rust CLI
 cd ~/projects/kde_mods/theme-profile-kit/gui/qt-app/src/core/rust_core
 cargo build --release
 
-# Запуск с Rust core
-python -m src --core rust     # или: KTM_CORE=rust python -m src
+# Запуск (ядро одно — CLI-адаптер)
+python -m src --core core     # или: KTM_CORE=core python -m src
 
 # Установка в систему
 cd ~/theme-profile-kit

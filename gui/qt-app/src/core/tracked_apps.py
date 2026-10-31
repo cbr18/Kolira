@@ -4,12 +4,12 @@ Tracked Applications Registry — полный список отслеживае
 """
 
 from dataclasses import dataclass
+import json
 import shutil
 import subprocess
 from typing import Optional
-
-from .paths import live_path
-from .protocol import Component, AppStatus, TrackedAppsCore
+from .paths import live_path, theme_root
+from .protocol import Component, AppStatus, TrackedAppsCore, CustomComponent, Result
 
 
 # ──────────────────────────────────────────────────────────────
@@ -29,6 +29,8 @@ class TrackedAppDef:
     description: str = ""
     icon: str = ""
     docs_url: str = ""
+    reload_command: str = ""                      # Пользовательская команда перезагрузки
+    is_custom: bool = False                       # Зарегистрирован пользователем
 
 
 # Порядок = порядок в UI
@@ -298,6 +300,87 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
 
 
 # ──────────────────────────────────────────────────────────────
+# Пользовательские компоненты (components.json)
+# ──────────────────────────────────────────────────────────────
+
+def _is_valid_component_id(comp_id: str) -> bool:
+    from .paths import is_valid_profile_name
+
+    return is_valid_profile_name(comp_id)
+
+
+def _is_valid_rel_path(p: str) -> bool:
+    return bool(p) and not p.startswith("/") and ".." not in p
+
+
+# Зеркало RELOAD_COMMAND_FORBIDDEN в Rust (profile.rs) и контроллеров.
+_RELOAD_FORBIDDEN = frozenset("|&;<>$`\"'\n\r")
+
+
+def load_custom_defs() -> list[TrackedAppDef]:
+    """Прочитать components.json и вернуть валидные определения.
+
+    Зеркало Rust `custom_components::load_custom_components`: одна битая
+    запись обнуляет весь пользовательский список (встроенные не трогаются).
+    При совпадении id со встроенным компонентом встроенный выигрывает
+    (см. all_app_defs — зеркало Rust merged_component_defs).
+    """
+    path = theme_root() / "components.json"
+    if not path.is_file():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        entries = data.get("components", [])
+        if not isinstance(entries, list):
+            return []
+    except Exception:
+        return []
+    out: list[TrackedAppDef] = []
+    try:
+        for entry in entries:
+            comp_id = str(entry.get("id", ""))
+            paths = [str(p) for p in entry.get("config_paths", [])]
+            if not _is_valid_component_id(comp_id) or not paths:
+                return []
+            if any(not _is_valid_rel_path(p) for p in paths):
+                return []
+            command = str(entry.get("reload_command", "") or "")
+            if command.strip():
+                bad = next(
+                    (ch for ch in command if ch in _RELOAD_FORBIDDEN), None
+                )
+                if bad is not None or shutil.which(command.split()[0]) is None:
+                    return []
+            out.append(
+                TrackedAppDef(
+                    id=comp_id,
+                    name=str(entry.get("name", "")) or comp_id,
+                    category=str(entry.get("category", "")) or "Custom",
+                    config_paths=tuple(paths),
+                    detect_command=None,
+                    flatpak_id=None,
+                    supports_live_reload=bool(entry.get("supports_live_reload", False))
+                    or bool(command.strip()),
+                    description=str(entry.get("description", "")),
+                    icon=str(entry.get("icon", "")) or "application-x-executable",
+                    docs_url="",
+                    reload_command=command,
+                    is_custom=True,
+                )
+            )
+    except Exception:
+        return []
+    return out
+
+
+def all_app_defs() -> list[TrackedAppDef]:
+    """Встроенный реестр + пользовательские; встроенные выигрывают по id."""
+    built_ids = {a.id for a in TRACKED_APPS}
+    custom = [d for d in load_custom_defs() if d.id not in built_ids]
+    return [*TRACKED_APPS, *custom]
+
+
+# ──────────────────────────────────────────────────────────────
 # Детекция статусов
 # ──────────────────────────────────────────────────────────────
 
@@ -399,12 +482,14 @@ def build_component(app: TrackedAppDef) -> Component:
         description=app.description,
         icon=app.icon,
         docs_url=app.docs_url,
+        is_custom=app.is_custom,
+        reload_command=app.reload_command,
     )
 
 
 def detect_all_apps() -> list[Component]:
     """Получить список всех компонентов с актуальными статусами."""
-    return [build_component(app) for app in TRACKED_APPS]
+    return [build_component(app) for app in all_app_defs()]
 
 
 # ──────────────────────────────────────────────────────────────
@@ -416,6 +501,17 @@ class CliTrackedAppsCore(TrackedAppsCore):
 
     def __init__(self):
         self._cache: Optional[list[Component]] = None
+
+    def _run(self, args: list[str], timeout: int = 30) -> Result:
+        import subprocess, os
+        try:
+            proc = subprocess.run(args, capture_output=True, text=True, timeout=timeout, env={**os.environ})
+            return Result(
+                proc.returncode == 0,
+                proc.stdout.strip() or proc.stderr.strip()
+            )
+        except Exception as e:
+            return Result.err(str(e))
 
     def detect_all(self) -> list[Component]:
         """Свежий детект всех приложений."""
@@ -446,6 +542,73 @@ class CliTrackedAppsCore(TrackedAppsCore):
     def get_components_by_category(self, category: str) -> list[Component]:
         """Компоненты по категории."""
         return [c for c in self.get_all_components() if c.category == category]
+
+    def remove_custom(self, comp_id: str) -> Result:
+        """Удалить пользовательский компонент по id."""
+        args = ["theme-profile", "components", "remove", comp_id]
+        res = self._run(args, timeout=30)
+        if res.success:
+            return Result.ok()
+        return Result.err(res.message or "failed to remove custom component")
+
+    # ── Пользовательские компоненты через CLI (components.json) ─────────────
+
+    @staticmethod
+    def _parse_custom_component_line(line: str) -> Optional[CustomComponent]:
+        """Parse a single id line from 'theme-profile components list' output."""
+        parts = line.strip().split()
+        if not parts:
+            return None
+        return CustomComponent(id=parts[0], name="", category="Custom")
+
+    def list_custom(self) -> list[CustomComponent]:
+        """Все пользовательские компоненты из components.json."""
+        args = ["theme-profile", "components", "list"]
+        res = self._run(args, timeout=30)
+        if not res.success:
+            return []
+        comps: list[CustomComponent] = []
+        for line in res.message.strip().splitlines():
+            c = self._parse_custom_component_line(line)
+            if c:
+                comps.append(c)
+        return comps
+
+    @staticmethod
+    def _custom_component_payload(comp: CustomComponent) -> str:
+        """Serialize for `theme-profile components add|edit`.
+
+        json.dumps, never f-strings: user-entered quotes or newlines in a
+        name/description must reach the CLI as valid JSON.
+        """
+        return json.dumps(
+            {
+                "id": comp.id,
+                "name": comp.name,
+                "category": comp.category,
+                "config_paths": list(comp.config_paths),
+                "reload_command": comp.reload_command,
+                "supports_live_reload": comp.supports_live_reload,
+                "description": comp.description,
+                "icon": comp.icon,
+            }
+        )
+
+    def add_custom(self, comp: CustomComponent) -> Result:
+        """Добавить пользовательский компонент (пишет в components.json)."""
+        args = ["theme-profile", "components", "add", self._custom_component_payload(comp)]
+        res = self._run(args, timeout=30)
+        if res.success:
+            return Result.ok()
+        return Result.err(res.message or "failed to add custom component")
+
+    def update_custom(self, comp: CustomComponent) -> Result:
+        """Обновить пользовательский компонент."""
+        args = ["theme-profile", "components", "edit", self._custom_component_payload(comp)]
+        res = self._run(args, timeout=30)
+        if res.success:
+            return Result.ok()
+        return Result.err(res.message or "failed to update custom component")
 
 
 # Для обратной совместимости

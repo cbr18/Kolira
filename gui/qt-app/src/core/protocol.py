@@ -34,6 +34,21 @@ class Component:
     # Доп. метаданные для UI
     icon: str = ""           # имя иконки (Kirigami/Theme)
     docs_url: str = ""       # ссылка на документацию
+    is_custom: bool = False  # зарегистрирован пользователем (components.json)
+    reload_command: str = "" # команда перезагрузки после apply (пользовательские)
+
+
+@dataclass(slots=True)
+class CustomComponent:
+    """Пользовательский компонент в components.json."""
+    id: str
+    name: str = ""
+    category: str = "Custom"
+    config_paths: tuple[str, ...] = ()
+    reload_command: str = ""
+    supports_live_reload: bool = False
+    description: str = ""
+    icon: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -154,6 +169,23 @@ class TrackedAppsCore(ABC):
     @abstractmethod
     def refresh(self) -> list[Component]:
         """Принудительный рефреш детекта."""
+
+    # Custom components (components.json)
+    @abstractmethod
+    def list_custom(self) -> list[CustomComponent]:
+        """Все пользовательские компоненты."""
+
+    @abstractmethod
+    def add_custom(self, comp: CustomComponent) -> Result:
+        """Добавить пользовательский компонент."""
+
+    @abstractmethod
+    def update_custom(self, comp: CustomComponent) -> Result:
+        """Обновить пользовательский компонент."""
+
+    @abstractmethod
+    def remove_custom(self, comp_id: str) -> Result:
+        """Удалить пользовательский компонент."""
 
 
 class SettingsCore(ABC):
@@ -352,14 +384,18 @@ class AppSettings:
     create_backup_before_apply: bool = True
     notify_on_success: bool = True
 
-    # Какое ядро использовать при старте: "rust" | "cli" | "auto"
+    # Какое ядро использовать при старте: "core" | "auto" (одно и то же ядро)
     # (переопределяется флагом --core и переменной окружения KTM_CORE).
-    core_backend: str = "rust"
+    core_backend: str = "core"
+
+    # Компоненты, снятые галочкой на странице «Приложения» (id). Исключены из
+    # save/apply, но не удалены: файлы и снимки профилей не трогаются.
+    disabled_components: tuple[str, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
-        backend = str(self.core_backend or "rust").strip().lower()
-        if backend not in ("rust", "cli", "auto"):
-            backend = "rust"
+        backend = str(self.core_backend or "core").strip().lower()
+        if backend not in ("core", "auto"):
+            backend = "core"
         if backend != self.core_backend:
             object.__setattr__(self, "core_backend", backend)
 
@@ -378,6 +414,7 @@ class AppSettings:
             "create_backup_before_apply": self.create_backup_before_apply,
             "notify_on_success": self.notify_on_success,
             "core_backend": self.core_backend,
+            "disabled_components": list(self.disabled_components),
         }
 
     @classmethod
@@ -395,7 +432,8 @@ class AppSettings:
             confirm_before_apply=data.get("confirm_before_apply", True),
             create_backup_before_apply=data.get("create_backup_before_apply", True),
             notify_on_success=data.get("notify_on_success", True),
-            core_backend=data.get("core_backend", "rust"),
+            core_backend=data.get("core_backend", "core"),
+            disabled_components=tuple(data.get("disabled_components", [])),
         )
 
 
@@ -412,8 +450,8 @@ class CoreFactory:
     ``core_backend``; см. :meth:`set_backend`.
     """
 
-    #: Доступные бэкенды. "auto" — rust, если библиотека есть, иначе cli.
-    BACKENDS = ("rust", "cli", "auto")
+    #: Доступные бэкенды. Теперь только core (бывший cli).
+    BACKENDS = ("core", "auto")
     #: Переменная окружения, переопределяющая настройку (но не флаг --core).
     ENV_VAR = "KTM_CORE"
 
@@ -424,8 +462,8 @@ class CoreFactory:
     _theme_core: Optional["ThemeCore"] = None
 
     # Пока ``_select_core`` не выбран явно, безопасный локальный бэкенд —
-    # cli (адаптер к Rust CLI). Приложение выбирает rust по умолчанию (см. __main__).
-    _backend: str = "cli"
+    # core — единое ядро (бывший cli).
+    _backend: str = "core"
 
     # ── Выбор ядра ─────────────────────────────────────────────
 
@@ -433,6 +471,9 @@ class CoreFactory:
     def normalize_backend(cls, backend: str) -> str:
         """Проверить и нормализовать имя бэкенда."""
         name = (backend or "").strip().lower()
+        # Написания эпохи двух ядер теперь именуют единственное ядро.
+        if name in ("rust", "cli"):
+            name = "core"
         if name not in cls.BACKENDS:
             raise ValueError(
                 f"Unknown core backend {backend!r}; expected one of "
@@ -444,37 +485,22 @@ class CoreFactory:
     def set_backend(cls, backend: str, strict: bool = True) -> str:
         """Выбрать ядро и сбросить кэш реализаций.
 
-        ``strict=False`` — «мягкий» режим: если Rust-библиотека недоступна,
-        используется CLI-ядро (с предупреждением в stderr). Возвращает
-        фактически используемый бэкенд.
+        ``strict`` оставлен для совместимости сигнатуры: неизвестный бэкенд
+        и так падает в :meth:`normalize_backend` с ``ValueError``. Единственное
+        ядро — ``core``; ``auto`` и наследие ``rust``/``cli`` нормализуются
+        в него же. Возвращает фактически используемый бэкенд.
         """
         name = cls.normalize_backend(backend)
 
         if name == "auto":
-            name = "rust" if cls.rust_available() else "cli"
-
-        if name == "rust" and not cls.rust_available():
-            if strict:
-                from .rust_core import RustCoreUnavailable, library_candidates
-
-                searched = ", ".join(str(p) for p in library_candidates())
-                raise RustCoreUnavailable(
-                    "Rust core requested but libkde_theme_core.so is not usable. "
-                    f"Build it with `cargo build --release` in src/core/rust_core. "
-                    f"Searched: {searched}"
-                )
-            print(
-                "Warning: Rust core unavailable, falling back to the CLI core",
-                file=sys.stderr,
-            )
-            name = "cli"
+            name = "core"
 
         cls._backend = name
         cls.reset()
         return cls._backend
 
     @classmethod
-    def set_backend_from_env(cls, strict: bool = True, default: str = "rust") -> str:
+    def set_backend_from_env(cls, strict: bool = True, default: str = "core") -> str:
         """Выбрать ядро из ``KTM_CORE`` (если задана), иначе ``default``."""
         requested = os.environ.get(cls.ENV_VAR, "").strip() or default
         return cls.set_backend(requested, strict=strict)
@@ -487,31 +513,12 @@ class CoreFactory:
     @classmethod
     def backend_label(cls) -> str:
         """Человекочитаемое имя ядра для UI."""
-        if cls._backend != "rust":
-            return "CLI"
-        from .rust_core import library_path
-
-        path = library_path()
-        return f"Rust ({path.name})" if path else "Rust"
-
-    @classmethod
-    def rust_available(cls) -> bool:
-        """Есть ли собранная Rust-библиотека."""
-        try:
-            from .rust_core import is_available
-        except Exception:
-            return False
-        return is_available()
+        return "Core"
 
     @classmethod
     def _build(cls, kind: str):
         """Создать реализацию нужного ядра."""
-        if cls._backend == "rust":
-            from .rust_core import RUST_FACTORIES
-
-            return RUST_FACTORIES[kind]()
         from .cli_core import CLI_FACTORIES
-
         return CLI_FACTORIES[kind]()
 
     # ── Ручная подмена (тесты) ─────────────────────────────────

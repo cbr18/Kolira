@@ -28,11 +28,13 @@ touched by install/update.
 1. **GUI is 100 % Python (PySide6 + QML).** The application will not be
    rewritten in Rust, C++/Qt, nor any other GUI framework. There is no "Rust
    GUI" plan.
-2. **Core and CLI are 100 % Rust.** `gui/qt-app/src/core/rust_core/` provides
-   the shared library (used by the GUI through `ctypes`, `rust_core.py`) and
-   the CLI binaries (`theme-profile`, `theme-menu`, `wallpaper-picker/next/prev`
-   in `src/bin/`). All profile mutations, `status`, wallpaper logic, settings
-   and the app registry live in Rust.
+2. **Core and CLI are 100 % Rust; the GUI has a single core.** `gui/qt-app/src/core/rust_core/`
+   provides the CLI binaries (`theme-profile`, `theme-menu`,
+   `wallpaper-picker/next/prev` in `src/bin/`); the GUI talks to them through
+   one Python adapter (`core/cli_core.py`, backend name `core`). All profile
+   mutations, `status`, wallpaper logic, settings and the app registry live in
+   Rust. The former second core — the `libkde_theme_core.so` shared library
+   behind `ctypes` — was removed; do not reintroduce a second core.
 3. **Bash is an exception, not an option.** A bash script may exist only where
    Rust genuinely cannot express the task or would cost roughly 20× the code
    with no measurable benefit — today that is limited to:
@@ -83,21 +85,20 @@ A change is not done until the docs agree with the code. At minimum:
   `$XDG_CONFIG_HOME/theme-profile`, then an existing legacy
   `~/.config/theme-profile`, then the XDG path. Profile *snapshots* keep the
   historical `.config/...` layout — do not change that without a migration.
-- **Wallpaper list ordering**: shared by bash, Python and Rust — follow symlinks,
-  extensions `jpg jpeg png webp bmp` (case-insensitive), byte/code-point order
-  (`LC_ALL=C sort` / `sorted()` / `Vec::sort()`). See the table in
+- **Wallpaper list ordering**: shared by the Rust CLI and the Python GUI core —
+  follow symlinks, extensions `jpg jpeg png webp bmp` (case-insensitive),
+  byte/code-point order (`Vec<String>::sort()` / `sorted()`). See the table in
   `gui/qt-app/README.md`.
 - **Profile scopes are read-only snapshots** in the Theme Inspector; only
-  *Live* is editable. Mutating profile operations delegate to bash
+  *Live* is editable. Mutating profile operations delegate to the Rust CLI
   `theme-profile`.
 - **`KTM_THEME_NO_APPLY=1`** disables external commands and D-Bus hooks (used by
   tests and dry runs).
 - **JSONC files** (Zed / VS Code / Cursor / Obsidian / fastfetch) are patched by
   value position and never reserialised.
-- **Two interchangeable cores**: CLI (`gui/qt-app/src/core/cli_core.py`) shells to
-  the Rust CLI for profile/wallpaper operations; Rust (`gui/qt-app/src/core/rust_core/`)
-  works natively through a shared library. Rust is the default; select with
-  `--core`, `$KTM_CORE` or *Settings → Core*.
+- **Single core**: `gui/qt-app/src/core/cli_core.py` shells to the Rust CLI for
+  profile/wallpaper operations; the backend name is `core` (`auto` is the same
+  thing). Select with `--core`, `$KTM_CORE` or *Settings → Core*.
 
 ## Verification (run before committing)
 
@@ -105,10 +106,10 @@ A change is not done until the docs agree with the code. At minimum:
 # Build the Rust CLI first
 cd gui/qt-app/src/core/rust_core && cargo build --release && cargo test && cargo clippy --all-targets -- -D warnings
 
-# Python tests (offscreen Qt; ~159 tests)
+# Python tests (offscreen Qt; 164 tests)
 cd gui/qt-app && QT_QPA_PLATFORM=offscreen uv run --project . --extra dev pytest tests -q
 
-# Bash + installer tests (~90 assertions) — from the repo root
+# Bash + installer tests (~109 assertions) — from the repo root
 bash tests/test-scripts.sh
 
 # Shell static analysis (installer scripts)

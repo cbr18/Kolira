@@ -42,8 +42,8 @@ A Qt/QML-based theme profile manager for KDE Plasma.
 Usage: kde-theme-manager [options]
 
 Options:
-  --core NAME    Core implementation: rust | cli | auto
-                 (rust is the default; auto picks rust when built)
+  --core NAME    Core implementation: core | auto
+                 (core is the default; auto picks core)
   --list-cores   Show the available cores and exit
   --help, -h     Show this help message
   --version      Show version and exit
@@ -72,7 +72,7 @@ def _extract_core_arg() -> Optional[str]:
             requested = arg.split("=", 1)[1]
         elif arg == "--core":
             if index + 1 >= len(args):
-                raise SystemExit("--core requires a value: rust | cli | auto")
+                raise SystemExit("--core requires a value: core | auto")
             index += 1
             requested = args[index]
         else:
@@ -85,20 +85,7 @@ def _extract_core_arg() -> Optional[str]:
 
 def _list_cores() -> int:
     """Print the cores and whether they can be used."""
-    from core.protocol import CoreFactory
-    from core.rust_core import find_library, library_candidates
-
-    available = CoreFactory.rust_available()
-    print(f"rust     {'available' if available else 'NOT AVAILABLE'}")
-    found = find_library()
-    if found:
-        print(f"         library: {found}")
-    else:
-        print("         build with: cargo build --release  (in src/core/rust_core)")
-        print("         searched:")
-        for candidate in library_candidates():
-            print(f"           {candidate}")
-    print("cli      always available (delegates to the Rust CLI theme-profile / wallpaper-*; local settings)")
+    print("core     always available (delegates to the Rust CLI theme-profile / wallpaper-*; local settings)")
     return 0
 
 
@@ -167,7 +154,7 @@ def _activate_on_secondary(single_instance: Optional[QLocalServer], main_window:
 def _select_core(requested: Optional[str]) -> None:
     """Choose the core backend before any controller is created.
 
-    Priority: --core flag → $KTM_CORE → saved setting → rust.
+    Priority: --core flag → $KTM_CORE → saved setting → core.
     """
     from core.protocol import CoreFactory
 
@@ -179,9 +166,9 @@ def _select_core(requested: Optional[str]) -> None:
         try:
             from core.cli_core import CliSettingsCore
 
-            requested = CliSettingsCore().load().core_backend or "rust"
+            requested = CliSettingsCore().load().core_backend or "core"
         except Exception:
-            requested = "rust"
+            requested = "core"
 
     # A core asked for by flag/env must exist; a stale saved setting must not
     # stop the application from starting.
@@ -190,23 +177,6 @@ def _select_core(requested: Optional[str]) -> None:
     except Exception as exc:  # noqa: BLE001 - report the reason and bail out
         print(f"Error: {exc}", file=sys.stderr)
         raise SystemExit(3) from exc
-
-    if explicit:
-        # Persist the choice so the launcher and the next start agree.
-        try:
-            from core.protocol import AppSettings
-            from core.cli_core import CliSettingsCore
-
-            settings_core = CliSettingsCore()
-            settings = settings_core.load()
-            if settings.core_backend != CoreFactory.backend():
-                settings_core.save(
-                    AppSettings(
-                        **{**settings.to_dict(), "core_backend": CoreFactory.backend()}
-                    )
-                )
-        except Exception as exc:  # pragma: no cover - non-fatal
-            print(f"Warning: could not save the core preference: {exc}", file=sys.stderr)
 
     print(
         f"Core: {CoreFactory.backend()} ({CoreFactory.backend_label()})",

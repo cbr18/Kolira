@@ -137,6 +137,11 @@ Kirigami.ApplicationWindow {
                 onTriggered: pageStack.layers.push(Qt.resolvedUrl("pages/ThemePage.qml"))
             },
             Kirigami.Action {
+                text: qsTr("Applications")
+                icon.name: "preferences-desktop-apps"
+                onTriggered: pageStack.layers.push(Qt.resolvedUrl("pages/ApplicationsPage.qml"))
+            },
+            Kirigami.Action {
                 text: qsTr("Settings")
                 icon.name: "settings-configure"
                 onTriggered: pageStack.layers.push(Qt.resolvedUrl("pages/SettingsPage.qml"))

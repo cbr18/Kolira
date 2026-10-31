@@ -43,15 +43,14 @@
 
 | Component | Purpose |
 |-----------|---------|
-| `gui/qt-app/` | **KDE Theme Manager** — native Qt/QML + Kirigami desktop app with profile cards, wallpaper picker, settings, system tray, and two interchangeable cores (Rust / CLI) |
+| `gui/qt-app/` | **KDE Theme Manager** — native Qt/QML + Kirigami desktop app with profile cards, wallpaper picker, settings and system tray; one core: a Python adapter over the Rust CLI binaries |
 
 Run from the source tree during development:
 
 ```bash
 cd gui/qt-app
 uv venv && uv pip install -e ".[dev]"
-uv run kde-theme-manager  # or: python -m src (Rust when built, otherwise the CLI core)
-uv run kde-theme-manager --core cli     # shell out to the Rust CLI binary
+uv run kde-theme-manager  # or: python -m src
 ```
 
 For normal use install it once — see below.
@@ -108,7 +107,7 @@ Options:
 install-theme-profile-kit.sh --help      # show help
 install-theme-profile-kit.sh --no-gui    # scripts only, no app
 
-# GUI alone (paths, --with-venv / --no-venv / --with-rust / --no-rust):
+# GUI alone (paths, --with-venv / --no-venv):
 scripts/install-kde-theme-manager.sh --help
 ```
 
@@ -116,24 +115,21 @@ A virtual environment is created inside the installed app only when the system
 Python cannot `import PySide6` (e.g. `pyside6` is not installed from the
 distro); with a system PySide6 the copy stays ~650 KB.
 
-### GUI cores / Ядра GUI
+### GUI core / Ядро GUI
 
-The app runs on either of two interchangeable cores — the CLI core (shelling out
-to the Rust `theme-profile` binaries) and the Rust core (`libkde_theme_core.so`).
-Rust is the default. Choose one:
+The app has a **single core** — a Python adapter (`core/cli_core.py`) that
+delegates to the Rust CLI binaries (`theme-profile`, `wallpaper-*`). There is
+nothing to switch; `--core`/`KTM_CORE`/Settings → Core accept only `core` (or
+`auto`, which is the same):
 
 ```bash
-kde-theme-manager --core rust      # rust | cli | auto (default; auto = rust if built)
-kde-theme-manager --core cli       # fall back to the CLI (shells to theme-profile)
-kde-theme-manager --list-cores     # show what is available and where
-KTM_CORE=rust kde-theme-manager    # per-run override
-# Settings → Core switches it for the next start
+kde-theme-manager --core core      # core | auto — one and the same core
+kde-theme-manager --list-cores     # show the core and what it delegates to
+KTM_CORE=core kde-theme-manager    # per-run override
 ```
 
-The installer ships the library as
-`~/.local/share/kde-theme-manager/lib/libkde_theme_core.so` when it is built
-(`--with-rust` builds it on demand, `--no-rust` skips it). Without the library
-the app uses the CLI core, so the GUI always starts.
+(The former second core — the `libkde_theme_core.so` shared library — was
+removed; the app always starts on the single CLI-backed core.)
 
 ## Usage / Использование
 
@@ -211,8 +207,7 @@ file touched in this session. Before the first write, originals are copied to
 Heavy components (Plasma theme, look-and-feel, icons) ask for confirmation
 because they can replace the wallpaper or panel layout. Profile scopes are
 read-only; deep settings stay in System Settings via `kcmshell6` links. The
-inspector is a separate Python module (not one of the `--core` backends), even
-when the app runs with `--core rust`.
+inspector is a separate Python module (not part of the core adapter).
 
 Tests use a temporary `$HOME`; `KTM_THEME_NO_APPLY=1` suppresses external
 commands (D-Bus, `plasma-apply-*`, `kvantummanager`) for dry runs.
@@ -276,8 +271,8 @@ See [`docs/ROLLBACK.md`](docs/ROLLBACK.md) for full instructions. Quick summary:
 
 ## Hardening / Безопасность
 
-- **Profile names** are validated (`[A-Za-z0-9][A-Za-z0-9._-]{0,63}`) in Rust,
-  Python and Rust before touching the filesystem; `..`, separators and shell
+- **Profile names** are validated (`[A-Za-z0-9][A-Za-z0-9._-]{0,63}`) in Rust
+  and Python before touching the filesystem; `..`, separators and shell
   metacharacters are rejected, and `diff` cannot traverse outside `profiles/`.
 - **Custom component lists** are validated against the known component set; an
   explicitly empty selection is rejected instead of silently applying everything.

@@ -6,8 +6,8 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use which;
 
+use crate::custom_components::merged_component_defs;
 use crate::paths::live_path;
-use crate::types::Component;
 
 /// Auto-detect the Zen Browser profile directory name inside `~/.zen`.
 ///
@@ -49,65 +49,34 @@ pub fn zen_config_paths() -> Vec<String> {
     ]
 }
 
-/// Tracked Apps Core Trait
-pub trait TrackedAppsCore {
-    fn detect_all(&self) -> Result<Vec<Component>>;
-    fn get_categories(&self) -> Result<Vec<String>>;
-    fn get_components_by_category(&self, category: &str) -> Result<Vec<Component>>;
-    fn get_all_components(&self) -> Result<Vec<Component>>;
-    fn refresh(&self) -> Result<Vec<Component>>;
-}
-
-/// Default implementation
-pub struct DefaultTrackedAppsCore;
-
-impl TrackedAppsCore for DefaultTrackedAppsCore {
-    fn detect_all(&self) -> Result<Vec<Component>> {
-        detect_all_apps()
-    }
-
-    fn get_categories(&self) -> Result<Vec<String>> {
-        get_categories()
-    }
-
-    fn get_components_by_category(&self, category: &str) -> Result<Vec<Component>> {
-        get_components_by_category(category)
-    }
-
-    fn get_all_components(&self) -> Result<Vec<Component>> {
-        get_all_components()
-    }
-
-    fn refresh(&self) -> Result<Vec<Component>> {
-        refresh()
-    }
-}
-
 /// Tracked application definition
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct TrackedAppDef {
-    id: String,
-    name: String,
-    category: String,
-    config_paths: Vec<String>,
-    detect_command: Option<String>,
-    flatpak_id: Option<String>,
-    supports_live_reload: bool,
-    description: String,
-    icon: String,
-    docs_url: String,
+pub struct TrackedAppDef {
+    pub id: String,
+    pub name: String,
+    pub category: String,
+    pub config_paths: Vec<String>,
+    pub detect_command: Option<String>,
+    pub flatpak_id: Option<String>,
+    pub supports_live_reload: bool,
+    pub description: String,
+    pub icon: String,
+    pub docs_url: String,
 }
 
 /// All tracked applications
-/// Component id → config paths, for profile-content detection
+/// Component id → config paths, for profile-content detection. Built-in +
+/// user-registered custom components are merged so new registrations are picked up
+/// the next time a profile is saved.
 pub fn component_config_paths() -> Vec<(String, Vec<String>)> {
-    get_tracked_apps()
+    let all = merged_component_defs();
+    all
         .into_iter()
         .map(|app| (app.id, app.config_paths))
         .collect()
 }
 
-fn get_tracked_apps() -> Vec<TrackedAppDef> {
+pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
     vec![
         TrackedAppDef {
             id: "kwin".to_string(),
@@ -455,19 +424,19 @@ fn build_component(app: TrackedAppDef) -> crate::types::Component {
     }
 }
 
-/// Detect all apps
+/// Detect all apps (built-in + user-registered custom components)
 pub fn detect_all_apps() -> Result<Vec<crate::types::Component>> {
-    let apps = get_tracked_apps();
+    let apps = merged_component_defs();
     let components = apps.into_iter().map(build_component).collect();
     Ok(components)
 }
 
 /// Get unique categories
 pub fn get_categories() -> Result<Vec<String>> {
-    let apps = get_tracked_apps();
+    let apps = merged_component_defs();
     let mut seen = std::collections::HashSet::new();
     let mut categories = Vec::new();
-    
+
     for app in apps {
         if seen.insert(app.category.clone()) {
             categories.push(app.category);
@@ -478,7 +447,7 @@ pub fn get_categories() -> Result<Vec<String>> {
 
 /// Get components by category
 pub fn get_components_by_category(category: &str) -> Result<Vec<crate::types::Component>> {
-    let apps = get_tracked_apps();
+    let apps = merged_component_defs();
     let components: Vec<crate::types::Component> = apps
         .into_iter()
         .filter(|a| a.category == category)
@@ -489,7 +458,7 @@ pub fn get_components_by_category(category: &str) -> Result<Vec<crate::types::Co
 
 /// Get all components
 pub fn get_all_components() -> Result<Vec<crate::types::Component>> {
-    let apps = get_tracked_apps();
+    let apps = merged_component_defs();
     let components = apps.into_iter().map(build_component).collect();
     Ok(components)
 }

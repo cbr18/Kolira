@@ -111,14 +111,27 @@ class CliProfileCore(ProfileCore):
         components = ()
         wallpaper_path = ""
 
-        # Читаем манифест если есть
+        # Читаем manifest.json (новый формат) — предпочтительнее manifest.txt
+        manifest_json = directory / "manifest.json"
+        if manifest_json.exists():
+            try:
+                content = manifest_json.read_text(encoding="utf-8")
+                data = json.loads(content)
+                created_at = data.get("created_at", "") or created_at
+                description = data.get("description", "") or description
+            except Exception:
+                pass
+
+        # Fallback to legacy manifest.txt for created_at + description
+        # (only for fields manifest.json did not provide).
         manifest = directory / "manifest.txt"
         if manifest.exists():
             try:
                 content = manifest.read_text()
                 for line in content.split("\n"):
                     if line.startswith("timestamp="):
-                        created_at = line.split("=", 1)[1]
+                        if not created_at:
+                            created_at = line.split("=", 1)[1]
                     elif line.startswith("["):
                         break
             except Exception:

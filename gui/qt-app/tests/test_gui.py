@@ -83,7 +83,7 @@ def test_import_tracked_apps() -> None:
 
 
 def test_import_cli_core() -> None:
-    """CLI core implementations must import cleanly."""
+    """core implementations must import cleanly."""
     from core.cli_core import (
         CliProfileCore,
         CliSettingsCore,
@@ -300,6 +300,267 @@ class TestCliSettingsCore:
             assert loaded.custom_components == ("kwin", "kdeglobals")
             # Preferences must not be widened to the process umask.
             assert (tmp_path / "settings.json").stat().st_mode & 0o777 == 0o600
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6b. CliTrackedAppsCore — custom components (components.json)
+# ─────────────────────────────────────────────────────────────────────────────
+class TestCliCustomComponents:
+    """The CLI-backed CRUD for user-registered custom components."""
+
+    def _make_core(self):
+        from core.tracked_apps import CliTrackedAppsCore
+
+        return CliTrackedAppsCore()
+
+    def test_list_custom_parses_ids(self) -> None:
+        core = self._make_core()
+        with mock.patch.object(core, "_run") as run:
+            run.return_value = mock.Mock(success=True, message="myapp\nother")
+            comps = core.list_custom()
+        assert [c.id for c in comps] == ["myapp", "other"]
+        assert run.call_args[0][0] == ["theme-profile", "components", "list"]
+
+    def test_list_custom_failure_returns_empty(self) -> None:
+        core = self._make_core()
+        with mock.patch.object(core, "_run") as run:
+            run.return_value = mock.Mock(success=False, message="boom")
+            assert core.list_custom() == []
+
+    def test_add_custom_sends_valid_json(self) -> None:
+        """Quotes/newlines in user fields must be escaped, not break the JSON."""
+        from core.protocol import CustomComponent
+
+        core = self._make_core()
+        with mock.patch.object(core, "_run") as run:
+            run.return_value = mock.Mock(success=True, message="Added")
+            comp = CustomComponent(
+                id="myapp",
+                name='My "quoted" app',
+                config_paths=(".config/myapp/settings.json",),
+                description="line1\nline2",
+            )
+            result = core.add_custom(comp)
+        assert result.success
+        args = run.call_args[0][0]
+        assert args[:3] == ["theme-profile", "components", "add"]
+        # The payload must parse — regression guard for the f-string builder
+        # that produced invalid JSON (and referenced an unimported `json`).
+        payload = json.loads(args[3])
+        assert payload["id"] == "myapp"
+        assert payload["name"] == 'My "quoted" app'
+        assert payload["description"] == "line1\nline2"
+        assert payload["config_paths"] == [".config/myapp/settings.json"]
+
+    def test_update_custom_uses_edit(self) -> None:
+        from core.protocol import CustomComponent
+
+        core = self._make_core()
+        with mock.patch.object(core, "_run") as run:
+            run.return_value = mock.Mock(success=True, message="Updated")
+            result = core.update_custom(CustomComponent(id="myapp", name="v2"))
+        assert result.success
+        assert run.call_args[0][0][:3] == ["theme-profile", "components", "edit"]
+
+    def test_remove_custom(self) -> None:
+        core = self._make_core()
+        with mock.patch.object(core, "_run") as run:
+            run.return_value = mock.Mock(success=True, message="Removed")
+            result = core.remove_custom("myapp")
+        assert result.success
+        assert run.call_args[0][0] == ["theme-profile", "components", "remove", "myapp"]
+
+    def test_failed_add_maps_to_error_result(self) -> None:
+        from core.protocol import CustomComponent
+
+        core = self._make_core()
+        with mock.patch.object(core, "_run") as run:
+            run.return_value = mock.Mock(success=False, message="already exists")
+            result = core.add_custom(CustomComponent(id="myapp"))
+        assert not result.success
+        assert result.message
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6c. CliProfileCore — manifest.json metadata
+# ─────────────────────────────────────────────────────────────────────────────
+class TestCliProfileManifest:
+    """_get_profile_info reads manifest.json (new) with a manifest.txt fallback."""
+
+    def _info(self, tmp_path: Path, monkeypatch, *, with_json: bool, with_txt: bool):
+        from core.cli_core import CliProfileCore
+
+        profile = tmp_path / "glass"
+        (profile / ".config").mkdir(parents=True)
+        (profile / ".config" / "kdeglobals").write_text("[General]\n")
+        if with_json:
+            (profile / "manifest.json").write_text(json.dumps({
+                "schema_version": 1,
+                "name": "glass",
+                "created_at": "2026-10-28T12:00:00+10:00",
+                "description": "Dark glass",
+            }))
+        if with_txt:
+            (profile / "manifest.txt").write_text(
+                "Generated by theme-profile\ntimestamp=2026-01-02T03:04:05\n"
+            )
+        monkeypatch.setattr("core.cli_core.profile_dir", lambda name: profile)
+        return CliProfileCore()._get_profile_info("glass", True)
+
+    def test_manifest_json_wins(self, tmp_path, monkeypatch) -> None:
+        info = self._info(tmp_path, monkeypatch, with_json=True, with_txt=True)
+        assert info.created_at == "2026-10-28T12:00:00+10:00"
+        assert info.description == "Dark glass"
+        assert "kdeglobals" in info.components
+
+    def test_legacy_txt_fallback(self, tmp_path, monkeypatch) -> None:
+        info = self._info(tmp_path, monkeypatch, with_json=False, with_txt=True)
+        assert info.created_at == "2026-01-02T03:04:05"
+        assert info.description == ""
+
+    def test_no_manifest_defaults(self, tmp_path, monkeypatch) -> None:
+        info = self._info(tmp_path, monkeypatch, with_json=False, with_txt=False)
+        assert info.created_at == ""
+        assert info.description == ""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6d. Custom component registry merge + disabled_components
+# ─────────────────────────────────────────────────────────────────────────────
+class TestCustomRegistryMerge:
+    """Python detection merges components.json with the built-in registry."""
+
+    def _write_components(self, tmp_path: Path, monkeypatch, entries: list) -> None:
+        import json as jsonlib
+
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
+        root = tmp_path / ".config" / "theme-profile"
+        root.mkdir(parents=True)
+        (root / "components.json").write_text(jsonlib.dumps({"schema_version": 1, "components": entries}))
+
+    def test_custom_component_joins_detection(self, tmp_path, monkeypatch) -> None:
+        self._write_components(tmp_path, monkeypatch, [{
+            "id": "mockapp",
+            "name": "Mock App",
+            "config_paths": [".config/mockapp/settings.conf"],
+            "reload_command": "sh -c true",
+        }])
+        from core.tracked_apps import detect_all_apps
+
+        comps = {c.id: c for c in detect_all_apps()}
+        assert "mockapp" in comps
+        assert comps["mockapp"].is_custom is True
+        assert comps["mockapp"].reload_command == "sh -c true"
+        assert comps["mockapp"].supports_live_reload is True
+        # Встроенные на месте
+        assert "kwin" in comps and comps["kwin"].is_custom is False
+
+    def test_builtin_id_shadows_custom(self, tmp_path, monkeypatch) -> None:
+        self._write_components(tmp_path, monkeypatch, [{
+            "id": "kwin",
+            "name": "Fake KWin",
+            "config_paths": [".config/kwinrc"],
+        }])
+        from core.tracked_apps import all_app_defs
+
+        defs = all_app_defs()
+        kwin = [d for d in defs if d.id == "kwin"]
+        assert len(kwin) == 1 and kwin[0].is_custom is False
+
+    def test_invalid_entry_drops_whole_custom_list(self, tmp_path, monkeypatch) -> None:
+        self._write_components(tmp_path, monkeypatch, [
+            {"id": "ok", "config_paths": [".config/ok.conf"]},
+            {"id": "../escape", "config_paths": [".config/x"]},
+        ])
+        from core.tracked_apps import all_app_defs
+
+        assert all(not d.is_custom for d in all_app_defs())
+
+    def test_missing_file_means_no_custom(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
+        from core.tracked_apps import all_app_defs
+
+        assert all(not d.is_custom for d in all_app_defs())
+
+
+class TestDisabledComponents:
+    """Галочка «отслеживать» = AppSettings.disabled_components."""
+
+    def test_round_trip(self) -> None:
+        from core.protocol import AppSettings
+
+        settings = AppSettings(
+            **{**AppSettings().to_dict(), "disabled_components": ("btop", "wofi")}
+        )
+        data = settings.to_dict()
+        assert data["disabled_components"] == ["btop", "wofi"]
+        loaded = AppSettings.from_dict(data)
+        assert loaded.disabled_components == ("btop", "wofi")
+
+    def test_old_configs_default_to_empty(self) -> None:
+        from core.protocol import AppSettings
+
+        assert AppSettings.from_dict({}).disabled_components == ()
+
+
+class TestTrackedAppsControllerCrud:
+    """Валидация полей пользовательского компонента (страница «Приложения»)."""
+
+    def _validate(self, fields: dict):
+        from controllers import TrackedAppsController
+
+        return TrackedAppsController._custom_from_dict(fields)
+
+    def test_valid_minimal(self) -> None:
+        comp, error = self._validate({
+            "name": "Mock App",
+            "configPaths": [".config/mockapp/settings.conf"],
+        })
+        assert error == ""
+        assert comp.id == "Mock-App" or comp.id  # авто-id из имени
+        assert comp.category == "Custom"
+        assert comp.icon == "application-x-executable"
+
+    def test_auto_id_slug_from_name(self) -> None:
+        comp, error = self._validate({"name": "My Cool App", "configPaths": [".config/x"]})
+        assert error == ""
+        assert comp.id == "My-Cool-App"
+
+    def test_name_required(self) -> None:
+        _, error = self._validate({"name": "  ", "configPaths": [".config/x"]})
+        assert error
+
+    def test_at_least_one_path(self) -> None:
+        _, error = self._validate({"name": "X", "configPaths": []})
+        assert error
+
+    def test_path_must_be_relative(self) -> None:
+        for bad in ["/etc/passwd", ".config/../../escape"]:
+            _, error = self._validate({"name": "X", "configPaths": [bad]})
+            assert error, bad
+
+    def test_reload_command_rejects_shell_characters(self) -> None:
+        _, error = self._validate({
+            "name": "X", "configPaths": [".config/x"], "reloadCommand": "a|b",
+        })
+        assert "shell" in error
+
+    def test_reload_command_binary_must_exist(self) -> None:
+        _, error = self._validate({
+            "name": "X",
+            "configPaths": [".config/x"],
+            "reloadCommand": "definitely-not-a-real-binary-ktm",
+        })
+        assert "PATH" in error
+
+    def test_reload_command_accepts_real_binary(self) -> None:
+        comp, error = self._validate({
+            "name": "X", "configPaths": [".config/x"], "reloadCommand": "sh -c true",
+        })
+        assert error == ""
+        assert comp.supports_live_reload is True
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -886,7 +1147,7 @@ def test_theme_controller_applies_palette() -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 23. CLI core uses shutil.which for binary path resolution
+# 23. core uses shutil.which for binary path resolution
 # ─────────────────────────────────────────────────────────────────────────────
 def test_cli_core_binary_resolution() -> None:
     """cli_core.py must use shutil.which with ~/.local/bin fallback for theme-profile."""
@@ -1370,208 +1631,51 @@ def test_icon_name_survives_kde_icon_loader() -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 30. Rust core: library lookup, FFI contract, graceful degradation
+# 30. Core factory fixture (single core)
 #
-# The Rust core is an optional drop-in: a shared library behind a C ABI of
-# `*mut c_char` JSON payloads (freed with kde_theme_core_free_string) and
-# c_int status codes. Without the library everything must degrade to the
-# CLI core instead of crashing.
+# The former Rust-library core (libkde_theme_core.so behind a C ABI) was
+# removed together with its FFI and parity tests. What remains is the shared
+# fixture and the single-core selection tests below.
 # ─────────────────────────────────────────────────────────────────────────────
-RUST_LIB = (
-    PROJECT_ROOT / "src" / "core" / "rust_core" / "target" / "release"
-    / "libkde_theme_core.so"
-)
-needs_rust_lib = pytest.mark.skipif(
-    not RUST_LIB.is_file(), reason="libkde_theme_core.so is not built"
-)
 
 
 @pytest.fixture
 def core_factory():
-    """Keep CoreFactory on the CLI backend around a test."""
+    """Keep CoreFactory on the core backend around a test."""
     from core.protocol import CoreFactory
 
-    CoreFactory.set_backend("cli")
+    CoreFactory.set_backend("core")
     try:
         yield CoreFactory
     finally:
-        CoreFactory.set_backend("cli")
-
-
-def test_rust_core_library_candidates_cover_both_layouts(monkeypatch) -> None:
-    """Source checkout and installed app layouts must both be searched."""
-    from core import rust_core
-
-    override = Path("/tmp/opencode/does-not-exist/libkde_theme_core.so")
-    monkeypatch.setenv(rust_core.LIBRARY_ENV_VAR, str(override))
-    candidates = rust_core.library_candidates()
-
-    assert candidates[0] == override, "the env override must win"
-    as_text = [str(c) for c in candidates]
-    assert any(c.endswith("rust_core/target/release/libkde_theme_core.so") for c in as_text), (
-        "the cargo build tree must be searched"
-    )
-    # Installed layout: <appdir>/lib, where <appdir> is the package's parent.
-    assert str(PROJECT_ROOT / "lib" / rust_core.LIBRARY_NAME) in as_text, (
-        "the installed app keeps the library in <appdir>/lib"
-    )
-
-
-def test_rust_core_reports_a_missing_library(tmp_path) -> None:
-    from core import rust_core
-
-    with pytest.raises(rust_core.RustCoreUnavailable) as excinfo:
-        rust_core.load_library(path=tmp_path / "nope.so", reload=True)
-
-    assert "nope.so" in str(excinfo.value)
-    # A bogus path must be reported through the inspection API, not raised.
-    assert rust_core.find_library() is None or rust_core.find_library().is_file()
-
-
-def test_rust_core_mapping_helpers() -> None:
-    """The JSON payloads must map onto the protocol dataclasses."""
-    from core import rust_core
-    from core.protocol import AppStatus
-
-    info = rust_core._profile_info(
-        {"name": "glass", "is_active": True, "components": ["kwin"],
-         "created_at": "2026-10-19", "description": "d", "wallpaper_path": "w"}
-    )
-    assert (info.name, info.is_active, info.components) == ("glass", True, ("kwin",))
-    assert info.created_at == "2026-10-19" and info.wallpaper_path == "w"
-
-    # An unknown status must not explode — the UI shows "partial".
-    component = rust_core._component({"id": "kitty", "status": "who-knows"})
-    assert component.status is AppStatus.PARTIAL
-    known = rust_core._component({"id": "kitty", "status": AppStatus.AVAILABLE.value})
-    assert known.status is AppStatus.AVAILABLE
-
-    assert rust_core._json_argument(None) is None
-    # An explicit empty list must stay an array so the Rust core can reject it;
-    # collapsing it to None silently applied every component.
-    assert rust_core._json_argument([]) == "[]"
-    assert json.loads(rust_core._json_argument(["kwin", "gtk3"])) == ["kwin", "gtk3"]
-
-
-def test_rust_core_declares_types_for_a_fixed_signature_table() -> None:
-    """Every FFI entry must carry its argument types and result kind."""
-    from core import rust_core
-
-    kinds = {rust_core._JSON, rust_core._TEXT, rust_core._STATUS}
-    for name, (argtypes, kind) in rust_core._FUNCTIONS.items():
-        assert name.startswith("kde_theme_core_"), name
-        assert kind in kinds, f"{name}: unknown result kind {kind!r}"
-        assert all(t is ctypes.c_char_p for t in argtypes), name
-
-    # Pointers must never be passed as bare Python ints (ctypes would truncate
-    # them to C int and the library would crash inside free()).
-    assert rust_core._FUNCTIONS["kde_theme_core_profile_apply"][0] == [
-        ctypes.c_char_p, ctypes.c_char_p
-    ]
-
-
-@needs_rust_lib
-def test_rust_core_library_exports_the_declared_surface() -> None:
-    from core import rust_core
-
-    library = rust_core.load_library()
-    for name in rust_core._FUNCTIONS:
-        assert getattr(library, name, None) is not None, f"{name} is not exported"
-
-    # Guards the segfault class of bug: without argtypes ctypes truncates the
-    # returned pointer before handing it to free().
-    assert library.kde_theme_core_free_string.argtypes == [ctypes.c_void_p]
-    assert library.kde_theme_core_get_error.restype is ctypes.c_void_p
-
-
-@needs_rust_lib
-def test_rust_core_status_calls_map_errors_to_result(core_factory) -> None:
-    from core.rust_core import RustProfileCore
-
-    result = RustProfileCore().apply("there-is-no-such-profile")
-    assert not result.success and result.message
+        CoreFactory.set_backend("core")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 31. Parity: the two cores must stay interchangeable
-#
-# Same listing order, same current wallpaper, same component detection, same
-# diff text — switching cores (--core) must not change what the UI shows.
+# 31. Single-core behaviour (the valuable half of the old parity suite)
 # ─────────────────────────────────────────────────────────────────────────────
-@needs_rust_lib
-class TestCoreParity:
-    @staticmethod
-    def cores():
-        from core.cli_core import (
-            CliProfileCore,
-            CliSettingsCore,
-            CliTrackedAppsCore,
-            CliWallpaperCore,
-        )
-        from core.rust_core import (
-            RustProfileCore,
-            RustSettingsCore,
-            RustTrackedAppsCore,
-            RustWallpaperCore,
-        )
-
-        return (
-            (CliProfileCore(), RustProfileCore()),
-            (CliWallpaperCore(), RustWallpaperCore()),
-            (CliTrackedAppsCore(), RustTrackedAppsCore()),
-            (CliSettingsCore(), RustSettingsCore()),
-        )
-
-    def test_profiles(self, core_factory) -> None:
-        (py, rust), *_ = self.cores()
-
-        py_profiles = py.list_profiles()
-        rust_profiles = rust.list_profiles()
-        assert [p.name for p in rust_profiles] == [p.name for p in py_profiles]
-        for expected, actual in zip(py_profiles, rust_profiles, strict=True):
-            assert actual.is_active == expected.is_active
-            assert actual.components == expected.components
-            assert actual.created_at == expected.created_at
-
-        assert rust.get_active_profile() == py.get_active_profile()
-
-    def test_profile_components_and_diff(self, core_factory) -> None:
-        (py, rust), *_ = self.cores()
-
-        for profile in [p.name for p in py.list_profiles()]:
-            assert rust.get_profile_components(profile) == py.get_profile_components(profile)
-
-        names = [p.name for p in py.list_profiles()][:2]
-        if len(names) == 2:
-            assert rust.diff(*names) == py.diff(*names)
-
+class TestSingleCore:
     def test_profile_rejects_empty_and_unknown_components(self, core_factory) -> None:
         """``[]`` means "nothing selected", never "all components"."""
-        (py, rust), *_ = self.cores()
-        profiles = [p.name for p in py.list_profiles()]
+        from core.cli_core import CliProfileCore
+
+        core = CliProfileCore()
+        profiles = [p.name for p in core.list_profiles()]
         if not profiles:
             pytest.skip("no profiles in the fixture")
         profile = profiles[0]
 
-        assert not py.apply(profile, []).success
-        assert not rust.apply(profile, []).success
-        assert not py.save(f"{profile}-copy", []).success
-        assert not rust.save(f"{profile}-copy", []).success
-        assert not py.apply(profile, ["not-a-component"]).success
-        assert not rust.apply(profile, ["not-a-component"]).success
-
-    def test_wallpapers(self, core_factory) -> None:
-        _, (py, rust), *_ = self.cores()
-
-        assert rust.list_wallpapers() == py.list_wallpapers()
-        assert rust.current() == py.current()
+        assert not core.apply(profile, []).success
+        assert not core.save(f"{profile}-copy", []).success
+        assert not core.apply(profile, ["not-a-component"]).success
 
     def test_wallpaper_directory_comes_from_the_settings(self, core_factory, tmp_path) -> None:
-        """A settings directory must reach the library (set_dir), not be ignored.
+        """A settings directory must reach the CLI core, not be ignored.
 
         The cached index is a *position* in the list the app displays, so the
-        library listing another directory would make next/prev jump elsewhere.
+        core listing another directory would make next/prev jump elsewhere.
         """
+        from core.cli_core import CliWallpaperCore
         from core.protocol import AppSettings
 
         (tmp_path / "a.jpg").write_bytes(b"x")
@@ -1585,59 +1689,34 @@ class TestCoreParity:
 
         core_factory.set_settings_core(FakeSettings())
 
-        from core.cli_core import CliWallpaperCore
-        from core.rust_core import RustWallpaperCore
+        listed = CliWallpaperCore().list_wallpapers()
+        assert [Path(p).name for p in listed] == ["0-link.webp", "B.PNG", "a.jpg"]
 
-        rust_listed = RustWallpaperCore().list_wallpapers()
-        assert rust_listed == CliWallpaperCore().list_wallpapers()
-        assert [Path(p).name for p in rust_listed] == ["0-link.webp", "B.PNG", "a.jpg"]
-
-    def test_tracked_apps(self, core_factory) -> None:
-        *_, (py, rust), _ = self.cores()
-
-        py_apps = py.detect_all()
-        rust_apps = rust.detect_all()
-        assert [(c.id, c.status) for c in rust_apps] == [(c.id, c.status) for c in py_apps]
-        assert [c.config_paths for c in rust_apps] == [c.config_paths for c in py_apps]
-        assert rust.get_categories() == py.get_categories()
-
-    def test_settings(self, core_factory) -> None:
-        *_, (py, rust) = self.cores()
-
-        assert rust.get_defaults().to_dict() == py.get_defaults().to_dict()
-        assert rust.load().to_dict() == py.load().to_dict()
-
-    def test_settings_round_trip_keeps_the_core_choice(self, core_factory, monkeypatch, tmp_path) -> None:
-        """Saving through the Rust core must keep `core_backend` (it is a setting).
-
-        Switching to Rust and saving the settings would otherwise silently flip
-        back to Python on the next start.
-        """
+    def test_settings_round_trip_keeps_the_core_choice(self, core_factory, tmp_path) -> None:
+        """Saving settings through the core must keep `core_backend` (it is a setting)."""
+        from core.cli_core import CliSettingsCore
         from core.protocol import AppSettings
-        from core.rust_core import RustSettingsCore
-
-        monkeypatch.setenv("HOME", str(tmp_path))
-        # The core is XDG-aware: pin XDG_CONFIG_HOME too, otherwise the test
-        # writes into the real ~/.config when the host session exports it.
-        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
 
         saved = AppSettings(
-            **{**AppSettings().to_dict(), "core_backend": "rust", "theme": "paper"}
+            **{**AppSettings().to_dict(), "core_backend": "core", "theme": "paper"}
         )
-        assert RustSettingsCore().save(saved).success
+        target = tmp_path / "theme-profile" / "app-preferences.json"
+        # Pin the module-level path: SETTINGS_FILE resolves the *legacy*
+        # ~/.config/theme-profile first, so env overrides alone would write
+        # into the real user directory.
+        with mock.patch("core.cli_core.SETTINGS_FILE", target):
+            assert CliSettingsCore().save(saved).success
 
-        written = tmp_path / ".config" / "theme-profile" / "app-preferences.json"
-        assert written.is_file(), "the Rust core must create the config directory"
+            assert target.is_file(), "the core must create the config directory"
 
-        loaded = RustSettingsCore().load()
-        assert loaded.core_backend == "rust"
-        assert loaded.theme == "paper"
-        assert loaded.to_dict() == saved.to_dict()
-        # …and the file must stay readable by the CLI core.
-        assert AppSettings.from_dict(json.loads(written.read_text())).to_dict() == saved.to_dict()
+            loaded = CliSettingsCore().load()
+            assert loaded.core_backend == "core"
+            assert loaded.theme == "paper"
+            assert loaded.to_dict() == saved.to_dict()
+            assert AppSettings.from_dict(json.loads(target.read_text())).to_dict() == saved.to_dict()
 
-    def test_mutating_profile_operations_go_through_the_script(self, core_factory) -> None:
-        """apply/save must be native Rust — no delegation to a shell script.
+    def test_mutating_profile_operations_are_native_rust(self, core_factory) -> None:
+        """apply/save must be native Rust in profile.rs — no shell-out to scripts.
 
         The historical bash-owned implementation copied profile entries to
         `~/<component>` (`kwinrc` → `~/kwin`) and restarted plasmashell on
@@ -1656,65 +1735,29 @@ class TestCoreParity:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 32. Core selection: --core flag, $KTM_CORE, saved setting, fallback
+# 32. Core selection: --core flag, $KTM_CORE, saved setting
 # ─────────────────────────────────────────────────────────────────────────────
 def test_core_factory_rejects_unknown_backend(core_factory) -> None:
     with pytest.raises(ValueError):
         core_factory.set_backend("cobol")
 
 
-def test_core_factory_auto_prefers_rust_when_built(core_factory, monkeypatch) -> None:
-    monkeypatch.setattr(core_factory, "rust_available", classmethod(lambda cls: True))
-    assert core_factory.set_backend("auto") == "rust"
+def test_core_factory_auto_and_legacy_names_resolve_to_core(core_factory, monkeypatch) -> None:
+    """`auto` and the legacy `rust`/`cli` spellings must land on the single core."""
+    assert core_factory.set_backend("auto") == "core"
+    assert core_factory.set_backend("rust") == "core"
+    assert core_factory.set_backend("cli") == "core"
 
-
-def test_core_factory_auto_falls_back_to_cli(core_factory, monkeypatch) -> None:
-    monkeypatch.setattr(core_factory, "rust_available", classmethod(lambda cls: False))
-    assert core_factory.set_backend("auto") == "cli"
-
-
-def test_core_factory_strict_rust_failure_is_loud(core_factory, monkeypatch) -> None:
-    from core.rust_core import RustCoreUnavailable
-
-    monkeypatch.setattr(core_factory, "rust_available", classmethod(lambda cls: False))
-    with pytest.raises(RustCoreUnavailable):
-        core_factory.set_backend("rust")
-
-
-def test_core_factory_soft_fallback_warns(core_factory, monkeypatch, capsys) -> None:
-    monkeypatch.setattr(core_factory, "rust_available", classmethod(lambda cls: False))
-
-    assert core_factory.set_backend("rust", strict=False) == "cli"
-    err = capsys.readouterr().err
-    assert "falling back" in err
-    assert "CLI core" in err
+    monkeypatch.setenv(core_factory.ENV_VAR, "rust")
+    assert core_factory.set_backend_from_env() == "core"
 
 
 def test_core_factory_reads_the_environment(core_factory, monkeypatch) -> None:
-    monkeypatch.setenv(core_factory.ENV_VAR, "cli")
-    assert core_factory.set_backend_from_env() == "cli"
+    monkeypatch.setenv(core_factory.ENV_VAR, "core")
+    assert core_factory.set_backend_from_env() == "core"
 
     monkeypatch.delenv(core_factory.ENV_VAR)
-    assert core_factory.set_backend_from_env(default="cli") == "cli"
-
-
-@needs_rust_lib
-def test_core_factory_builds_rust_implementations(core_factory) -> None:
-    import core.rust_core as rust_core
-
-    assert core_factory.set_backend("rust") == "rust"
-    assert isinstance(core_factory.profile_core(), rust_core.RustProfileCore)
-    assert isinstance(core_factory.wallpaper_core(), rust_core.RustWallpaperCore)
-    assert isinstance(core_factory.tracked_apps_core(), rust_core.RustTrackedAppsCore)
-    assert isinstance(core_factory.settings_core(), rust_core.RustSettingsCore)
-    assert "libkde_theme_core.so" in core_factory.backend_label()
-
-    # Switching back must rebuild the CLI implementations.
-    assert core_factory.set_backend("cli") == "cli"
-    from core.cli_core import CliProfileCore
-
-    assert isinstance(core_factory.profile_core(), CliProfileCore)
-    assert core_factory.backend_label() == "CLI"
+    assert core_factory.set_backend_from_env(default="core") == "core"
 
 
 def test_settings_expose_the_core_selector() -> None:
@@ -1724,19 +1767,19 @@ def test_settings_expose_the_core_selector() -> None:
     source = (SRC_DIR / "controllers" / "__init__.py").read_text()
     assert "def coreBackend" in source
     assert "def activeCore" in source
-    assert "def rustCoreBuilt" in source
 
     qml = (PROJECT_ROOT / "qml" / "pages" / "SettingsPage.qml").read_text()
     assert 'settingsController.coreBackend' in qml
-    assert 'model: ["rust", "cli", "auto"]' in qml
 
     defaults = AppSettings()
-    assert defaults.core_backend == "rust"
-    assert AppSettings.from_dict({}).core_backend == "rust"
-    assert AppSettings.from_dict({"core_backend": "rust"}).core_backend == "rust"
-    assert AppSettings.from_dict({"core_backend": "cli"}).core_backend == "cli"
-    assert AppSettings.from_dict({"core_backend": "bogus"}).core_backend == "rust"
-    assert defaults.to_dict()["core_backend"] == "rust"
+    assert defaults.core_backend == "core"
+    assert AppSettings.from_dict({}).core_backend == "core"
+    assert AppSettings.from_dict({"core_backend": "core"}).core_backend == "core"
+    # Наследие эпохи двух ядер и мусор схлопываются в единственное ядро.
+    assert AppSettings.from_dict({"core_backend": "rust"}).core_backend == "core"
+    assert AppSettings.from_dict({"core_backend": "cli"}).core_backend == "core"
+    assert AppSettings.from_dict({"core_backend": "bogus"}).core_backend == "core"
+    assert defaults.to_dict()["core_backend"] == "core"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1755,11 +1798,10 @@ def _load_main_module():
 @pytest.mark.parametrize(
     "argv, expected, rest",
     [
-        (["--core=rust"], "rust", []),
-        (["--core", "rust"], "rust", []),
+        (["--core=core"], "core", []),
+        (["--core", "core"], "core", []),
         (["--core=auto", "--verbose"], "auto", ["--verbose"]),
-        (["--core", "cli", "file.qml"], "cli", ["file.qml"]),
-        (["--core", "cli", "file.qml"], "cli", ["file.qml"]),
+        (["--core", "core", "file.qml"], "core", ["file.qml"]),
         ([], None, []),
     ],
 )
@@ -1780,35 +1822,32 @@ def test_core_flag_without_a_value_is_an_error(monkeypatch) -> None:
         main_module._extract_core_arg()
 
 
-def test_explicit_core_that_cannot_load_is_fatal(core_factory, monkeypatch, capsys) -> None:
+def test_explicit_unknown_core_is_fatal(core_factory, monkeypatch, capsys) -> None:
+    """An explicit --core naming a nonexistent backend must fail loudly (exit 3)."""
     main_module = _load_main_module()
-    monkeypatch.setattr(core_factory, "rust_available", classmethod(lambda cls: False))
 
     with pytest.raises(SystemExit) as excinfo:
-        main_module._select_core("rust")
+        main_module._select_core("bogus")
 
     assert excinfo.value.code == 3
     assert "Error:" in capsys.readouterr().err
 
 
-def test_stale_saved_core_falls_back_instead_of_failing(core_factory, monkeypatch, capsys) -> None:
-    """A setting pointing at a since-removed library must not break startup."""
+def test_stale_saved_core_setting_is_normalized(core_factory, monkeypatch, capsys) -> None:
+    """A legacy saved preference (e.g. "rust") must not break startup."""
     from core.protocol import AppSettings
 
     main_module = _load_main_module()
     import core.cli_core as cli_core
 
-    monkeypatch.setattr(core_factory, "rust_available", classmethod(lambda cls: False))
     monkeypatch.delenv(core_factory.ENV_VAR, raising=False)
-
-    saved: list[AppSettings] = []
 
     class FakeSettingsCore:
         def load(self):
+            # Saved by an older version that still had two cores.
             return AppSettings(**{**AppSettings().to_dict(), "core_backend": "rust"})
 
         def save(self, settings):
-            saved.append(settings)
             from core.protocol import Result
 
             return Result.ok()
@@ -1817,36 +1856,7 @@ def test_stale_saved_core_falls_back_instead_of_failing(core_factory, monkeypatc
 
     main_module._select_core(None)
 
-    assert core_factory.backend() == "cli"
-    assert "falling back" in capsys.readouterr().err
-    assert saved == [], "a fallback must not overwrite the saved preference"
-
-
-def test_explicit_core_is_persisted(core_factory, monkeypatch) -> None:
-    from core.protocol import AppSettings
-
-    main_module = _load_main_module()
-    import core.cli_core as cli_core
-
-    monkeypatch.delenv(core_factory.ENV_VAR, raising=False)
-    saved: list[AppSettings] = []
-
-    class FakeSettingsCore:
-        def load(self):
-            # Saved as "rust"; the flag asks for cli → the preference flips.
-            return AppSettings(**{**AppSettings().to_dict(), "core_backend": "rust"})
-
-        def save(self, settings):
-            saved.append(settings)
-            from core.protocol import Result
-
-            return Result.ok()
-
-    monkeypatch.setattr(cli_core, "CliSettingsCore", FakeSettingsCore)
-
-    main_module._select_core("cli")
-
-    assert [s.core_backend for s in saved] == ["cli"]
+    assert core_factory.backend() == "core"
 
 
 def test_list_cores_reports_availability(capsys) -> None:
@@ -1854,7 +1864,7 @@ def test_list_cores_reports_availability(capsys) -> None:
     assert main_module._list_cores() == 0
 
     out = capsys.readouterr().out
-    assert "cli" in out and "rust" in out
+    assert "core" in out
     assert ("available" in out) or ("NOT AVAILABLE" in out)
 
 

@@ -9,7 +9,8 @@ use std::process::ExitCode;
 
 use kde_theme_core::paths::validate_profile_name;
 use kde_theme_core::profile::{
-    apply_profile_cli, delete_profile, diff_profiles, list_profiles, save_profile_cli,
+    apply_profile_cli, delete_profile, diff_profiles, list_profiles,
+    save_profile_cli, set_profile_description, get_profile_description,
 };
 use kde_theme_core::status::status;
 
@@ -17,10 +18,12 @@ const USAGE: &str = "\
 Usage:
   theme-profile status
   theme-profile list
-  theme-profile save NAME [--components=comp1,comp2]
+  theme-profile save NAME [--components=comp1,comp2] [--description=...]
   theme-profile apply NAME [--components=comp1,comp2]
   theme-profile diff A B
   theme-profile delete NAME
+  theme-profile describe NAME [--set=...]
+  theme-profile components <list|add|edit|remove> [json_or_id]
 
 Components: kwin, plasma_shell, kdeglobals, gtk3, gtk4, qt5ct,
             klassy, kvantum, alacritty, kitty, wofi, btop,
@@ -33,19 +36,22 @@ Profiles live in $XDG_CONFIG_HOME/theme-profile/profiles
 (default: ~/.config/theme-profile/profiles).
 ";
 
-/// Pull `--components=...` out of the arguments, returning
-/// (positional args, raw component spec).
-fn parse_args(args: &[String]) -> (Vec<&str>, Option<String>) {
+/// Pull `--components=...` and optional `--description=...` out of the
+/// arguments, returning (positional args, raw component spec, description).
+fn parse_args(args: &[String]) -> (Vec<&str>, Option<String>, Option<String>) {
     let mut positional = Vec::new();
     let mut components: Option<String> = None;
+    let mut description: Option<String> = None;
     for arg in args {
         if let Some(rest) = arg.strip_prefix("--components=") {
             components = Some(rest.to_string());
+        } else if let Some(rest) = arg.strip_prefix("--description=") {
+            description = Some(rest.to_string());
         } else {
             positional.push(arg.as_str());
         }
     }
-    (positional, components)
+    (positional, components, description)
 }
 
 /// Split the raw component spec the way the bash CLI did:
@@ -101,8 +107,90 @@ fn main() -> ExitCode {
             }
             Err(e) => fail(e),
         },
+        "components" => {
+            let sub = args.get(1).map(|s| s.as_str()).unwrap_or("");
+            match sub {
+                "list" => {
+                    use kde_theme_core::custom_components::load_custom_components;
+                    match load_custom_components() {
+                        Ok(components) => {
+                            for c in components {
+                                println!("{}", c.id);
+                            }
+                            ExitCode::SUCCESS
+                        }
+                        Err(e) => fail(e),
+                    }
+                }
+                "add" => {
+                    if args.len() < 3 {
+                        eprint!("{USAGE}");
+                        return fail("Usage: theme-profile components add <json>");
+                    }
+                    let json = &args[2];
+                    use kde_theme_core::custom_components::add_custom_component;
+                    match serde_json::from_str::<kde_theme_core::custom_components::CustomComponent>(json) {
+                        Ok(mut c) => {
+                            c.is_custom = true;
+                            match add_custom_component(c.clone()) {
+                                Ok(()) => {
+                                    println!("Added component: {}", c.id);
+                                    ExitCode::SUCCESS
+                                }
+                                Err(e) => fail(e),
+                            }
+                        }
+                        Err(e) => fail(format!("Invalid JSON: {e}")),
+                    }
+                }
+                "edit" => {
+                    if args.len() < 3 {
+                        eprint!("{USAGE}");
+                        return fail("Usage: theme-profile components edit <json>");
+                    }
+                    let json = &args[2];
+                    use kde_theme_core::custom_components::update_custom_component;
+                    match serde_json::from_str::<kde_theme_core::custom_components::CustomComponent>(json) {
+                        Ok(mut c) => {
+                            c.is_custom = true;
+                            match update_custom_component(c.clone()) {
+                                Ok(()) => {
+                                    println!("Updated component: {}", c.id);
+                                    ExitCode::SUCCESS
+                                }
+                                Err(e) => fail(e),
+                            }
+                        }
+                        Err(e) => fail(format!("Invalid JSON: {e}")),
+                    }
+                }
+                "remove" => {
+                    if args.len() < 3 {
+                        eprint!("{USAGE}");
+                        return fail("Usage: theme-profile components remove <id>");
+                    }
+                    let id = &args[2];
+                    use kde_theme_core::custom_components::remove_custom_component;
+                    match remove_custom_component(id) {
+                        Ok(()) => {
+                            println!("Removed component: {}", id);
+                            ExitCode::SUCCESS
+                        }
+                        Err(e) => fail(e),
+                    }
+                }
+                "" => {
+                    eprint!("{USAGE}");
+                    fail("Usage: theme-profile components <list|add|edit|remove>")
+                }
+                _ => {
+                    eprint!("{USAGE}");
+                    fail(format!("Unknown subcommand: {}", sub))
+                }
+            }
+        }
         "save" => {
-            let (positional, raw) = parse_args(&args[1..]);
+            let (positional, raw, desc) = parse_args(&args[1..]);
             let Some(name) = positional.first().copied() else {
                 eprint!("{USAGE}");
                 return fail("Usage error: save requires a profile name");
@@ -122,13 +210,18 @@ fn main() -> ExitCode {
             match save_profile_cli(name, components) {
                 Ok(()) => {
                     println!("Saved profile: {name}{}", component_suffix(raw.as_deref()));
+                    if let Some(desc) = desc.as_deref() {
+                        if let Err(e) = set_profile_description(name, desc) {
+                            eprintln!("Warning: could not save description: {e}");
+                        }
+                    }
                     ExitCode::SUCCESS
                 }
                 Err(e) => fail(e),
             }
         }
         "apply" => {
-            let (positional, raw) = parse_args(&args[1..]);
+            let (positional, raw, _desc) = parse_args(&args[1..]);
             let Some(name) = positional.first().copied() else {
                 eprint!("{USAGE}");
                 return fail("Usage error: apply requires a profile name");
@@ -181,6 +274,33 @@ fn main() -> ExitCode {
                 }
                 Err(e) => fail(e),
             }
+        }
+        "describe" => {
+            let name = args.get(1).map(String::as_str).unwrap_or("");
+            if name.is_empty() {
+                eprint!("{USAGE}");
+                return fail("Usage error: describe requires a profile name");
+            }
+            // Extract --set from the remaining args.
+            let set = args.iter().find_map(|a| a.strip_prefix("--set="));
+            if let Some(value) = set {
+                match set_profile_description(name, value) {
+                    Ok(()) => println!("Description updated."),
+                    Err(e) => return fail(e),
+                }
+            } else {
+                match get_profile_description(name) {
+                    Ok(d) => {
+                        if d.is_empty() {
+                            println!("(no description)");
+                        } else {
+                            println!("{d}");
+                        }
+                    }
+                    Err(e) => return fail(e),
+                }
+            }
+            ExitCode::SUCCESS
         }
         "--help" | "-h" => {
             print!("{USAGE}");

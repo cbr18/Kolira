@@ -7,6 +7,7 @@ Controllers — слой между UI (QML) и Core.
 
 from typing import Callable, Optional
 from dataclasses import dataclass
+import shutil
 import sys
 
 from PySide6.QtCore import (
@@ -15,7 +16,7 @@ from PySide6.QtCore import (
 
 from core.protocol import (
     ProfileCore, WallpaperCore, TrackedAppsCore, SettingsCore,
-    ProfileInfo, Component, AppStatus, Result, AppSettings
+    ProfileInfo, Component, AppStatus, Result, AppSettings, CustomComponent
 )
 from core import CoreFactory
 from core.paths import validate_profile_name
@@ -213,9 +214,16 @@ class ProfileController(QObject):
     def _settings_components(self) -> tuple[Optional[list[str]], str]:
         settings_core = CoreFactory.settings_core()
         settings = settings_core.load()
+        disabled = set(settings.disabled_components)
         if settings.default_components_mode == "all":
-            return None, ""
-        components = list(settings.custom_components)
+            if not disabled:
+                return None, ""
+            known = [c.id for c in CoreFactory.tracked_apps_core().get_all_components()]
+            components = [c for c in known if c not in disabled]
+            if not components:
+                return None, "All components are disabled (see Applications)"
+            return components, ""
+        components = [c for c in settings.custom_components if c not in disabled]
         if not components:
             return None, "Select at least one component in Settings"
         return components, ""
@@ -456,6 +464,12 @@ class TrackedAppsController(QObject):
             AppStatus.PARTIAL: "Частично",
         }[status]
 
+    def _disabled_ids(self) -> set[str]:
+        try:
+            return set(CoreFactory.settings_core().load().disabled_components)
+        except Exception:
+            return set()
+
     def _component_to_dict(self, c: Component) -> dict:
         """Полное представление компонента (для self.components)."""
         return {
@@ -469,6 +483,9 @@ class TrackedAppsController(QObject):
             "icon": c.icon,
             "docsUrl": c.docs_url,
             "configPaths": list(c.config_paths),
+            "isCustom": c.is_custom,
+            "reloadCommand": c.reload_command,
+            "enabled": c.id not in self._disabled_ids(),
         }
 
     def _category_entry(self, c: Component) -> dict:
@@ -482,6 +499,9 @@ class TrackedAppsController(QObject):
             "description": c.description,
             "icon": c.icon,
             "docsUrl": c.docs_url,
+            "isCustom": c.is_custom,
+            "reloadCommand": c.reload_command,
+            "enabled": c.id not in self._disabled_ids(),
         }
 
     def _install_detection(self, components: list[Component]) -> None:
@@ -533,6 +553,132 @@ class TrackedAppsController(QObject):
     def getComponentsByCategory(self, category: str) -> list:
         """Компоненты категории из предвычисленного кэша."""
         return self._components_by_category.get(category, [])
+
+    @Slot(str, bool)
+    def setComponentTracked(self, comp_id: str, tracked: bool) -> None:
+        """Галочка «отслеживать» (страница «Приложения»)."""
+        settings_core = CoreFactory.settings_core()
+        settings = settings_core.load()
+        disabled = set(settings.disabled_components)
+        if tracked:
+            disabled.discard(comp_id)
+        else:
+            disabled.add(comp_id)
+        if disabled == set(settings.disabled_components):
+            return
+        settings_core.save(AppSettings(
+            **{**settings.to_dict(), "disabled_components": tuple(sorted(disabled))}
+        ))
+        self._install_detection(self._components)
+
+    # ── Пользовательские компоненты: CRUD ─────────────────────
+
+    _RELOAD_FORBIDDEN = set("|&;<>$`\"'\n\r")
+
+    @classmethod
+    def _validate_reload_command(cls, command: str) -> str:
+        """Ранняя валидация (зеркало Rust validate_reload_command)."""
+        if not command:
+            return ""
+        bad = next((ch for ch in command if ch in cls._RELOAD_FORBIDDEN), None)
+        if bad is not None:
+            return f"Reload command contains a forbidden shell character: {bad!r}"
+        binary = command.split()[0]
+        if shutil.which(binary) is None:
+            return f"Reload command binary not found in PATH: {binary}"
+        return ""
+
+    @staticmethod
+    def _custom_from_dict(fields: dict) -> tuple[Optional[CustomComponent], str]:
+        import re
+
+        name = str(fields.get("name", "")).strip()
+        if not name:
+            return None, "Name is required"
+        raw_id = str(fields.get("id", "")).strip()
+        if not raw_id:
+            # Авто-id из имени: слаг [A-Za-z0-9._-]; сменить позже нельзя
+            # (удалить и создать заново).
+            raw_id = re.sub(r"[^A-Za-z0-9]+", "-", name).strip("-_.")[:64]
+        try:
+            comp_id = validate_profile_name(raw_id)
+        except ValueError:
+            return None, "Invalid id (allowed: letters, digits, . _ -)"
+        raw_paths = fields.get("configPaths", []) or []
+        paths = tuple(dict.fromkeys(str(p).strip() for p in raw_paths if str(p).strip()))
+        if not paths:
+            return None, "At least one config path is required"
+        for p in paths:
+            if p.startswith("/") or ".." in p:
+                return None, f"Path must be relative without '..': {p}"
+        command = str(fields.get("reloadCommand", "")).strip()
+        error = TrackedAppsController._validate_reload_command(command)
+        if error:
+            return None, error
+        return CustomComponent(
+            id=comp_id,
+            name=name,
+            category=str(fields.get("category", "")).strip() or "Custom",
+            config_paths=paths,
+            reload_command=command,
+            supports_live_reload=bool(command),
+            description=str(fields.get("description", "")).strip(),
+            icon=str(fields.get("icon", "")).strip() or "application-x-executable",
+        ), ""
+
+    def _scrub_settings_and_refresh(self, comp_id: str, *, drop_from_selection: bool) -> None:
+        """Убрать id из списков настроек и перечитать реестр."""
+        settings_core = CoreFactory.settings_core()
+        settings = settings_core.load()
+        data = settings.to_dict()
+        changed = False
+        disabled = [i for i in settings.disabled_components if i != comp_id]
+        if len(disabled) != len(settings.disabled_components):
+            data["disabled_components"] = disabled
+            changed = True
+        if drop_from_selection:
+            selected = [i for i in settings.custom_components if i != comp_id]
+            if len(selected) != len(settings.custom_components):
+                data["custom_components"] = selected
+                changed = True
+        if changed:
+            settings_core.save(AppSettings(**data))
+        self.refresh()
+
+    @Slot(dict, result=str)
+    def addCustomComponent(self, fields: dict) -> str:
+        """Создать пользовательский компонент; "" = успех, иначе текст ошибки."""
+        comp, error = self._custom_from_dict(fields)
+        if error:
+            return error
+        result = self._core.add_custom(comp)
+        if not result.success:
+            return result.message
+        self.refresh()
+        return ""
+
+    @Slot(dict, result=str)
+    def updateCustomComponent(self, fields: dict) -> str:
+        comp, error = self._custom_from_dict(fields)
+        if error:
+            return error
+        result = self._core.update_custom(comp)
+        if not result.success:
+            return result.message
+        self.refresh()
+        return ""
+
+    @Slot(str, result=str)
+    def removeCustomComponent(self, comp_id: str) -> str:
+        try:
+            comp_id = validate_profile_name(str(comp_id))
+        except ValueError as exc:
+            return str(exc)
+        result = self._core.remove_custom(comp_id)
+        if not result.success:
+            return result.message
+        self._scrub_settings_and_refresh(comp_id, drop_from_selection=True)
+        return ""
 
 
 # ──────────────────────────────────────────────────────────────
@@ -619,11 +765,6 @@ class SettingsController(QObject):
     def activeCore(self) -> str:
         """Ядро, работающее прямо сейчас (переключение — рестартом)."""
         return CoreFactory.backend_label()
-
-    @Property(bool, constant=True)
-    def rustCoreBuilt(self) -> bool:
-        """Собрана ли библиотека Rust-ядра (для предупреждения в UI)."""
-        return CoreFactory.rust_available()
 
     @Property(str, notify=settingsChanged)
     def theme(self) -> str:

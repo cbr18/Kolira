@@ -122,10 +122,10 @@ wallpaper-prev                   # предыдущие обои
 - `.config/Cursor/User/settings.json`
 
 ### Browser (опционально)
-- `.zen/gp0y8wrv.Default (release)/user.js`
-- `.zen/gp0y8wrv.Default (release)/chrome/userChrome.css`
-- `.zen/gp0y8wrv.Default (release)/chrome/userContent.css`
-- `.zen/gp0y8wrv.Default (release)/chrome/zen-themes.css`
+- `.zen/<профиль>/user.js` — каталог профиля авто-детектится (первый с `user.js`)
+- `.zen/<профиль>/chrome/userChrome.css`
+- `.zen/<профиль>/chrome/userContent.css`
+- `.zen/<профиль>/chrome/zen-themes.css`
 
 ### Notes (опционально)
 - `.config/obsidian/obsidian.json`, `Preferences`
@@ -178,24 +178,55 @@ Qt/QML-приложение (`gui/qt-app/`) уже ставится устано
 профиль, применение — отдельной кнопкой **Apply** (с подтверждением, если так
 настроено), а клик по профилю в трее применяет сразу.
 
-Инспектор — отдельный Python-модуль (`CoreFactory.theme_core()`), не одно из
-выбираемых ядер `--core`, поэтому он работает одинаково при `--core rust` и
-`--core cli`. Подробности: [THEME_INSPECTOR.md](THEME_INSPECTOR.md), ТЗ: [TZ-THEME-INSPECTOR.md](TZ-THEME-INSPECTOR.md).
+Инспектор — отдельный Python-модуль (`CoreFactory.theme_core()`), не часть
+ядра `--core`, поэтому он работает независимо от значения `--core`.
+Подробности: [THEME_INSPECTOR.md](THEME_INSPECTOR.md), ТЗ: [TZ-THEME-INSPECTOR.md](TZ-THEME-INSPECTOR.md).
+
+---
+
+## Пользовательские приложения (страница «Приложения»)
+
+Реестр отслеживаемых приложений расширяется из GUI (drawer → *Applications*)
+или через `theme-profile components <list|add|edit|remove>`. Встроенные
+(20 шт.) отключаются галочкой, но не удаляются; свои добавляются,
+редактируются и удаляются. Галочка = участие в save/apply: снятый id попадает
+в `disabled_components` (app-preferences.json), файлы и снимки не трогаются.
+
+Пример с реальным приложением — mpv:
+
+```bash
+theme-profile components add '{
+  "id": "mpv",
+  "name": "mpv",
+  "category": "Media",
+  "config_paths": [".config/mpv/mpv.conf", ".config/mpv/input.conf"]
+}'
+```
+
+- `id` — уникален, не должен совпадать со встроенным; сменить нельзя
+  (удалить и создать заново).
+- `config_paths` — относительные пути файлов/папок от `$HOME`, без `..`;
+  папки копируются рекурсивно.
+- `reload_command` — опционально: одна команда после apply (один бинарник из
+  PATH, без shell-операторов `| & ; < > $ \` " '` — валидация при
+  регистрации и в GUI); ошибка команды не прерывает apply.
+- Реестр живёт в `$THEME_ROOT/components.json` (schema v1); при совпадении id
+  со встроенным компонентом встроенный выигрывает.
 
 ---
 
 ## Известные ограничения
 
 1. **Обои не в профиле** — `theme-profile save/apply` не сохраняет/не применяет обои. Обои управляются отдельно через `wallpaper-*` скрипты.
-2. **Zen Browser** — путь к профилю хардкоднут (`.zen/gp0y8wrv.Default (release)/`); авто-детект запланирован.
-3. **Meta+T не работает** — программируемый глобальный хоткей убран: KGlobalAccel создаёт
+2. **Meta+T не работает** — программируемый глобальный хоткей убран: KGlobalAccel создаёт
    объект-компонент только для приложений, у которых в `.desktop` есть
    `X-KDE-GlobalAccel-CommandShortcut=true`, поэтому голый D-Bus `doRegister`
    не давал рабочего шортката. Быстрое переключение доступно из трея.
 
 Ранее числившиеся ограничения закрыты: гранулярность (`--components`), детект
 приложений, превью/diff профилей, настраиваемая папка обоев, native Qt/QML UI,
-а также смена ядра (Rust/CLI) через `--core`, `$KTM_CORE` и Settings.
+Zen-автодетект профиля, выбор ядра через `--core`/`$KTM_CORE`/Settings — ядро
+теперь одно (CLI-адаптер поверх Rust-бинарников).
 
 ---
 
@@ -245,9 +276,8 @@ $XDG_CONFIG_HOME/theme-profile/        # по умолчанию ~/.config/theme
 - Гранулярный выбор компонентов (галочки) — **сделано**
 - Детект установленных приложений — **сделано**
 - Dogfooding (приложение само темизируется) — **сделано**
-- Clean Architecture для замены Core на Rust — **сделано**: два взаимозаменяемых
-  ядра, Rust (по умолчанию) и CLI-адаптер, выбор через `--core rust|cli|auto`,
-  `$KTM_CORE` или *Settings → Core*; Rust-библиотека `libkde_theme_core.so`
-  ставится в `~/.local/share/kde-theme-manager/lib/`, при её отсутствии
-  приложение откатывается на CLI-ядро. Паритет ядер проверяется
-  `tests/test_gui.py::TestCoreParity`.
+- Clean Architecture для замены Core на Rust — **сделано**: ядро одно —
+  CLI-адаптер (`core/cli_core.py`) поверх Rust-бинарников `theme-profile` /
+  `wallpaper-*`, выбор через `--core core|auto`, `$KTM_CORE` или *Settings →
+  Core*. Второе ядро (Rust-библиотека `libkde_theme_core.so`) убрано — паритет
+  двух ядер больше не нужен, ядро покрыто `tests/test_gui.py`.

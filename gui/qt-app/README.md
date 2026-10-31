@@ -1,4 +1,4 @@
-# KDE Theme Manager — Qt/QML Application (v0.4.0)
+# KDE Theme Manager — Qt/QML Application (v0.5.0)
 
 Native KDE Plasma application for managing theme profiles and wallpapers.
 
@@ -13,20 +13,21 @@ Native KDE Plasma application for managing theme profiles and wallpapers.
   differs from the active one *before* applying
 - **Granular Control** — Choose which components to apply per profile
   (*Settings* page in the global drawer)
+- **Applications page** — manage what is tracked: disable built-in apps with a
+  checkbox (they are never deleted), add/edit/remove your own components
+  (files or folders to sync, optional reload command run after apply)
 - **Wallpaper Management** — Picker with previews, next/prev navigation
 - **System Tray** — quick profile switching (active profile ticked), wallpaper
   next/prev/pick and desktop notifications, without opening the window
 - **App Detection** — Automatically detects installed/configured apps
 - **Non-blocking** — apply/save/delete *and* wallpaper operations (including the
   interactive picker) run off the GUI thread with a busy state
-- **Single instance** — a second launch handsover to the running app (raises its
-  window) and exits, so there is never more than one tray icon
+- **Single instance** — a second launch hands over to the running app (raises
+  its window) and exits, so there is never more than one tray icon
 - **Dogfooding** — App themes itself from the *active* profile
-- **Two interchangeable cores** — the CLI core shells out to the Rust
-  `theme-profile` / `wallpaper-*` binaries, the Rust core (`libkde_theme_core.so`)
-  does the work natively; switch with `--core rust|cli|auto`, `$KTM_CORE` or
-  Settings → Core. Rust is the default; parity is enforced by tests, and a
-  missing library falls back to the CLI core
+- **Single core** — a Python adapter (`core/cli_core.py`) shells out to the Rust
+  `theme-profile` / `wallpaper-*` binaries; every selector (`--core core|auto`,
+  `$KTM_CORE`, Settings → Core) names that one core
 
 ## System tray
 
@@ -198,10 +199,10 @@ mypy src/
 # QML syntax/type lint (PySide6 6.12 ships its own qmllint)
 .venv/bin/pyside6-qmllint -I qml -I /usr/lib/qt6/qml qml/Main.qml qml/pages/SettingsPage.qml qml/Components/*.qml
 
-# Tests (Python: 159, from gui/qt-app)
+# Tests (Python: 164, from gui/qt-app)
 .venv/bin/python -m pytest tests/ -q
 
-# CLI + installer tests (90, from the repo root)
+# CLI + installer tests (109, from the repo root)
 bash tests/test-scripts.sh
 
 # Static shell analysis (repo root)
@@ -240,6 +241,7 @@ src/
 qml/
 ├── Main.qml              # Main page (active profile, profiles, wallpaper) + dialogs
 ├── pages/
+│   ├── ApplicationsPage.qml # Tracked apps: disable built-ins, CRUD for custom
 │   └── SettingsPage.qml  # Settings with component toggles (drawer → Settings)
 └── Components/
     ├── ThemeColors.qml              # Singleton: the only colour source
@@ -272,11 +274,11 @@ as files are added or removed — or when the list order changes.
 **The list order is a contract** shared by this app and
 the Rust CLI (`src/bin/wallpaper-{picker,next,prev}`):
 
-| rule | Rust CLI | CLI core | Rust core |
-|---|---|---|---|
-| follow symlinks | `find -L` | `Path.is_file()` | `fs::is_file()` |
-| extensions `jpg jpeg png webp bmp`, case-insensitive | `-iname` | `.suffix.lower()` | `to_lowercase()` |
-| byte/code-point order | `LC_ALL=C sort` | `sorted(key=str)` | `Vec<String>::sort()` |
+| rule | Rust CLI | GUI core (Python) |
+|---|---|---|
+| follow symlinks | `fs::is_file()` (follows links) | `Path.is_file()` |
+| extensions `jpg jpeg png webp bmp`, case-insensitive | `to_lowercase()` | `.suffix.lower()` |
+| byte/code-point order | `Vec<String>::sort()` | `sorted(key=str)` |
 
 A locale-aware `sort` (`ru_RU.UTF-8` folds case and ignores punctuation) ordered
 the files differently from `sorted()`, so the GUI resolved the index to a
@@ -297,7 +299,7 @@ numbers the lines from 0 in input order (`modes/dmenu.c`:
 correction applied the image above the clicked one and made the first image a
 no-op.
 
-## Core Protocol (Replaceable)
+## Core Protocol
 
 The `core/protocol.py` defines **Abstract Base Classes** for:
 - `ProfileCore` — profile operations
@@ -305,56 +307,37 @@ The `core/protocol.py` defines **Abstract Base Classes** for:
 - `TrackedAppsCore` — app detection
 - `SettingsCore` — app preferences
 
-Two implementations exist and are interchangeable behind `CoreFactory`:
+A single implementation exists — the core (`core/cli_core.py`): profiles and
+wallpapers go through the Rust CLI binaries (`theme-profile`, `wallpaper-*`),
+tracked apps through the Python registry (`core/tracked_apps.py`), settings
+through JSON in `~/.config/theme-profile/app-preferences.json`.
 
-| | CliCore (`core/cli_core.py`) | RustCore (`core/rust_core.py`) |
-|---|---|---|
-| profiles (read) | `theme-profile list`, `manifest.txt` | native file reads |
-| profiles (write) | `theme-profile apply/save/diff` | the same script (delegated) |
-| wallpapers | `wallpaper-*` scripts + Plasma appletsrc | native enumeration + Plasma appletsrc |
-| tracked apps | `tracked_apps.py` registry | the same registry, native detection |
-| settings | JSON in `~/.config/theme-profile/app-preferences.json` | same file, native parsing |
-
-The Rust core is a shared library behind a C ABI (`libkde_theme_core.so`):
-JSON payloads as `*mut c_char` freed with `kde_theme_core_free_string`, and
-`c_int` status codes with the failure message in `kde_theme_core_get_error()`.
-`cli_core.py` wraps the Rust CLI, so profiles/wallpapers go through the same
-Rust code as the library — the two must agree, which is
-what `tests/test_gui.py::TestCoreParity` checks (profiles, components, diff text,
-wallpaper list + current, app statuses, categories, settings).
+(The former second implementation — a `libkde_theme_core.so` shared library
+behind a C ABI — was removed; one core keeps behaviour and tests uniform.)
 
 ### Choosing a core
 
+There is nothing to switch — every selector names the single core:
+
 ```bash
-kde-theme-manager --core rust      # rust | cli | auto (default rust; auto = rust if built)
-kde-theme-manager --core cli       # fall back to the CLI (shells to theme-profile)
-kde-theme-manager --list-cores     # what is available and where it was found
-KTM_CORE=rust kde-theme-manager    # same as --core, for one run
+kde-theme-manager --core core      # core | auto (same core)
+kde-theme-manager --list-cores     # what the core delegates to
+KTM_CORE=core kde-theme-manager    # same as --core, for one run
 kde-theme-manager                 # Settings → Core (saved, applied on restart)
 ```
 
-Priority: `--core` → `$KTM_CORE` → saved setting → `rust`. An explicitly
-requested core that cannot be loaded is a hard error (exit 3) — asking for rust
-and silently getting cli would make the parity claims untestable. A *saved*
-setting that no longer works (library deleted, app moved) falls back to the
-CLI core with a warning on stderr instead of blocking startup.
+Priority: `--core` → `$KTM_CORE` → saved setting → `core`.
 
-`--core rust` is also persisted, so the launcher and the next start agree.
-
-### Building the Rust core
+### Building the Rust CLI
 
 ```bash
 cd src/core/rust_core
-cargo build --release            # → target/release/libkde_theme_core.so
+cargo build --release   # → target/release/theme-profile, wallpaper-*, theme-menu
 ```
 
-The installer copies that library into `<appdir>/lib/libkde_theme_core.so`
-(`--with-rust` builds it when missing, `--no-rust` skips it entirely); the
-Python side looks in `$KTM_RUST_CORE_LIB`, `<appdir>/lib`, the cargo build tree,
-then `/usr/local/lib` and `/usr/lib` — so both a checkout and an installed copy
-work without configuration.
+The kit installer copies those binaries into `~/.local/bin/`.
 
-## Tracked Applications (19)
+## Tracked Applications (20)
 
 | Category | Apps |
 |----------|------|
@@ -389,7 +372,7 @@ Settings stored in `~/.config/theme-profile/app-preferences.json` (or
   "confirm_before_apply": true,
   "create_backup_before_apply": true,
   "notify_on_success": true,
-  "core_backend": "rust"
+  "core_backend": "core"
 }
 ```
 
@@ -413,8 +396,6 @@ Installed by `theme-profile-kit/scripts/install-kde-theme-manager.sh` (which
 - `~/.local/bin/kde-theme-manager` — launcher (execs the app's own
   `theme-profile-manager.sh`, which sets the QML import paths)
 - `~/.local/share/kde-theme-manager/` — the app copy
-- `~/.local/share/kde-theme-manager/lib/libkde_theme_core.so` — Rust core
-  (`--with-rust` builds it, `--no-rust` skips it; the app falls back to the CLI core)
 - `~/.local/share/applications/kde-theme-manager.desktop`
 - `~/.local/share/icons/hicolor/scalable/apps/ktm-theme-manager.svg`
 
@@ -429,17 +410,18 @@ accent ring). After editing, re-run the installer to redeploy.
 # With Nuitka (Python)
 uv pip install nuitka
 python -m nuitka --standalone --enable-plugin=PySide6 src/__main__.py
-
-# Or with Rust core (future)
-cargo build --release
 ```
+
+(GUI stays Python per the architecture decision — a Rust GUI rewrite is not
+planned; the single core remains the Rust CLI binaries.)
 
 ## Roadmap
 
 - [x] Profile preview before apply (Preview / Diff dialogs)
 - [x] System tray: quick profile switching (active profile ticked, wallpaper
       next/prev/pick, notifications, Quit)
-- [x] Rust core (`libkde_theme_core.so`) behind `--core` / `$KTM_CORE` / Settings
+- [x] Single CLI-backed core behind `--core` / `$KTM_CORE` / Settings (the
+      former `libkde_theme_core.so` second core was removed)
 - [ ] Auto-sync with system theme changes
 - [ ] Plasma applet version
 

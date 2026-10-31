@@ -37,7 +37,6 @@ BACKUP_DIR="$BACKUP_ROOT/deploy-kde-theme-manager-$(date +%Y%m%d-%H%M%S)"
 [ -e "$BACKUP_DIR" ] && BACKUP_DIR="$BACKUP_DIR-$$"
 
 VENV_MODE="auto" # auto | yes | no
-RUST_MODE="auto" # auto | yes | no
 
 usage() {
   cat <<'EOF'
@@ -48,22 +47,18 @@ Install the KDE Theme Manager GUI (Qt/QML app), its launcher and desktop entry.
 Options:
   --with-venv   Always build .venv inside the installed app directory
   --no-venv     Never build a venv (requires the system PySide6)
-  --with-rust   Build the Rust core even without a prebuilt library
-  --no-rust     Do not install the Rust core (the app uses the CLI core)
   -h, --help    Show this help message and exit.
 
 With neither --with-venv nor --no-venv a venv is created only when the system
 Python cannot `import PySide6` (e.g. pyside6 is not installed from the distro).
-With neither --with-rust nor --no-rust a prebuilt libkde_theme_core.so is
-installed, and cargo is used to build one when it is missing and available
-(the app falls back to the CLI core otherwise).
 
-The core is chosen at runtime: `kde-theme-manager --core rust|cli|auto`,
-$KTM_CORE, or Settings → Core (applied on restart). Rust is the default.
+The application has a single core — a Python adapter that drives the Rust CLI
+binaries (theme-profile, wallpaper-*), which are deployed by
+install-theme-profile-kit.sh. `--core`/`KTM_CORE`/Settings → Core accept only
+`core` (or `auto`, the same thing).
 
 Installed files:
   ~/.local/share/kde-theme-manager/              application (copy)
-  ~/.local/share/kde-theme-manager/lib/libkde_theme_core.so   Rust core
   ~/.local/bin/kde-theme-manager                 launcher
   ~/.local/share/applications/kde-theme-manager.desktop
   ~/.local/share/icons/hicolor/scalable/apps/ktm-theme-manager.svg
@@ -81,8 +76,6 @@ while [ $# -gt 0 ]; do
       ;;
     --with-venv) VENV_MODE="yes" ;;
     --no-venv) VENV_MODE="no" ;;
-    --with-rust) RUST_MODE="yes" ;;
-    --no-rust) RUST_MODE="no" ;;
     *)
       warn "Unknown option: $1"
       usage >&2
@@ -154,37 +147,6 @@ else
     tar -C "$APPDIR" -xf -
 fi
 printf '%s\n' "installed by $KIT_DIR/scripts/install-kde-theme-manager.sh" > "$APPDIR/$MARKER"
-
-# ── Rust core (optional) ────────────────────────────────────────────────────
-# The GUI can run on either core: the CLI one drives the Rust CLI binaries, the
-# Rust one is a shared library loaded from <appdir>/lib (see
-# src/core/rust_core.py → library_candidates()). Anything missing here is not
-# fatal — CoreFactory falls back to the CLI core with a warning.
-RUST_LIB_NAME="libkde_theme_core.so"
-RUST_LIB_SRC="$APP_SRC/src/core/rust_core/target/release/$RUST_LIB_NAME"
-RUST_LIB_DST="$APPDIR/lib/$RUST_LIB_NAME"
-
-install_rust_lib() {
-  mkdir -p "$APPDIR/lib"
-  cp -f "$RUST_LIB_SRC" "$RUST_LIB_DST"
-  say "Rust core → $RUST_LIB_DST"
-}
-
-if [ "$RUST_MODE" = "no" ]; then
-  say "Rust core skipped (--no-rust)"
-elif [ -f "$RUST_LIB_SRC" ] && [ "$RUST_MODE" = "auto" ]; then
-  install_rust_lib
-elif command -v cargo >/dev/null 2>&1; then
-  say "Building the Rust core (cargo build --release, this takes a moment)"
-  if (cd "$APP_SRC/src/core/rust_core" && cargo build --release >/dev/null 2>&1) &&
-    [ -f "$RUST_LIB_SRC" ]; then
-    install_rust_lib
-  else
-    warn "Warning: the Rust core did not build — the app will use the CLI core."
-  fi
-else
-  warn "Warning: no prebuilt Rust core and no cargo — the app will use the CLI core."
-fi
 
 # ── Python environment ──────────────────────────────────────────────────────
 py_has_pyside() {

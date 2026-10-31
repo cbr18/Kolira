@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{anyhow, Context, Result};
+use serde::{Serialize, Deserialize};
 
 use crate::config_parser::{ini_group_key, ini_group_lines};
 use crate::paths::{
@@ -20,48 +21,126 @@ use crate::paths::{
 use crate::tracked_apps::component_config_paths;
 use crate::types::ProfileInfo;
 
-/// Profile Core Trait - defines the interface for profile operations
-pub trait ProfileCore {
-    fn list_profiles(&self) -> Result<Vec<ProfileInfo>>;
-    fn get_active_profile(&self) -> Result<String>;
-    fn apply(&self, profile: &str, components: Option<Vec<String>>) -> Result<()>;
-    fn save(&self, name: &str, components: Option<Vec<String>>) -> Result<()>;
-    fn delete(&self, name: &str) -> Result<()>;
-    fn diff(&self, a: &str, b: &str) -> Result<String>;
-    fn get_profile_components(&self, profile: &str) -> Result<Vec<String>>;
+/// Version of the `manifest.json` theme-file format written by this tool.
+pub const MANIFEST_SCHEMA_VERSION: u32 = 1;
+
+/// The formalised "theme text file" — a profile's metadata.
+///
+/// Written next to the legacy `manifest.txt` (kept for older tools). File
+/// snapshots remain the source of truth; this JSON only describes them.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ThemeManifest {
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
+    #[serde(default)]
+    pub created_at: String,
+    #[serde(default)]
+    pub tool_version: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub wallpaper: String,
+    #[serde(default)]
+    pub accent_from_wallpaper: bool,
+    #[serde(default)]
+    pub components: Vec<ManifestComponent>,
 }
 
-/// Default implementation of ProfileCore
-pub struct DefaultProfileCore;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ManifestComponent {
+    pub id: String,
+    #[serde(default)]
+    pub paths: Vec<String>,
+}
 
-impl ProfileCore for DefaultProfileCore {
-    fn list_profiles(&self) -> Result<Vec<ProfileInfo>> {
-        list_profiles()
-    }
+fn default_schema_version() -> u32 {
+    MANIFEST_SCHEMA_VERSION
+}
 
-    fn get_active_profile(&self) -> Result<String> {
-        get_active_profile()
-    }
+/// Build a `ThemeManifest` from the resolved tracked paths.
+fn build_manifest(profile: &str, rel_paths: &[String]) -> ThemeManifest {
+    let known = component_config_paths();
+    let components: Vec<ManifestComponent> = known
+        .into_iter()
+        .filter_map(|(id, cpaths)| {
+            let matched: Vec<String> = cpaths
+                .iter()
+                .filter(|p| rel_paths.contains(p))
+                .cloned()
+                .collect();
+            if matched.is_empty() {
+                None
+            } else {
+                Some(ManifestComponent {
+                    id,
+                    paths: matched,
+                })
+            }
+        })
+        .collect();
 
-    fn apply(&self, profile: &str, components: Option<Vec<String>>) -> Result<()> {
-        apply_profile_impl(profile, components).map(|_| ())
-    }
+    let accent_fw = ini_group_key(
+        &config_home().join("kdeglobals"),
+        "General",
+        "accentColorFromWallpaper",
+    )
+    .as_deref()
+    == Some("true");
 
-    fn save(&self, name: &str, components: Option<Vec<String>>) -> Result<()> {
-        save_profile_impl(name, components)
+    ThemeManifest {
+        schema_version: MANIFEST_SCHEMA_VERSION,
+        created_at: chrono::Local::now()
+            .to_rfc3339_opts(chrono::SecondsFormat::Secs, false),
+        tool_version: env!("CARGO_PKG_VERSION").to_string(),
+        name: profile.to_string(),
+        description: String::new(),
+        wallpaper: String::new(),
+        accent_from_wallpaper: accent_fw,
+        components,
     }
+}
 
-    fn delete(&self, name: &str) -> Result<()> {
-        delete_profile(name)
-    }
+/// Write `manifest.json` next to the profile snapshot.
+fn write_json_manifest(target: &Path, manifest: &ThemeManifest) -> Result<()> {
+    let json = serde_json::to_string_pretty(manifest)?;
+    fs::write(target.join("manifest.json"), json + "\n")?;
+    Ok(())
+}
 
-    fn diff(&self, a: &str, b: &str) -> Result<String> {
-        diff_profiles(a, b)
-    }
+/// Read the `manifest.json` of a profile and return it (a fallback default when
+/// the file is missing, so old profiles stay readable).
+fn read_manifest(profile_dir: &Path) -> ThemeManifest {
+    let path = profile_dir.join("manifest.json");
+    fs::read_to_string(&path)
+        .ok()
+        .and_then(|content| serde_json::from_str(&content).ok())
+        .unwrap_or_else(|| ThemeManifest {
+            name: profile_dir
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default(),
+            ..Default::default()
+        })
+}
 
-    fn get_profile_components(&self, profile: &str) -> Result<Vec<String>> {
-        get_profile_components(profile)
+/// Read the description from the manifest json (empty string for old profiles).
+pub fn get_profile_description(profile_name: &str) -> Result<String> {
+    let dir = safe_profile_dir(profile_name)?;
+    Ok(read_manifest(&dir).description)
+}
+
+/// Update a profile's description (rewrites `manifest.json` in place — no
+/// other files in the snapshot are touched).
+pub fn set_profile_description(profile_name: &str, description: &str) -> Result<()> {
+    let dir = safe_profile_dir(profile_name)?;
+    if !dir.is_dir() {
+        return Err(anyhow!("Profile not found: {profile_name}"));
     }
+    let mut manifest = read_manifest(&dir);
+    manifest.description = description.to_string();
+    write_json_manifest(&dir, &manifest)
 }
 
 /// List all profiles
@@ -92,7 +171,7 @@ pub fn list_profiles() -> Result<Vec<ProfileInfo>> {
                 is_active,
                 components,
                 created_at,
-                description: String::new(),
+                description: read_manifest(&profile_path).description,
                 wallpaper_path: String::new(),
             });
         }
@@ -142,11 +221,15 @@ pub fn get_profile_components(profile_name: &str) -> Result<Vec<String>> {
     Ok(components)
 }
 
-/// Get profile creation timestamp (manifest only)
+/// Get profile creation timestamp (manifest.json preferred, then manifest.txt)
 fn get_profile_created_at(profile_path: &Path) -> Result<String> {
-    let manifest = profile_path.join("manifest.txt");
-    if manifest.exists() {
-        let content = fs::read_to_string(&manifest)?;
+    let manifest = read_manifest(profile_path);
+    if !manifest.created_at.is_empty() {
+        return Ok(manifest.created_at);
+    }
+    let legacy = profile_path.join("manifest.txt");
+    if legacy.exists() {
+        let content = fs::read_to_string(&legacy)?;
         for line in content.lines() {
             if let Some(stamp) = line.strip_prefix("timestamp=") {
                 return Ok(stamp.to_string());
@@ -322,7 +405,9 @@ fn write_active(name: &str) -> Result<()> {
     Ok(())
 }
 
-fn write_manifest(target: &Path, rel_paths: &[String]) -> Result<()> {
+fn write_manifest(target: &Path, profile: &str, rel_paths: &[String]) -> Result<()> {
+    // Legacy format: timestamp + tracked paths (kept for older tools that read
+    // manifest.txt; the new format is manifest.json).
     let mut out = String::from("Generated by theme-profile\n");
     out.push_str(&format!(
         "timestamp={}\n",
@@ -336,7 +421,9 @@ fn write_manifest(target: &Path, rel_paths: &[String]) -> Result<()> {
         out.push('\n');
     }
     fs::write(target.join("manifest.txt"), out)?;
-    Ok(())
+
+    // Formal "theme text file" (schema v1).
+    write_json_manifest(target, &build_manifest(profile, rel_paths))
 }
 
 /// Best-effort KDE-effects snapshot (metadata only — never blocks a save/apply).
@@ -504,6 +591,82 @@ fn apply_kitty_live(source: &Path) {
 }
 
 /// Order of qdbus commands matches the historical bash script.
+/// Characters that would make a reload command a shell-injection vector.
+/// The command is never run through a shell; these are rejected up front so a
+/// typo'd pipe or substitution fails loudly instead of half-running.
+const RELOAD_COMMAND_FORBIDDEN: &[char] =
+    &['|', '&', ';', '<', '>', '$', '`', '"', '\'', '\n', '\r'];
+
+/// Validate a user-defined reload command: one binary resolvable via PATH plus
+/// its arguments, no shell operators. Returns the argv for `Command`.
+pub fn validate_reload_command(command: &str) -> Result<Vec<String>> {
+    let trimmed = command.trim();
+    if trimmed.is_empty() {
+        return Err(anyhow!("Reload command is empty"));
+    }
+    if let Some(bad) = trimmed.chars().find(|c| RELOAD_COMMAND_FORBIDDEN.contains(c)) {
+        return Err(anyhow!(
+            "Reload command contains a forbidden shell character: {bad:?} \
+             (commands run without a shell)"
+        ));
+    }
+    let argv: Vec<String> = trimmed.split_whitespace().map(str::to_owned).collect();
+    let binary = &argv[0];
+    if which::which(binary).is_err() {
+        return Err(anyhow!("Reload command binary not found in PATH: {binary}"));
+    }
+    Ok(argv)
+}
+
+/// Run the reload commands of the applied *custom* components (best-effort).
+///
+/// Fires after the files are copied and the built-in live hooks ran; an error
+/// is a warning only — the apply itself has already succeeded. Skipped
+/// entirely under `KTM_THEME_NO_APPLY=1`.
+fn run_custom_reload_hooks(rel_paths: &[String]) {
+    if no_apply() {
+        return;
+    }
+    let Ok(custom) = crate::custom_components::load_custom_components() else {
+        return;
+    };
+    for component in custom {
+        let Some(command) = component.reload_command.as_deref() else {
+            continue;
+        };
+        if command.trim().is_empty() {
+            continue;
+        }
+        let applies = component.config_paths.iter().any(|p| rel_paths.contains(p));
+        if !applies {
+            continue;
+        }
+        match validate_reload_command(command) {
+            Ok(argv) => {
+                let mut iter = argv.into_iter();
+                let binary = iter.next().unwrap_or_default();
+                let status = Command::new(&binary)
+                    .args(iter.collect::<Vec<_>>())
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
+                    .status();
+                match status {
+                    Ok(s) if s.success() => {}
+                    Ok(s) => {
+                        eprintln!("Warning: reload command for '{}' exited with {s}", component.id)
+                    }
+                    Err(e) => eprintln!(
+                        "Warning: could not run reload command for '{}': {e}",
+                        component.id
+                    ),
+                }
+            }
+            Err(e) => eprintln!("Warning: invalid reload command for '{}': {e}", component.id),
+        }
+    }
+}
+
+/// Order of qdbus commands matches the historical bash script.
 fn apply_live_hooks(source: &Path) {
     // Read from the profile, never via `kreadconfig6` on the live config: that
     // used to pass the profile path as an extra positional argument, making
@@ -621,7 +784,7 @@ fn apply_with_paths(profile: &str, rel_paths: &[String]) -> Result<PathBuf> {
     let backup = unique_dir(&backups, &format!("pre-apply-{profile}"))?;
     if copy_tracked_into(&backup, rel_paths)
         .and(capture_kde_effects_state(&backup))
-        .and(write_manifest(&backup, rel_paths))
+        .and(write_manifest(&backup, profile, rel_paths))
         .is_err()
     {
         let _ = fs::remove_dir_all(&backup);
@@ -635,6 +798,7 @@ fn apply_with_paths(profile: &str, rel_paths: &[String]) -> Result<PathBuf> {
     match restore_from_profile(profile, rel_paths) {
         Ok(()) => {
             apply_live_hooks(&dir);
+            run_custom_reload_hooks(rel_paths);
             Ok(backup)
         }
         Err(e) => {
@@ -676,7 +840,7 @@ fn save_with_paths(profile: &str, rel_paths: &[String]) -> Result<()> {
     let tmp = unique_dir(&profiles, &format!(".save-{profile}"))?;
     let built = copy_tracked_into(&tmp, rel_paths)
         .and(capture_kde_effects_state(&tmp))
-        .and(write_manifest(&tmp, rel_paths));
+        .and(write_manifest(&tmp, profile, rel_paths));
 
     if let Err(e) = built {
         let _ = fs::remove_dir_all(&tmp);
@@ -759,5 +923,46 @@ pub fn diff_profiles(profile_a: &str, profile_b: &str) -> Result<String> {
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
             Err(anyhow!(if stderr.is_empty() { stdout } else { stderr }))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_reload_command;
+
+    #[test]
+    fn reload_command_accepts_binary_with_args() {
+        // `sh` exists on any Unix CI image; validation never runs the command.
+        let argv = validate_reload_command("sh -c echo").expect("sh must resolve via PATH");
+        assert_eq!(argv, vec!["sh", "-c", "echo"]);
+    }
+
+    #[test]
+    fn reload_command_rejects_shell_metacharacters() {
+        for bad in [
+            "echo a|b",
+            "echo a&b",
+            "echo a;b",
+            "echo $(id)",
+            "echo `id`",
+            "echo \"x\"",
+            "echo 'x'",
+            "echo a>b",
+            "echo a<b",
+        ] {
+            assert!(
+                validate_reload_command(bad).is_err(),
+                "{bad:?} must be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn reload_command_rejects_empty_and_unknown_binary() {
+        assert!(validate_reload_command("").is_err());
+        assert!(validate_reload_command("   ").is_err());
+        assert!(
+            validate_reload_command("definitely-not-a-real-binary-ktm --x").is_err()
+        );
     }
 }
