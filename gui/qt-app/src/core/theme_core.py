@@ -1395,3 +1395,158 @@ def _toml_value(field: FieldDef, value: Any) -> Any:
 
 
 __all__ = ["AppThemeCore"]
+
+
+# ──────────────────────────────────────────────────────────────
+# Read-only config browsing (этап C1)
+#
+# Парсит файл конфигурации в плоский список {key, value} для показа в
+# инспекторе. Только чтение: ничего не пишет и не пересериализует.
+# Редактирование (C2/C3) переиспользует эти же форматы.
+# ──────────────────────────────────────────────────────────────
+
+_UNSUPPORTED_SUFFIXES = {
+    ".css", ".scss", ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif",
+    ".svg", ".pdf", ".zip", ".ttf", ".otf",
+}
+
+_USER_PREF = re.compile(r'user_pref\(\s*"((?:[^"\\]|\\.)*)"\s*,\s*(.*?)\)\s*;', re.S)
+
+
+def _display_value(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    return str(value)
+
+
+def _flatten(value: Any, prefix: str, out: list[dict], limit: int) -> None:
+    if isinstance(value, dict):
+        for key in sorted(value.keys(), key=str):
+            child = f"{prefix}{key}"
+            if isinstance(value[key], dict):
+                _flatten(value[key], child + "/", out, limit)
+            else:
+                if len(out) >= limit:
+                    return
+                out.append({"key": child, "value": _display_value(value[key])})
+    else:
+        if len(out) < limit:
+            out.append({"key": prefix.rstrip("/."), "value": _display_value(value)})
+
+
+def _strip_jsonc(text: str) -> str:
+    """Убрать // и /* */ комментарии, не трогая строковые литералы."""
+    out: list[str] = []
+    i, n = 0, len(text)
+    in_string = False
+    quote = ""
+    while i < n:
+        ch = text[i]
+        if in_string:
+            out.append(ch)
+            if ch == "\\" and i + 1 < n:
+                out.append(text[i + 1])
+                i += 2
+                continue
+            if ch == quote:
+                in_string = False
+            i += 1
+            continue
+        if ch in "\"'":
+            in_string = True
+            quote = ch
+            out.append(ch)
+            i += 1
+            continue
+        if ch == "/" and i + 1 < n and text[i + 1] == "/":
+            while i < n and text[i] != "\n":
+                i += 1
+            continue
+        if ch == "/" and i + 1 < n and text[i + 1] == "*":
+            i += 2
+            while i + 1 < n and not (text[i] == "*" and text[i + 1] == "/"):
+                i += 1
+            i += 2
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
+def _strip_trailing_commas(text: str) -> str:
+    return re.sub(r",(\s*[}\]])", r"\1", text)
+
+
+def _parse_ini_like(text: str, out: list[dict], limit: int) -> bool:
+    """Lenient INI (KDE rc-файлы): [group] + key=value; без секций — key=value."""
+    group = ""
+    before = len(out)
+    for line in text.splitlines():
+        if len(out) >= limit:
+            break
+        stripped = line.strip()
+        if not stripped or stripped[0] in "#;!":
+            continue
+        if stripped.startswith("[") and "]" in stripped:
+            group = stripped[1:stripped.index("]")].strip()
+            continue
+        if "=" in stripped:
+            key, _, value = stripped.partition("=")
+        else:
+            continue
+        key = key.strip()
+        if not key:
+            continue
+        full = f"{group}/{key}" if group else key
+        out.append({"key": full, "value": value.strip()})
+    return len(out) > before
+
+
+def read_config_params(path: Path, *, limit: int = 300) -> Optional[dict]:
+    """Прочитать конфиг в плоские {key, value} строки для показа.
+
+    Возвращает ``{"params": [...], "truncated": bool, "note": str}`` или
+    None, если формат не поддерживается или файл недоступен.
+    """
+    try:
+        if path.suffix.lower() in _UNSUPPORTED_SUFFIXES:
+            return None
+        if path.stat().st_size > 512 * 1024:
+            return {"params": [], "truncated": False, "note": "file too large"}
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+
+    suffix = path.suffix.lower()
+    out: list[dict] = []
+    try:
+        if suffix == ".toml":
+            _flatten(tomllib.loads(text), "", out, limit)
+        elif suffix in (".json", ".jsonc"):
+            data = json.loads(_strip_trailing_commas(_strip_jsonc(text)))
+            _flatten(data, "", out, limit)
+        elif suffix == ".js":
+            for match in _USER_PREF.finditer(text):
+                out.append({"key": match.group(1), "value": match.group(2).strip()})
+                if len(out) >= limit:
+                    break
+        elif not _parse_ini_like(text, out, limit):
+            # line-based fallback: "key value" (kitty.conf и подобные)
+            for line in text.splitlines():
+                if len(out) >= limit:
+                    break
+                stripped = line.strip()
+                if not stripped or stripped[0] in "#;":
+                    continue
+                parts = stripped.split(None, 1)
+                out.append({
+                    "key": parts[0],
+                    "value": parts[1].strip() if len(parts) > 1 else "",
+                })
+    except Exception:
+        return {"params": out, "truncated": len(out) >= limit, "note": "parse error"}
+    if not out:
+        return None
+    return {"params": out, "truncated": len(out) >= limit, "note": ""}

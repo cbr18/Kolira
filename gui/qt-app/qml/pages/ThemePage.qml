@@ -422,6 +422,130 @@ Kirigami.ScrollablePage {
             }
         }
 
+        // ─── Application configs (read-only, stage C1) ────────
+        Kirigami.Card {
+            Layout.fillWidth: true
+            visible: page.searchText.length === 0 && themeInspector.appConfigs.length > 0
+
+            background: Rectangle {
+                radius: Platform.Units.smallSpacing
+                border.width: 1
+                color: ThemeColors.cardBg(page.glassMode)
+                border.color: ThemeColors.cardBorder(page.glassMode)
+            }
+
+            contentItem: ColumnLayout {
+                spacing: Platform.Units.mediumSpacing
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Kirigami.Heading {
+                        level: 2
+                        text: qsTr("Application configs")
+                        color: ThemeColors.fgColor(page.glassMode)
+                    }
+                    Item { Layout.fillWidth: true }
+                    Label {
+                        text: qsTr("read-only")
+                        font.pointSize: TypeScale.caption
+                        color: ThemeColors.dimColor(page.glassMode)
+                    }
+                }
+
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr("What the tracked applications store, file by file. Editing arrives in a later stage.")
+                    color: ThemeColors.dimColor(page.glassMode)
+                    wrapMode: Text.WordWrap
+                    font.pointSize: TypeScale.caption
+                }
+
+                Repeater {
+                    model: themeInspector.appConfigs
+
+                    ColumnLayout {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        spacing: 2
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Platform.Units.smallSpacing
+                            Kirigami.Icon {
+                                source: modelData.icon
+                                Layout.preferredWidth: Platform.Units.iconSizes.small
+                                Layout.preferredHeight: Platform.Units.iconSizes.small
+                            }
+                            Label {
+                                text: modelData.name
+                                font.bold: true
+                                color: ThemeColors.fgColor(page.glassMode)
+                            }
+                        }
+
+                        Repeater {
+                            model: modelData.files
+
+                            ColumnLayout {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                Layout.leftMargin: Platform.Units.largeSpacing
+                                spacing: 1
+
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: modelData.relPath
+                                    font.family: "monospace"
+                                    font.pointSize: TypeScale.caption
+                                    color: ThemeColors.fgColorSoft(page.glassMode)
+                                    elide: Text.ElideMiddle
+                                }
+
+                                Repeater {
+                                    model: modelData.params
+
+                                    RowLayout {
+                                        required property var modelData
+                                        Layout.fillWidth: true
+                                        Layout.leftMargin: Platform.Units.largeSpacing
+
+                                        Label {
+                                            Layout.fillWidth: true
+                                            Layout.maximumWidth: 360
+                                            text: modelData.key
+                                            font.family: "monospace"
+                                            font.pointSize: TypeScale.caption
+                                            color: ThemeColors.fgColor(page.glassMode)
+                                            elide: Text.ElideRight
+                                        }
+                                        Label {
+                                            Layout.fillWidth: true
+                                            text: modelData.value
+                                            font.family: "monospace"
+                                            font.pointSize: TypeScale.caption
+                                            color: ThemeColors.dimColor(page.glassMode)
+                                            elide: Text.ElideRight
+                                        }
+                                    }
+                                }
+
+                                Label {
+                                    Layout.fillWidth: true
+                                    Layout.leftMargin: Platform.Units.largeSpacing
+                                    visible: modelData.truncated || modelData.note !== ""
+                                    text: (modelData.note !== "" ? modelData.note + " · " : "")
+                                          + (modelData.truncated ? qsTr("truncated") : "")
+                                    font.pointSize: TypeScale.caption
+                                    font.italic: true
+                                    color: ThemeColors.warning()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // ─── Advanced ─────────────────────────────────────────
         Kirigami.Card {
             Layout.fillWidth: true

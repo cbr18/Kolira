@@ -675,6 +675,160 @@ class TestProfileDescription:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 6f. Stage C1: read-only config browsing (parser + inspector model)
+# ─────────────────────────────────────────────────────────────────────────────
+class TestReadConfigParams:
+    def test_ini_groups(self, tmp_path: Path) -> None:
+        from core.theme_core import read_config_params
+
+        f = tmp_path / "kwinrc"
+        f.write_text("[Plugins]\nblurEnabled=true\n\n[Windows]\nBorderSize=Normal\n")
+        result = read_config_params(f)
+        assert result is not None
+        keys = {p["key"]: p["value"] for p in result["params"]}
+        assert keys["Plugins/blurEnabled"] == "true"
+        assert keys["Windows/BorderSize"] == "Normal"
+
+    def test_jsonc_comments_and_trailing_commas(self, tmp_path: Path) -> None:
+        from core.theme_core import read_config_params
+
+        f = tmp_path / "settings.jsonc"
+        f.write_text(
+            '{\n  // comment\n  "theme": "dark",\n  "nested": {"a": 1, /* inline */ "b": [1, 2],},\n}\n'
+        )
+        result = read_config_params(f)
+        assert result is not None
+        keys = {p["key"]: p["value"] for p in result["params"]}
+        assert keys["theme"] == "dark"
+        assert keys["nested/a"] == "1"
+        assert keys["nested/b"] == "[1,2]"
+
+    def test_toml(self, tmp_path: Path) -> None:
+        from core.theme_core import read_config_params
+
+        f = tmp_path / "alacritty.toml"
+        f.write_text('[window]\nopacity = 0.5\n[font]\nnormal = { family = "Mono" }\n')
+        result = read_config_params(f)
+        assert result is not None
+        keys = {p["key"]: p["value"] for p in result["params"]}
+        assert keys["window/opacity"] == "0.5"
+        assert keys["font/normal/family"] == "Mono"
+
+    def test_user_js(self, tmp_path: Path) -> None:
+        from core.theme_core import read_config_params
+
+        f = tmp_path / "user.js"
+        f.write_text('user_pref("zen.theme.color", "red");\nuser_pref("zen.mode", 1);\n')
+        result = read_config_params(f)
+        assert result is not None
+        keys = {p["key"]: p["value"] for p in result["params"]}
+        assert keys["zen.theme.color"] == '"red"'
+        assert keys["zen.mode"] == "1"
+
+    def test_kitty_style_line_based(self, tmp_path: Path) -> None:
+        from core.theme_core import read_config_params
+
+        f = tmp_path / "kitty.conf"
+        f.write_text("# comment\nfont_family JetBrains Mono\nbackground_opacity 0.5\n")
+        result = read_config_params(f)
+        assert result is not None
+        keys = {p["key"]: p["value"] for p in result["params"]}
+        assert keys["font_family"] == "JetBrains Mono"
+        assert keys["background_opacity"] == "0.5"
+
+    def test_unsupported_suffix_returns_none(self, tmp_path: Path) -> None:
+        from core.theme_core import read_config_params
+
+        f = tmp_path / "style.css"
+        f.write_text("window { color: red; }")
+        assert read_config_params(f) is None
+
+    def test_empty_file_returns_none(self, tmp_path: Path) -> None:
+        from core.theme_core import read_config_params
+
+        f = tmp_path / "empty.conf"
+        f.write_text("# only comments\n")
+        assert read_config_params(f) is None
+
+
+class TestInspectorAppConfigs:
+    """appConfigs: tracked app → files → key/value rows for the current scope."""
+
+    def _controller(self, tmp_path: Path, monkeypatch):
+        from controllers.theme_inspector import ThemeInspectorController
+        from core.protocol import AppStatus, Component, CoreFactory
+
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
+
+        class FakeThemeCore:
+            def sections(self, scope): return []
+            def fields(self, section, scope): return []
+            def validate(self): return []
+            def get(self, field_id, scope): return None
+            def search(self, query, scope): return []
+
+        class FakeTrackedCore:
+            def get_all_components(self):
+                return [
+                    Component(id="mockapp", name="Mock App", category="Custom",
+                              config_paths=(".config/mockapp/settings.conf",),
+                              status=AppStatus.AVAILABLE),
+                ]
+
+        monkeypatch.setattr(CoreFactory, "_theme_core", FakeThemeCore())
+        monkeypatch.setattr(CoreFactory, "_tracked_apps_core", FakeTrackedCore())
+        return ThemeInspectorController()
+
+    def test_live_scope_reads_files(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        (conf / "settings.conf").write_text("[main]\nspeed=3\n")
+        controller = self._controller(tmp_path, monkeypatch)
+
+        configs = controller.appConfigs
+        assert len(configs) == 1
+        entry = configs[0]
+        assert entry["id"] == "mockapp"
+        assert len(entry["files"]) == 1
+        file_entry = entry["files"][0]
+        assert file_entry["relPath"] == ".config/mockapp/settings.conf"
+        assert {p["key"]: p["value"] for p in file_entry["params"]} == {"main/speed": "3"}
+
+    def test_missing_file_is_skipped(self, tmp_path: Path, monkeypatch) -> None:
+        controller = self._controller(tmp_path, monkeypatch)
+        assert controller.appConfigs == []
+
+    def test_unsupported_file_shows_note(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        (conf / "settings.conf").write_text("body { color: red }")  # .conf → INI parse of css
+        controller = self._controller(tmp_path, monkeypatch)
+        # INI-парсер не найдёт key=value → line-based fallback найдёт строки —
+        # главное, что файл попал в модель без падения.
+        assert controller.appConfigs[0]["files"][0]["params"]
+
+    def test_profile_scope_reads_snapshot(self, tmp_path: Path, monkeypatch) -> None:
+        from core.paths import profile_dir
+
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
+        snap = profile_dir("glass") / ".config" / "mockapp"
+        snap.mkdir(parents=True)
+        (snap / "settings.conf").write_text("[main]\nspeed=9\n")
+
+        controller = self._controller(tmp_path, monkeypatch)
+        controller.setScope("profile:glass")
+        configs = controller.appConfigs
+        assert {p["key"]: p["value"] for p in configs[0]["files"][0]["params"]} == {"main/speed": "9"}
+
+    def test_theme_page_shows_app_configs(self) -> None:
+        qml = (PROJECT_ROOT / "qml" / "pages" / "ThemePage.qml").read_text()
+        assert "themeInspector.appConfigs" in qml
+        assert "Application configs" in qml
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 7. CliWallpaperCore — wallpaper dir uses settings
 # ─────────────────────────────────────────────────────────────────────────────
 class TestCliWallpaperCore:

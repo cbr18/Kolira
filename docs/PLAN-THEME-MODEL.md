@@ -93,13 +93,14 @@ Python-детект (`tracked_apps.py`) читает `components.json` и мер
 
 ## Этап C — редактор параметров
 
-- Расширить Theme Inspector на конфиги tracked-/пользовательских приложений
-  (INI/TOML/JSON/JSONC/user.js): дерево «приложение → файл → параметр».
-- JSONC/TOML — точечная правка по ключу (как `config_parser.rs`), без
-  переформатирования файла; превью diff до/после; Undo/Revert по сессии.
-- Для экзотических файлов — fallback «редактор текста файла» с предпросмотром.
+- [x] C1: read-only дерево «приложение → файл → параметр» в ThemePage
+      (`read_config_params` в theme_core: INI/JSON/JSONC/TOML/user.js/
+      line-based; ≤300 строк на файл, файлы >512 KB — с пометкой; scope
+      `live` и `profile:<name>`; модель `themeInspector.appConfigs`)
+- [ ] C2: правка INI/JSON по ключу с превью diff и undo по сессии
+- [ ] C3: TOML/JSONC/user.js по ключу + текстовый fallback для экзотики
 
 ## Критерии «готово»
-- A: манифест v1, описание в GUI/CLI/карточках, 109 bash + 169 python + 10 rust тестов зелёные.
+- A: манифест v1, описание в GUI/CLI/карточках, 109 bash + 181 python + 10 rust тестов зелёные.
 - B: кастомный компонент проходит save/apply с reload-командой, CRUD в GUI.
 - C: инспектор редактирует параметры любого из 20 встроенных + кастомных приложений.

@@ -32,6 +32,7 @@ from core.paths import (
     validate_profile_name,
 )
 from core.protocol import ThemeCore
+from core.theme_core import read_config_params
 from core.theme_schema import FIELD_BY_ID, SECTIONS
 
 
@@ -80,6 +81,7 @@ class ThemeInspectorController(QObject):
     issuesChanged = Signal()
     scopeChanged = Signal()
     busyChanged = Signal()
+    appConfigsChanged = Signal()
     toast = Signal(str, bool)          # message, success
 
     def __init__(self, parent: Optional[QObject] = None) -> None:
@@ -88,6 +90,7 @@ class ThemeInspectorController(QObject):
         self._scope = "live"
         self._sections: list[dict] = []
         self._issues: list[dict] = []
+        self._app_configs: list[dict] = []
         self._busy = False
         self._accent = ""
         self._modified = 0
@@ -128,6 +131,11 @@ class ThemeInspectorController(QObject):
                 continue
             valid.append(name)
         return ["live"] + [f"profile:{name}" for name in valid]
+
+    @Property(list, notify=appConfigsChanged)
+    def appConfigs(self) -> list:
+        """Дерево «приложение → файл → параметры» (read-only, этап C1)."""
+        return self._app_configs
 
     @Property(str, notify=sectionsChanged)
     def activeProfile(self) -> str:
@@ -199,9 +207,51 @@ class ThemeInspectorController(QObject):
         self._sections = sections
         self._issues = issues
         self._modified = modified
+        self._app_configs = self._build_app_configs()
         self.sectionsChanged.emit()
         self.fieldsChanged.emit()
         self.issuesChanged.emit()
+        self.appConfigsChanged.emit()
+
+    def _build_app_configs(self) -> list[dict]:
+        """Read-only дерево: отслеживаемое приложение → файлы → строки ключ=значение."""
+        try:
+            components = CoreFactory.tracked_apps_core().get_all_components()
+        except Exception:
+            return []
+        if self._scope == "live":
+            base: Optional[Path] = None
+        else:
+            try:
+                base = profile_dir(self._scope.split(":", 1)[1])
+            except (IndexError, ValueError):
+                return []
+        entries: list[dict] = []
+        for component in components:
+            files: list[dict] = []
+            for rel in component.config_paths:
+                path = live_path(rel) if base is None else base / rel
+                if not path.is_file():
+                    continue
+                parsed = read_config_params(path)
+                if parsed is None:
+                    files.append({"relPath": rel, "params": [], "truncated": False,
+                                  "note": "unsupported format"})
+                    continue
+                files.append({
+                    "relPath": rel,
+                    "params": parsed["params"],
+                    "truncated": parsed.get("truncated", False),
+                    "note": parsed.get("note", ""),
+                })
+            if files:
+                entries.append({
+                    "id": component.id,
+                    "name": component.name,
+                    "icon": component.icon,
+                    "files": files,
+                })
+        return entries
 
     @Slot(str, result=list)
     def fieldsFor(self, section: str) -> list:
