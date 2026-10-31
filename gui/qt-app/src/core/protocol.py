@@ -111,6 +111,10 @@ class ProfileCore(ABC):
         """Удалить профиль."""
 
     @abstractmethod
+    def set_description(self, name: str, description: str) -> Result:
+        """Установить/сменить описание профиля (manifest.json)."""
+
+    @abstractmethod
     def diff(self, a: str, b: str) -> str:
         """Сравнить два профиля (raw diff)."""
 

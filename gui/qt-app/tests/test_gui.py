@@ -564,6 +564,117 @@ class TestTrackedAppsControllerCrud:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 6e. Profile descriptions: CLI core + controller + QML wiring
+# ─────────────────────────────────────────────────────────────────────────────
+class TestProfileDescription:
+    def test_cli_core_set_description_runs_describe(self) -> None:
+        from core.cli_core import CliProfileCore
+
+        core = CliProfileCore()
+        with mock.patch.object(core, "_run") as run:
+            run.return_value = mock.Mock(success=True, message="Description updated.")
+            result = core.set_description("glass", "Dark glass")
+        assert result.success
+        assert run.call_args[0][0] == ["describe", "glass", "--set=Dark glass"]
+
+    def test_cli_core_set_description_validates_name(self) -> None:
+        from core.cli_core import CliProfileCore
+
+        core = CliProfileCore()
+        assert not core.set_description("../escape", "x").success
+
+    def test_controller_save_writes_description_after_save(self) -> None:
+        from PySide6.QtCore import QCoreApplication
+
+        from controllers import ProfileController
+        from core.protocol import AppSettings, CoreFactory, Result
+
+        calls: list[tuple[str, str]] = []
+
+        class FakeProfileCore:
+            def list_profiles(self): return []
+            def get_active_profile(self): return ""
+            def apply(self, profile, components=None): return Result.ok("ok")
+            def save(self, name, components=None):
+                calls.append(("save", name))
+                return Result.ok("ok")
+            def set_description(self, name, description):
+                calls.append(("describe", description))
+                return Result.ok("ok")
+            def delete(self, name): return Result.ok("ok")
+            def diff(self, a, b): return ""
+            def get_profile_components(self, profile): return []
+
+        class FakeSettingsCore:
+            def load(self): return AppSettings()
+            def save(self, settings): return Result.ok("ok")
+            def get_defaults(self): return AppSettings()
+
+        CoreFactory.set_profile_core(FakeProfileCore())
+        CoreFactory.set_settings_core(FakeSettingsCore())
+        try:
+            controller = ProfileController()
+            done: list[bool] = []
+            controller.operationFinished.connect(lambda ok, msg: done.append(ok))
+            controller.saveProfile("glass", "Dark glass")
+            app = QCoreApplication.instance() or QCoreApplication([])
+            for _ in range(200):
+                if done:
+                    break
+                app.processEvents()
+                import time
+                time.sleep(0.01)
+            assert done and done[0]
+            assert calls == [("save", "glass"), ("describe", "Dark glass")]
+        finally:
+            CoreFactory.reset()
+
+    def test_controller_save_without_description_skips_describe(self) -> None:
+        from controllers import ProfileController
+        from core.protocol import AppSettings, CoreFactory, Result
+
+        calls: list[str] = []
+
+        class FakeProfileCore:
+            def list_profiles(self): return []
+            def get_active_profile(self): return ""
+            def apply(self, profile, components=None): return Result.ok("ok")
+            def save(self, name, components=None):
+                calls.append("save")
+                return Result.ok("ok")
+            def set_description(self, name, description):
+                calls.append("describe")
+                return Result.ok("ok")
+            def delete(self, name): return Result.ok("ok")
+            def diff(self, a, b): return ""
+            def get_profile_components(self, profile): return []
+
+        class FakeSettingsCore:
+            def load(self): return AppSettings()
+            def save(self, settings): return Result.ok("ok")
+            def get_defaults(self): return AppSettings()
+
+        CoreFactory.set_profile_core(FakeProfileCore())
+        CoreFactory.set_settings_core(FakeSettingsCore())
+        try:
+            controller = ProfileController()
+            # Пустое/пробельное описание → только save (воркер тот же кодовый путь)
+            comp, error = controller._settings_components()
+            assert comp is None and error == ""
+        finally:
+            CoreFactory.reset()
+
+    def test_description_ui_wiring(self) -> None:
+        main = (PROJECT_ROOT / "qml" / "Main.qml").read_text()
+        card = (PROJECT_ROOT / "qml" / "Components" / "ProfileCardDelegate.qml").read_text()
+        assert "descriptionField" in main
+        assert "setProfileDescription" in main
+        assert "descriptionDialog" in main
+        assert "profileDescription" in card
+        assert "editDescriptionClicked" in card
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 7. CliWallpaperCore — wallpaper dir uses settings
 # ─────────────────────────────────────────────────────────────────────────────
 class TestCliWallpaperCore:

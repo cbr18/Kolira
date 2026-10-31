@@ -15,6 +15,7 @@ Kirigami.AbstractCard {
     property bool profileSelected: false
     property int profileComponentCount: 0
     property string profileCreatedAt: ""
+    property string profileDescription: ""
     // Glass mode is passed down because QML components cannot see the
     // root window's properties across component-file scopes.
     property bool glassMode: false
@@ -149,6 +150,26 @@ Kirigami.AbstractCard {
                     color: ThemeColors.dimColor(card.glassMode)
                     elide: Text.ElideRight
                 }
+
+                Label {
+                    Layout.fillWidth: true
+                    text: card.profileDescription
+                    font.pointSize: TypeScale.caption
+                    font.italic: true
+                    color: ThemeColors.fgColorSoft(card.glassMode)
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 2
+                    elide: Text.ElideRight
+                    visible: card.profileDescription !== ""
+                }
+            }
+
+            ToolButton {
+                text: qsTr("Edit description")
+                icon.name: "document-edit"
+                Layout.alignment: Qt.AlignTop
+                visible: hover.hovered || card.profileDescription === ""
+                onClicked: card.editDescriptionClicked(card.profileName, card.profileDescription)
             }
         }
 
@@ -280,4 +301,5 @@ Kirigami.AbstractCard {
     signal diffClicked(string profileName)
     signal inspectClicked(string profileName)
     signal deleteClicked(string profileName)
+    signal editDescriptionClicked(string profileName, string description)
 }

@@ -3,7 +3,7 @@
 Три этапа. Файлы-снимки остаются источником правды (CLI, бэкапы, rsync);
 никакой SQLite — метаданные и реестр живут в JSON рядом с данными.
 
-## Этап A — формализация темы (`manifest.json`) [в работе]
+## Этап A — формализация темы (`manifest.json`) [сделано]
 
 Профиль получает формальный манифест `manifest.json`:
 
@@ -25,10 +25,12 @@
 - Rust `profile.rs`: пишет json при save (и legacy `manifest.txt` для старых
   тулов); читает `created_at` и `description` из json (fallback на txt).
 - CLI: `save NAME [--description=…]`, новый `describe NAME --set "…"`.
-- Python `cli_core.py`: читает description из json.
-- GUI: поле «Описание» при save, показ в карточках, диалог правки описания.
-- Тесты: round-trip манифеста, паритет created_at/description между Rust CLI
-  и GUI-чтением manifest.json.
+- Python `cli_core.py`: читает description из json; `set_description` —
+  через `describe --set` (новый метод ProfileCore).
+- GUI: ✅ поле «Описание» при save, показ в карточках, диалог правки описания
+  (карандаш на карточке; `ProfileController.setProfileDescription`).
+- Тесты: round-trip манифеста (bash 14), паритет created_at/description между
+  Rust CLI и GUI-чтением manifest.json (pytest 6c/6e).
 
 ## Этап B — страница «Приложения» (`components.json`)
 
@@ -98,6 +100,6 @@ Python-детект (`tracked_apps.py`) читает `components.json` и мер
 - Для экзотических файлов — fallback «редактор текста файла» с предпросмотром.
 
 ## Критерии «готово»
-- A: манифест v1, описание в GUI/CLI/карточках, 109 bash + 164 python + 10 rust тестов зелёные.
+- A: манифест v1, описание в GUI/CLI/карточках, 109 bash + 169 python + 10 rust тестов зелёные.
 - B: кастомный компонент проходит save/apply с reload-командой, CRUD в GUI.
 - C: инспектор редактирует параметры любого из 20 встроенных + кастомных приложений.

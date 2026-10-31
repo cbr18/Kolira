@@ -6,6 +6,7 @@ Native KDE Plasma application for managing theme profiles and wallpapers.
 
 - **Native KDE UI** — Built with Kirigami/QML, follows KDE HIG
 - **Profile Management** — Apply/save/diff profiles (glass, paper, custom)
+  with optional descriptions shown on the profile cards
 - **Select, then Apply** — clicking a profile only *selects* it; an explicit
   **Apply** button commits it (switching profiles is slow, so nothing happens
   until you ask for it)
@@ -199,7 +200,7 @@ mypy src/
 # QML syntax/type lint (PySide6 6.12 ships its own qmllint)
 .venv/bin/pyside6-qmllint -I qml -I /usr/lib/qt6/qml qml/Main.qml qml/pages/SettingsPage.qml qml/Components/*.qml
 
-# Tests (Python: 164, from gui/qt-app)
+# Tests (Python: 169, from gui/qt-app)
 .venv/bin/python -m pytest tests/ -q
 
 # CLI + installer tests (109, from the repo root)

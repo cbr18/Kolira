@@ -310,6 +310,7 @@ Kirigami.ApplicationWindow {
                             profileSelected: entry ? root.selectedProfile === entry.name : false
                             profileComponentCount: entry ? entry.componentCount : 0
                             profileCreatedAt: entry ? entry.createdAt : ""
+                            profileDescription: entry ? entry.description : ""
 
                             onSelectedClicked: function(profileName) {
                                 root.selectedProfile = profileName
@@ -333,6 +334,11 @@ Kirigami.ApplicationWindow {
                             onDeleteClicked: function(profileName) {
                                 confirmDialog.targetProfile = profileName
                                 confirmDialog.open()
+                            }
+                            onEditDescriptionClicked: function(profileName, description) {
+                                descriptionDialog.targetProfile = profileName
+                                descriptionField.text = description
+                                descriptionDialog.open()
                             }
                         }
                     }
@@ -526,6 +532,11 @@ Kirigami.ApplicationWindow {
                 placeholderText: qsTr("Profile name")
                 onTextChanged: saveError.visible = false
             }
+            TextField {
+                id: descriptionField
+                Layout.fillWidth: true
+                placeholderText: qsTr("Description (optional)")
+            }
             Label {
                 id: saveError
                 Layout.fillWidth: true
@@ -543,8 +554,47 @@ Kirigami.ApplicationWindow {
                 saveDialog.open()
                 return
             }
-            profileController.saveProfile(name)
+            profileController.saveProfile(name, descriptionField.text.trim())
             nameField.text = ""
+            descriptionField.text = ""
+        }
+    }
+
+    Kirigami.Dialog {
+        id: descriptionDialog
+        title: qsTr("Profile Description")
+        property string targetProfile: ""
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+        preferredWidth: 420
+
+        background: Rectangle {
+            color: ThemeColors.dialogBg(root.glassMode)
+            radius: 8
+            border.width: 1
+            border.color: ThemeColors.cardBorder(root.glassMode)
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            Label {
+                text: qsTr("A note shown on the profile card (stored in the profile's manifest.json):")
+                color: ThemeColors.fgColor(root.glassMode)
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            TextArea {
+                id: descriptionField
+                Layout.fillWidth: true
+                Layout.minimumHeight: Platform.Units.gridUnit * 3
+                placeholderText: qsTr("Optional description")
+            }
+        }
+
+        onAccepted: {
+            if (descriptionDialog.targetProfile !== "") {
+                profileController.setProfileDescription(
+                    descriptionDialog.targetProfile, descriptionField.text.trim())
+            }
         }
     }
 

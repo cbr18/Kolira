@@ -137,6 +137,8 @@ removed; the app always starts on the single CLI-backed core.)
 theme-profile list               # list available profiles
 theme-profile apply glass        # apply a profile (creates a pre-apply backup)
 theme-profile save my-profile    # save current state as a new profile
+theme-profile save glass --description="Dark glass"   # with a card description
+theme-profile describe glass --set "New note"         # edit the description
 theme-profile diff glass paper   # show config differences
 theme-profile status             # diagnostic: dump 30+ config values
 theme-menu                       # interactive wofi menu

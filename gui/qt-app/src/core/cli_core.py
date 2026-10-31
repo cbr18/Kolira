@@ -231,6 +231,14 @@ class CliProfileCore(ProfileCore):
         except Exception as e:
             return Result.err(str(e))
 
+    def set_description(self, name: str, description: str) -> Result:
+        """Описание профиля — через `theme-profile describe NAME --set=...`."""
+        try:
+            name = validate_profile_name(name)
+        except ValueError as exc:
+            return Result.err(str(exc))
+        return self._run(["describe", name, f"--set={description}"])
+
     def diff(self, a: str, b: str) -> str:
         try:
             a = validate_profile_name(a)

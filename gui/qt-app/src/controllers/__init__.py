@@ -247,9 +247,13 @@ class ProfileController(QObject):
 
         self._start_operation("apply", _work)
 
-    @Slot(str)
-    def saveProfile(self, name: str) -> None:
-        """Сохранить текущее состояние как профиль (асинхронно)."""
+    @Slot(str, str)
+    def saveProfile(self, name: str, description: str = "") -> None:
+        """Сохранить текущее состояние как профиль (асинхронно).
+
+        Описание (необязательное) пишется сразу после сохранения через
+        ``describe --set`` — в один проход до рефреша модели.
+        """
         try:
             name = validate_profile_name(name)
         except ValueError as exc:
@@ -262,9 +266,30 @@ class ProfileController(QObject):
 
         def _work() -> tuple[bool, str]:
             result = self._core.save(name, components)
-            return result.success, result.message
+            if not result.success:
+                return result.success, result.message
+            if description.strip():
+                described = self._core.set_description(name, description.strip())
+                if not described.success:
+                    return False, described.message
+            return True, f"Saved profile: {name}"
 
         self._start_operation("save", _work)
+
+    @Slot(str, str)
+    def setProfileDescription(self, profile: str, description: str) -> None:
+        """Изменить описание существующего профиля (асинхронно)."""
+        try:
+            profile = validate_profile_name(profile)
+        except ValueError as exc:
+            self.operationFinished.emit(False, str(exc))
+            return
+
+        def _work() -> tuple[bool, str]:
+            result = self._core.set_description(profile, description.strip())
+            return result.success, result.message or "Description updated"
+
+        self._start_operation("describe", _work)
 
     @Slot(str)
     def deleteProfile(self, name: str) -> None:
