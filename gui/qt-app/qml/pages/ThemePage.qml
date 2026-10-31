@@ -69,6 +69,58 @@ Kirigami.ScrollablePage {
         onAccepted: themeInspector.exportJson(selectedFile)
     }
 
+    Kirigami.Dialog {
+        id: configValueDialog
+        title: qsTr("Edit config value")
+        property string relPath: ""
+        property string configKey: ""
+        property string oldValue: ""
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+        preferredWidth: 480
+
+        function openFor(path, key, value) {
+            relPath = path
+            configKey = key
+            oldValue = value
+            newValueField.text = value
+            open()
+        }
+
+        ColumnLayout {
+            spacing: Platform.Units.smallSpacing
+
+            Label {
+                Layout.fillWidth: true
+                text: configValueDialog.relPath + "  ·  " + configValueDialog.configKey
+                font.family: "monospace"
+                font.pointSize: TypeScale.caption
+                color: ThemeColors.dimColor(page.glassMode)
+                wrapMode: Text.WordWrap
+            }
+            TextField {
+                id: newValueField
+                Layout.fillWidth: true
+            }
+            Label {
+                // Живое превью «было → станет» (этап C2)
+                Layout.fillWidth: true
+                text: configValueDialog.oldValue + "  →  " + newValueField.text
+                font.family: "monospace"
+                font.pointSize: TypeScale.caption
+                color: ThemeColors.fgColorSoft(page.glassMode)
+                wrapMode: Text.WordWrap
+            }
+        }
+
+        onAccepted: {
+            if (configValueDialog.relPath !== "") {
+                themeInspector.setAppConfigValue(
+                    configValueDialog.relPath, configValueDialog.configKey,
+                    newValueField.text.trim())
+            }
+        }
+    }
+
     Connections {
         target: themeInspector
         function onToast(text, ok) { page.showMessage(text, ok) }
@@ -446,7 +498,7 @@ Kirigami.ScrollablePage {
                     }
                     Item { Layout.fillWidth: true }
                     Label {
-                        text: qsTr("read-only")
+                        text: themeInspector.readOnly ? qsTr("read-only") : qsTr("live: editable")
                         font.pointSize: TypeScale.caption
                         color: ThemeColors.dimColor(page.glassMode)
                     }
@@ -454,7 +506,9 @@ Kirigami.ScrollablePage {
 
                 Label {
                     Layout.fillWidth: true
-                    text: qsTr("What the tracked applications store, file by file. Editing arrives in a later stage.")
+                    text: qsTr("What the tracked applications store, file by file. "
+                               + "Pencil-edit a value in the live scope (INI/JSON); "
+                               + "TOML/user.js arrive in a later stage.")
                     color: ThemeColors.dimColor(page.glassMode)
                     wrapMode: Text.WordWrap
                     font.pointSize: TypeScale.caption
@@ -488,6 +542,9 @@ Kirigami.ScrollablePage {
 
                             ColumnLayout {
                                 required property var modelData
+                                // Алиас для вложенного Repeater строк: там
+                                // modelData перекрывается строкой параметра.
+                                property var fileData: modelData
                                 Layout.fillWidth: true
                                 Layout.leftMargin: Platform.Units.largeSpacing
                                 spacing: 1
@@ -525,6 +582,14 @@ Kirigami.ScrollablePage {
                                             font.pointSize: TypeScale.caption
                                             color: ThemeColors.dimColor(page.glassMode)
                                             elide: Text.ElideRight
+                                        }
+
+                                        ToolButton {
+                                            text: qsTr("Edit value")
+                                            icon.name: "document-edit"
+                                            visible: fileData.editable && !themeInspector.readOnly
+                                            onClicked: configValueDialog.openFor(
+                                                fileData.relPath, modelData.key, modelData.value)
                                         }
                                     }
                                 }

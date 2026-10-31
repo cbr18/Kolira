@@ -32,7 +32,7 @@ from core.paths import (
     validate_profile_name,
 )
 from core.protocol import ThemeCore
-from core.theme_core import read_config_params
+from core.theme_core import _UNSUPPORTED_SUFFIXES, read_config_params
 from core.theme_schema import FIELD_BY_ID, SECTIONS
 
 
@@ -227,6 +227,8 @@ class ThemeInspectorController(QObject):
             except (IndexError, ValueError):
                 return []
         entries: list[dict] = []
+        editable_suffixes = {".json", ".jsonc"}
+        blocked_suffixes = {".toml", ".js", *_UNSUPPORTED_SUFFIXES}
         for component in components:
             files: list[dict] = []
             for rel in component.config_paths:
@@ -234,15 +236,22 @@ class ThemeInspectorController(QObject):
                 if not path.is_file():
                     continue
                 parsed = read_config_params(path)
+                suffix = path.suffix.lower()
                 if parsed is None:
                     files.append({"relPath": rel, "params": [], "truncated": False,
-                                  "note": "unsupported format"})
+                                  "note": "unsupported format", "editable": False})
                     continue
+                editable = (
+                    base is None  # только live-scope редактируется
+                    and parsed["note"] != "parse error"
+                    and (suffix in editable_suffixes or suffix not in blocked_suffixes)
+                )
                 files.append({
                     "relPath": rel,
                     "params": parsed["params"],
                     "truncated": parsed.get("truncated", False),
                     "note": parsed.get("note", ""),
+                    "editable": editable,
                 })
             if files:
                 entries.append({
@@ -252,6 +261,24 @@ class ThemeInspectorController(QObject):
                     "files": files,
                 })
         return entries
+
+    @Slot(str, str, str)
+    def setAppConfigValue(self, rel_path: str, key: str, value: str) -> None:
+        """Записать ключ конфига приложения (этап C2; только live-scope)."""
+        if self._scope != "live":
+            self.toast.emit("Switch to the Live scope to edit", False)
+            return
+
+        def work() -> tuple[bool, str]:
+            result = self._core.set_config_value(rel_path, key, value)
+            return result.success, result.message
+
+        def done(success: bool, message: str) -> None:
+            self.toast.emit(message, success)
+            if success:
+                self.refresh()
+
+        _run(self, work, done)
 
     @Slot(str, result=list)
     def fieldsFor(self, section: str) -> list:

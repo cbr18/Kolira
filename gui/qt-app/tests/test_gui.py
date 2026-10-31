@@ -829,6 +829,194 @@ class TestInspectorAppConfigs:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 6g. Stage C2: editing app config values (INI/JSON by key, undo integration)
+# ─────────────────────────────────────────────────────────────────────────────
+class TestSetConfigValue:
+    def _core(self, tmp_path: Path, monkeypatch):
+        from core.theme_core import AppThemeCore
+
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
+        return AppThemeCore()
+
+    def test_ini_group_key(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        (conf / "settings.conf").write_text("[main]\nspeed=3\n# keep me\n")
+        core = self._core(tmp_path, monkeypatch)
+
+        result = core.set_config_value(".config/mockapp/settings.conf", "main/speed", "9")
+        assert result.success
+        text = (conf / "settings.conf").read_text()
+        assert "speed=9" in text
+        assert "# keep me" in text  # форматирование и комментарии сохранились
+
+    def test_ini_top_level_key_creates_groupless_entry(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        (conf / "settings.conf").write_text("[main]\nspeed=3\n")
+        core = self._core(tmp_path, monkeypatch)
+
+        result = core.set_config_value(".config/mockapp/settings.conf", "volume", "loud")
+        assert result.success
+        text = (conf / "settings.conf").read_text()
+        assert "volume=loud" in text
+
+    def test_json_type_preserved(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        (conf / "settings.json").write_text(
+            '{"speed": 3, "enabled": true, "name": "dark", "nested": {"x": 1.5}}'
+        )
+        core = self._core(tmp_path, monkeypatch)
+
+        assert core.set_config_value(".config/mockapp/settings.json", "speed", "9").success
+        assert core.set_config_value(".config/mockapp/settings.json", "enabled", "false").success
+        assert core.set_config_value(".config/mockapp/settings.json", "name", "light").success
+        assert core.set_config_value(".config/mockapp/settings.json", "nested/x", "2.25").success
+
+        import json as jsonlib
+        data = jsonlib.loads((conf / "settings.json").read_text())
+        assert data == {"speed": 9, "enabled": False, "name": "light",
+                        "nested": {"x": 2.25}}
+
+    def test_jsonc_comments_survive(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        (conf / "settings.jsonc").write_text('{\n  // theme note\n  "theme": "dark",\n}\n')
+        core = self._core(tmp_path, monkeypatch)
+
+        result = core.set_config_value(".config/mockapp/settings.jsonc", "theme", "light")
+        assert result.success
+        text = (conf / "settings.jsonc").read_text()
+        assert "// theme note" in text
+        assert '"theme": "light"' in text
+
+    def test_unknown_json_key_errors(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        (conf / "settings.json").write_text('{"a": 1}')
+        core = self._core(tmp_path, monkeypatch)
+
+        assert not core.set_config_value(".config/mockapp/settings.json", "missing/key", "1").success
+
+    def test_toml_is_rejected_until_c3(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        (conf / "settings.toml").write_text("speed = 3\n")
+        core = self._core(tmp_path, monkeypatch)
+
+        result = core.set_config_value(".config/mockapp/settings.toml", "speed", "9")
+        assert not result.success
+        assert "C3" in result.message
+
+    def test_missing_file_errors(self, tmp_path: Path, monkeypatch) -> None:
+        core = self._core(tmp_path, monkeypatch)
+        assert not core.set_config_value(".config/nope.conf", "a", "1").success
+
+    def test_undo_restores_file(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        target = conf / "settings.conf"
+        target.write_text("[main]\nspeed=3\n")
+        core = self._core(tmp_path, monkeypatch)
+
+        assert core.set_config_value(".config/mockapp/settings.conf", "main/speed", "9").success
+        assert core.session_changes() == 1
+        assert core.undo().success
+        assert target.read_text() == "[main]\nspeed=3\n"
+
+    def test_revert_restores_all(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        target = conf / "settings.conf"
+        target.write_text("[main]\nspeed=3\n")
+        core = self._core(tmp_path, monkeypatch)
+
+        core.set_config_value(".config/mockapp/settings.conf", "main/speed", "9")
+        core.set_config_value(".config/mockapp/settings.conf", "main/volume", "loud")
+        assert core.revert().success
+        assert target.read_text() == "[main]\nspeed=3\n"
+
+
+class TestSetAppConfigValueController:
+    def test_controller_dispatches_to_core(self, tmp_path: Path, monkeypatch) -> None:
+        from controllers.theme_inspector import ThemeInspectorController
+        from core.protocol import CoreFactory, Result
+
+        calls: list[tuple[str, str, str]] = []
+        toasts: list[tuple[str, bool]] = []
+
+        class FakeThemeCore:
+            def sections(self, scope): return []
+            def fields(self, section, scope): return []
+            def validate(self): return []
+            def get(self, field_id, scope): return None
+            def search(self, query, scope): return []
+            def session_changes(self): return 0
+            def set_config_value(self, rel_path, key, value):
+                calls.append((rel_path, key, value))
+                return Result.ok("speed set")
+
+        class FakeTrackedCore:
+            def get_all_components(self): return []
+
+        monkeypatch.setattr(CoreFactory, "_theme_core", FakeThemeCore())
+        monkeypatch.setattr(CoreFactory, "_tracked_apps_core", FakeTrackedCore())
+        controller = ThemeInspectorController()
+        controller.toast.connect(lambda msg, ok: toasts.append((msg, ok)))
+
+        controller.setAppConfigValue(".config/mockapp/settings.conf", "main/speed", "9")
+        # Воркер на пуле потоков — дать ему завершиться (done придёт в event loop)
+        import time
+        from PySide6.QtWidgets import QApplication
+
+        app = QApplication.instance() or QApplication([])
+        for _ in range(200):
+            if calls and toasts:
+                break
+            app.processEvents()
+            time.sleep(0.01)
+
+        assert calls == [(".config/mockapp/settings.conf", "main/speed", "9")]
+        assert toasts and toasts[0][1]
+
+    def test_profile_scope_refuses_edit(self, tmp_path: Path, monkeypatch) -> None:
+        from controllers.theme_inspector import ThemeInspectorController
+        from core.protocol import CoreFactory
+
+        class FakeThemeCore:
+            def sections(self, scope): return []
+            def fields(self, section, scope): return []
+            def validate(self): return []
+            def get(self, field_id, scope): return None
+            def search(self, query, scope): return []
+            def session_changes(self): return 0
+            def set_config_value(self, rel_path, key, value):
+                raise AssertionError("must not be called for a profile scope")
+
+        class FakeTrackedCore:
+            def get_all_components(self): return []
+
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
+        monkeypatch.setattr(CoreFactory, "_theme_core", FakeThemeCore())
+        monkeypatch.setattr(CoreFactory, "_tracked_apps_core", FakeTrackedCore())
+        controller = ThemeInspectorController()
+        controller.setScope("profile:glass")
+        toasts: list[tuple[str, bool]] = []
+        controller.toast.connect(lambda msg, ok: toasts.append((msg, ok)))
+        controller.setAppConfigValue(".config/x.conf", "k", "v")
+        assert toasts and not toasts[0][1]
+
+    def test_c2_qml_wiring(self) -> None:
+        qml = (PROJECT_ROOT / "qml" / "pages" / "ThemePage.qml").read_text()
+        assert "setAppConfigValue" in qml
+        assert "configValueDialog" in qml
+        assert "fileData.editable" in qml
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 7. CliWallpaperCore — wallpaper dir uses settings
 # ─────────────────────────────────────────────────────────────────────────────
 class TestCliWallpaperCore:

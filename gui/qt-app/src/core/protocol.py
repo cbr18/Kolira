@@ -353,6 +353,14 @@ class ThemeCore(ABC):
         """Сбросить поле к дефолту или к значению активного профиля."""
 
     @abstractmethod
+    def set_config_value(self, rel_path: str, key: str, value: str) -> Result:
+        """Записать один ключ конфига приложения (только live; этап C2).
+
+        ``key`` — flattened-форма из read_config_params (INI "group/key",
+        JSON "a/b"). Запись участвует в undo/revert сессии.
+        """
+
+    @abstractmethod
     def undo(self) -> Result:
         """Отменить последнее изменение сессии."""
 

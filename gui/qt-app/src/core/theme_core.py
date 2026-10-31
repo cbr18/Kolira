@@ -335,6 +335,44 @@ def _json_read(text: Optional[str], path: tuple[str, ...]) -> Any:
         return fragment.strip('"')
 
 
+def _coerce_json_value(old: Any, raw: str) -> Any:
+    """Сохранить тип старого JSON-значения: число остаётся числом и т.п."""
+    if isinstance(old, bool):
+        lowered = raw.strip().lower()
+        if lowered in ("true", "1", "yes", "on"):
+            return True
+        if lowered in ("false", "0", "no", "off"):
+            return False
+        raise ValueError(f"expected true/false, got {raw!r}")
+    if isinstance(old, int) and not isinstance(old, bool):
+        return int(float(raw))
+    if isinstance(old, float):
+        return float(raw)
+    if old is not None:
+        return raw
+    stripped = raw.strip()
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError:
+        return raw
+
+
+def _ini_read(text: str, group: str, key: str) -> Optional[str]:
+    """Текущее строковое значение INI-ключа (lenient, mirror _set_ini_text)."""
+    current = ""
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            current = stripped[1:-1].strip()
+            continue
+        if current != group or "=" not in stripped:
+            continue
+        k, _, v = stripped.partition("=")
+        if k.strip() == key:
+            return v.strip()
+    return None
+
+
 def _json_patch(text: str, path: tuple[str, ...], value: Any) -> str:
     span = _json_positions(text).get(path)
     literal = json.dumps(value, ensure_ascii=False)
@@ -558,6 +596,9 @@ class _UndoEntry:
     old_raw: Any
     file: Optional[Path]
     old_bytes: Optional[bytes]
+    # Пустой field_id + заполненный label — generic-запись (этап C2,
+    # конфиги приложений), не привязанная к curated-полю схемы.
+    label: str = ""
 
 
 class AppThemeCore(ThemeCore):
@@ -1308,11 +1349,53 @@ class AppThemeCore(ThemeCore):
             return Result.err(f"Unknown reset target: {to}")
         return Result.err("This field has no portable default; pick a value instead")
 
+    def set_config_value(self, rel_path: str, key: str, value: str) -> Result:
+        """Записать один ключ конфига приложения (этап C2, только live).
+
+        ``key`` — flattened-форма из read_config_params: INI "group/key"
+        (или "key" без группы), JSON "a/b". Тип JSON-значения сохраняется
+        (число/bool не превращаются в строку). Запись встаёт в общий стек
+        undo/revert сессии наравне с curated-полями.
+        """
+        path = live_path(rel_path)
+        if not path.is_file():
+            return Result.err(f"File not found: {rel_path}")
+        suffix = path.suffix.lower()
+        if suffix in (".toml", ".js") or suffix in _UNSUPPORTED_SUFFIXES:
+            return Result.err(f"Editing {suffix or 'this format'} arrives in stage C3")
+        text = _read_text(path) or ""
+        try:
+            if suffix in (".json", ".jsonc"):
+                node_path = tuple(part for part in key.split("/") if part)
+                old_raw = _json_read(text, node_path)
+                new_value = _coerce_json_value(old_raw, value)
+                new_text = _json_patch(text, node_path, new_value)
+            else:
+                # Flattened INI: "group/key"; без "/" — ключ вне секций.
+                if "/" in key:
+                    group, _, leaf = key.partition("/")
+                else:
+                    group, leaf = "", key
+                old_raw = _ini_read(text, group, leaf)
+                new_text = _set_ini_text(text, group, leaf, value)
+        except (KeyError, ValueError) as exc:
+            return Result.err(f"Failed to write {key}: {exc}")
+
+        old_bytes = self._snapshot(path)
+        try:
+            _atomic_write(path, new_text)
+        except OSError as exc:
+            return Result.err(f"Failed to write {rel_path}: {exc}")
+        self._undo.append(_UndoEntry("", old_raw, path, old_bytes,
+                                   label=f"{rel_path} · {key}"))
+        self._choices_cache.clear()
+        return Result.ok(f"{key} set")
+
     def undo(self) -> Result:
         if not self._undo:
             return Result.err("Nothing to undo")
         entry = self._undo.pop()
-        field = FIELD_BY_ID[entry.field_id]
+        field = FIELD_BY_ID.get(entry.field_id)
         if entry.file is not None:
             if entry.old_bytes is None:
                 try:
@@ -1324,6 +1407,10 @@ class AppThemeCore(ThemeCore):
                     _atomic_write_bytes(entry.file, entry.old_bytes)
                 except OSError as exc:
                     return Result.err(f"Undo failed: {exc}")
+        if field is None:
+            # Generic-запись (этап C2): хуков и команд нет, только файл.
+            self._choices_cache.clear()
+            return Result.ok(f"Undone: {entry.label or entry.field_id}")
         if field.apply == "cmd_config" and field.command and entry.old_raw is not None:
             self._run(self._command_args(field, entry.old_raw))
         self._run_hook(field)
@@ -1333,7 +1420,8 @@ class AppThemeCore(ThemeCore):
     def revert(self) -> Result:
         if not self._originals:
             return Result.ok("No changes in this session")
-        touched = [FIELD_BY_ID[entry.field_id] for entry in self._undo]
+        touched = [FIELD_BY_ID[entry.field_id] for entry in self._undo
+                   if entry.field_id in FIELD_BY_ID]
         restored = 0
         for path, original in list(self._originals.items()):
             try:
