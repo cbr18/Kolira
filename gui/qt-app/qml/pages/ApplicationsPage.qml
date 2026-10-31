@@ -185,7 +185,6 @@ Kirigami.ScrollablePage {
                                     text: qsTr("Edit")
                                     icon.name: "document-edit"
                                     visible: modelData.isCustom
-                                    accessibleName: text
                                     onClicked: appEditor.openExisting(modelData)
                                 }
 
@@ -193,7 +192,6 @@ Kirigami.ScrollablePage {
                                     text: qsTr("Delete")
                                     icon.name: "edit-delete"
                                     visible: modelData.isCustom
-                                    accessibleName: text
                                     onClicked: confirmDelete.ask(modelData.id, modelData.name)
                                 }
                             }

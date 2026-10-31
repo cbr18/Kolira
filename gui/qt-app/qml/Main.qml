@@ -337,7 +337,7 @@ Kirigami.ApplicationWindow {
                             }
                             onEditDescriptionClicked: function(profileName, description) {
                                 descriptionDialog.targetProfile = profileName
-                                descriptionField.text = description
+                                descriptionEdit.text = description
                                 descriptionDialog.open()
                             }
                         }
@@ -583,7 +583,7 @@ Kirigami.ApplicationWindow {
                 Layout.fillWidth: true
             }
             TextArea {
-                id: descriptionField
+                id: descriptionEdit
                 Layout.fillWidth: true
                 Layout.minimumHeight: Platform.Units.gridUnit * 3
                 placeholderText: qsTr("Optional description")
@@ -593,7 +593,7 @@ Kirigami.ApplicationWindow {
         onAccepted: {
             if (descriptionDialog.targetProfile !== "") {
                 profileController.setProfileDescription(
-                    descriptionDialog.targetProfile, descriptionField.text.trim())
+                    descriptionDialog.targetProfile, descriptionEdit.text.trim())
             }
         }
     }
