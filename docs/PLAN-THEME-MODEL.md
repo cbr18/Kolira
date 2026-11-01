@@ -102,9 +102,13 @@ Python-детект (`tracked_apps.py`) читает `components.json` и мер
       комментариев; JSON/JSONC — `_json_patch` по позиции с сохранением типа
       значения; generic-записи в общем стеке undo/revert; UI — диалог
       «было → станет» на ThemePage, только live-scope)
-- [ ] C3: TOML/JSONC/user.js по ключу + текстовый fallback для экзотики
+- [x] C3: TOML/JSONC/user.js по ключу + текстовый fallback для экзотики
+      (`_toml_set`: `[section]` и dotted-заголовки, тип значения сохраняется,
+      массивы — JSON-литералом; inline-таблицы без заголовка секции отклоняются;
+      user.js — `_patch_userjs`; line-based «key value» (kitty.conf) пишется
+      в своём формате; экзотика (CSS и пр.) — кнопка «Show in folder»)
 
 ## Критерии «готово»
-- A: манифест v1, описание в GUI/CLI/карточках, 109 bash + 193 python + 10 rust тестов зелёные.
+- A: манифест v1, описание в GUI/CLI/карточках, 109 bash + 200 python + 10 rust тестов зелёные.
 - B: кастомный компонент проходит save/apply с reload-командой, CRUD в GUI.
 - C: инспектор редактирует параметры любого из 20 встроенных + кастомных приложений.

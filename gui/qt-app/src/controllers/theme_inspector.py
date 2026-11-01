@@ -214,7 +214,11 @@ class ThemeInspectorController(QObject):
         self.appConfigsChanged.emit()
 
     def _build_app_configs(self) -> list[dict]:
-        """Read-only дерево: отслеживаемое приложение → файлы → строки ключ=значение."""
+        """Дерево: отслеживаемое приложение → файлы → строки ключ=значение.
+
+        Флажок ``editable`` — только для live-файлов с поддержанными
+        суффиксами (INI/JSON/JSONC/TOML/user.js/line-based).
+        """
         try:
             components = CoreFactory.tracked_apps_core().get_all_components()
         except Exception:
@@ -227,8 +231,8 @@ class ThemeInspectorController(QObject):
             except (IndexError, ValueError):
                 return []
         entries: list[dict] = []
-        editable_suffixes = {".json", ".jsonc"}
-        blocked_suffixes = {".toml", ".js", *_UNSUPPORTED_SUFFIXES}
+        editable_suffixes = {".json", ".jsonc", ".toml", ".js"}
+        blocked_suffixes = set(_UNSUPPORTED_SUFFIXES)
         for component in components:
             files: list[dict] = []
             for rel in component.config_paths:
@@ -264,7 +268,7 @@ class ThemeInspectorController(QObject):
 
     @Slot(str, str, str)
     def setAppConfigValue(self, rel_path: str, key: str, value: str) -> None:
-        """Записать ключ конфига приложения (этап C2; только live-scope)."""
+        """Записать ключ конфига приложения (этапы C2/C3; только live-scope)."""
         if self._scope != "live":
             self.toast.emit("Switch to the Live scope to edit", False)
             return

@@ -348,6 +348,12 @@ def _coerce_json_value(old: Any, raw: str) -> Any:
         return int(float(raw))
     if isinstance(old, float):
         return float(raw)
+    if isinstance(old, list):
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            return raw
+        return parsed if isinstance(parsed, list) else raw
     if old is not None:
         return raw
     stripped = raw.strip()
@@ -398,6 +404,8 @@ def _toml_literal(value: Any) -> str:
         return "true" if value else "false"
     if isinstance(value, (int, float)):
         return _fmt_number(value)
+    if isinstance(value, (list, tuple)):
+        return json.dumps(list(value), ensure_ascii=False)
     return json.dumps(str(value))
 
 
@@ -444,6 +452,32 @@ def _patch_toml(text: str, key: str, value: Any, section: str = "") -> str:
             block += "\n"
         block += f"{key} = {literal}\n"
     return text[:start] + block + text[end:]
+
+
+def _toml_set(text: str, key: str, raw: str) -> tuple[str, Any]:
+    """Заменить flattened-ключ TOML; вернуть (новый текст, старое значение).
+
+    Flattened-форма — из read_config_params: ``section/key`` для ``[section]``,
+    ``a/b/c`` для вложенных таблиц. Вложенный ключ правится только при явном
+    заголовке секции (``[a.b]``); inline-таблицы текстово не пересобираются.
+    """
+    if "/" in key:
+        section, _, leaf = key.rpartition("/")
+    else:
+        section, leaf = "", key
+    header = ""
+    if section:
+        candidates = (section, section.replace("/", "."))
+        header = next(
+            (h for h in candidates
+             if re.search(rf"^\[{re.escape(h)}\]\s*$", text, re.M)),
+            "",
+        )
+        if not header and "/" in section:
+            raise ValueError(f"nested TOML table has no [section] header: {key}")
+    path = tuple(section.split("/")) if section else ()
+    old = _toml_read(text, leaf, path)
+    return _patch_toml(text, leaf, _coerce_json_value(old, raw), header), old
 
 
 def _kv_read(text: Optional[str], key: str) -> Optional[str]:
@@ -1350,19 +1384,20 @@ class AppThemeCore(ThemeCore):
         return Result.err("This field has no portable default; pick a value instead")
 
     def set_config_value(self, rel_path: str, key: str, value: str) -> Result:
-        """Записать один ключ конфига приложения (этап C2, только live).
+        """Записать один ключ конфига приложения (этапы C2/C3, только live).
 
         ``key`` — flattened-форма из read_config_params: INI "group/key"
-        (или "key" без группы), JSON "a/b". Тип JSON-значения сохраняется
-        (число/bool не превращаются в строку). Запись встаёт в общий стек
-        undo/revert сессии наравне с curated-полями.
+        (или "key" без группы), JSON/TOML "a/b", user.js — точечный ключ.
+        Тип значения сохраняется (число/bool/список не превращаются в
+        строку). Запись встаёт в общий стек undo/revert сессии наравне
+        с curated-полями.
         """
         path = live_path(rel_path)
         if not path.is_file():
             return Result.err(f"File not found: {rel_path}")
         suffix = path.suffix.lower()
-        if suffix in (".toml", ".js") or suffix in _UNSUPPORTED_SUFFIXES:
-            return Result.err(f"Editing {suffix or 'this format'} arrives in stage C3")
+        if suffix in _UNSUPPORTED_SUFFIXES:
+            return Result.err(f"Editing {suffix} files is not supported")
         text = _read_text(path) or ""
         try:
             if suffix in (".json", ".jsonc"):
@@ -1370,14 +1405,25 @@ class AppThemeCore(ThemeCore):
                 old_raw = _json_read(text, node_path)
                 new_value = _coerce_json_value(old_raw, value)
                 new_text = _json_patch(text, node_path, new_value)
+            elif suffix == ".toml":
+                new_text, old_raw = _toml_set(text, key, value)
+            elif suffix == ".js":
+                old_raw = _userjs_read(text, key)
+                new_value = _coerce_json_value(old_raw, value)
+                new_text = _patch_userjs(text, key, new_value)
             else:
-                # Flattened INI: "group/key"; без "/" — ключ вне секций.
+                # Flattened INI: "group/key"; без "/" — ключ вне секций либо
+                # line-based "key value" (kitty.conf) — пишем в том же формате,
+                # в котором ключ найден.
                 if "/" in key:
                     group, _, leaf = key.partition("/")
                 else:
                     group, leaf = "", key
                 old_raw = _ini_read(text, group, leaf)
-                new_text = _set_ini_text(text, group, leaf, value)
+                if old_raw is None and not group and _kv_read(text, leaf) is not None:
+                    new_text = _patch_kv(text, leaf, value)
+                else:
+                    new_text = _set_ini_text(text, group, leaf, value)
         except (KeyError, ValueError) as exc:
             return Result.err(f"Failed to write {key}: {exc}")
 

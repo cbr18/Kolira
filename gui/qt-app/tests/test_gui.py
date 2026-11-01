@@ -822,6 +822,49 @@ class TestInspectorAppConfigs:
         configs = controller.appConfigs
         assert {p["key"]: p["value"] for p in configs[0]["files"][0]["params"]} == {"main/speed": "9"}
 
+    def test_editable_flags_by_suffix(self, tmp_path: Path, monkeypatch) -> None:
+        """C3: TOML/user.js в live-scope редактируемы; экзотика — нет."""
+        from controllers.theme_inspector import ThemeInspectorController
+        from core.protocol import AppStatus, Component, CoreFactory
+
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
+
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        (conf / "a.toml").write_text("speed = 3\n")
+        (conf / "b.js").write_text('user_pref("x.y", 1);\n')
+        (conf / "c.css").write_text("body { color: red }")
+
+        class FakeThemeCore:
+            def sections(self, scope): return []
+            def fields(self, section, scope): return []
+            def validate(self): return []
+            def get(self, field_id, scope): return None
+            def search(self, query, scope): return []
+
+        class FakeTrackedCore:
+            def get_all_components(self):
+                return [
+                    Component(id="mockapp", name="Mock App", category="Custom",
+                              config_paths=(
+                                  ".config/mockapp/a.toml",
+                                  ".config/mockapp/b.js",
+                                  ".config/mockapp/c.css",
+                              ),
+                              status=AppStatus.AVAILABLE),
+                ]
+
+        monkeypatch.setattr(CoreFactory, "_theme_core", FakeThemeCore())
+        monkeypatch.setattr(CoreFactory, "_tracked_apps_core", FakeTrackedCore())
+        controller = ThemeInspectorController()
+
+        files = {f["relPath"]: f for f in controller.appConfigs[0]["files"]}
+        assert files[".config/mockapp/a.toml"]["editable"] is True
+        assert files[".config/mockapp/b.js"]["editable"] is True
+        assert files[".config/mockapp/c.css"]["editable"] is False
+        assert files[".config/mockapp/c.css"]["note"] == "unsupported format"
+
     def test_theme_page_shows_app_configs(self) -> None:
         qml = (PROJECT_ROOT / "qml" / "pages" / "ThemePage.qml").read_text()
         assert "themeInspector.appConfigs" in qml
@@ -829,7 +872,7 @@ class TestInspectorAppConfigs:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 6g. Stage C2: editing app config values (INI/JSON by key, undo integration)
+# 6g. Stage C2/C3: editing app config values (INI/JSON/TOML/user.js/kv by key)
 # ─────────────────────────────────────────────────────────────────────────────
 class TestSetConfigValue:
     def _core(self, tmp_path: Path, monkeypatch):
@@ -900,15 +943,88 @@ class TestSetConfigValue:
 
         assert not core.set_config_value(".config/mockapp/settings.json", "missing/key", "1").success
 
-    def test_toml_is_rejected_until_c3(self, tmp_path: Path, monkeypatch) -> None:
+    def test_toml_root_and_section_keys(self, tmp_path: Path, monkeypatch) -> None:
         conf = tmp_path / ".config" / "mockapp"
         conf.mkdir(parents=True)
-        (conf / "settings.toml").write_text("speed = 3\n")
+        (conf / "settings.toml").write_text("speed = 3\n\n[window]\nopacity = 0.9\n")
         core = self._core(tmp_path, monkeypatch)
 
-        result = core.set_config_value(".config/mockapp/settings.toml", "speed", "9")
+        assert core.set_config_value(".config/mockapp/settings.toml", "speed", "9").success
+        assert core.set_config_value(".config/mockapp/settings.toml", "window/opacity", "1").success
+        text = (conf / "settings.toml").read_text()
+        assert "speed = 9" in text
+        assert "opacity = 1" in text  # float 0.9 → 1.0 → "1", тип сохранён
+
+    def test_toml_dotted_header_nested_key(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        (conf / "settings.toml").write_text('[font.normal]\nfamily = "Fira"\n')
+        core = self._core(tmp_path, monkeypatch)
+
+        result = core.set_config_value(
+            ".config/mockapp/settings.toml", "font/normal/family", "JetBrains")
+        assert result.success
+        text = (conf / "settings.toml").read_text()
+        assert '[font.normal]' in text
+        assert 'family = "JetBrains"' in text
+
+    def test_toml_inline_table_rejected(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        (conf / "settings.toml").write_text('font = {normal = {family = "Fira"}}\n')
+        core = self._core(tmp_path, monkeypatch)
+
+        result = core.set_config_value(
+            ".config/mockapp/settings.toml", "font/normal/family", "JetBrains")
         assert not result.success
-        assert "C3" in result.message
+
+    def test_toml_array_type_preserved(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        (conf / "settings.toml").write_text('features = ["a", "b"]\n')
+        core = self._core(tmp_path, monkeypatch)
+
+        result = core.set_config_value(".config/mockapp/settings.toml", "features", '["c"]')
+        assert result.success
+        assert 'features = ["c"]' in (conf / "settings.toml").read_text()
+
+    def test_userjs_key_updated_and_appended(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        (conf / "user.js").write_text('user_pref("browser.startup.page", 1);\n')
+        core = self._core(tmp_path, monkeypatch)
+
+        assert core.set_config_value(
+            ".config/mockapp/user.js", "browser.startup.page", "3").success
+        assert core.set_config_value(
+            ".config/mockapp/user.js", "ui.pref", "true").success
+        text = (conf / "user.js").read_text()
+        assert 'user_pref("browser.startup.page", 3);' in text  # int сохранён
+        assert 'user_pref("ui.pref", true);' in text
+
+    def test_kv_line_format_preserved(self, tmp_path: Path, monkeypatch) -> None:
+        """kitty.conf: "key value" переписывается в том же формате, без '='."""
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        (conf / "kitty.conf").write_text("background_opacity 0.9\n# keep me\n")
+        core = self._core(tmp_path, monkeypatch)
+
+        result = core.set_config_value(
+            ".config/mockapp/kitty.conf", "background_opacity", "0.5")
+        assert result.success
+        lines = (conf / "kitty.conf").read_text().splitlines()
+        assert "background_opacity 0.5" in lines
+        assert "# keep me" in lines
+
+    def test_unsupported_suffix_rejected(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        (conf / "style.css").write_text("body { color: red }")
+        core = self._core(tmp_path, monkeypatch)
+
+        result = core.set_config_value(".config/mockapp/style.css", "color", "blue")
+        assert not result.success
+        assert "not supported" in result.message
 
     def test_missing_file_errors(self, tmp_path: Path, monkeypatch) -> None:
         core = self._core(tmp_path, monkeypatch)
@@ -1014,6 +1130,9 @@ class TestSetAppConfigValueController:
         assert "setAppConfigValue" in qml
         assert "configValueDialog" in qml
         assert "fileData.editable" in qml
+        # C3 fallback: экзотика открывается папкой во внешнем редакторе.
+        assert "Show in folder" in qml
+        assert "unsupported format" in qml
 
 
 # ─────────────────────────────────────────────────────────────────────────────

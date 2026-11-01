@@ -594,15 +594,28 @@ Kirigami.ScrollablePage {
                                     }
                                 }
 
-                                Label {
+                                RowLayout {
                                     Layout.fillWidth: true
                                     Layout.leftMargin: Platform.Units.largeSpacing
                                     visible: modelData.truncated || modelData.note !== ""
-                                    text: (modelData.note !== "" ? modelData.note + " · " : "")
-                                          + (modelData.truncated ? qsTr("truncated") : "")
-                                    font.pointSize: TypeScale.caption
-                                    font.italic: true
-                                    color: ThemeColors.warning()
+
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: (modelData.note !== "" ? modelData.note + " · " : "")
+                                              + (modelData.truncated ? qsTr("truncated") : "")
+                                        font.pointSize: TypeScale.caption
+                                        font.italic: true
+                                        color: ThemeColors.warning()
+                                    }
+
+                                    // Экзотика (CSS и пр.): ключами не правится —
+                                    // открываем папку файла во внешнем редакторе.
+                                    ToolButton {
+                                        text: qsTr("Show in folder")
+                                        icon.name: "folder-open"
+                                        visible: modelData.note === "unsupported format"
+                                        onClicked: themeInspector.openFile(modelData.relPath)
+                                    }
                                 }
                             }
                         }
