@@ -231,6 +231,15 @@ class CliProfileCore(ProfileCore):
         except Exception as e:
             return Result.err(str(e))
 
+    def clone(self, source: str, target: str) -> Result:
+        """Дублировать профиль: `theme-profile clone SOURCE TARGET`."""
+        try:
+            source = validate_profile_name(source)
+            target = validate_profile_name(target)
+        except ValueError as exc:
+            return Result.err(str(exc))
+        return self._run(["clone", source, target], timeout=60)
+
     def set_description(self, name: str, description: str) -> Result:
         """Описание профиля — через `theme-profile describe NAME --set=...`."""
         try:

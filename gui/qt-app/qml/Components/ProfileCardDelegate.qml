@@ -268,6 +268,13 @@ Kirigami.AbstractCard {
                 onClicked: card.inspectClicked(card.profileName)
             }
 
+            Button {
+                text: qsTr("Duplicate")
+                icon.name: "edit-copy"
+                enabled: !profileController.busy
+                onClicked: card.duplicateClicked(card.profileName)
+            }
+
             Item { Layout.fillWidth: true }
 
             Button {
@@ -301,5 +308,6 @@ Kirigami.AbstractCard {
     signal diffClicked(string profileName)
     signal inspectClicked(string profileName)
     signal deleteClicked(string profileName)
+    signal duplicateClicked(string profileName)
     signal editDescriptionClicked(string profileName, string description)
 }

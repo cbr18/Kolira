@@ -854,6 +854,85 @@ else
 fi
 
 
+# --- 16. clone: profile duplication -------------------------------------------
+echo "=== Section 16: clone duplicates a profile snapshot ==="
+
+CLONE_HOME="$TMP_ROOT/clone-home"
+mkdir -p "$CLONE_HOME/.config"
+printf '[General]\nAccentColor=9,8,7\n' > "$CLONE_HOME/.config/kdeglobals"
+
+if HOME="$CLONE_HOME" "$CLI_DIR/theme-profile" save clone-src --components=kdeglobals >/dev/null 2>&1; then
+  ok "save clone-src"
+else
+  fail "save clone-src"
+fi
+if HOME="$CLONE_HOME" "$CLI_DIR/theme-profile" describe clone-src --set="Source theme" >/dev/null 2>&1; then
+  ok "describe clone-src"
+else
+  fail "describe clone-src"
+fi
+
+# Happy path: snapshot copied, manifest renamed, description/created_at kept.
+if HOME="$CLONE_HOME" "$CLI_DIR/theme-profile" clone clone-src clone-dst >/dev/null 2>&1; then
+  ok "clone exits 0"
+else
+  fail "clone failed"
+fi
+src_root="$CLONE_HOME/.config/theme-profile/profiles/clone-src"
+dst_root="$CLONE_HOME/.config/theme-profile/profiles/clone-dst"
+if [ -f "$dst_root/manifest.json" ] && [ -f "$dst_root/.config/kdeglobals" ]; then
+  ok "clone copied the snapshot files"
+else
+  fail "clone did not copy the snapshot files"
+fi
+if cmp -s "$src_root/.config/kdeglobals" "$dst_root/.config/kdeglobals"; then
+  ok "clone keeps file contents identical"
+else
+  fail "clone changed file contents"
+fi
+if grep -q '"name": "clone-dst"' "$dst_root/manifest.json"; then
+  ok "manifest.json carries the new name"
+else
+  fail "manifest.json name not updated"
+fi
+if grep -q '"description": "Source theme"' "$dst_root/manifest.json"; then
+  ok "clone keeps the description"
+else
+  fail "clone lost the description"
+fi
+src_created="$(grep -o '"created_at": "[^"]*"' "$src_root/manifest.json")"
+dst_created="$(grep -o '"created_at": "[^"]*"' "$dst_root/manifest.json")"
+if [ "$src_created" = "$dst_created" ]; then
+  ok "clone keeps the original created_at"
+else
+  fail "clone changed created_at"
+fi
+
+# Source profile and the active marker must stay as they were.
+if [ -f "$src_root/manifest.json" ] \
+  && [ "$(cat "$CLONE_HOME/.config/theme-profile/active-profile" 2>/dev/null)" = "clone-src" ]; then
+  ok "clone leaves the source and the active marker untouched"
+else
+  fail "clone disturbed the source or the active marker"
+fi
+
+# Error paths.
+if HOME="$CLONE_HOME" "$CLI_DIR/theme-profile" clone clone-src clone-dst >/dev/null 2>&1; then
+  fail "clone onto an existing profile should fail"
+else
+  ok "clone rejects an existing target"
+fi
+if HOME="$CLONE_HOME" "$CLI_DIR/theme-profile" clone no-such-profile dst2 >/dev/null 2>&1; then
+  fail "clone from a missing profile should fail"
+else
+  ok "clone rejects a missing source"
+fi
+if HOME="$CLONE_HOME" "$CLI_DIR/theme-profile" clone clone-src "../evil" >/dev/null 2>&1; then
+  fail "clone with a traversal target should fail"
+else
+  ok "clone rejects a traversal target"
+fi
+
 
 # --- Summary ------------------------------------------------------------------
 echo ""

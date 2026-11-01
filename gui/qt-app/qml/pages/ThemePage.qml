@@ -189,6 +189,13 @@ Kirigami.ScrollablePage {
             visible: themeInspector.readOnly
             text: qsTr("Profile snapshots are read-only. Switch to “Live system” to edit values.")
             type: Kirigami.MessageType.Information
+            actions: [
+                Kirigami.Action {
+                    text: qsTr("Switch to Live")
+                    icon.name: "go-next"
+                    onTriggered: themeInspector.setScope("live")
+                }
+            ]
         }
 
         // ─── Overview ─────────────────────────────────────────

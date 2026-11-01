@@ -307,6 +307,22 @@ class ProfileController(QObject):
         self._start_operation("delete", _work)
 
     @Slot(str, str)
+    def duplicateProfile(self, source: str, target: str) -> None:
+        """Дублировать профиль (асинхронно): копия снимка под новым именем."""
+        try:
+            source = validate_profile_name(source)
+            target = validate_profile_name(target)
+        except ValueError as exc:
+            self.operationFinished.emit(False, str(exc))
+            return
+
+        def _work() -> tuple[bool, str]:
+            result = self._core.clone(source, target)
+            return result.success, result.message or f"Cloned profile: {source} -> {target}"
+
+        self._start_operation("clone", _work)
+
+    @Slot(str, str)
     def requestDiff(self, profile_a: str, profile_b: str) -> None:
         """Сравнить два профиля в фоне.
 

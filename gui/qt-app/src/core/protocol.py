@@ -111,6 +111,10 @@ class ProfileCore(ABC):
         """Удалить профиль."""
 
     @abstractmethod
+    def clone(self, source: str, target: str) -> Result:
+        """Дублировать профиль: копия снимка под новым именем."""
+
+    @abstractmethod
     def set_description(self, name: str, description: str) -> Result:
         """Установить/сменить описание профиля (manifest.json)."""
 

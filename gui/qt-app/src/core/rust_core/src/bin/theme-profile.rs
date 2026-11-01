@@ -9,7 +9,7 @@ use std::process::ExitCode;
 
 use kde_theme_core::paths::validate_profile_name;
 use kde_theme_core::profile::{
-    apply_profile_cli, delete_profile, diff_profiles, list_profiles,
+    apply_profile_cli, clone_profile, delete_profile, diff_profiles, list_profiles,
     save_profile_cli, set_profile_description, get_profile_description,
 };
 use kde_theme_core::status::status;
@@ -20,6 +20,7 @@ Usage:
   theme-profile list
   theme-profile save NAME [--components=comp1,comp2] [--description=...]
   theme-profile apply NAME [--components=comp1,comp2]
+  theme-profile clone SOURCE TARGET
   theme-profile diff A B
   theme-profile delete NAME
   theme-profile describe NAME [--set=...]
@@ -242,6 +243,31 @@ fn main() -> ExitCode {
                 Ok(backup) => {
                     println!("Applied profile: {name}{}", component_suffix(raw.as_deref()));
                     println!("Pre-apply backup: {}", backup.display());
+                    ExitCode::SUCCESS
+                }
+                Err(e) => fail(e),
+            }
+        }
+        "clone" => {
+            let source = args.get(1).map(String::as_str).unwrap_or("");
+            let target = args.get(2).map(String::as_str).unwrap_or("");
+            if source.is_empty() || target.is_empty() {
+                eprint!("{USAGE}");
+                return fail("Usage error: clone requires SOURCE and TARGET names");
+            }
+            if validate_profile_name(source).is_err() {
+                return fail(format!(
+                    "Invalid profile name: {source} (must match [A-Za-z0-9][A-Za-z0-9._-]{{0,63}})"
+                ));
+            }
+            if validate_profile_name(target).is_err() {
+                return fail(format!(
+                    "Invalid profile name: {target} (must match [A-Za-z0-9][A-Za-z0-9._-]{{0,63}})"
+                ));
+            }
+            match clone_profile(source, target) {
+                Ok(()) => {
+                    println!("Cloned profile: {source} -> {target}");
                     ExitCode::SUCCESS
                 }
                 Err(e) => fail(e),

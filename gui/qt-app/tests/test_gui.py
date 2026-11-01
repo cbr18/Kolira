@@ -246,6 +246,24 @@ class TestCliProfileCore:
         assert result.success is False
         assert victim.is_dir()
 
+    def test_clone_passes_names_to_cli(self) -> None:
+        core = self._make_core()
+        with mock.patch.object(core, "_run") as mock_run:
+            mock_run.return_value = mock.Mock(
+                success=True, message="Cloned profile: glass -> glass2")
+            result = core.clone("glass", "glass2")
+        assert result.success
+        mock_run.assert_called_once()
+        args, _ = mock_run.call_args
+        assert args[0] == ["clone", "glass", "glass2"]
+
+    def test_clone_rejects_bad_names_without_cli(self) -> None:
+        core = self._make_core()
+        with mock.patch.object(core, "_run") as mock_run:
+            assert not core.clone("../etc", "ok-name").success
+            assert not core.clone("glass", "bad/name").success
+        mock_run.assert_not_called()
+
     def test_apply_rejects_empty_component_list(self) -> None:
         core = self._make_core()
         result = core.apply("glass", components=[])
@@ -1903,6 +1921,25 @@ def test_wallpaper_dir_picker_and_async_preview() -> None:
     assert "BusyIndicator" in main_qml
 
 
+def test_duplicate_and_edit_live_qml_wiring() -> None:
+    """Duplicate flow (card → dialog → controller) and the quick live-edit jump."""
+    main_qml = (PROJECT_ROOT / "qml" / "Main.qml").read_text()
+    assert "duplicateDialog" in main_qml
+    assert "duplicateNameField" in main_qml
+    assert "duplicateProfile" in main_qml
+    # Быстрый переход к редактированию живой темы: scope live + ThemePage.
+    assert "Edit live theme…" in main_qml
+    assert 'themeInspector.setScope("live")' in main_qml
+
+    card_qml = (PROJECT_ROOT / "qml" / "Components" / "ProfileCardDelegate.qml").read_text()
+    assert "duplicateClicked" in card_qml
+
+    # Баннер read-only предлагает переключиться в Live одной кнопкой.
+    theme_qml = (PROJECT_ROOT / "qml" / "pages" / "ThemePage.qml").read_text()
+    assert "Switch to Live" in theme_qml
+    assert "actions:" in theme_qml
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 28. Controllers: cached models, async operations, single palette pass
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1934,7 +1971,7 @@ def test_profile_operations_run_off_the_gui_thread() -> None:
     assert hasattr(ProfileController, "busy"), (
         "ProfileController must expose a `busy` property for the busy indicator"
     )
-    for slot in ("applyProfile", "saveProfile", "deleteProfile"):
+    for slot in ("applyProfile", "saveProfile", "deleteProfile", "duplicateProfile"):
         body = inspect.getsource(getattr(ProfileController, slot))
         assert "_start_operation" in body, (
             f"{slot} must run through the thread pool, not block the GUI thread"

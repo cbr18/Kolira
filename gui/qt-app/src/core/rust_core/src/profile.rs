@@ -894,6 +894,28 @@ pub fn delete_profile(profile_name: &str) -> Result<()> {
     Ok(())
 }
 
+/// Clone a profile snapshot into a new profile (`theme-profile clone A B`).
+///
+/// Files are copied with `cp -a` semantics; `manifest.json` is rewritten with
+/// the new name. The snapshot content, description and the original
+/// `created_at` are kept — the clone IS the same theme.
+pub fn clone_profile(source: &str, target: &str) -> Result<()> {
+    validate_profile_name(source)?;
+    validate_profile_name(target)?;
+    let src = safe_profile_dir(source)?;
+    if !src.is_dir() {
+        return Err(anyhow!("Profile not found: {source}"));
+    }
+    let dst = safe_profile_dir(target)?;
+    if dst.symlink_metadata().is_ok() {
+        return Err(anyhow!("Profile already exists: {target}"));
+    }
+    copy_tree(&src, &dst)?;
+    let mut manifest = read_manifest(&dst);
+    manifest.name = target.to_string();
+    write_json_manifest(&dst, &manifest)
+}
+
 /// Diff two profiles. Uses the system `diff` (coreutils) for a regular
 /// recursive unified diff — the same output both cores already agree on.
 /// Exit status 1 (differences found) is a normal result, not an error.

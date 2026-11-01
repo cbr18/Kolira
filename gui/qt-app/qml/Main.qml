@@ -194,6 +194,14 @@ Kirigami.ApplicationWindow {
                             text: qsTr("Active Profile")
                             color: ThemeColors.fgColor(root.glassMode)
                         }
+                        Button {
+                            text: qsTr("Edit live theme…")
+                            icon.name: "document-edit"
+                            onClicked: {
+                                themeInspector.setScope("live")
+                                pageStack.layers.push(Qt.resolvedUrl("pages/ThemePage.qml"))
+                            }
+                        }
                         Item { Layout.fillWidth: true }
                         BusyIndicator {
                             running: root.applying
@@ -334,6 +342,12 @@ Kirigami.ApplicationWindow {
                             onDeleteClicked: function(profileName) {
                                 confirmDialog.targetProfile = profileName
                                 confirmDialog.open()
+                            }
+                            onDuplicateClicked: function(profileName) {
+                                duplicateDialog.sourceProfile = profileName
+                                duplicateNameField.text = profileName + "-copy"
+                                duplicateError.visible = false
+                                duplicateDialog.open()
                             }
                             onEditDescriptionClicked: function(profileName, description) {
                                 descriptionDialog.targetProfile = profileName
@@ -567,6 +581,55 @@ Kirigami.ApplicationWindow {
             profileController.saveProfile(name, descriptionField.text.trim())
             nameField.text = ""
             descriptionField.text = ""
+        }
+    }
+
+    Kirigami.Dialog {
+        id: duplicateDialog
+        title: qsTr("Duplicate Profile")
+        property string sourceProfile: ""
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+        preferredWidth: 420
+
+        background: Rectangle {
+            color: ThemeColors.dialogBg(root.glassMode)
+            radius: 8
+            border.width: 1
+            border.color: ThemeColors.cardBorder(root.glassMode)
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            Label {
+                text: qsTr("Create a copy of \"%1\" under a new name:").arg(duplicateDialog.sourceProfile)
+                color: ThemeColors.fgColor(root.glassMode)
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            TextField {
+                id: duplicateNameField
+                Layout.fillWidth: true
+                placeholderText: qsTr("Profile name")
+                onTextChanged: duplicateError.visible = false
+            }
+            Label {
+                id: duplicateError
+                Layout.fillWidth: true
+                visible: false
+                wrapMode: Text.WordWrap
+                color: ThemeColors.negative()
+                text: qsTr("Use letters, digits, dots, dashes or underscores; the first character must not be a dot.")
+            }
+        }
+
+        onAccepted: {
+            var name = duplicateNameField.text.trim()
+            if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(name)) {
+                duplicateError.visible = true
+                duplicateDialog.open()
+                return
+            }
+            profileController.duplicateProfile(duplicateDialog.sourceProfile, name)
         }
     }
 
