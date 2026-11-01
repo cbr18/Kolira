@@ -1978,6 +1978,67 @@ def test_profile_operations_run_off_the_gui_thread() -> None:
         )
 
 
+class TestStaleActiveMarker:
+    """Маркер активного профиля, указывающий на удалённый профиль, сбрасывается."""
+
+    def _marker(self, tmp_path: Path) -> Path:
+        marker = tmp_path / ".config" / "theme-profile" / "active-profile"
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        return marker
+
+    def _controller(self, tmp_path: Path, monkeypatch, names, marker):
+        from controllers import ProfileController
+        from core.protocol import CoreFactory, ProfileInfo
+
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
+
+        class FakeCore:
+            def list_profiles(self):
+                return [
+                    ProfileInfo(name=n, is_active=False, components=("kwin",),
+                                created_at="", description="")
+                    for n in names
+                ]
+
+            def get_active_profile(self):
+                try:
+                    return marker.read_text().strip()
+                except OSError:
+                    return ""
+
+            def get_profile_components(self, profile):
+                return ["kwin"]
+
+        monkeypatch.setattr(CoreFactory, "_profile_core", FakeCore())
+        controller = ProfileController()
+        toasts: list[tuple[bool, str]] = []
+        controller.operationFinished.connect(lambda ok, msg: toasts.append((ok, msg)))
+        controller.refresh()
+        return controller, toasts
+
+    def test_missing_profile_clears_marker(self, tmp_path: Path, monkeypatch) -> None:
+        marker = self._marker(tmp_path)
+        marker.write_text("ghost\n")
+        controller, toasts = self._controller(tmp_path, monkeypatch, ["glass"], marker)
+
+        assert controller.activeProfile == ""
+        assert not marker.exists()
+        assert len(toasts) == 1
+        assert not toasts[0][0]
+        assert "ghost" in toasts[0][1]
+
+    def test_valid_marker_is_kept(self, tmp_path: Path, monkeypatch) -> None:
+        marker = self._marker(tmp_path)
+        marker.write_text("glass\n")
+        controller, toasts = self._controller(
+            tmp_path, monkeypatch, ["glass", "paper"], marker)
+
+        assert controller.activeProfile == "glass"
+        assert marker.exists()
+        assert toasts == []
+
+
 def test_tracked_apps_detection_is_async() -> None:
     """detect_all() must not run on the GUI thread during startup."""
     from controllers import TrackedAppsController

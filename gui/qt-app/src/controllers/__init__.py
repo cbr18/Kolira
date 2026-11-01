@@ -19,7 +19,7 @@ from core.protocol import (
     ProfileInfo, Component, AppStatus, Result, AppSettings, CustomComponent
 )
 from core import CoreFactory
-from core.paths import validate_profile_name
+from core.paths import active_profile_file, validate_profile_name
 from .theme_inspector import ThemeInspectorController
 
 
@@ -176,10 +176,29 @@ class ProfileController(QObject):
         """Обновить список профилей."""
         self._profiles = self._core.list_profiles()
         self._active_profile = self._core.get_active_profile()
+        stale = ""
+        if self._active_profile and all(
+            p.name != self._active_profile for p in self._profiles
+        ):
+            # Маркер указывает на удалённый профиль (каталог сняли вне
+            # приложения). Сбрасываем его — как delete_profile — иначе
+            # синхронизация темы уходит в system-detect и UI
+            # неожиданно переключается на системную (возможно светлую).
+            stale = self._active_profile
+            try:
+                active_profile_file().unlink(missing_ok=True)
+            except OSError:
+                pass
+            self._active_profile = ""
         self._rebuild_profiles_model()
         self._update_active_components()
         self.profilesChanged.emit()
         self.activeProfileChanged.emit()
+        if stale:
+            self.operationFinished.emit(
+                False,
+                f"Active profile “{stale}” is missing; the marker was reset",
+            )
 
     def _update_active_components(self) -> None:
         if self._active_profile:
