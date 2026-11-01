@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kirigami 2.20 as Kirigami
 import org.kde.kirigami.platform as Platform
@@ -11,6 +12,15 @@ Kirigami.ScrollablePage {
     title: qsTr("Settings")
 
     readonly property bool glassMode: themeController.isGlass
+
+    FolderDialog {
+        id: wallpaperDirDialog
+        title: qsTr("Choose wallpaper directory")
+        currentFolder: settingsController.wallpaperDirectory !== ""
+            ? Qt.url("file://" + settingsController.wallpaperDirectory)
+            : ""
+        onAccepted: settingsController.wallpaperDirectory = selectedFolder.toLocalFile()
+    }
 
     background: Rectangle {
         color: page.glassMode ? ThemeColors.glassPanel() : ThemeColors.pageBg(page.glassMode)
@@ -153,11 +163,10 @@ Kirigami.ScrollablePage {
                         Button {
                             icon.name: "folder-open"
                             flat: true
-                            enabled: false
-                            hoverEnabled: true
                             Accessible.name: qsTr("Choose wallpaper directory")
-                            ToolTip.text: qsTr("Not implemented yet")
+                            ToolTip.text: qsTr("Choose a directory…")
                             ToolTip.visible: hovered
+                            onClicked: wallpaperDirDialog.open()
                         }
                     }
                 }

@@ -1888,6 +1888,21 @@ def test_settings_page_uses_valid_types() -> None:
     )
 
 
+def test_wallpaper_dir_picker_and_async_preview() -> None:
+    """ROADMAP §2: папка обоев выбирается диалогом; preview грузится async."""
+    settings_qml = (PROJECT_ROOT / "qml" / "pages" / "SettingsPage.qml").read_text()
+    assert "import QtQuick.Dialogs" in settings_qml
+    assert "FolderDialog" in settings_qml
+    assert "wallpaperDirDialog.open()" in settings_qml
+    # url → обычный путь: в настройках храним строку, не file:// URL.
+    assert "selectedFolder.toLocalFile()" in settings_qml
+    assert "Not implemented yet" not in settings_qml
+
+    main_qml = (PROJECT_ROOT / "qml" / "Main.qml").read_text()
+    assert "asynchronous: true" in main_qml
+    assert "BusyIndicator" in main_qml
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 28. Controllers: cached models, async operations, single palette pass
 # ─────────────────────────────────────────────────────────────────────────────

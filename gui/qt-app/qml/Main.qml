@@ -389,9 +389,19 @@ Kirigami.ApplicationWindow {
                         visible: wallpaperController.currentWallpaper !== ""
 
                         Image {
+                            id: wallpaperPreview
                             anchors.fill: parent
                             source: wallpaperController.currentWallpaper
                             fillMode: Image.PreserveAspectCrop
+                            // Big JPEGs decode off-thread; the indicator below
+                            // covers the gap instead of blocking the page.
+                            asynchronous: true
+                        }
+
+                        BusyIndicator {
+                            anchors.centerIn: parent
+                            running: wallpaperPreview.status !== Image.Ready
+                            visible: running
                         }
 
                         Rectangle {

@@ -23,29 +23,29 @@
 
 ### 🔄 В процессе / Нужно доделать
 
-#### 1. Одно ядро вместо двух — ✅ сделано (не закоммичено)
+#### 1. Одно ядро вместо двух — ✅ сделано и закоммичено (`42675f5`)
 Два ядра (Rust-библиотека + CLI-адаптер) сведены к одному — CLI-адаптер
 (`core/cli_core.py`, бэкенд `core`). Удалено: `core/rust_core.py`, FFI-слой
 (`libkde_theme_core.so`, cdylib), Rust-трейты без потребителей, `rustCoreBuilt`
 в контроллерах/QML, persist-ветка в `__main__`, флаги `--with-rust/--no-rust`
 в установщике. Тесты переписаны под одно ядро (скипов нет).
-Осталось по `docs/PLAN-THEME-MODEL.md`: GUI для этапов A/B (описание в
-карточках, страница «Приложения»), выполнение `reload_command`, редактор
-параметров (этап C).
+По `docs/PLAN-THEME-MODEL.md` этапы A/B/C тоже выполнены и закоммичены:
+GUI описаний и страница «Приложения», `reload_command`, редактор
+параметров (C1–C3).
 
 #### 2. Исправить QML баги и UX
-- [ ] ProfileRadioButton: правильная группировка (ExclusiveGroup)
-- [ ] ComponentCheckbox: связка с SettingsController.customComponents
-- [ ] SettingsPage: ComponentCategoryGroup — передача selectionChanged
-- [ ] Wallpaper preview: асинхронная загрузка, placeholder
-- [ ] DiffDialog: моноширинный шрифт, синтаксис
+- [x] ProfileRadioButton: группировка (модель-authoritative `selected` + Binding re-arm вместо ExclusiveGroup)
+- [x] ComponentCheckbox: связка с SettingsController.customComponents
+- [x] SettingsPage: ComponentCategoryGroup — передача selectionChanged
+- [x] Wallpaper preview: асинхронная загрузка (`asynchronous: true`), BusyIndicator-placeholder
+- [ ] DiffDialog: подсветка синтаксиса diff (моноширинный шрифт уже есть)
 
 #### 3. Dogfooding — полноценная темизация приложения
-- [ ] Glass: прозрачность окна + KWin blur (Qt::WA_TranslucentBackground + FastBlur)
-- [ ] Paper: светлая тема Material
-- [ ] Dark/Light: переключение QtQuick.Controls.Material
-- [ ] System: следование за системной темой (KDE color scheme)
-- [ ] Сохранение выбранной темы в настройках
+- [x] Glass: прозрачность окна + KWin blur (translucency из QML + blur через D-Bus в `theme_controller.py`)
+- [x] Paper: светлая тема Material
+- [x] Dark/Light: переключение QtQuick.Controls.Material
+- [x] System: следование за системной темой (KDE color scheme, live-подписка на colorSchemeChanged)
+- [x] Сохранение выбранной темы в настройках (`AppSettings.theme`, восстановление при старте)
 
 #### 4. System Tray
 - [x] System tray icon (Kirigami.ApplicationWindow + QSystemTrayIcon)
@@ -60,7 +60,7 @@
 
 #### 6. Тесты и CI
 - [x] GitHub Actions: rust (hard gate) + python-gui + security (non-strict)
-- [x] pytest для core логики (`tests/test_gui.py`: 150 passed, skipped нет —
+- [x] pytest для core логики (`tests/test_gui.py`: 200 passed, skipped нет —
       свёртка двух ядер в одно завершена; покрыты manifest.json и CRUD
       пользовательских компонентов)
 - [ ] pytest-qt для контроллеров
