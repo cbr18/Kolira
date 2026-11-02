@@ -95,17 +95,18 @@ Implementation notes:
 Switching a profile runs `theme-profile apply`, which touches dozens of config
 files and takes seconds. Two consequences shape the UI:
 
-- Clicking a profile card (or its radio button, or pressing Space while it has
-  focus) only sets `selectedProfile`. Nothing is written until the **Apply**
-  button is pressed, and the button is disabled while the selection already
-  matches the active profile.
+- Clicking a profile card (or pressing Space while it has focus) only sets
+  `selectedProfile`. Nothing is written until the **Apply** button is pressed,
+  and the button is disabled while the selection already matches the active
+  profile. Secondary per-profile actions (Duplicate, Diff, Edit description,
+  Delete) live in the card's **⋯** menu.
 - Apply/save/delete run on a `QThreadPool` worker (`ProfileController.busy`,
   `operationStarted` / `operationFinished`), so the window keeps repainting and
   the busy indicator animates while the work happens. The result is shown in an
   inline message that auto-clears after a few seconds.
-- The radio/check-box `checked` state is model-driven. A Qt Quick control writes
-  to `checked` on click, which destroys a plain `checked:` binding, so both
-  components re-arm it with
+- The check-box `checked` state is model-driven. A Qt Quick control writes
+  to `checked` on click, which destroys a plain `checked:` binding, so the
+  component re-arms it with
   `Binding { restoreMode: Binding.RestoreBindingOrValue }`.
 
 ## Screenshots
@@ -200,7 +201,7 @@ mypy src/
 # QML syntax/type lint (PySide6 6.12 ships its own qmllint)
 .venv/bin/pyside6-qmllint -I qml -I /usr/lib/qt6/qml qml/Main.qml qml/pages/SettingsPage.qml qml/Components/*.qml
 
-# Tests (Python: 206, from gui/qt-app)
+# Tests (Python: 207, from gui/qt-app)
 .venv/bin/python -m pytest tests/ -q
 
 # CLI + installer tests (121, from the repo root)
@@ -247,8 +248,7 @@ qml/
 └── Components/
     ├── ThemeColors.qml              # Singleton: the only colour source
     ├── TypeScale.qml                # Singleton: typography scale
-    ├── ProfileCardDelegate.qml      # Available-profile card
-    ├── ProfileRadioButton.qml       # Active-profile select card
+    ├── ProfileCardDelegate.qml      # Profile card: select + 3 actions + ⋯ menu
     ├── ComponentCategoryGroup.qml   # Collapsible component category
     └── ComponentCheckbox.qml        # Single component toggle
 ```

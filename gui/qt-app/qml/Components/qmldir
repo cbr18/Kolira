@@ -1,6 +1,5 @@
 module Components
 ProfileCardDelegate 1.0 ProfileCardDelegate.qml
-ProfileRadioButton 1.0 ProfileRadioButton.qml
 ComponentCategoryGroup 1.0 ComponentCategoryGroup.qml
 ComponentCheckbox 1.0 ComponentCheckbox.qml
 singleton ThemeColors 1.0 ThemeColors.qml

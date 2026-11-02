@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Optional
@@ -585,6 +586,12 @@ class ThemeInspectorController(QObject):
         if not path.is_absolute():
             path = live_path(relative)
         target = path if path.is_dir() else path.parent
+        # Audit trail: users report Dolphin "opening by itself" — log every
+        # launch so the trigger can be traced from the journal/console.
+        print(
+            f"[themeInspector] openFile: {relative!r} -> xdg-open {target}",
+            file=sys.stderr, flush=True,
+        )
         try:
             subprocess.Popen(["xdg-open", str(target)])
         except OSError as exc:

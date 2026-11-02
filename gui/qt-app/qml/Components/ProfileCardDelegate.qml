@@ -231,7 +231,7 @@ Kirigami.AbstractCard {
             }
         }
 
-        // ─── Actions ───
+        // ─── Actions: 3 primary + overflow menu ───
         RowLayout {
             Layout.fillWidth: true
             Layout.topMargin: Platform.Units.smallSpacing
@@ -254,37 +254,52 @@ Kirigami.AbstractCard {
             }
 
             Button {
-                text: qsTr("Diff")
-                icon.name: "document-properties"
-                visible: !card.profileIsActive
-                enabled: !profileController.busy
-                onClicked: card.diffClicked(card.profileName)
-            }
-
-            Button {
                 text: qsTr("Inspect")
                 icon.name: "preferences-desktop-theme"
                 enabled: !profileController.busy
                 onClicked: card.inspectClicked(card.profileName)
             }
 
-            Button {
-                text: qsTr("Duplicate")
-                icon.name: "edit-copy"
-                enabled: !profileController.busy
-                onClicked: card.duplicateClicked(card.profileName)
-            }
-
             Item { Layout.fillWidth: true }
 
-            Button {
-                text: qsTr("Delete")
-                icon.name: "edit-delete"
-                flat: true
-                visible: !card.profileIsActive
+            ToolButton {
+                id: overflowButton
+                text: qsTr("More actions")
+                icon.name: "overflow-menu"
+                Accessible.name: text
+                ToolTip.text: text
+                ToolTip.visible: hovered
                 enabled: !profileController.busy
-                palette.buttonText: ThemeColors.negative()
-                onClicked: card.deleteClicked(card.profileName)
+                onClicked: overflowMenu.popup(overflowButton, 0, overflowButton.height)
+            }
+
+            Menu {
+                id: overflowMenu
+
+                MenuItem {
+                    text: qsTr("Duplicate")
+                    icon.name: "edit-copy"
+                    onTriggered: card.duplicateClicked(card.profileName)
+                }
+                MenuItem {
+                    text: qsTr("Diff with active")
+                    icon.name: "document-properties"
+                    visible: !card.profileIsActive
+                    onTriggered: card.diffClicked(card.profileName)
+                }
+                MenuItem {
+                    text: qsTr("Edit description")
+                    icon.name: "document-edit"
+                    onTriggered: card.editDescriptionClicked(
+                        card.profileName, card.profileDescription)
+                }
+                MenuSeparator {}
+                MenuItem {
+                    text: qsTr("Delete")
+                    icon.name: "edit-delete"
+                    visible: !card.profileIsActive
+                    onTriggered: card.deleteClicked(card.profileName)
+                }
             }
         }
     }

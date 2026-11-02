@@ -172,107 +172,69 @@ Kirigami.ApplicationWindow {
             spacing: Platform.Units.largeSpacing
             Layout.margins: Platform.Units.largeSpacing
 
-            // ─── Active Profile ───
-            Kirigami.Card {
+            // ─── Header: thin row — active profile + primary actions ───
+            RowLayout {
                 Layout.fillWidth: true
 
-                background: Rectangle {
-                    color: ThemeColors.cardBg(root.glassMode)
-                    radius: Platform.Units.smallSpacing
-                    border.width: 1
-                    border.color: ThemeColors.cardBorder(root.glassMode)
+                Kirigami.Heading {
+                    level: 2
+                    text: profileController.activeProfile !== ""
+                        ? qsTr("Active: %1").arg(profileController.activeProfile)
+                        : qsTr("Theme Profiles")
+                    color: ThemeColors.fgColor(root.glassMode)
                 }
-
-                contentItem: ColumnLayout {
-                    spacing: Platform.Units.mediumSpacing
-
-                    RowLayout {
-                        Layout.fillWidth: true
-
-                        Kirigami.Heading {
-                            level: 2
-                            text: qsTr("Active Profile")
-                            color: ThemeColors.fgColor(root.glassMode)
-                        }
-                        Button {
-                            text: qsTr("Edit live theme…")
-                            icon.name: "document-edit"
-                            onClicked: {
-                                themeInspector.setScope("live")
-                                pageStack.layers.push(Qt.resolvedUrl("pages/ThemePage.qml"))
-                            }
-                        }
-                        Item { Layout.fillWidth: true }
-                        BusyIndicator {
-                            running: root.applying
-                            visible: root.applying
-                            Layout.preferredHeight: Platform.Units.iconSizes.small
-                        }
-                        Button {
-                            text: qsTr("Refresh")
-                            icon.name: "view-refresh"
-                            enabled: !root.applying
-                            onClicked: profileController.refresh()
-                        }
-                        Button {
-                            text: qsTr("Apply")
-                            icon.name: "dialog-ok-apply"
-                            highlighted: true
-                            enabled: !root.applying && root.selectedProfile !== ""
-                                && root.selectedProfile !== profileController.activeProfile
-                            onClicked: root.requestApply(root.selectedProfile)
-                        }
+                Button {
+                    text: qsTr("Edit live theme…")
+                    icon.name: "document-edit"
+                    onClicked: {
+                        themeInspector.setScope("live")
+                        pageStack.layers.push(Qt.resolvedUrl("pages/ThemePage.qml"))
                     }
+                }
+                Item { Layout.fillWidth: true }
+                BusyIndicator {
+                    running: root.applying
+                    visible: root.applying
+                    Layout.preferredHeight: Platform.Units.iconSizes.small
+                }
+                Button {
+                    text: qsTr("Refresh")
+                    icon.name: "view-refresh"
+                    enabled: !root.applying
+                    onClicked: profileController.refresh()
+                }
+                Button {
+                    text: qsTr("Apply")
+                    icon.name: "dialog-ok-apply"
+                    highlighted: true
+                    enabled: !root.applying && root.selectedProfile !== ""
+                        && root.selectedProfile !== profileController.activeProfile
+                    onClicked: root.requestApply(root.selectedProfile)
+                }
+            }
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Platform.Units.mediumSpacing
+            Kirigami.InlineMessage {
+                Layout.fillWidth: true
+                visible: root.operationMessage !== ""
+                text: root.operationMessage
+                type: root._operationSucceeded
+                    ? Kirigami.MessageType.Positive
+                    : Kirigami.MessageType.Error
+            }
 
-                        Repeater {
-                            model: profileController.profiles.length
-
-                            delegate: ProfileRadioButton {
-                                readonly property var entry: profileController.profiles[index]
-                                glassMode: root.glassMode
-                                profileName: entry ? entry.name : ""
-                                isActive: entry ? entry.isActive : false
-                                selected: entry ? root.selectedProfile === entry.name : false
-                                componentCount: entry ? entry.componentCount : 0
-                                // Formal parameter instead of the deprecated
-                                // signal-handler parameter injection.
-                                onProfileClicked: function(profileName) {
-                                    root.selectedProfile = profileName
-                                }
-                            }
-                        }
-
-                        Item { Layout.fillWidth: true }
-                    }
-
-                    Label {
-                        Layout.fillWidth: true
-                        wrapMode: Text.WordWrap
-                        color: ThemeColors.dimColor(root.glassMode)
-                        font.pointSize: TypeScale.caption
-                        text: {
-                            if (root.selectedProfile === "")
-                                return qsTr("Select a profile above, then press Apply.")
-                            if (root.selectedProfile === profileController.activeProfile)
-                                return qsTr("Active profile: %1").arg(root.selectedProfile)
-                            return qsTr("Selected \"%1\" (not applied yet). Active: %2")
-                                .arg(root.selectedProfile)
-                                .arg(profileController.activeProfile)
-                        }
-                    }
-
-                    Kirigami.InlineMessage {
-                        Layout.fillWidth: true
-                        visible: root.operationMessage !== ""
-                        text: root.operationMessage
-                        type: root._operationSucceeded
-                            ? Kirigami.MessageType.Positive
-                            : Kirigami.MessageType.Error
-                    }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                color: ThemeColors.dimColor(root.glassMode)
+                font.pointSize: TypeScale.caption
+                text: {
+                    if (root.selectedProfile === "")
+                        return qsTr("Click a profile card to select it, then press Apply.")
+                    if (root.selectedProfile === profileController.activeProfile)
+                        return qsTr("Active profile: %1").arg(root.selectedProfile)
+                    return qsTr("Selected \"%1\" (not applied yet). Active: %2")
+                        .arg(root.selectedProfile)
+                        .arg(profileController.activeProfile)
                 }
             }
 

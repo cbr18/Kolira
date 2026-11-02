@@ -1430,10 +1430,11 @@ def test_qml_files_exist() -> None:
     assert (qml_dir / "Components" / "ComponentCategoryGroup.qml").exists()
     assert (qml_dir / "Components" / "ComponentCheckbox.qml").exists()
     assert (qml_dir / "Components" / "ProfileCardDelegate.qml").exists()
-    assert (qml_dir / "Components" / "ProfileRadioButton.qml").exists()
     assert (qml_dir / "Components" / "ThemeColors.qml").exists()
     assert (qml_dir / "Components" / "TypeScale.qml").exists()
     assert (qml_dir / "pages" / "SettingsPage.qml").exists()
+    # ProfileRadioButton was removed with the radio tiles (M1 redesign).
+    assert not (qml_dir / "Components" / "ProfileRadioButton.qml").exists()
 
 
 def test_no_duplicate_components_dir() -> None:
@@ -1447,11 +1448,11 @@ def test_no_duplicate_components_dir() -> None:
 
 
 def test_qmldir_lists_all_components() -> None:
-    """qmldir must declare all four component QML types and the two singletons."""
+    """qmldir must declare all component QML types and the two singletons."""
     qmldir = (PROJECT_ROOT / "qml" / "Components" / "qmldir").read_text()
     assert "module Components" in qmldir
     assert "ProfileCardDelegate" in qmldir
-    assert "ProfileRadioButton" in qmldir
+    assert "ProfileRadioButton" not in qmldir
     assert "ComponentCategoryGroup" in qmldir
     assert "ComponentCheckbox" in qmldir
     assert "singleton ThemeColors" in qmldir
@@ -1701,12 +1702,12 @@ def test_selection_is_separate_from_apply() -> None:
     assert "property string selectedProfile" in main_qml, (
         "Main.qml must track a pending selectedProfile"
     )
-    # The radio delegate only sets the selection...
-    assert "onProfileClicked: function(profileName)" in main_qml, (
-        "Clicking a profile must only select it, not apply it"
+    # The radio tiles are gone: selection happens via the card delegate...
+    assert "ProfileRadioButton" not in main_qml, (
+        "Radio tiles were removed; cards select, they must not come back"
     )
     assert "root.selectedProfile = profileName" in main_qml, (
-        "Clicking a profile must only assign the pending selection"
+        "Clicking a profile card must only assign the pending selection"
     )
     # ...and a dedicated Apply button performs the (slow) application.
     assert "root.requestApply(root.selectedProfile)" in main_qml, (
@@ -1816,7 +1817,7 @@ def test_themecolors_is_the_only_colour_source() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 @pytest.mark.parametrize(
     "rel_path",
-    ["Components/ProfileRadioButton.qml", "Components/ComponentCheckbox.qml"],
+    ["Components/ComponentCheckbox.qml"],
 )
 def test_checked_binding_is_repairable(rel_path: str) -> None:
     """Radio/checkbox state must be corrected after a user click destroys the binding.
@@ -1938,6 +1939,33 @@ def test_duplicate_and_edit_live_qml_wiring() -> None:
     theme_qml = (PROJECT_ROOT / "qml" / "pages" / "ThemePage.qml").read_text()
     assert "Switch to Live" in theme_qml
     assert "actions:" in theme_qml
+
+
+def test_main_page_thin_header_and_overflow_menu() -> None:
+    """M1: радио-плитки убраны; карточка — 3 кнопки + меню «⋯»."""
+    main_qml = (PROJECT_ROOT / "qml" / "Main.qml").read_text()
+    # Тонкая шапка: «Active: %1» вместо карточки с плитками.
+    assert 'qsTr("Active: %1")' in main_qml
+    assert "ProfileRadioButton" not in main_qml
+
+    card_qml = (PROJECT_ROOT / "qml" / "Components" / "ProfileCardDelegate.qml").read_text()
+    assert "overflowMenu" in card_qml
+    assert "overflow-menu" in card_qml
+    # Видимых кнопок ровно три: Apply, Preview, Inspect.
+    for signal in ("applyClicked", "previewClicked", "inspectClicked"):
+        assert signal in card_qml
+    # Вторичные действия живут в меню.
+    for signal in ("duplicateClicked", "diffClicked", "deleteClicked",
+                   "editDescriptionClicked"):
+        assert signal in card_qml
+    assert "MenuSeparator" in card_qml
+
+
+def test_open_file_logs_every_launch() -> None:
+    """Dolphin hunt: every xdg-open launch from the inspector must be logged."""
+    source = (SRC_DIR / "controllers" / "theme_inspector.py").read_text()
+    assert "[themeInspector] openFile:" in source
+    assert "file=sys.stderr" in source
 
 
 # ─────────────────────────────────────────────────────────────────────────────
