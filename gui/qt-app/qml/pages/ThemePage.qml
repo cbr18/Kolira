@@ -18,7 +18,6 @@ Kirigami.ScrollablePage {
     title: qsTr("Theme")
     readonly property bool glassMode: themeController.isGlass
 
-    property string expandedSection: ""
     property bool showAdvanced: false
     property string searchText: ""
     property var searchResults: []
@@ -67,6 +66,59 @@ Kirigami.ScrollablePage {
         defaultSuffix: "json"
         nameFilters: [qsTr("JSON files (*.json)"), qsTr("All files (*)")]
         onAccepted: themeInspector.exportJson(selectedFile)
+    }
+
+    Kirigami.Dialog {
+        id: saveAsDialog
+        title: qsTr("Save as Profile")
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+        preferredWidth: 420
+
+        background: Rectangle {
+            color: ThemeColors.dialogBg(page.glassMode)
+            radius: 8
+            border.width: 1
+            border.color: ThemeColors.cardBorder(page.glassMode)
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            Label {
+                text: qsTr("Save the current live theme as a new profile:")
+                color: ThemeColors.fgColor(page.glassMode)
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            TextField {
+                id: saveAsName
+                Layout.fillWidth: true
+                placeholderText: qsTr("Profile name")
+                onTextChanged: saveAsError.visible = false
+            }
+            TextField {
+                id: saveAsDesc
+                Layout.fillWidth: true
+                placeholderText: qsTr("Description (optional)")
+            }
+            Label {
+                id: saveAsError
+                Layout.fillWidth: true
+                visible: false
+                wrapMode: Text.WordWrap
+                color: ThemeColors.negative()
+                text: qsTr("Use letters, digits, dots, dashes or underscores; the first character must not be a dot.")
+            }
+        }
+
+        onAccepted: {
+            var name = saveAsName.text.trim()
+            if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(name)) {
+                saveAsError.visible = true
+                saveAsDialog.open()
+                return
+            }
+            profileController.saveProfile(name, saveAsDesc.text.trim())
+        }
     }
 
     Kirigami.Dialog {
@@ -261,6 +313,18 @@ Kirigami.ScrollablePage {
                             color: ThemeColors.accent()
                             font.pointSize: TypeScale.caption
                         }
+
+                        Button {
+                            visible: themeInspector.scope === "live"
+                            text: qsTr("Save as profile…")
+                            icon.name: "document-save-as"
+                            onClicked: {
+                                saveAsName.text = ""
+                                saveAsDesc.text = ""
+                                saveAsError.visible = false
+                                saveAsDialog.open()
+                            }
+                        }
                     }
 
                     Image {
@@ -302,41 +366,11 @@ Kirigami.ScrollablePage {
 
                 Kirigami.Separator { Layout.fillWidth: true }
 
-                Repeater {
-                    model: themeInspector.sections
-
-                    delegate: RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Platform.Units.mediumSpacing
-
-                        Kirigami.Icon {
-                            source: modelData.icon
-                            Layout.preferredWidth: Platform.Units.iconSizes.small
-                            Layout.preferredHeight: Platform.Units.iconSizes.small
-                            color: ThemeColors.accent()
-                        }
-
-                        Label {
-                            text: modelData.title
-                            color: ThemeColors.fgColor(page.glassMode)
-                            Layout.preferredWidth: Platform.Units.gridUnit * 7
-                            elide: Text.ElideRight
-                        }
-
-                        Label {
-                            Layout.fillWidth: true
-                            text: modelData.summary || "—"
-                            color: ThemeColors.dimColor(page.glassMode)
-                            elide: Text.ElideRight
-                        }
-
-                        Label {
-                            visible: (modelData.issueCount || 0) > 0
-                            text: qsTr("%1 issue(s)").arg(modelData.issueCount)
-                            color: ThemeColors.warning()
-                            font.pointSize: TypeScale.caption
-                        }
-                    }
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr("Tap a section below to see and edit its settings.")
+                    color: ThemeColors.dimColor(page.glassMode)
+                    font.pointSize: TypeScale.caption
                 }
             }
         }
@@ -429,7 +463,13 @@ Kirigami.ScrollablePage {
                         Button {
                             text: qsTr("Show")
                             visible: (modelData.section || "") !== ""
-                            onClicked: page.expandedSection = modelData.section
+                            onClicked: pageStack.layers.push(
+                                Qt.resolvedUrl("SectionPage.qml"),
+                                {
+                                    sectionId: modelData.section,
+                                    sectionTitle: modelData.sectionTitle || modelData.section,
+                                    showAdvanced: page.showAdvanced
+                                })
                         }
                     }
                 }
@@ -467,23 +507,89 @@ Kirigami.ScrollablePage {
             }
         }
 
-        // ─── Sections (accordion) ─────────────────────────────
-        ColumnLayout {
+        // ─── Sections: tap a tile to open the group ───────────
+        GridLayout {
             Layout.fillWidth: true
+            columns: 2
+            columnSpacing: Platform.Units.smallSpacing
+            rowSpacing: Platform.Units.smallSpacing
             visible: page.searchText.length === 0
-            spacing: Platform.Units.smallSpacing
 
             Repeater {
                 model: themeInspector.sections
 
-                delegate: ThemeSectionCard {
-                    sectionData: modelData
-                    glassMode: page.glassMode
-                    showAdvanced: page.showAdvanced
-                    expanded: page.expandedSection === modelData.id
-                    onToggleRequested: {
-                        page.expandedSection = page.expandedSection === modelData.id
-                            ? "" : modelData.id
+                delegate: Rectangle {
+                    id: tile
+                    required property var modelData
+                    Layout.fillWidth: true
+                    implicitHeight: tileInner.implicitHeight + 16
+                    radius: Platform.Units.smallSpacing
+                    color: tileHover.hovered
+                        ? ThemeColors.cardHoverBg(page.glassMode)
+                        : ThemeColors.cardBg(page.glassMode)
+                    border.width: 1
+                    border.color: ThemeColors.cardBorder(page.glassMode)
+
+                    HoverHandler { id: tileHover }
+                    TapHandler {
+                        onTapped: pageStack.layers.push(
+                            Qt.resolvedUrl("SectionPage.qml"),
+                            {
+                                sectionId: tile.modelData.id,
+                                sectionTitle: tile.modelData.title,
+                                showAdvanced: page.showAdvanced
+                            })
+                    }
+
+                    ColumnLayout {
+                        id: tileInner
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 2
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Platform.Units.smallSpacing
+
+                            Kirigami.Icon {
+                                source: tile.modelData.icon
+                                Layout.preferredWidth: Platform.Units.iconSizes.small
+                                Layout.preferredHeight: Platform.Units.iconSizes.small
+                                color: ThemeColors.accent()
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                text: tile.modelData.title
+                                color: ThemeColors.fgColor(page.glassMode)
+                                font.bold: true
+                                font.pointSize: TypeScale.subtitle
+                                elide: Text.ElideRight
+                            }
+                            Rectangle {
+                                visible: (tile.modelData.issueCount || 0) > 0
+                                radius: height / 2
+                                color: ThemeColors.warning()
+                                implicitWidth: tileIssue.implicitWidth + 10
+                                implicitHeight: tileIssue.implicitHeight + 2
+
+                                Label {
+                                    id: tileIssue
+                                    anchors.centerIn: parent
+                                    text: tile.modelData.issueCount || 0
+                                    color: "black"
+                                    font.pointSize: TypeScale.caption
+                                    font.bold: true
+                                }
+                            }
+                        }
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: tile.modelData.summary || tile.modelData.description || ""
+                            color: ThemeColors.dimColor(page.glassMode)
+                            font.pointSize: TypeScale.caption
+                            elide: Text.ElideRight
+                        }
                     }
                 }
             }

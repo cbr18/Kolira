@@ -434,14 +434,18 @@ def test_controller_profile_summary(home: Path) -> None:
 def test_qml_wiring() -> None:
     qml = PROJECT_ROOT / "qml"
     page = (qml / "pages" / "ThemePage.qml").read_text()
-    card = (qml / "pages" / "ThemeSectionCard.qml").read_text()
+    section_page = (qml / "pages" / "SectionPage.qml").read_text()
     row = (qml / "pages" / "ThemeFieldRow.qml").read_text()
     main = (qml / "Main.qml").read_text()
 
     assert "themeInspector.search" in page
     assert "themeInspector.sections" in page
     assert "themeInspector.scopes" in page
-    assert "showAdvanced" in page and "showAdvanced" in card
+    assert "showAdvanced" in page
+    # M3: тап по тайлу секции открывает SectionPage в стеке слоёв.
+    assert "SectionPage.qml" in page
+    assert "ThemeSectionFields" in section_page
+    assert "themeInspector.applyChanges" in section_page
     assert "ColorDialog" in row
     assert "themeInspector.setBool" in row
     assert "ThemePage.qml" in main

@@ -2012,6 +2012,25 @@ def test_main_page_thin_header_and_overflow_menu() -> None:
     assert "MenuSeparator" in card_qml
 
 
+def test_theme_overview_drill_in_and_save_as() -> None:
+    """M3: обзор → тайл секции открывает группу; live-режим — «Save as profile…»."""
+    qml = (PROJECT_ROOT / "qml" / "pages" / "ThemePage.qml").read_text()
+    assert "SectionPage.qml" in qml
+    assert "Save as profile…" in qml
+    assert "saveAsDialog" in qml
+    assert "profileController.saveProfile" in qml
+    # Аккордеон ушёл.
+    assert "expandedSection" not in qml
+    assert "ThemeSectionCard" not in qml
+
+    section = (PROJECT_ROOT / "qml" / "pages" / "SectionPage.qml").read_text()
+    assert "ThemeSectionFields" in section
+    assert "applyChanges" in section
+
+    # Старый компонент аккордеона удалён как мёртвый код.
+    assert not (PROJECT_ROOT / "qml" / "pages" / "ThemeSectionCard.qml").exists()
+
+
 def test_open_file_logs_every_launch() -> None:
     """Dolphin hunt: every xdg-open launch from the inspector must be logged."""
     source = (SRC_DIR / "controllers" / "theme_inspector.py").read_text()
