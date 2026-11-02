@@ -274,6 +274,20 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setWindowIcon(app_icon())
 
+    # Переводы по системной локали (без ручного выбора языка). QTranslator
+    # ставится до загрузки QML — движок сразу видит переводы qsTr.
+    from PySide6.QtCore import QLibraryInfo, QLocale, QTranslator
+
+    i18n_dir = Path(__file__).resolve().parent.parent / "i18n"
+    translator = QTranslator(app)
+    if translator.load(QLocale.system(), "kde-theme-manager", "_", str(i18n_dir)):
+        app.installTranslator(translator)
+    # Стандартные строки Qt (кнопки диалогов и т.п.) — из системных переводов.
+    qt_base = QTranslator(app)
+    if qt_base.load(QLocale.system(), "qtbase", "_",
+                    QLibraryInfo.location(QLibraryInfo.TranslationsPath)):
+        app.installTranslator(qt_base)
+
     # Single instance: two running copies meant two tray icons. A second
     # launch tells the first to show its window and exits.
     single_instance = QLocalServer(app)

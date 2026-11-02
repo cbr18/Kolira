@@ -2053,6 +2053,30 @@ def test_app_configs_accordion_on_applications_page() -> None:
     assert "configValueDialog" in tree
 
 
+def test_i18n_pipeline_wired() -> None:
+    """M5: переводы по системной локали — loader, .ts и .qm на месте."""
+    main_src = (SRC_DIR / "__main__.py").read_text()
+    assert "QTranslator(app)" in main_src
+    assert "QLocale.system()" in main_src
+    # Язык только системный — ручного переключателя нет и не планируется.
+    assert "installTranslator" in main_src
+
+    ts_qml = (PROJECT_ROOT / "i18n" / "qml_ru.ts").read_text()
+    assert 'language="ru_RU"' in ts_qml
+    ts_py = (PROJECT_ROOT / "i18n" / "py_ru.ts").read_text()
+    assert 'language="ru_RU"' in ts_py
+    qm = PROJECT_ROOT / "i18n" / "kde-theme-manager_ru.qm"
+    assert qm.exists() and qm.stat().st_size > 1000
+
+    # Пайплайн обновления: lupdate (QML) и pylupdate6 (Python) пишут в
+    # РАЗНЫЕ .ts (ни один экстрактор не сохраняет контексты другого),
+    # lrelease сливает оба в один .qm.
+    script = (PROJECT_ROOT.parent.parent / "scripts" / "update-translations.sh").read_text()
+    assert '"$LUPDATE" qml -ts "$QML_TS"' in script
+    assert '"$PYLUPDATE6" src --ts "$PY_TS"' in script
+    assert '"$LRELEASE" "$QML_TS" "$PY_TS" -qm "$QM_FILE"' in script
+
+
 def test_open_file_logs_every_launch() -> None:
     """Dolphin hunt: every xdg-open launch from the inspector must be logged."""
     source = (SRC_DIR / "controllers" / "theme_inspector.py").read_text()

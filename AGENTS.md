@@ -106,7 +106,7 @@ A change is not done until the docs agree with the code. At minimum:
 # Build the Rust CLI first
 cd gui/qt-app/src/core/rust_core && cargo build --release && cargo test && cargo clippy --all-targets -- -D warnings
 
-# Python tests (offscreen Qt; 211 tests)
+# Python tests (offscreen Qt; 212 tests)
 cd gui/qt-app && QT_QPA_PLATFORM=offscreen uv run --project . --extra dev pytest tests -q
 
 # Bash + installer tests (~121 assertions) — from the repo root
@@ -117,6 +117,9 @@ shellcheck scripts/*.sh tests/test-scripts.sh
 
 # QML lint
 find gui/qt-app/qml -name '*.qml' -print0 | xargs -0 qmllint
+
+# Translations (QML + Python → merged kde-theme-manager_ru.qm)
+bash scripts/update-translations.sh
 ```
 
 `ruff` / `mypy` configs exist but are **not** enforced by CI; do not churn the

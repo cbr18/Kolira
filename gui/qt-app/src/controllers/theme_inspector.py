@@ -271,7 +271,7 @@ class ThemeInspectorController(QObject):
     def setAppConfigValue(self, rel_path: str, key: str, value: str) -> None:
         """Записать ключ конфига приложения (этапы C2/C3; только live-scope)."""
         if self._scope != "live":
-            self.toast.emit("Switch to the Live scope to edit", False)
+            self.toast.emit(self.tr("Switch to the Live scope to edit"), False)
             return
 
         def work() -> tuple[bool, str]:
@@ -482,10 +482,10 @@ class ThemeInspectorController(QObject):
 
     def _can_edit_live(self) -> bool:
         if self._scope != "live":
-            self.toast.emit("Profile snapshots are read-only", False)
+            self.toast.emit(self.tr("Profile snapshots are read-only"), False)
             return False
         if self._busy:
-            self.toast.emit("Another change is still being applied", False)
+            self.toast.emit(self.tr("Another change is still being applied"), False)
             return False
         return True
 
@@ -526,7 +526,7 @@ class ThemeInspectorController(QObject):
     def applyFix(self, field_id: str) -> None:
         """Pick a safe value for a validation issue and write it live."""
         if self._scope != "live":
-            self.toast.emit("Profile snapshots are read-only", False)
+            self.toast.emit(self.tr("Profile snapshots are read-only"), False)
             return
 
         if field_id == "blur_enabled":
@@ -552,7 +552,7 @@ class ThemeInspectorController(QObject):
                 value = False
 
         if value is None:
-            self.toast.emit(f"No safe fix for {field_id}", False)
+            self.toast.emit(self.tr("No safe fix for %1").replace("%1", field_id), False)
             return
 
         def work() -> tuple[bool, str]:

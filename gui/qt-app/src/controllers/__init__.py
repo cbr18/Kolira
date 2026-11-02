@@ -216,7 +216,7 @@ class ProfileController(QObject):
         Повторный запрос во время выполнения игнорируется.
         """
         if self._busy:
-            self.operationFinished.emit(False, "Another operation is still running")
+            self.operationFinished.emit(False, self.tr("Another operation is still running"))
             return
         self._set_busy(True)
         self.operationStarted.emit(name)
@@ -428,7 +428,7 @@ class WallpaperController(QObject):
     def _start_operation(self, name: str, func: Callable[[], tuple[bool, str]]) -> None:
         """Запустить фоновую операцию (не блокирует UI)."""
         if self._busy:
-            self.operationFinished.emit(False, "Another operation is still running")
+            self.operationFinished.emit(False, self.tr("Another operation is still running"))
             return
         self._set_busy(True)
         self.operationStarted.emit(name)

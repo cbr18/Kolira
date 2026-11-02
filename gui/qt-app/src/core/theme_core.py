@@ -31,6 +31,14 @@ from pathlib import Path
 from typing import Any, Iterable, Optional
 
 from .fileutil import atomic_write_bytes, atomic_write_text, copy_preserving_mode
+
+
+def tr(text: str) -> str:
+    """Перевод пользовательских сообщений ядра (lupdate извлекает tr(...))."""
+    from PySide6.QtCore import QCoreApplication
+
+    return QCoreApplication.translate("ThemeCore", text)
+
 from .paths import (
     active_profile_file,
     home_dir,
@@ -1314,16 +1322,16 @@ class AppThemeCore(ThemeCore):
         """Застейджить правку поля (без записи): применится по apply()."""
         field = FIELD_BY_ID.get(field_id)
         if field is None:
-            return Result.err(f"Unknown field: {field_id}")
+            return Result.err(tr("Unknown field: %s") % field_id)
 
         new_raw = self._normalize_input(field, value)
         if new_raw is None:
-            return Result.err(f"Invalid value for {field.label}: {value!r}")
+            return Result.err(tr("Invalid value for %s: %r") % (field.label, value))
 
         if field_id not in self._staged:
             self._stage_order.append(("field", field_id))
         self._staged[field_id] = new_raw
-        return Result.ok(f"{field.label} staged — press Apply")
+        return Result.ok(tr("%s staged — press Apply") % field.label)
 
     def apply(self) -> Result:
         """Применить все застейдженные правки одним проходом.
@@ -1332,7 +1340,7 @@ class AppThemeCore(ThemeCore):
         на каждое изменение. Ошибки отдельных полей не отменяют остальные.
         """
         if not self._staged and not self._staged_configs:
-            return Result.err("Nothing to apply")
+            return Result.err(tr("Nothing to apply"))
 
         messages: list[str] = []
         hooks_seen: set[str] = set()
@@ -1381,7 +1389,7 @@ class AppThemeCore(ThemeCore):
         self._stage_order.clear()
         self._choices_cache.clear()
 
-        message = f"Applied {applied} change(s)"
+        message = tr("Applied %s change(s)") % applied
         if messages:
             message += " — " + "; ".join(messages)
         return Result.ok(message)
@@ -1416,23 +1424,23 @@ class AppThemeCore(ThemeCore):
     def reset(self, field_id: str, to: str = "default") -> Result:
         field = FIELD_BY_ID.get(field_id)
         if field is None:
-            return Result.err(f"Unknown field: {field_id}")
+            return Result.err(tr("Unknown field: %s") % field_id)
         if to == "profile":
             base, _ = self._bases("live")
             active = self._active_profile()
             if not active:
-                return Result.err("No active profile")
+                return Result.err(tr("No active profile"))
             try:
                 active_dir = profile_dir(active)
             except ValueError as exc:
                 return Result.err(str(exc))
             value = self._read_raw(field, active_dir)
             if value is None:
-                return Result.err(f"{field.label} is not stored in the profile")
+                return Result.err(tr("%s is not stored in the profile") % field.label)
             return self.set_value(field_id, value)
         if to != "default":
-            return Result.err(f"Unknown reset target: {to}")
-        return Result.err("This field has no portable default; pick a value instead")
+            return Result.err(tr("Unknown reset target: %s") % to)
+        return Result.err(tr("This field has no portable default; pick a value instead"))
 
     def set_config_value(self, rel_path: str, key: str, value: str) -> Result:
         """Застейджить правку ключа конфига приложения (применится по apply()).
@@ -1449,7 +1457,7 @@ class AppThemeCore(ThemeCore):
         if (rel_path, key) not in self._staged_configs:
             self._stage_order.append(("config", (rel_path, key)))
         self._staged_configs[(rel_path, key)] = value
-        return Result.ok(f"{key} staged — press Apply")
+        return Result.ok(tr("%s staged — press Apply") % key)
 
     def _plan_config_write(self, rel_path: str, key: str, value: str) -> tuple[str, Any]:
         """Проверить и рассчитать запись ключа; вернуть (new_text, old_raw).
@@ -1502,10 +1510,10 @@ class AppThemeCore(ThemeCore):
         try:
             _atomic_write(path, new_text)
         except OSError as exc:
-            return Result.err(f"Failed to write {rel_path}: {exc}")
+            return Result.err(tr("Failed to write %s: %s") % (rel_path, exc))
         self._undo.append(_UndoEntry("", old_raw, path, old_bytes,
                                    label=f"{rel_path} · {key}"))
-        return Result.ok(f"{key} set")
+        return Result.ok(tr("%s set") % key)
 
     def undo(self) -> Result:
         # Сначала снимаем застейдженные (еще не записанные) правки — они
@@ -1520,9 +1528,9 @@ class AppThemeCore(ThemeCore):
                 rel_path, key = token
                 label = f"{rel_path} · {key}"
             self._choices_cache.clear()
-            return Result.ok(f"Unstaged: {label}")
+            return Result.ok(tr("Unstaged: %s") % label)
         if not self._undo:
-            return Result.err("Nothing to undo")
+            return Result.err(tr("Nothing to undo"))
         entry = self._undo.pop()
         field = FIELD_BY_ID.get(entry.field_id)
         if entry.file is not None:
@@ -1535,16 +1543,16 @@ class AppThemeCore(ThemeCore):
                 try:
                     _atomic_write_bytes(entry.file, entry.old_bytes)
                 except OSError as exc:
-                    return Result.err(f"Undo failed: {exc}")
+                    return Result.err(tr("Undo failed: %s") % exc)
         if field is None:
             # Generic-запись (этап C2): хуков и команд нет, только файл.
             self._choices_cache.clear()
-            return Result.ok(f"Undone: {entry.label or entry.field_id}")
+            return Result.ok(tr("Undone: %s") % (entry.label or entry.field_id))
         if field.apply == "cmd_config" and field.command and entry.old_raw is not None:
             self._run(self._command_args(field, entry.old_raw))
         self._run_hook(field)
         self._choices_cache.clear()
-        return Result.ok(f"Undone: {field.label}")
+        return Result.ok(tr("Undone: %s") % field.label)
 
     def revert(self) -> Result:
         # Неприменённый стейдж сбрасывается без записей — файлы не тронуты.
@@ -1554,9 +1562,9 @@ class AppThemeCore(ThemeCore):
             self._staged_configs.clear()
             self._stage_order.clear()
             self._choices_cache.clear()
-            return Result.ok(f"Discarded {count} staged change(s)")
+            return Result.ok(tr("Discarded %s staged change(s)") % count)
         if not self._originals:
-            return Result.ok("No changes in this session")
+            return Result.ok(tr("No changes in this session"))
         touched = [FIELD_BY_ID[entry.field_id] for entry in self._undo
                    if entry.field_id in FIELD_BY_ID]
         restored = 0
@@ -1597,7 +1605,7 @@ class AppThemeCore(ThemeCore):
         if os.environ.get(_NO_APPLY) != "1":
             self._run(["qdbus6", "org.kde.KWin", "/KWin", "reconfigure"], timeout=5)
             self._run(["kbuildsycoca6"], timeout=20)
-        return Result.ok(f"Reverted {restored} file(s)")
+        return Result.ok(tr("Reverted %s file(s)") % restored)
 
     def session_changes(self) -> int:
         """Число неприменённых (застейдженных) правок."""
