@@ -412,6 +412,27 @@ class ThemeInspectorController(QObject):
 
         def done(success: bool, message: str) -> None:
             self._set_busy(False)
+            if not success:
+                self.toast.emit(message, False)
+            # Успех без тоста: застейдженное значение видно в поле, а кнопка
+            # Apply/Revert (sessionChanges) показывает, что ждёт применения.
+            self.refresh()
+
+        self._set_busy(True)
+        _run(self, work, done)
+
+    @Slot()
+    def applyChanges(self) -> None:
+        """Применить все застейдженные правки одним проходом."""
+        if not self._can_edit_live():
+            return
+
+        def work() -> tuple[bool, str]:
+            result = self._core.apply()
+            return result.success, result.message
+
+        def done(success: bool, message: str) -> None:
+            self._set_busy(False)
             self.toast.emit(message, success)
             self.refresh()
 
@@ -533,7 +554,23 @@ class ThemeInspectorController(QObject):
         if value is None:
             self.toast.emit(f"No safe fix for {field_id}", False)
             return
-        self._write(target, value)
+
+        def work() -> tuple[bool, str]:
+            staged = self._core.set_value(target, value)
+            if not staged.success:
+                return False, staged.message
+            # Fix — осознанное действие: применяем сразу. Внимание: apply()
+            # коммитит и прочие застейдженные правки (как кнопка Apply).
+            applied = self._core.apply()
+            return applied.success, applied.message
+
+        def done(success: bool, message: str) -> None:
+            self._set_busy(False)
+            self.toast.emit(message, success)
+            self.refresh()
+
+        self._set_busy(True)
+        _run(self, work, done)
 
     @Slot(str)
     def exportJson(self, path: str) -> None:

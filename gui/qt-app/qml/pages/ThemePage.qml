@@ -277,6 +277,14 @@ Kirigami.ScrollablePage {
                         spacing: Platform.Units.smallSpacing
 
                         Button {
+                            text: qsTr("Apply")
+                            icon.name: "dialog-ok-apply"
+                            highlighted: true
+                            enabled: !themeInspector.readOnly && themeInspector.sessionChanges > 0 && !themeInspector.busy
+                            onClicked: themeInspector.applyChanges()
+                        }
+
+                        Button {
                             text: qsTr("Undo")
                             icon.name: "edit-undo"
                             enabled: !themeInspector.readOnly && themeInspector.sessionChanges > 0 && !themeInspector.busy
@@ -707,6 +715,14 @@ Kirigami.ScrollablePage {
                         text: qsTr("Export JSON…")
                         icon.name: "document-save-as"
                         onClicked: exportDialog.open()
+                    }
+
+                    Button {
+                        text: qsTr("Apply")
+                        icon.name: "dialog-ok-apply"
+                        highlighted: true
+                        enabled: !themeInspector.readOnly && themeInspector.sessionChanges > 0 && !themeInspector.busy
+                        onClicked: themeInspector.applyChanges()
                     }
 
                     Button {

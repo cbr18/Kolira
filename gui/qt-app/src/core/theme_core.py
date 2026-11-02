@@ -647,6 +647,12 @@ class AppThemeCore(ThemeCore):
         # means the file did not exist, which lets revert() remove files that
         # were created while the inspector was open.
         self._originals: dict[Path, Optional[bytes]] = {}
+        # Staged (not yet applied) edits. set_value/set_config_value only
+        # validate and record; the actual file writes, commands and hooks run
+        # once on apply() — one pass instead of a reload per keystroke.
+        self._staged: dict[str, Any] = {}
+        self._staged_configs: dict[tuple[str, str], str] = {}
+        self._stage_order: list[tuple[str, Any]] = []
 
     # ── paths ─────────────────────────────────────────────────────────────
 
@@ -811,6 +817,13 @@ class AppThemeCore(ThemeCore):
         else:
             value = self._coerce(field, raw)
 
+        # Застейдженная правка показывается как текущее значение (поле ещё
+        # не записано на диск, но UI должен отражать намерение пользователя).
+        staged = False
+        if scope == "live" and field.id in self._staged:
+            value = self._coerce(field, self._staged[field.id])
+            staged = True
+
         profile_raw = None
         differs = False
         if field.profile_tracked:
@@ -854,6 +867,7 @@ class AppThemeCore(ThemeCore):
             tracked_in_profile=field.profile_tracked,
             advanced=field.advanced,
             confirm=field.confirm,
+            staged=staged,
         )
 
     def sections(self, scope: str = "live") -> list[ThemeSection]:
@@ -1297,40 +1311,77 @@ class AppThemeCore(ThemeCore):
         return "; ".join(m for m in messages if m)
 
     def set_value(self, field_id: str, value: object) -> Result:
+        """Застейджить правку поля (без записи): применится по apply()."""
         field = FIELD_BY_ID.get(field_id)
         if field is None:
             return Result.err(f"Unknown field: {field_id}")
 
-        old_raw = self._coerce(field, self._read_raw(field, _home()))
         new_raw = self._normalize_input(field, value)
         if new_raw is None:
             return Result.err(f"Invalid value for {field.label}: {value!r}")
 
-        path: Optional[Path] = None
-        old_bytes: Optional[bytes] = None
-        try:
-            path = self._target_path(field)
-            old_bytes = self._snapshot(path)
-            written = self._write_field(field, new_raw)
-            if written is not None:
-                path = written
-        except (OSError, KeyError, ValueError) as exc:
-            return Result.err(f"Failed to write {field.label}: {exc}")
+        if field_id not in self._staged:
+            self._stage_order.append(("field", field_id))
+        self._staged[field_id] = new_raw
+        return Result.ok(f"{field.label} staged — press Apply")
+
+    def apply(self) -> Result:
+        """Применить все застейдженные правки одним проходом.
+
+        Записи, команды и хуки выполняются здесь — один раз на батч, а не
+        на каждое изменение. Ошибки отдельных полей не отменяют остальные.
+        """
+        if not self._staged and not self._staged_configs:
+            return Result.err("Nothing to apply")
 
         messages: list[str] = []
-        if field.apply == "cmd_config" and field.command:
-            ok, out = self._run(self._command_args(field, new_raw))
-            if not ok and out:
-                messages.append(f"live apply failed: {out}")
+        hooks_seen: set[str] = set()
+        applied = 0
 
-        hook_message = self._run_hook(field)
-        if hook_message:
-            messages.append(hook_message)
+        for field_id, new_raw in list(self._staged.items()):
+            field = FIELD_BY_ID.get(field_id)
+            if field is None:
+                continue
+            path: Optional[Path] = None
+            old_bytes: Optional[bytes] = None
+            old_raw: Any = None
+            try:
+                path = self._target_path(field)
+                old_raw = self._coerce(field, self._read_raw(field, _home()))
+                old_bytes = self._snapshot(path)
+                written = self._write_field(field, new_raw)
+                if written is not None:
+                    path = written
+            except (OSError, KeyError, ValueError) as exc:
+                messages.append(f"{field.label}: {exc}")
+                continue
 
-        self._undo.append(_UndoEntry(field_id, old_raw, path, old_bytes))
+            if field.apply == "cmd_config" and field.command:
+                ok, out = self._run(self._command_args(field, new_raw))
+                if not ok and out:
+                    messages.append(f"{field.label}: live apply failed: {out}")
+
+            if field.hook and field.hook not in hooks_seen:
+                hooks_seen.add(field.hook)
+                hook_message = self._run_hook(field)
+                if hook_message:
+                    messages.append(hook_message)
+
+            self._undo.append(_UndoEntry(field_id, old_raw, path, old_bytes))
+            applied += 1
+        self._staged.clear()
+
+        for (rel_path, key), value in list(self._staged_configs.items()):
+            result = self._apply_config_value(rel_path, key, value)
+            if result.success:
+                applied += 1
+            else:
+                messages.append(f"{rel_path} · {key}: {result.message}")
+        self._staged_configs.clear()
+        self._stage_order.clear()
         self._choices_cache.clear()
 
-        message = f"{field.label} set"
+        message = f"Applied {applied} change(s)"
         if messages:
             message += " — " + "; ".join(messages)
         return Result.ok(message)
@@ -1384,49 +1435,69 @@ class AppThemeCore(ThemeCore):
         return Result.err("This field has no portable default; pick a value instead")
 
     def set_config_value(self, rel_path: str, key: str, value: str) -> Result:
-        """Записать один ключ конфига приложения (этапы C2/C3, только live).
+        """Застейджить правку ключа конфига приложения (применится по apply()).
 
         ``key`` — flattened-форма из read_config_params: INI "group/key"
         (или "key" без группы), JSON/TOML "a/b", user.js — точечный ключ.
         Тип значения сохраняется (число/bool/список не превращаются в
-        строку). Запись встаёт в общий стек undo/revert сессии наравне
-        с curated-полями.
+        строку). Запись и undo-вход появляются в apply().
+        """
+        try:
+            self._plan_config_write(rel_path, key, value)
+        except (KeyError, ValueError) as exc:
+            return Result.err(str(exc))
+        if (rel_path, key) not in self._staged_configs:
+            self._stage_order.append(("config", (rel_path, key)))
+        self._staged_configs[(rel_path, key)] = value
+        return Result.ok(f"{key} staged — press Apply")
+
+    def _plan_config_write(self, rel_path: str, key: str, value: str) -> tuple[str, Any]:
+        """Проверить и рассчитать запись ключа; вернуть (new_text, old_raw).
+
+        Чистое вычисление без I/O — вызывается и при стейджинге (валидация),
+        и в apply() (самa запись). Бросает KeyError/ValueError с
+        человекочитаемой ошибкой.
         """
         path = live_path(rel_path)
         if not path.is_file():
-            return Result.err(f"File not found: {rel_path}")
+            raise ValueError(f"File not found: {rel_path}")
         suffix = path.suffix.lower()
         if suffix in _UNSUPPORTED_SUFFIXES:
-            return Result.err(f"Editing {suffix} files is not supported")
+            raise ValueError(f"Editing {suffix} files is not supported")
         text = _read_text(path) or ""
-        try:
-            if suffix in (".json", ".jsonc"):
-                node_path = tuple(part for part in key.split("/") if part)
-                old_raw = _json_read(text, node_path)
-                new_value = _coerce_json_value(old_raw, value)
-                new_text = _json_patch(text, node_path, new_value)
-            elif suffix == ".toml":
-                new_text, old_raw = _toml_set(text, key, value)
-            elif suffix == ".js":
-                old_raw = _userjs_read(text, key)
-                new_value = _coerce_json_value(old_raw, value)
-                new_text = _patch_userjs(text, key, new_value)
+        if suffix in (".json", ".jsonc"):
+            node_path = tuple(part for part in key.split("/") if part)
+            old_raw = _json_read(text, node_path)
+            new_value = _coerce_json_value(old_raw, value)
+            new_text = _json_patch(text, node_path, new_value)
+        elif suffix == ".toml":
+            new_text, old_raw = _toml_set(text, key, value)
+        elif suffix == ".js":
+            old_raw = _userjs_read(text, key)
+            new_value = _coerce_json_value(old_raw, value)
+            new_text = _patch_userjs(text, key, new_value)
+        else:
+            # Flattened INI: "group/key"; без "/" — ключ вне секций либо
+            # line-based "key value" (kitty.conf) — пишем в том же формате,
+            # в котором ключ найден.
+            if "/" in key:
+                group, _, leaf = key.partition("/")
             else:
-                # Flattened INI: "group/key"; без "/" — ключ вне секций либо
-                # line-based "key value" (kitty.conf) — пишем в том же формате,
-                # в котором ключ найден.
-                if "/" in key:
-                    group, _, leaf = key.partition("/")
-                else:
-                    group, leaf = "", key
-                old_raw = _ini_read(text, group, leaf)
-                if old_raw is None and not group and _kv_read(text, leaf) is not None:
-                    new_text = _patch_kv(text, leaf, value)
-                else:
-                    new_text = _set_ini_text(text, group, leaf, value)
-        except (KeyError, ValueError) as exc:
-            return Result.err(f"Failed to write {key}: {exc}")
+                group, leaf = "", key
+            old_raw = _ini_read(text, group, leaf)
+            if old_raw is None and not group and _kv_read(text, leaf) is not None:
+                new_text = _patch_kv(text, leaf, value)
+            else:
+                new_text = _set_ini_text(text, group, leaf, value)
+        return new_text, old_raw
 
+    def _apply_config_value(self, rel_path: str, key: str, value: str) -> Result:
+        """Применить одну застейдженную правку ключа (запись + undo-вход)."""
+        path = live_path(rel_path)
+        try:
+            new_text, old_raw = self._plan_config_write(rel_path, key, value)
+        except (KeyError, ValueError) as exc:
+            return Result.err(str(exc))
         old_bytes = self._snapshot(path)
         try:
             _atomic_write(path, new_text)
@@ -1434,10 +1505,22 @@ class AppThemeCore(ThemeCore):
             return Result.err(f"Failed to write {rel_path}: {exc}")
         self._undo.append(_UndoEntry("", old_raw, path, old_bytes,
                                    label=f"{rel_path} · {key}"))
-        self._choices_cache.clear()
         return Result.ok(f"{key} set")
 
     def undo(self) -> Result:
+        # Сначала снимаем застейдженные (еще не записанные) правки — они
+        # просто выбывают из стейджа; затем откатываем применённые записи.
+        if self._stage_order:
+            kind, token = self._stage_order.pop()
+            if kind == "field":
+                self._staged.pop(str(token), None)
+                label = FIELD_BY_ID[str(token)].label
+            else:
+                self._staged_configs.pop(token, None)
+                rel_path, key = token
+                label = f"{rel_path} · {key}"
+            self._choices_cache.clear()
+            return Result.ok(f"Unstaged: {label}")
         if not self._undo:
             return Result.err("Nothing to undo")
         entry = self._undo.pop()
@@ -1464,6 +1547,14 @@ class AppThemeCore(ThemeCore):
         return Result.ok(f"Undone: {field.label}")
 
     def revert(self) -> Result:
+        # Неприменённый стейдж сбрасывается без записей — файлы не тронуты.
+        if self._staged or self._staged_configs:
+            count = len(self._staged) + len(self._staged_configs)
+            self._staged.clear()
+            self._staged_configs.clear()
+            self._stage_order.clear()
+            self._choices_cache.clear()
+            return Result.ok(f"Discarded {count} staged change(s)")
         if not self._originals:
             return Result.ok("No changes in this session")
         touched = [FIELD_BY_ID[entry.field_id] for entry in self._undo
@@ -1509,7 +1600,8 @@ class AppThemeCore(ThemeCore):
         return Result.ok(f"Reverted {restored} file(s)")
 
     def session_changes(self) -> int:
-        return len(self._undo)
+        """Число неприменённых (застейдженных) правок."""
+        return len(self._staged) + len(self._staged_configs)
 
 
 def _stringify(field: FieldDef, value: Any) -> str:

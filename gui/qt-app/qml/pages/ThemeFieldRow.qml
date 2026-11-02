@@ -86,6 +86,18 @@ ColumnLayout {
             Layout.fillWidth: true
         }
 
+        // Staged edit: shown as the field value but not written to disk yet.
+        Rectangle {
+            visible: row.fieldData.staged === true
+            width: 7
+            height: 7
+            radius: 3.5
+            color: ThemeColors.warning()
+            ToolTip.text: qsTr("Staged — press Apply to write it")
+            ToolTip.visible: stagedHover.hovered
+            HoverHandler { id: stagedHover }
+        }
+
         Rectangle {
             visible: row.fieldData.differs === true
             width: 7

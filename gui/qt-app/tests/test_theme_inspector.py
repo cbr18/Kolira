@@ -234,6 +234,7 @@ def test_json_patch_skips_comments_and_nested_paths() -> None:
 def test_write_toml_section(home: Path) -> None:
     core = AppThemeCore()
     assert core.set_value("alacritty_opacity", 0.65).success
+    assert core.apply().success
     text = (home / ".config/alacritty/alacritty.toml").read_text()
     assert "opacity = 0.65" in text
     assert "[window]" in text
@@ -245,6 +246,7 @@ def test_write_toml_section(home: Path) -> None:
 def test_write_obsidian_inserts_key(home: Path) -> None:
     core = AppThemeCore()
     assert core.set_value("obsidian_theme", "moonstone").success
+    assert core.apply().success
     text = (home / "obsidian/vault/.obsidian/appearance.json").read_text()
     assert '"theme": "moonstone"' in text
     assert core.get("obsidian_theme")["value"] == "moonstone"
@@ -253,10 +255,12 @@ def test_write_obsidian_inserts_key(home: Path) -> None:
 def test_write_kitty_and_font(home: Path) -> None:
     core = AppThemeCore()
     assert core.set_value("kitty_opacity", 0.7).success
+    assert core.apply().success
     assert "background_opacity 0.7" in (home / ".config/kitty/kitty.conf").read_text()
     assert core.get("kitty_opacity")["value"] == pytest.approx(0.7)
 
     assert core.set_value("ui_font", {"family": "DejaVu Sans", "size": 9}).success
+    assert core.apply().success
     assert "font=DejaVu Sans,9," in (home / ".config/kdeglobals").read_text()
     assert core.get("ui_font")["display"].startswith("DejaVu Sans 9")
 
@@ -264,6 +268,7 @@ def test_write_kitty_and_font(home: Path) -> None:
 def test_write_kvantum_theme_file(home: Path) -> None:
     core = AppThemeCore()
     assert core.set_value("kvantum_blurring", True).success
+    assert core.apply().success
     text = (home / ".config/Kvantum/Orchis/OrchisDark.kvconfig").read_text()
     assert "blurring=true" in text
     assert core.get("kvantum_blurring")["value"] is True
@@ -275,6 +280,12 @@ def test_revert_session(home: Path) -> None:
     assert core.set_value("accent_color", "#010203").success
     assert core.set_value("kitty_opacity", 0.9).success
     assert core.session_changes() == 2
+
+    assert core.apply().success
+    assert core.session_changes() == 0
+    # После apply значение перечитано с диска: сырой формат kdeglobals.
+    assert core.get("accent_color")["value"] == "1,2,3"
+    assert core.get("kitty_opacity")["value"] == pytest.approx(0.9)
 
     result = core.revert()
     assert result.success, result.message
@@ -326,6 +337,7 @@ def test_revert_removes_a_file_created_in_the_session(home: Path) -> None:
     kitty = home / ".config/kitty/kitty.conf"
     kitty.unlink()
     assert core.set_value("kitty_opacity", 0.9).success
+    assert core.apply().success
     assert kitty.is_file()
     assert core.revert().success
     assert not kitty.exists(), "revert must remove files created during the session"
@@ -336,6 +348,7 @@ def test_atomic_write_preserves_private_permissions(home: Path) -> None:
     kdeglobals = home / ".config/kdeglobals"
     kdeglobals.chmod(0o600)
     assert core.set_value("accent_color", "#010203").success
+    assert core.apply().success
     assert kdeglobals.stat().st_mode & 0o777 == 0o600
 
 

@@ -898,6 +898,8 @@ class TestSetConfigValue:
 
         monkeypatch.setenv("HOME", str(tmp_path))
         monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
+        # apply() выполняет команды/хуки — в тестах они отключены.
+        monkeypatch.setenv("KTM_THEME_NO_APPLY", "1")
         return AppThemeCore()
 
     def test_ini_group_key(self, tmp_path: Path, monkeypatch) -> None:
@@ -908,6 +910,7 @@ class TestSetConfigValue:
 
         result = core.set_config_value(".config/mockapp/settings.conf", "main/speed", "9")
         assert result.success
+        assert core.apply().success
         text = (conf / "settings.conf").read_text()
         assert "speed=9" in text
         assert "# keep me" in text  # форматирование и комментарии сохранились
@@ -920,6 +923,7 @@ class TestSetConfigValue:
 
         result = core.set_config_value(".config/mockapp/settings.conf", "volume", "loud")
         assert result.success
+        assert core.apply().success
         text = (conf / "settings.conf").read_text()
         assert "volume=loud" in text
 
@@ -935,6 +939,7 @@ class TestSetConfigValue:
         assert core.set_config_value(".config/mockapp/settings.json", "enabled", "false").success
         assert core.set_config_value(".config/mockapp/settings.json", "name", "light").success
         assert core.set_config_value(".config/mockapp/settings.json", "nested/x", "2.25").success
+        assert core.apply().success
 
         import json as jsonlib
         data = jsonlib.loads((conf / "settings.json").read_text())
@@ -949,6 +954,7 @@ class TestSetConfigValue:
 
         result = core.set_config_value(".config/mockapp/settings.jsonc", "theme", "light")
         assert result.success
+        assert core.apply().success
         text = (conf / "settings.jsonc").read_text()
         assert "// theme note" in text
         assert '"theme": "light"' in text
@@ -969,6 +975,7 @@ class TestSetConfigValue:
 
         assert core.set_config_value(".config/mockapp/settings.toml", "speed", "9").success
         assert core.set_config_value(".config/mockapp/settings.toml", "window/opacity", "1").success
+        assert core.apply().success
         text = (conf / "settings.toml").read_text()
         assert "speed = 9" in text
         assert "opacity = 1" in text  # float 0.9 → 1.0 → "1", тип сохранён
@@ -982,6 +989,7 @@ class TestSetConfigValue:
         result = core.set_config_value(
             ".config/mockapp/settings.toml", "font/normal/family", "JetBrains")
         assert result.success
+        assert core.apply().success
         text = (conf / "settings.toml").read_text()
         assert '[font.normal]' in text
         assert 'family = "JetBrains"' in text
@@ -1004,6 +1012,7 @@ class TestSetConfigValue:
 
         result = core.set_config_value(".config/mockapp/settings.toml", "features", '["c"]')
         assert result.success
+        assert core.apply().success
         assert 'features = ["c"]' in (conf / "settings.toml").read_text()
 
     def test_userjs_key_updated_and_appended(self, tmp_path: Path, monkeypatch) -> None:
@@ -1016,6 +1025,7 @@ class TestSetConfigValue:
             ".config/mockapp/user.js", "browser.startup.page", "3").success
         assert core.set_config_value(
             ".config/mockapp/user.js", "ui.pref", "true").success
+        assert core.apply().success
         text = (conf / "user.js").read_text()
         assert 'user_pref("browser.startup.page", 3);' in text  # int сохранён
         assert 'user_pref("ui.pref", true);' in text
@@ -1030,6 +1040,7 @@ class TestSetConfigValue:
         result = core.set_config_value(
             ".config/mockapp/kitty.conf", "background_opacity", "0.5")
         assert result.success
+        assert core.apply().success
         lines = (conf / "kitty.conf").read_text().splitlines()
         assert "background_opacity 0.5" in lines
         assert "# keep me" in lines
@@ -1048,7 +1059,8 @@ class TestSetConfigValue:
         core = self._core(tmp_path, monkeypatch)
         assert not core.set_config_value(".config/nope.conf", "a", "1").success
 
-    def test_undo_restores_file(self, tmp_path: Path, monkeypatch) -> None:
+    def test_undo_unstages_without_writing(self, tmp_path: Path, monkeypatch) -> None:
+        """M2: undo до apply снимает стейдж; файл не тронут."""
         conf = tmp_path / ".config" / "mockapp"
         conf.mkdir(parents=True)
         target = conf / "settings.conf"
@@ -1058,9 +1070,11 @@ class TestSetConfigValue:
         assert core.set_config_value(".config/mockapp/settings.conf", "main/speed", "9").success
         assert core.session_changes() == 1
         assert core.undo().success
+        assert core.session_changes() == 0
         assert target.read_text() == "[main]\nspeed=3\n"
 
-    def test_revert_restores_all(self, tmp_path: Path, monkeypatch) -> None:
+    def test_revert_discards_staged_without_writing(self, tmp_path: Path, monkeypatch) -> None:
+        """M2: revert до apply сбрасывает стейдж; файлы не тронуты."""
         conf = tmp_path / ".config" / "mockapp"
         conf.mkdir(parents=True)
         target = conf / "settings.conf"
@@ -1069,8 +1083,45 @@ class TestSetConfigValue:
 
         core.set_config_value(".config/mockapp/settings.conf", "main/speed", "9")
         core.set_config_value(".config/mockapp/settings.conf", "main/volume", "loud")
+        assert core.session_changes() == 2
         assert core.revert().success
+        assert core.session_changes() == 0
         assert target.read_text() == "[main]\nspeed=3\n"
+
+
+class TestInspectorStaging:
+    """M2: curated-поля стейджатся; staged-значение видно в модели до записи."""
+
+    def _core(self, tmp_path: Path, monkeypatch):
+        from core.theme_core import AppThemeCore
+
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
+        monkeypatch.setenv("KTM_THEME_NO_APPLY", "1")
+        return AppThemeCore()
+
+    def test_field_staged_value_visible_before_apply(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config"
+        conf.mkdir(parents=True)
+        (conf / "kcminputrc").write_text("[Mouse]\ncursorTheme=Breeze\n")
+        core = self._core(tmp_path, monkeypatch)
+
+        assert core.set_value("cursor_theme", "Breeze_Snow").success
+        field = core.get("cursor_theme", "live")
+        assert field is not None
+        assert field["staged"] is True
+        assert field["value"] == "Breeze_Snow"
+        # Файл ещё не тронут.
+        assert "cursorTheme=Breeze\n" in (conf / "kcminputrc").read_text()
+
+        assert core.apply().success
+        field = core.get("cursor_theme", "live")
+        assert field["staged"] is False
+        assert "cursorTheme=Breeze_Snow" in (conf / "kcminputrc").read_text()
+
+    def test_apply_with_empty_staging_is_error(self, tmp_path: Path, monkeypatch) -> None:
+        core = self._core(tmp_path, monkeypatch)
+        assert not core.apply().success
 
 
 class TestSetAppConfigValueController:

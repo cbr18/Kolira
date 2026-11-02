@@ -265,6 +265,7 @@ class ThemeFieldValue:
     tracked_in_profile: bool = True
     advanced: bool = False
     confirm: bool = False
+    staged: bool = False
 
     def to_dict(self) -> dict:
         return {
@@ -276,6 +277,7 @@ class ThemeFieldValue:
             "display": self.display,
             "isDefault": self.is_default,
             "differs": self.differs_from_profile,
+            "staged": self.staged,
             "profileValue": self.profile_raw,
             "profileDisplay": self.profile_display,
             "badge": self.badge,
@@ -350,7 +352,11 @@ class ThemeCore(ABC):
 
     @abstractmethod
     def set_value(self, field_id: str, value: object) -> Result:
-        """Записать значение в live-конфиг и применить."""
+        """Застейджить правку поля (валидация без записи; применится по apply)."""
+
+    @abstractmethod
+    def apply(self) -> Result:
+        """Применить все застейдженные правки одним проходом."""
 
     @abstractmethod
     def reset(self, field_id: str, to: str = "default") -> Result:
@@ -358,7 +364,7 @@ class ThemeCore(ABC):
 
     @abstractmethod
     def set_config_value(self, rel_path: str, key: str, value: str) -> Result:
-        """Записать один ключ конфига приложения (только live; этап C2).
+        """Застейджить правку ключа конфига приложения (только live; этап C2).
 
         ``key`` — flattened-форма из read_config_params (INI "group/key",
         JSON "a/b"). Запись участвует в undo/revert сессии.
