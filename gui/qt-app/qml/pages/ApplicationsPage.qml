@@ -32,6 +32,17 @@ Kirigami.ScrollablePage {
         return groups
     }
 
+    // Одно раскрытое дерево конфигов за раз — страница остаётся компактной.
+    property string expandedConfigs: ""
+
+    readonly property var configByApp: {
+        const map = {}
+        const list = themeInspector.appConfigs
+        for (let i = 0; i < list.length; i++)
+            map[list[i].id] = list[i]
+        return map
+    }
+
     background: Rectangle {
         color: page.glassMode ? ThemeColors.glassPanel() : ThemeColors.pageBg(page.glassMode)
     }
@@ -50,6 +61,25 @@ Kirigami.ScrollablePage {
                 text: qsTr("Tracked applications")
                 color: ThemeColors.fgColor(page.glassMode)
                 Layout.fillWidth: true
+            }
+
+            Button {
+                text: qsTr("Apply")
+                icon.name: "dialog-ok-apply"
+                highlighted: true
+                enabled: !themeInspector.readOnly
+                    && themeInspector.sessionChanges > 0
+                    && !themeInspector.busy
+                onClicked: themeInspector.applyChanges()
+            }
+
+            Button {
+                text: qsTr("Undo")
+                icon.name: "edit-undo"
+                enabled: !themeInspector.readOnly
+                    && themeInspector.sessionChanges > 0
+                    && !themeInspector.busy
+                onClicked: themeInspector.undo()
             }
 
             Button {
@@ -104,8 +134,13 @@ Kirigami.ScrollablePage {
                     Repeater {
                         model: modelData.items
 
-                        Rectangle {
+                        ColumnLayout {
                             required property var modelData
+
+                            Layout.fillWidth: true
+                            spacing: 0
+
+                            Rectangle {
 
                             Layout.fillWidth: true
                             implicitHeight: rowLayout.implicitHeight + Platform.Units.smallSpacing * 2
@@ -193,6 +228,34 @@ Kirigami.ScrollablePage {
                                     icon.name: "edit-delete"
                                     visible: modelData.isCustom
                                     onClicked: confirmDelete.ask(modelData.id, modelData.name)
+                                }
+
+                                // Раскрытие дерева конфигов под приложением (M4):
+                                // файлы и ключи, перенесённые со страницы Theme.
+                                ToolButton {
+                                    text: qsTr("Configs")
+                                    icon.name: "view-list-details"
+                                    checkable: true
+                                    checked: page.expandedConfigs === modelData.id
+                                    visible: page.configByApp[modelData.id] !== undefined
+                                    ToolTip.text: qsTr("Show the config files this application stores")
+                                    ToolTip.visible: hovered
+                                    onClicked: page.expandedConfigs =
+                                        page.expandedConfigs === modelData.id ? "" : modelData.id
+                                }
+                            }
+                            }
+
+                            Loader {
+                                Layout.fillWidth: true
+                                Layout.leftMargin: Platform.Units.largeSpacing
+                                active: page.expandedConfigs === modelData.id
+                                visible: active
+                                sourceComponent: Component {
+                                    AppConfigTree {
+                                        appId: modelData.id
+                                        glassMode: page.glassMode
+                                    }
                                 }
                             }
                         }

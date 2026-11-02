@@ -884,9 +884,12 @@ class TestInspectorAppConfigs:
         assert files[".config/mockapp/c.css"]["note"] == "unsupported format"
 
     def test_theme_page_shows_app_configs(self) -> None:
-        qml = (PROJECT_ROOT / "qml" / "pages" / "ThemePage.qml").read_text()
-        assert "themeInspector.appConfigs" in qml
-        assert "Application configs" in qml
+        # M4: дерево конфигов живёт на странице «Приложения» (AppConfigTree),
+        # со страницы Theme убрано.
+        theme_qml = (PROJECT_ROOT / "qml" / "pages" / "ThemePage.qml").read_text()
+        assert "themeInspector.appConfigs" not in theme_qml
+        tree_qml = (PROJECT_ROOT / "qml" / "pages" / "AppConfigTree.qml").read_text()
+        assert "themeInspector.appConfigs" in tree_qml
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1196,12 +1199,17 @@ class TestSetAppConfigValueController:
 
     def test_c2_qml_wiring(self) -> None:
         qml = (PROJECT_ROOT / "qml" / "pages" / "ThemePage.qml").read_text()
-        assert "setAppConfigValue" in qml
-        assert "configValueDialog" in qml
-        assert "fileData.editable" in qml
-        # C3 fallback: экзотика открывается папкой во внешнем редакторе.
-        assert "Show in folder" in qml
-        assert "unsupported format" in qml
+        assert "setAppConfigValue" not in qml  # дерево конфигов переехало (M4)
+        apps_qml = (PROJECT_ROOT / "qml" / "pages" / "ApplicationsPage.qml").read_text()
+        tree_qml = (PROJECT_ROOT / "qml" / "pages" / "AppConfigTree.qml").read_text()
+        assert "configValueDialog" in tree_qml
+        assert "setAppConfigValue" in tree_qml
+        assert "fileData.editable" in tree_qml
+        assert "AppConfigTree" in apps_qml
+        assert "themeInspector.applyChanges" in apps_qml
+        # Экзотика открывается папкой во внешнем редакторе.
+        assert "Show in folder" in tree_qml
+        assert "unsupported format" in tree_qml
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2029,6 +2037,20 @@ def test_theme_overview_drill_in_and_save_as() -> None:
 
     # Старый компонент аккордеона удалён как мёртвый код.
     assert not (PROJECT_ROOT / "qml" / "pages" / "ThemeSectionCard.qml").exists()
+
+
+def test_app_configs_accordion_on_applications_page() -> None:
+    """M4: дерево «приложение → файл → ключ» раскрывается под приложением."""
+    apps = (PROJECT_ROOT / "qml" / "pages" / "ApplicationsPage.qml").read_text()
+    assert "expandedConfigs" in apps
+    assert "configByApp" in apps
+    assert "view-list-details" in apps
+    assert "AppConfigTree" in apps
+    assert "themeInspector.applyChanges" in apps
+
+    tree = (PROJECT_ROOT / "qml" / "pages" / "AppConfigTree.qml").read_text()
+    assert "property string appId" in tree
+    assert "configValueDialog" in tree
 
 
 def test_open_file_logs_every_launch() -> None:
