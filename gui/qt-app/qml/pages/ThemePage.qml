@@ -1,46 +1,79 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kirigami 2.20 as Kirigami
 import org.kde.kirigami.platform as Platform
 import Components 1.0
 
-/*! Theme Inspector — what the current look is made of.
- *
- *  Live scope edits in place (instant apply + undo); profile scopes are
- *  read-only snapshots. Sections are an accordion: one open at a time keeps
- *  the page short even though it exposes ~55 fields.
+/*! Theme bundle overview: installed KDE/Plasma assets, desktop parameters,
+ *  Kvantum/GTK choices and application theme adapters.
  */
 Kirigami.ScrollablePage {
     id: page
 
     title: qsTr("Theme")
-    readonly property bool glassMode: themeController.isGlass
-
-    property bool showAdvanced: false
-    property string searchText: ""
-    property var searchResults: []
+    property string profileName: ""
+    property string selectedScope: "live"
     property string message: ""
     property bool messageOk: true
+
+    readonly property bool glassMode: themeController.isGlass
+    readonly property bool compact: width < Platform.Units.gridUnit * 36
+    readonly property var scopeChoices: {
+        const values = ["live"]
+        for (let i = 0; i < themeBundle.profiles.length; ++i)
+            values.push(themeBundle.profiles[i].name)
+        return values
+    }
 
     function showMessage(text, ok) {
         page.message = text
         page.messageOk = ok
-        messageTimer.restart()
+        messageBox.visible = text !== ""
+        if (ok)
+            messageTimer.restart()
+        else
+            messageTimer.stop()
     }
 
-    function runSearch() {
-        page.searchResults = page.searchText.length > 0
-            ? themeInspector.search(page.searchText)
-            : []
+    function scopeLabel() {
+        if (page.selectedScope === "live")
+            return qsTr("Live system")
+        return qsTr("Profile: %1").arg(page.selectedScope)
     }
 
-    function syncScope() {
-        var scopes = themeInspector.scopes
-        var index = scopes.indexOf(themeInspector.scope)
-        scopeCombo.model = scopes
-        scopeCombo.currentIndex = index
+    function groupSummary(group) {
+        const values = []
+        for (let i = 0; i < group.components.length && values.length < 3; ++i) {
+            const text = group.components[i].currentDisplay
+            if (text && text !== "—")
+                values.push(text)
+        }
+        return values.join(" · ")
+    }
+
+    function switchScope(name) {
+        page.selectedScope = name
+        if (name === "live")
+            themeBundle.openLive()
+        else
+            themeBundle.openProfile(name)
+    }
+
+    Component.onCompleted: {
+        if (page.profileName !== "")
+            page.switchScope(page.profileName)
+        else
+            page.switchScope("live")
+    }
+
+    Connections {
+        target: themeBundle
+        function onToast(text, ok) { page.showMessage(text, ok) }
+        function onScopeChanged() {
+            page.selectedScope = themeBundle.scope === "live"
+                ? "live" : themeBundle.scope.replace("profile:", "")
+        }
     }
 
     background: Rectangle {
@@ -50,58 +83,36 @@ Kirigami.ScrollablePage {
     Timer {
         id: messageTimer
         interval: 6000
-        onTriggered: page.message = ""
-    }
-
-    Timer {
-        id: searchTimer
-        interval: 200
-        onTriggered: page.runSearch()
-    }
-
-    FileDialog {
-        id: exportDialog
-        title: qsTr("Save theme snapshot")
-        fileMode: FileDialog.SaveFile
-        defaultSuffix: "json"
-        nameFilters: [qsTr("JSON files (*.json)"), qsTr("All files (*)")]
-        onAccepted: themeInspector.exportJson(selectedFile)
+        onTriggered: messageBox.visible = false
     }
 
     Kirigami.Dialog {
-        id: saveAsDialog
-        title: qsTr("Save as Profile")
+        id: saveProfileDialog
+        title: qsTr("Save theme bundle as profile")
         standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
-        preferredWidth: 420
-
-        background: Rectangle {
-            color: ThemeColors.dialogBg(page.glassMode)
-            radius: 8
-            border.width: 1
-            border.color: ThemeColors.cardBorder(page.glassMode)
-        }
+        preferredWidth: 460
 
         ColumnLayout {
             Layout.fillWidth: true
+            spacing: Platform.Units.smallSpacing
             Label {
-                text: qsTr("Save the current live theme as a new profile:")
-                color: ThemeColors.fgColor(page.glassMode)
-                wrapMode: Text.WordWrap
                 Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                text: qsTr("The current component choices, application themes and wallpaper will be saved as a v2 theme bundle.")
+                color: ThemeColors.fgColor(page.glassMode)
             }
             TextField {
-                id: saveAsName
+                id: profileNameField
                 Layout.fillWidth: true
                 placeholderText: qsTr("Profile name")
-                onTextChanged: saveAsError.visible = false
             }
             TextField {
-                id: saveAsDesc
+                id: profileDescriptionField
                 Layout.fillWidth: true
                 placeholderText: qsTr("Description (optional)")
             }
             Label {
-                id: saveAsError
+                id: profileNameError
                 Layout.fillWidth: true
                 visible: false
                 wrapMode: Text.WordWrap
@@ -111,97 +122,122 @@ Kirigami.ScrollablePage {
         }
 
         onAccepted: {
-            var name = saveAsName.text.trim()
+            const name = profileNameField.text.trim()
             if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(name)) {
-                saveAsError.visible = true
-                saveAsDialog.open()
+                profileNameError.visible = true
+                saveProfileDialog.open()
                 return
             }
-            profileController.saveProfile(name, saveAsDesc.text.trim())
+            themeBundle.saveProfile(name, profileDescriptionField.text.trim())
         }
     }
 
-    Connections {
-        target: themeInspector
-        function onToast(text, ok) { page.showMessage(text, ok) }
-        function onScopeChanged() { page.syncScope() }
-        function onFieldsChanged() {
-            if (page.searchText.length > 0)
-                page.runSearch()
+    Kirigami.Dialog {
+        id: customThemeDialog
+        title: qsTr("Create custom derived theme")
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+        preferredWidth: 460
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: Platform.Units.smallSpacing
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                text: qsTr("Creates user-owned color and Kvantum themes from the current base themes without changing system themes.")
+                color: ThemeColors.fgColor(page.glassMode)
+            }
+            TextField {
+                id: customThemeName
+                Layout.fillWidth: true
+                placeholderText: qsTr("Custom theme name")
+            }
+        }
+
+        onAccepted: {
+            const name = customThemeName.text.trim()
+            if (name !== "")
+                themeBundle.createCustomTheme(name)
         }
     }
 
-    Connections {
-        target: profileController
-        function onProfilesChanged() { page.syncScope() }
-    }
+    Kirigami.Dialog {
+        id: revertDialog
+        title: qsTr("Revert theme changes?")
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+        preferredWidth: 420
+        onAccepted: themeBundle.revert()
 
-    Component.onCompleted: page.syncScope()
+        Label {
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+            text: qsTr("Discard staged edits and restore applied changes from this session?")
+            color: ThemeColors.fgColor(page.glassMode)
+        }
+    }
 
     ColumnLayout {
         Layout.margins: Platform.Units.largeSpacing
         spacing: Platform.Units.largeSpacing
 
-        // ─── Header ───────────────────────────────────────────
         RowLayout {
             Layout.fillWidth: true
             spacing: Platform.Units.mediumSpacing
 
-            Item { Layout.fillWidth: true }
+            Kirigami.Heading {
+                level: 2
+                text: page.selectedScope === "live"
+                    ? qsTr("Live theme bundle")
+                    : qsTr("Saved theme bundle")
+                color: ThemeColors.fgColor(page.glassMode)
+                Layout.fillWidth: true
+            }
 
             BusyIndicator {
-                running: themeInspector.busy
-                visible: themeInspector.busy
+                running: themeBundle.busy
+                visible: running
                 Layout.preferredHeight: Platform.Units.iconSizes.small
             }
 
             ComboBox {
                 id: scopeCombo
-                Layout.preferredWidth: Platform.Units.gridUnit * 10
-                textRole: ""
-                displayText: currentIndex >= 0 && currentText === "live"
-                    ? qsTr("Live system")
-                    : currentText.replace("profile:", qsTr("Profile: "))
+                model: page.scopeChoices
+                currentIndex: page.selectedScope === "live"
+                    ? 0 : page.scopeChoices.indexOf(page.selectedScope)
+                displayText: currentIndex === 0 ? qsTr("Live system") : currentText
+                enabled: !themeBundle.busy
+                Layout.preferredWidth: Platform.Units.gridUnit * 11
                 onActivated: function(index) {
-                    if (index >= 0)
-                        themeInspector.setScope(scopeCombo.model[index])
+                    if (index >= 0 && index < page.scopeChoices.length)
+                        page.switchScope(page.scopeChoices[index])
                 }
+                Accessible.name: qsTr("Theme scope")
             }
 
-            ToolButton {
+            Button {
+                text: qsTr("Refresh")
                 icon.name: "view-refresh"
-                enabled: !themeInspector.busy
-                ToolTip.text: qsTr("Re-read the configuration")
-                ToolTip.visible: hovered
-                onClicked: themeInspector.refresh()
+                enabled: !themeBundle.busy
+                onClicked: themeBundle.refresh()
             }
         }
 
         Kirigami.InlineMessage {
+            id: messageBox
             Layout.fillWidth: true
-            visible: page.message !== ""
+            visible: false
             text: page.message
-            type: page.messageOk ? Kirigami.MessageType.Positive : Kirigami.MessageType.Error
+            type: page.messageOk
+                ? Kirigami.MessageType.Positive : Kirigami.MessageType.Error
+            showCloseButton: true
+            onVisibleChanged: {
+                if (!visible)
+                    page.message = ""
+            }
         }
 
-        Kirigami.InlineMessage {
-            Layout.fillWidth: true
-            visible: themeInspector.readOnly
-            text: qsTr("Profile snapshots are read-only. Switch to “Live system” to edit values.")
-            type: Kirigami.MessageType.Information
-            actions: [
-                Kirigami.Action {
-                    text: qsTr("Switch to Live")
-                    icon.name: "go-next"
-                    onTriggered: themeInspector.setScope("live")
-                }
-            ]
-        }
-
-        // ─── Overview ─────────────────────────────────────────
         Kirigami.Card {
             Layout.fillWidth: true
-
             background: Rectangle {
                 radius: Platform.Units.smallSpacing
                 border.width: 1
@@ -214,433 +250,270 @@ Kirigami.ScrollablePage {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: Platform.Units.mediumSpacing
-
-                    Rectangle {
-                        Layout.preferredWidth: Platform.Units.gridUnit * 4
-                        Layout.preferredHeight: Platform.Units.gridUnit * 4
-                        radius: Platform.Units.smallSpacing
-                        color: themeInspector.accentColor
-                        border.width: 1
-                        border.color: ThemeColors.subtleBorder(page.glassMode)
-
-                        Label {
-                            anchors.centerIn: parent
-                            text: themeInspector.accentColor
-                            color: "white"
-                            style: Text.Outline
-                            styleColor: "black"
-                            font.pointSize: TypeScale.caption
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-
-                        Label {
-                            text: themeInspector.scope === "live"
-                                ? qsTr("Live system")
-                                : qsTr("Snapshot: %1").arg(themeInspector.scope.replace("profile:", ""))
-                            color: ThemeColors.fgColor(page.glassMode)
-                            font.bold: true
-                            font.pointSize: TypeScale.subtitle
-                        }
-
-                        Label {
-                            text: qsTr("Active profile: %1 · %2 difference(s)")
-                                .arg(themeInspector.activeProfile || "—")
-                                .arg(themeInspector.modifiedCount)
-                            color: ThemeColors.dimColor(page.glassMode)
-                            font.pointSize: TypeScale.caption
-                        }
-
-                        Label {
-                            visible: themeInspector.sessionChanges > 0
-                            text: qsTr("%1 change(s) in this session").arg(themeInspector.sessionChanges)
-                            color: ThemeColors.accent()
-                            font.pointSize: TypeScale.caption
-                        }
-
-                        Button {
-                            visible: themeInspector.scope === "live"
-                            text: qsTr("Save as profile…")
-                            icon.name: "document-save-as"
-                            onClicked: {
-                                saveAsName.text = ""
-                                saveAsDesc.text = ""
-                                saveAsError.visible = false
-                                saveAsDialog.open()
-                            }
-                        }
-                    }
-
-                    Image {
-                        Layout.preferredWidth: Platform.Units.gridUnit * 8
-                        Layout.preferredHeight: Platform.Units.gridUnit * 4.5
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
-                        visible: wallpaperController.currentWallpaper !== ""
-                        source: wallpaperController.currentWallpaper
-                        clip: true
-                    }
-
-                    ColumnLayout {
-                        spacing: Platform.Units.smallSpacing
-
-                        Button {
-                            text: qsTr("Apply")
-                            icon.name: "dialog-ok-apply"
-                            highlighted: true
-                            enabled: !themeInspector.readOnly && themeInspector.sessionChanges > 0 && !themeInspector.busy
-                            onClicked: themeInspector.applyChanges()
-                        }
-
-                        Button {
-                            text: qsTr("Undo")
-                            icon.name: "edit-undo"
-                            enabled: !themeInspector.readOnly && themeInspector.sessionChanges > 0 && !themeInspector.busy
-                            onClicked: themeInspector.undo()
-                        }
-
-                        Button {
-                            text: qsTr("Revert all")
-                            icon.name: "document-revert"
-                            enabled: !themeInspector.readOnly && themeInspector.sessionChanges > 0 && !themeInspector.busy
-                            onClicked: themeInspector.revertAll()
-                        }
-                    }
-                }
-
-                Kirigami.Separator { Layout.fillWidth: true }
-
-                Label {
-                    Layout.fillWidth: true
-                    text: qsTr("Tap a section below to see and edit its settings.")
-                    color: ThemeColors.dimColor(page.glassMode)
-                    font.pointSize: TypeScale.caption
-                }
-            }
-        }
-
-        // ─── Search ───────────────────────────────────────────
-        TextField {
-            Layout.fillWidth: true
-            placeholderText: qsTr("Search settings… (accent, blur, kitty, шрифт)")
-            text: page.searchText
-            onTextChanged: {
-                page.searchText = text
-                searchTimer.restart()
-            }
-            onAccepted: page.runSearch()
-        }
-
-        // ─── Validation ───────────────────────────────────────
-        Kirigami.Card {
-            Layout.fillWidth: true
-            visible: themeInspector.issues.length > 0
-
-            background: Rectangle {
-                radius: Platform.Units.smallSpacing
-                border.width: 1
-                color: ThemeColors.cardBg(page.glassMode)
-                border.color: ThemeColors.warning()
-            }
-
-            contentItem: ColumnLayout {
-                spacing: Platform.Units.smallSpacing
-
-                RowLayout {
-                    Layout.fillWidth: true
+                    spacing: Platform.Units.smallSpacing
 
                     Kirigami.Heading {
                         level: 2
-                        text: qsTr("Validation")
+                        text: page.scopeLabel()
                         color: ThemeColors.fgColor(page.glassMode)
                     }
+
+                    Kirigami.Chip {
+                        text: page.selectedScope === "live"
+                            ? qsTr("Active")
+                            : qsTr("Read-only")
+                        icon.name: page.selectedScope === "live"
+                            ? "dialog-ok" : "document-preview"
+                        closable: false
+                    }
+
                     Item { Layout.fillWidth: true }
-                    Label {
-                        text: qsTr("%1 issue(s)").arg(themeInspector.issues.length)
-                        color: ThemeColors.warning()
+
+                    Button {
+                        text: qsTr("Apply profile")
+                        icon.name: "dialog-ok-apply"
+                        highlighted: true
+                        visible: page.selectedScope !== "live"
+                        enabled: !themeBundle.busy
+                        onClicked: themeBundle.applyProfile(page.selectedScope)
                     }
                 }
 
-                Repeater {
-                    model: themeInspector.issues
+                Label {
+                    Layout.fillWidth: true
+                    text: page.selectedScope === "live"
+                        ? qsTr("Active profile: %1 · %2 change(s)").arg(themeBundle.activeProfile || "—").arg(themeBundle.sessionChanges)
+                        : qsTr("This profile is a saved theme bundle. Apply it to make it active.")
+                    wrapMode: Text.WordWrap
+                    color: ThemeColors.dimColor(page.glassMode)
+                }
 
-                    delegate: RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Platform.Units.mediumSpacing
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Platform.Units.smallSpacing
 
-                        Kirigami.Icon {
-                            source: modelData.severity === "error"
-                                ? "dialog-error" : "dialog-warning"
-                            color: modelData.severity === "error"
-                                ? ThemeColors.negative() : ThemeColors.warning()
-                            Layout.preferredWidth: Platform.Units.iconSizes.small
-                            Layout.preferredHeight: Platform.Units.iconSizes.small
+                    Button {
+                        text: qsTr("Save as profile…")
+                        icon.name: "document-save-as"
+                        enabled: page.selectedScope === "live" && !themeBundle.busy
+                        onClicked: {
+                            profileNameField.text = ""
+                            profileDescriptionField.text = ""
+                            profileNameError.visible = false
+                            saveProfileDialog.open()
                         }
+                    }
 
-                        ColumnLayout {
+                    Button {
+                        text: qsTr("Create custom theme…")
+                        icon.name: "document-new"
+                        enabled: page.selectedScope === "live" && !themeBundle.busy
+                        onClicked: {
+                            customThemeName.text = ""
+                            customThemeDialog.open()
+                        }
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    Button {
+                        text: qsTr("Apply changes")
+                        icon.name: "dialog-ok-apply"
+                        highlighted: true
+                        visible: themeBundle.sessionChanges > 0
+                        enabled: page.selectedScope === "live"
+                            && themeBundle.sessionChanges > 0 && !themeBundle.busy
+                        onClicked: themeBundle.applyChanges()
+                    }
+
+                    Button {
+                        text: qsTr("Undo")
+                        icon.name: "edit-undo"
+                        visible: themeBundle.sessionChanges > 0 || themeBundle.undoDepth > 0
+                        enabled: page.selectedScope === "live" && !themeBundle.busy
+                            && (themeBundle.sessionChanges > 0 || themeBundle.undoDepth > 0)
+                        onClicked: themeBundle.undo()
+                    }
+
+                    Button {
+                        text: qsTr("Revert")
+                        icon.name: "document-revert"
+                        visible: themeBundle.sessionChanges > 0 || themeBundle.undoDepth > 0
+                        enabled: page.selectedScope === "live" && !themeBundle.busy
+                            && (themeBundle.sessionChanges > 0 || themeBundle.undoDepth > 0)
+                        onClicked: revertDialog.open()
+                    }
+                }
+            }
+        }
+
+        GridLayout {
+            Layout.fillWidth: true
+            columns: page.compact ? 1 : 2
+            columnSpacing: Platform.Units.smallSpacing
+            rowSpacing: Platform.Units.smallSpacing
+
+            Repeater {
+                model: themeBundle.groups
+
+                Kirigami.Card {
+                    required property var modelData
+                    Layout.fillWidth: true
+                    activeFocusOnTab: true
+                    Accessible.role: Accessible.Button
+                    Accessible.name: modelData.label
+                    Accessible.description: page.groupSummary(modelData)
+
+                    background: Rectangle {
+                        radius: Platform.Units.smallSpacing
+                        border.width: groupTile.activeFocus ? 2 : 1
+                        color: groupHover.hovered || groupTile.activeFocus
+                            ? ThemeColors.cardHoverBg(page.glassMode)
+                            : ThemeColors.cardBg(page.glassMode)
+                        border.color: groupTile.activeFocus
+                            ? ThemeColors.accent()
+                            : ThemeColors.cardBorder(page.glassMode)
+                    }
+
+                    HoverHandler { id: groupHover }
+                    TapHandler {
+                        onTapped: pageStack.layers.push(
+                            Qt.resolvedUrl("ThemeComponentsPage.qml"), {
+                                groupId: modelData.id,
+                                groupTitle: modelData.label,
+                                groupDescription: modelData.description,
+                                components: modelData.components
+                            })
+                    }
+                    Keys.onPressed: function(event) {
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
+                                || event.key === Qt.Key_Space) {
+                            pageStack.layers.push(
+                                Qt.resolvedUrl("ThemeComponentsPage.qml"), {
+                                    groupId: modelData.id,
+                                    groupTitle: modelData.label,
+                                    groupDescription: modelData.description,
+                                    components: modelData.components
+                                })
+                            event.accepted = true
+                        }
+                    }
+
+                    contentItem: ColumnLayout {
+                        id: groupTile
+                        anchors.margins: Platform.Units.mediumSpacing
+                        spacing: Platform.Units.smallSpacing
+
+                        RowLayout {
                             Layout.fillWidth: true
-                            spacing: 0
-
-                            Label {
+                            spacing: Platform.Units.smallSpacing
+                            Kirigami.Icon {
+                                source: modelData.icon
+                                color: ThemeColors.accent()
+                                Layout.preferredWidth: Platform.Units.iconSizes.small
+                                Layout.preferredHeight: Platform.Units.iconSizes.small
+                            }
+                            Kirigami.Heading {
                                 Layout.fillWidth: true
-                                text: modelData.message
+                                level: 3
+                                text: modelData.label
                                 color: ThemeColors.fgColor(page.glassMode)
-                                wrapMode: Text.WordWrap
-                            }
-                            Label {
-                                Layout.fillWidth: true
-                                visible: (modelData.fixHint || "") !== ""
-                                text: modelData.fixHint || ""
-                                color: ThemeColors.dimColor(page.glassMode)
-                                font.pointSize: TypeScale.caption
-                                wrapMode: Text.WordWrap
                             }
                         }
 
-                        Button {
-                            text: qsTr("Fix")
-                            visible: (modelData.fieldId || "") !== ""
-                            enabled: !themeInspector.readOnly && !themeInspector.busy
-                            onClicked: themeInspector.applyFix(modelData.fieldId)
+                        Label {
+                            Layout.fillWidth: true
+                            text: page.groupSummary(modelData)
+                            color: ThemeColors.dimColor(page.glassMode)
+                            wrapMode: Text.WordWrap
                         }
 
                         Button {
-                            text: qsTr("Show")
-                            visible: (modelData.section || "") !== ""
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Open")
+                            icon.name: "go-next"
                             onClicked: pageStack.layers.push(
-                                Qt.resolvedUrl("SectionPage.qml"),
-                                {
-                                    sectionId: modelData.section,
-                                    sectionTitle: modelData.sectionTitle || modelData.section,
-                                    showAdvanced: page.showAdvanced
+                                Qt.resolvedUrl("ThemeComponentsPage.qml"), {
+                                    groupId: modelData.id,
+                                    groupTitle: modelData.label,
+                                    groupDescription: modelData.description,
+                                    components: modelData.components
                                 })
                         }
                     }
                 }
             }
-        }
 
-        // ─── Search results ───────────────────────────────────
-        ColumnLayout {
-            Layout.fillWidth: true
-            visible: page.searchText.length > 0
-            spacing: Platform.Units.smallSpacing
+            Kirigami.Card {
+                id: appsCard
+                Layout.fillWidth: true
+                activeFocusOnTab: true
+                Accessible.role: Accessible.Button
+                Accessible.name: qsTr("Application themes")
+                Accessible.description: qsTr("Choose themes for supported applications")
 
-            Label {
-                text: qsTr("%1 result(s) for “%2”")
-                    .arg(page.searchResults.length)
-                    .arg(page.searchText)
-                color: ThemeColors.dimColor(page.glassMode)
-                font.bold: true
-            }
-
-            Repeater {
-                model: page.searchResults
-
-                delegate: ThemeFieldRow {
-                    fieldData: modelData
-                    showSection: true
-                    glassMode: page.glassMode
-                }
-            }
-
-            Label {
-                visible: page.searchResults.length === 0
-                text: qsTr("Nothing matches. Try “blur”, “font”, “cursor” or “kitty”.")
-                color: ThemeColors.dimColor(page.glassMode)
-            }
-        }
-
-        // ─── Sections: tap a tile to open the group ───────────
-        GridLayout {
-            Layout.fillWidth: true
-            columns: 2
-            columnSpacing: Platform.Units.smallSpacing
-            rowSpacing: Platform.Units.smallSpacing
-            visible: page.searchText.length === 0
-
-            Repeater {
-                model: themeInspector.sections
-
-                delegate: Rectangle {
-                    id: tile
-                    required property var modelData
-                    Layout.fillWidth: true
-                    implicitHeight: tileInner.implicitHeight + 16
+                background: Rectangle {
                     radius: Platform.Units.smallSpacing
-                    color: tileHover.hovered
+                    border.width: appsTile.activeFocus ? 2 : 1
+                    color: appsHover.hovered || appsTile.activeFocus
                         ? ThemeColors.cardHoverBg(page.glassMode)
                         : ThemeColors.cardBg(page.glassMode)
-                    border.width: 1
-                    border.color: ThemeColors.cardBorder(page.glassMode)
-
-                    HoverHandler { id: tileHover }
-                    TapHandler {
-                        onTapped: pageStack.layers.push(
-                            Qt.resolvedUrl("SectionPage.qml"),
-                            {
-                                sectionId: tile.modelData.id,
-                                sectionTitle: tile.modelData.title,
-                                showAdvanced: page.showAdvanced
-                            })
-                    }
-
-                    ColumnLayout {
-                        id: tileInner
-                        anchors.fill: parent
-                        anchors.margins: 8
-                        spacing: 2
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: Platform.Units.smallSpacing
-
-                            Kirigami.Icon {
-                                source: tile.modelData.icon
-                                Layout.preferredWidth: Platform.Units.iconSizes.small
-                                Layout.preferredHeight: Platform.Units.iconSizes.small
-                                color: ThemeColors.accent()
-                            }
-                            Label {
-                                Layout.fillWidth: true
-                                text: tile.modelData.title
-                                color: ThemeColors.fgColor(page.glassMode)
-                                font.bold: true
-                                font.pointSize: TypeScale.subtitle
-                                elide: Text.ElideRight
-                            }
-                            Rectangle {
-                                visible: (tile.modelData.issueCount || 0) > 0
-                                radius: height / 2
-                                color: ThemeColors.warning()
-                                implicitWidth: tileIssue.implicitWidth + 10
-                                implicitHeight: tileIssue.implicitHeight + 2
-
-                                Label {
-                                    id: tileIssue
-                                    anchors.centerIn: parent
-                                    text: tile.modelData.issueCount || 0
-                                    color: "black"
-                                    font.pointSize: TypeScale.caption
-                                    font.bold: true
-                                }
-                            }
-                        }
-
-                        Label {
-                            Layout.fillWidth: true
-                            text: tile.modelData.summary || tile.modelData.description || ""
-                            color: ThemeColors.dimColor(page.glassMode)
-                            font.pointSize: TypeScale.caption
-                            elide: Text.ElideRight
-                        }
-                    }
+                    border.color: appsTile.activeFocus
+                        ? ThemeColors.accent()
+                        : ThemeColors.cardBorder(page.glassMode)
                 }
-            }
-        }
 
-        // ─── Advanced ─────────────────────────────────────────
-        Kirigami.Card {
-            Layout.fillWidth: true
-            visible: page.searchText.length === 0
-
-            background: Rectangle {
-                radius: Platform.Units.smallSpacing
-                border.width: 1
-                color: ThemeColors.nestedBg(page.glassMode)
-                border.color: ThemeColors.cardBorder(page.glassMode)
-            }
-
-            contentItem: ColumnLayout {
-                spacing: Platform.Units.mediumSpacing
-
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    Kirigami.Heading {
-                        level: 2
-                        text: qsTr("Advanced")
-                        color: ThemeColors.fgColor(page.glassMode)
-                    }
-                    Item { Layout.fillWidth: true }
-
-                    Switch {
-                        text: qsTr("Show advanced fields")
-                        checked: page.showAdvanced
-                        onClicked: page.showAdvanced = checked
+                HoverHandler { id: appsHover }
+                function openApps() {
+                    pageStack.layers.push(Qt.resolvedUrl("ThemeApplicationsPage.qml"))
+                }
+                TapHandler { onTapped: appsCard.openApps() }
+                Keys.onPressed: function(event) {
+                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
+                            || event.key === Qt.Key_Space) {
+                        appsCard.openApps()
+                        event.accepted = true
                     }
                 }
 
-                Label {
-                    Layout.fillWidth: true
-                    text: qsTr("Deep settings stay in System Settings. These buttons open the right module instead of duplicating it.")
-                    color: ThemeColors.dimColor(page.glassMode)
-                    wrapMode: Text.WordWrap
-                    font.pointSize: TypeScale.caption
-                }
-
-                Flow {
-                    Layout.fillWidth: true
+                contentItem: ColumnLayout {
+                    id: appsTile
+                    anchors.margins: Platform.Units.mediumSpacing
                     spacing: Platform.Units.smallSpacing
 
-                    Repeater {
-                        model: [
-                            { label: qsTr("Colors"), module: "kcm_colors" },
-                            { label: qsTr("Fonts"), module: "kcm_fonts" },
-                            { label: qsTr("Icons"), module: "kcm_icons" },
-                            { label: qsTr("Cursors"), module: "kcm_cursortheme" },
-                            { label: qsTr("Window effects"), module: "kcm_kwin_effects" },
-                            { label: qsTr("Kvantum"), module: "kcm_style" }
-                        ]
-
-                        delegate: Button {
-                            text: modelData.label
-                            onClicked: themeInspector.openSystemSettings(modelData.module)
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Platform.Units.smallSpacing
+                        Kirigami.Icon {
+                            source: "applications-other"
+                            color: ThemeColors.accent()
+                            Layout.preferredWidth: Platform.Units.iconSizes.small
+                            Layout.preferredHeight: Platform.Units.iconSizes.small
+                        }
+                        Kirigami.Heading {
+                            Layout.fillWidth: true
+                            level: 3
+                            text: qsTr("Applications")
+                            color: ThemeColors.fgColor(page.glassMode)
                         }
                     }
-                }
 
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    Button {
-                        text: qsTr("Open config folder")
-                        icon.name: "folder-open"
-                        onClicked: themeInspector.openFile(".config")
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    Button {
-                        text: qsTr("Export JSON…")
-                        icon.name: "document-save-as"
-                        onClicked: exportDialog.open()
+                    Label {
+                        Layout.fillWidth: true
+                        text: {
+                            const installed = themeBundle.applications.filter(
+                                app => app.installed).length
+                            return qsTr("%1 supported · %2 installed").arg(themeBundle.applications.length).arg(installed)
+                        }
+                        wrapMode: Text.WordWrap
+                        color: ThemeColors.dimColor(page.glassMode)
                     }
 
                     Button {
-                        text: qsTr("Apply")
-                        icon.name: "dialog-ok-apply"
-                        highlighted: true
-                        enabled: !themeInspector.readOnly && themeInspector.sessionChanges > 0 && !themeInspector.busy
-                        onClicked: themeInspector.applyChanges()
-                    }
-
-                    Button {
-                        text: qsTr("Undo last change")
-                        icon.name: "edit-undo"
-                        enabled: !themeInspector.readOnly && themeInspector.sessionChanges > 0 && !themeInspector.busy
-                        onClicked: themeInspector.undo()
-                    }
-
-                    Button {
-                        text: qsTr("Revert session")
-                        icon.name: "document-revert"
-                        enabled: !themeInspector.readOnly && themeInspector.sessionChanges > 0 && !themeInspector.busy
-                        onClicked: themeInspector.revertAll()
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Choose app themes")
+                        icon.name: "go-next"
+                        onClicked: appsCard.openApps()
                     }
                 }
             }

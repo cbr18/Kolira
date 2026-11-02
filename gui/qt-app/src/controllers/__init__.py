@@ -20,6 +20,7 @@ from core.protocol import (
 )
 from core import CoreFactory
 from core.paths import active_profile_file, validate_profile_name
+from .theme_bundle import ThemeBundleController
 from .theme_inspector import ThemeInspectorController
 
 
@@ -984,6 +985,7 @@ class MainController(QObject):
         self._tracked_apps = TrackedAppsController(self)
         self._settings = SettingsController(self)
         self._theme = ThemeInspectorController(self)
+        self._bundle = ThemeBundleController(self)
         self._initialized = False
 
         # The settings controller's "available components" cache must read the
@@ -1012,6 +1014,10 @@ class MainController(QObject):
     @Property(QObject, constant=True)
     def theme(self):
         return self._theme
+
+    @Property(QObject, constant=True)
+    def bundle(self):
+        return self._bundle
 
     @Slot()
     def initialize(self) -> None:
@@ -1049,5 +1055,6 @@ def register_controllers(engine) -> None:
     engine.rootContext().setContextProperty("trackedAppsController", main_ctrl._tracked_apps)
     engine.rootContext().setContextProperty("settingsController", main_ctrl._settings)
     engine.rootContext().setContextProperty("themeInspector", main_ctrl._theme)
+    engine.rootContext().setContextProperty("themeBundle", main_ctrl._bundle)
     
     return main_ctrl

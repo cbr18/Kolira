@@ -186,31 +186,39 @@ test suite clicks lines 0, 3 and the last one against a stubbed `wofi`.
 
 Profiles live in `~/.config/theme-profile/profiles/`.
 
-## Theme Inspector / Инспектор темы
+## Theme bundles / Комплекты тем
 
-The GUI's **Theme** page (drawer → *Theme*, or the magnifier-style **Inspect**
-button on a profile card) answers three questions without opening a config file:
+The GUI's **Theme** page (drawer → *Theme*, or **Inspect** on a profile card) is
+a high-level theme builder rather than a raw config editor. A bundle combines:
 
-- **What is my theme made of?** — 69 fields in five sections: Colors,
-  Typography, Windows & Effects, Desktop & Assets, Applications.
-- **How does the active profile differ from live?** — switch the scope combo to
-  any profile; changed fields get an accent dot and the profile value in the
-  tooltip.
-- **Is anything broken?** — *Validation* flags missing colour schemes,
-  look-and-feel/icon/Kvantum themes, fonts, a broken `LookAndFeelPackage`, and
-  the `blurEnabled` + `better_blur_dxEnabled` conflict. **Fix** picks the value
-  stored in the active profile (or an installed fallback).
+- KDE/Plasma: Global theme, Plasma Style, colors, decorations, icons, cursors,
+  fonts;
+- Desktop & Windows: wallpaper, corners, blur, translucency and animation;
+- Qt/Kvantum and GTK;
+- per-application theme adapters.
 
-Live values are editable (color picker, sliders, combo boxes, font family/size,
-switches). Every write runs off the GUI thread and applies immediately — no
-draft/Apply step. **Undo** reverts the last field, **Revert all** restores every
-file touched in this session. Before the first write, originals are copied to
-`~/.config/theme-profile/backups/inspector-<timestamp>/`.
+Installed themes are selected from lists wherever possible. Core KDE values are
+staged and applied as one batch; **Undo/Revert** remain available after Apply.
+Application adapters apply their own config updates immediately and copy the
+previous file to `~/.config/theme-profile/backups/app-theme-<timestamp>/`.
+Profiles keep the existing snapshot layout and additionally receive
+`theme-bundle.json` with the v2 component/application references, so old
+profiles remain usable as legacy snapshots.
 
-Heavy components (Plasma theme, look-and-feel, icons) ask for confirmation
-because they can replace the wallpaper or panel layout. Profile scopes are
-read-only; deep settings stay in System Settings via `kcmshell6` links. The
-inspector is a separate Python module (not part of the core adapter).
+Supported application adapters currently include Zed, VS Code, Cursor,
+Obsidian, btop and Kitty. Alacritty can list conventional theme files but does
+not apply them automatically yet. Unsupported capabilities are shown as
+fallbacks with a button to open the app's native theme settings.
+
+The repository also includes a local MCP server for AI agents:
+
+```bash
+uv run --project gui/qt-app python mcp/theme_profile_mcp.py
+```
+
+It can enumerate installed themes, create user-owned derived color/Kvantum
+themes, assemble profiles, validate theme references and explicitly apply a
+profile. See [`docs/MCP.md`](docs/MCP.md).
 
 Tests use a temporary `$HOME`; `KTM_THEME_NO_APPLY=1` suppresses external
 commands (D-Bus, `plasma-apply-*`, `kvantummanager`) for dry runs.

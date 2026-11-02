@@ -1555,15 +1555,15 @@ class AppThemeCore(ThemeCore):
         return Result.ok(tr("Undone: %s") % field.label)
 
     def revert(self) -> Result:
-        # Неприменённый стейдж сбрасывается без записей — файлы не тронуты.
-        if self._staged or self._staged_configs:
-            count = len(self._staged) + len(self._staged_configs)
-            self._staged.clear()
-            self._staged_configs.clear()
-            self._stage_order.clear()
-            self._choices_cache.clear()
-            return Result.ok(tr("Discarded %s staged change(s)") % count)
+        # Сбрасываем стейдж и откатываем применённые записи за одно действие.
+        discarded = len(self._staged) + len(self._staged_configs)
+        self._staged.clear()
+        self._staged_configs.clear()
+        self._stage_order.clear()
+        self._choices_cache.clear()
         if not self._originals:
+            if discarded:
+                return Result.ok(tr("Discarded %s staged change(s)") % discarded)
             return Result.ok(tr("No changes in this session"))
         touched = [FIELD_BY_ID[entry.field_id] for entry in self._undo
                    if entry.field_id in FIELD_BY_ID]
@@ -1605,11 +1605,19 @@ class AppThemeCore(ThemeCore):
         if os.environ.get(_NO_APPLY) != "1":
             self._run(["qdbus6", "org.kde.KWin", "/KWin", "reconfigure"], timeout=5)
             self._run(["kbuildsycoca6"], timeout=20)
-        return Result.ok(tr("Reverted %s file(s)") % restored)
+        messages = []
+        if discarded:
+            messages.append(tr("Discarded %s staged change(s)") % discarded)
+        messages.append(tr("Reverted %s file(s)") % restored)
+        return Result.ok("; ".join(messages))
 
     def session_changes(self) -> int:
         """Число неприменённых (застейдженных) правок."""
         return len(self._staged) + len(self._staged_configs)
+
+    def undo_depth(self) -> int:
+        """Число применённых записей, доступных для пошаговой отмены."""
+        return len(self._undo)
 
 
 def _stringify(field: FieldDef, value: Any) -> str:

@@ -60,10 +60,13 @@ ColumnLayout {
                 model: modelData.files
 
                 ColumnLayout {
+                    id: fileEntry
                     required property var modelData
                     // Алиас для вложенного Repeater строк: там
                     // modelData перекрывается строкой параметра.
                     property var fileData: modelData
+                    property var displayedParams: modelData.params
+                    property bool expandedAll: false
                     Layout.fillWidth: true
                     Layout.leftMargin: Platform.Units.largeSpacing
                     spacing: 1
@@ -78,7 +81,7 @@ ColumnLayout {
                     }
 
                     Repeater {
-                        model: modelData.params
+                        model: fileEntry.displayedParams
 
                         RowLayout {
                             required property var modelData
@@ -116,15 +119,29 @@ ColumnLayout {
                     RowLayout {
                         Layout.fillWidth: true
                         Layout.leftMargin: Platform.Units.largeSpacing
-                        visible: modelData.truncated || modelData.note !== ""
+                        visible: (modelData.truncated && !fileEntry.expandedAll)
+                            || modelData.note !== ""
 
                         Label {
                             Layout.fillWidth: true
                             text: (modelData.note !== "" ? modelData.note + " · " : "")
-                                  + (modelData.truncated ? qsTr("truncated") : "")
+                                  + (modelData.truncated && !fileEntry.expandedAll
+                                     ? qsTr("Only the first 300 parameters are shown") : "")
                             font.pointSize: TypeScale.caption
                             font.italic: true
                             color: ThemeColors.warning()
+                            wrapMode: Text.WordWrap
+                        }
+
+                        ToolButton {
+                            text: qsTr("Show all")
+                            icon.name: "view-list-details"
+                            visible: modelData.truncated && !fileEntry.expandedAll
+                            onClicked: {
+                                fileEntry.displayedParams = themeInspector.appConfigParams(
+                                    fileData.relPath, 100000)
+                                fileEntry.expandedAll = true
+                            }
                         }
 
                         // Экзотика (CSS и пр.): ключами не правится —

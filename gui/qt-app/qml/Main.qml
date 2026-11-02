@@ -41,9 +41,36 @@ Kirigami.ApplicationWindow {
     // around before committing.
     property string selectedProfile: ""
 
-    // Deep link used by the dev screenshot harness (and available to the tray).
+    // Deep links used by the dev screenshot harness (and available to the tray).
     function openThemePage() {
         pageStack.layers.push(Qt.resolvedUrl("pages/ThemePage.qml"))
+    }
+
+    function openThemeComponentsPage(groupId) {
+        const groups = themeBundle.groups
+        let group = groups.length > 0 ? groups[0] : null
+        for (let i = 0; i < groups.length; ++i) {
+            if (groups[i].id === groupId) {
+                group = groups[i]
+                break
+            }
+        }
+        if (group === null)
+            return
+        pageStack.layers.push(Qt.resolvedUrl("pages/ThemeComponentsPage.qml"), {
+            groupId: group.id,
+            groupTitle: group.label,
+            groupDescription: group.description,
+            components: group.components
+        })
+    }
+
+    function openThemeComponentsPageDefault() {
+        openThemeComponentsPage("")
+    }
+
+    function openThemeApplicationsPage() {
+        pageStack.layers.push(Qt.resolvedUrl("pages/ThemeApplicationsPage.qml"))
     }
 
     // Applying a profile can restart Plasma components, so honour the
@@ -134,7 +161,10 @@ Kirigami.ApplicationWindow {
             Kirigami.Action {
                 text: qsTr("Theme")
                 icon.name: "preferences-desktop-color"
-                onTriggered: pageStack.layers.push(Qt.resolvedUrl("pages/ThemePage.qml"))
+                onTriggered: {
+                    themeBundle.openLive()
+                    pageStack.layers.push(Qt.resolvedUrl("pages/ThemePage.qml"))
+                }
             },
             Kirigami.Action {
                 text: qsTr("Applications")
@@ -187,7 +217,7 @@ Kirigami.ApplicationWindow {
                     text: qsTr("Edit live theme…")
                     icon.name: "document-edit"
                     onClicked: {
-                        themeInspector.setScope("live")
+                        themeBundle.openLive()
                         pageStack.layers.push(Qt.resolvedUrl("pages/ThemePage.qml"))
                     }
                 }
@@ -298,8 +328,9 @@ Kirigami.ApplicationWindow {
                                 diffDialog.open()
                             }
                             onInspectClicked: function(profileName) {
-                                themeInspector.setScope("profile:" + profileName)
-                                pageStack.layers.push(Qt.resolvedUrl("pages/ThemePage.qml"))
+                                pageStack.layers.push(
+                                    Qt.resolvedUrl("pages/ThemePage.qml"),
+                                    { profileName: profileName })
                             }
                             onDeleteClicked: function(profileName) {
                                 confirmDialog.targetProfile = profileName

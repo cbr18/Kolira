@@ -1,4 +1,5 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
 <TS version="2.1" language="ru_RU">
 <context>
     <name>AppThemeCore</name>
@@ -81,7 +82,8 @@
         <translation>Отменено: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1565" />
+        <location filename="../src/core/theme_core.py" line="1610" />
+        <location filename="../src/core/theme_core.py" line="1566" />
         <source>Discarded %s staged change(s)</source>
         <translation>Сброшено неприменённых изменений: %s</translation>
     </message>
@@ -91,14 +93,14 @@
         <translation>В этой сессии изменений нет</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1608" />
+        <location filename="../src/core/theme_core.py" line="1611" />
         <source>Reverted %s file(s)</source>
         <translation>Возвращено файлов: %s</translation>
     </message>
 </context><context>
     <name>ProfileController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="219" />
+        <location filename="../src/controllers/__init__.py" line="220" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>
@@ -161,32 +163,44 @@
         <translation>Не удалось применить профиль</translation>
     </message>
 </context><context>
+    <name>ThemeBundleController</name>
+    <message>
+        <location filename="../src/controllers/theme_bundle.py" line="231" />
+        <location filename="../src/controllers/theme_bundle.py" line="213" />
+        <location filename="../src/controllers/theme_bundle.py" line="189" />
+        <location filename="../src/controllers/theme_bundle.py" line="180" />
+        <location filename="../src/controllers/theme_bundle.py" line="159" />
+        <location filename="../src/controllers/theme_bundle.py" line="136" />
+        <source>Another operation is still running</source>
+        <translation>Другая операция ещё выполняется</translation>
+    </message>
+</context><context>
     <name>ThemeInspectorController</name>
     <message>
-        <location filename="../src/controllers/theme_inspector.py" line="274" />
+        <location filename="../src/controllers/theme_inspector.py" line="278" />
         <source>Switch to the Live scope to edit</source>
         <translation>Переключитесь в Live для правки</translation>
     </message>
     <message>
-        <location filename="../src/controllers/theme_inspector.py" line="529" />
-        <location filename="../src/controllers/theme_inspector.py" line="485" />
+        <location filename="../src/controllers/theme_inspector.py" line="553" />
+        <location filename="../src/controllers/theme_inspector.py" line="509" />
         <source>Profile snapshots are read-only</source>
         <translation>Снимки профилей доступны только для чтения</translation>
     </message>
     <message>
-        <location filename="../src/controllers/theme_inspector.py" line="488" />
+        <location filename="../src/controllers/theme_inspector.py" line="512" />
         <source>Another change is still being applied</source>
         <translation>Другое изменение ещё применяется</translation>
     </message>
     <message>
-        <location filename="../src/controllers/theme_inspector.py" line="555" />
+        <location filename="../src/controllers/theme_inspector.py" line="579" />
         <source>No safe fix for %1</source>
         <translation>Безопасного исправления для %1 нет</translation>
     </message>
 </context><context>
     <name>WallpaperController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="431" />
+        <location filename="../src/controllers/__init__.py" line="432" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>

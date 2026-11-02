@@ -18,21 +18,21 @@ QtObject {
     }
 
     // ── Surfaces ────────────────────────────────────────────────
-    readonly property color glassPanelColor: Qt.rgba(0.09, 0.10, 0.12, 0.72)
+    readonly property color glassPanelColor: Qt.rgba(0.09, 0.10, 0.12, 0.85)
 
     function glassPanel() { return glassPanelColor }
     function windowBg(glass) { return glass ? "transparent" : safeColor("backgroundColor", "#eff0f3") }
     function pageBg(glass) { return glass ? glassPanelColor : safeColor("backgroundColor", "#eff0f3") }
-    function cardBg(glass) { return glass ? Qt.rgba(1, 1, 1, 0.09) : safeColor("viewColor", "#ffffff") }
-    function cardHoverBg(glass) { return glass ? Qt.rgba(1, 1, 1, 0.13) : Qt.rgba(0, 0, 0, 0.04) }
+    function cardBg(glass) { return glass ? Qt.rgba(1, 1, 1, 0.16) : safeColor("viewColor", "#ffffff") }
+    function cardHoverBg(glass) { return glass ? Qt.rgba(1, 1, 1, 0.20) : Qt.rgba(0, 0, 0, 0.04) }
     function cardBorder(glass) { return glass ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(0.15, 0.15, 0.15, 0.18) }
     function subtleBorder(glass) { return glass ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(0.15, 0.15, 0.15, 0.14) }
-    function nestedBg(glass) { return glass ? Qt.rgba(1, 1, 1, 0.06) : safeColor("viewColor", "#ffffff") }
+    function nestedBg(glass) { return glass ? Qt.rgba(1, 1, 1, 0.12) : safeColor("viewColor", "#ffffff") }
     function nestedBorder(glass) { return glass ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(0.15, 0.15, 0.15, 0.18) }
     // Dialogs sit above the page in their own popup window, so they need an
     // opaque surface (the page's glass tint is translucent).
     function dialogBg(glass) { return glass ? "#1f2126" : safeColor("backgroundColor", "#eff0f3") }
-    function codeBg(glass) { return glass ? Qt.rgba(0, 0, 0, 0.30) : Qt.rgba(0, 0, 0, 0.05) }
+    function codeBg(glass) { return glass ? Qt.rgba(0, 0, 0, 0.40) : Qt.rgba(0, 0, 0, 0.05) }
 
     // ── Foreground ──────────────────────────────────────────────
     function fgColor(glass) { return glass ? "#ffffff" : safeColor("textColor", "#1f1f1f") }

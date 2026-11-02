@@ -1,0 +1,339 @@
+"""Local MCP server for building theme profiles programmatically.
+
+The server speaks newline-delimited JSON-RPC on stdio and uses the existing
+ThemeBundle core. It deliberately exposes explicit operations only: reading
+installed themes, staging/applying values, saving profiles and validating
+bundle references. Profile deletion and hidden live edits are not exposed.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+from pathlib import Path
+from typing import Any, Callable
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_DIR = PROJECT_ROOT / "gui" / "qt-app" / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from core import CoreFactory  # noqa: E402
+from core.theme_bundle import ThemeBundleCore  # noqa: E402
+
+
+def _scope(arguments: dict) -> str:
+    scope = str(arguments.get("scope") or "live")
+    if scope != "live" and not scope.startswith("profile:"):
+        raise ValueError("scope must be 'live' or 'profile:<name>'")
+    return scope
+
+
+def _component_choices(core: ThemeBundleCore, component_id: str) -> dict:
+    for group in core.groups("live"):
+        for component in group["components"]:
+            if component["id"] == component_id:
+                return component
+    if component_id in {app["id"] for app in core.applications()}:
+        app = next(item for item in core.applications() if item["id"] == component_id)
+        return {
+            "id": app["id"],
+            "label": app["name"],
+            "currentValue": app["currentValue"],
+            "currentDisplay": app["currentDisplay"],
+            "choices": app["themes"],
+            "installed": app["installed"],
+            "capabilities": app["capabilities"],
+        }
+    raise ValueError(f"Unknown component: {component_id}")
+
+
+class ThemeProfileMcpServer:
+    protocol_version = "2024-11-05"
+
+    def __init__(self) -> None:
+        profile_core = CoreFactory.profile_core()
+        wallpaper_core = CoreFactory.wallpaper_core()
+        self.core = ThemeBundleCore(
+            theme_core=CoreFactory.theme_core(),
+            profile_core=profile_core,
+            wallpaper_core=wallpaper_core,
+        )
+        self._tools: dict[str, Callable[[dict], Any]] = {
+            "list_components": self._list_components,
+            "list_installed_themes": self._list_installed_themes,
+            "list_profiles": self._list_profiles,
+            "get_profile_bundle": self._get_profile_bundle,
+            "validate_profile": self._validate_profile,
+            "set_component": self._set_component,
+            "apply_changes": self._apply_changes,
+            "create_custom_theme": self._create_custom_theme,
+            "create_profile": self._create_profile,
+            "apply_profile": self._apply_profile,
+        }
+
+    # ── MCP protocol ───────────────────────────────────────────────────
+
+    def handle(self, message: dict) -> dict | None:
+        method = str(message.get("method") or "")
+        message_id = message.get("id")
+        if method.startswith("notifications/"):
+            return None
+        if method == "initialize":
+            return self._result(message_id, {
+                "protocolVersion": self.protocol_version,
+                "capabilities": {"tools": {}},
+                "serverInfo": {
+                    "name": "theme-profile-kit",
+                    "version": "1.0.0",
+                },
+            })
+        if method == "ping":
+            return self._result(message_id, {})
+        if method == "tools/list":
+            return self._result(message_id, {"tools": self._tool_schemas()})
+        if method == "tools/call":
+            params = message.get("params") or {}
+            name = str(params.get("name") or "")
+            arguments = params.get("arguments") or {}
+            try:
+                if name not in self._tools:
+                    raise ValueError(f"Unknown tool: {name}")
+                output = self._tools[name](dict(arguments))
+                return self._result(message_id, {
+                    "content": [{
+                        "type": "text",
+                        "text": json.dumps(output, ensure_ascii=False, indent=2),
+                    }],
+                    "isError": False,
+                })
+            except Exception as exc:  # noqa: BLE001 - return as MCP tool error
+                return self._result(message_id, {
+                    "content": [{
+                        "type": "text",
+                        "text": json.dumps({"error": str(exc)}, ensure_ascii=False),
+                    }],
+                    "isError": True,
+                })
+        if message_id is None:
+            return None
+        return {
+            "jsonrpc": "2.0",
+            "id": message_id,
+            "error": {"code": -32601, "message": f"Unknown method: {method}"},
+        }
+
+    @staticmethod
+    def _result(message_id: Any, result: Any) -> dict:
+        return {"jsonrpc": "2.0", "id": message_id, "result": result}
+
+    def _tool_schemas(self) -> list[dict]:
+        return [
+            {
+                "name": "list_components",
+                "description": "List theme bundle groups, component values and application adapters.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "scope": {"type": "string", "default": "live"},
+                    },
+                },
+            },
+            {
+                "name": "list_installed_themes",
+                "description": "List installed choices for one component or application.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "componentId": {"type": "string"},
+                    },
+                    "required": ["componentId"],
+                },
+            },
+            {
+                "name": "list_profiles",
+                "description": "List saved profiles and whether they have v2 theme bundle metadata.",
+                "inputSchema": {"type": "object", "properties": {}},
+            },
+            {
+                "name": "get_profile_bundle",
+                "description": "Read the v2 component/application references of a profile.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {"name": {"type": "string"}},
+                    "required": ["name"],
+                },
+            },
+            {
+                "name": "validate_profile",
+                "description": "Check whether all theme references in a profile are installed.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {"name": {"type": "string"}},
+                    "required": ["name"],
+                },
+            },
+            {
+                "name": "set_component",
+                "description": "Set one theme component. Core fields are staged; app adapters apply immediately with a backup.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "componentId": {"type": "string"},
+                        "value": {},
+                    },
+                    "required": ["componentId", "value"],
+                },
+            },
+            {
+                "name": "apply_changes",
+                "description": "Apply staged core fields in one batch.",
+                "inputSchema": {"type": "object", "properties": {}},
+            },
+            {
+                "name": "create_custom_theme",
+                "description": "Create user-owned derived color and Kvantum themes without changing system base themes.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {"name": {"type": "string"}},
+                    "required": ["name"],
+                },
+            },
+            {
+                "name": "create_profile",
+                "description": "Save the current theme state as a profile, optionally after applying supplied component values.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "description": {"type": "string"},
+                        "components": {"type": "object"},
+                        "applications": {"type": "object"},
+                        "wallpaper": {"type": "string"},
+                    },
+                    "required": ["name"],
+                },
+            },
+            {
+                "name": "apply_profile",
+                "description": "Explicitly apply a saved profile through the profile core and v2 bundle references.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {"name": {"type": "string"}},
+                    "required": ["name"],
+                },
+            },
+        ]
+
+    # ── tool implementations ───────────────────────────────────────────
+
+    def _list_components(self, arguments: dict) -> dict:
+        scope = _scope(arguments)
+        return {
+            "scope": scope,
+            "groups": self.core.groups(scope),
+            "applications": self.core.applications(),
+            "sessionChanges": self.core.session_changes(),
+        }
+
+    def _list_installed_themes(self, arguments: dict) -> dict:
+        component_id = str(arguments.get("componentId") or "")
+        return _component_choices(self.core, component_id)
+
+    def _list_profiles(self, arguments: dict) -> dict:
+        return {"profiles": self.core.profiles()}
+
+    def _get_profile_bundle(self, arguments: dict) -> dict:
+        result = self.core.profile_bundle(str(arguments.get("name") or ""))
+        if not result.success:
+            raise ValueError(result.message)
+        return {"profile": result.data}
+
+    def _validate_profile(self, arguments: dict) -> dict:
+        result = self.core.validate_profile_bundle(str(arguments.get("name") or ""))
+        return {"valid": result.success, "message": result.message}
+
+    def _set_component(self, arguments: dict) -> dict:
+        component_id = str(arguments.get("componentId") or "")
+        result = self.core.set_component(component_id, arguments.get("value"))
+        return {"ok": result.success, "message": result.message, "sessionChanges": self.core.session_changes()}
+
+    def _apply_changes(self, arguments: dict) -> dict:
+        result = self.core.apply()
+        return {"ok": result.success, "message": result.message, "sessionChanges": self.core.session_changes()}
+
+    def _create_custom_theme(self, arguments: dict) -> dict:
+        result = self.core.create_custom_theme(str(arguments.get("name") or ""))
+        if not result.success:
+            raise ValueError(result.message)
+        return {"ok": True, "message": result.message, "assets": (result.data or {}).get("assets", [])}
+
+    def _create_profile(self, arguments: dict) -> dict:
+        name = str(arguments.get("name") or "")
+        components = dict(arguments.get("components") or {})
+        applications = dict(arguments.get("applications") or {})
+        messages: list[str] = []
+        for component_id, value in components.items():
+            result = self.core.set_component(str(component_id), value)
+            messages.append(f"{component_id}: {result.message}")
+            if not result.success:
+                raise ValueError("; ".join(messages))
+        for app_id, value in applications.items():
+            result = self.core.set_component(str(app_id), value)
+            messages.append(f"{app_id}: {result.message}")
+            if not result.success:
+                raise ValueError("; ".join(messages))
+        if components:
+            applied = self.core.apply()
+            messages.append(applied.message)
+            if not applied.success:
+                raise ValueError("; ".join(messages))
+        result = self.core.save_profile(
+            name,
+            description=str(arguments.get("description") or ""),
+            wallpaper=str(arguments.get("wallpaper") or ""),
+        )
+        if not result.success:
+            raise ValueError(result.message)
+        messages.append(result.message)
+        return {
+            "ok": True,
+            "profile": result.data,
+            "messages": messages,
+        }
+
+    def _apply_profile(self, arguments: dict) -> dict:
+        result = self.core.apply_profile(str(arguments.get("name") or ""))
+        return {"ok": result.success, "message": result.message}
+
+
+def main() -> int:
+    if os.environ.get("KTM_THEME_NO_APPLY") == "1":
+        print(
+            "theme-profile MCP: KTM_THEME_NO_APPLY=1 is set; external apply commands are disabled",
+            file=sys.stderr,
+        )
+    server = ThemeProfileMcpServer()
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            message = json.loads(line)
+        except json.JSONDecodeError as exc:
+            response = {
+                "jsonrpc": "2.0",
+                "id": None,
+                "error": {"code": -32700, "message": f"Parse error: {exc}"},
+            }
+        else:
+            response = server.handle(message)
+        if response is not None:
+            sys.stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
+            sys.stdout.flush()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

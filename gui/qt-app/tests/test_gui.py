@@ -813,6 +813,22 @@ class TestInspectorAppConfigs:
         assert file_entry["relPath"] == ".config/mockapp/settings.conf"
         assert {p["key"]: p["value"] for p in file_entry["params"]} == {"main/speed": "3"}
 
+    def test_app_config_params_can_expand_truncated_file(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config" / "mockapp"
+        conf.mkdir(parents=True)
+        (conf / "settings.conf").write_text(
+            "[main]\n" + "".join(f"key{index}={index}\n" for index in range(301))
+        )
+        controller = self._controller(tmp_path, monkeypatch)
+        file_entry = controller.appConfigs[0]["files"][0]
+        assert file_entry["truncated"] is True
+        assert len(file_entry["params"]) == 300
+
+        params = controller.appConfigParams(file_entry["relPath"], 1000)
+        assert len(params) == 301
+        assert params[-1] == {"key": "main/key300", "value": "300"}
+        assert controller.appConfigParams(".config/other.conf", 1000) == []
+
     def test_missing_file_is_skipped(self, tmp_path: Path, monkeypatch) -> None:
         controller = self._controller(tmp_path, monkeypatch)
         assert controller.appConfigs == []
@@ -1987,17 +2003,18 @@ def test_duplicate_and_edit_live_qml_wiring() -> None:
     assert "duplicateDialog" in main_qml
     assert "duplicateNameField" in main_qml
     assert "duplicateProfile" in main_qml
-    # Быстрый переход к редактированию живой темы: scope live + ThemePage.
+    # Быстрый переход к редактированию живой темы: ThemeBundle + ThemePage.
     assert "Edit live theme…" in main_qml
-    assert 'themeInspector.setScope("live")' in main_qml
+    assert "themeBundle.openLive()" in main_qml
 
     card_qml = (PROJECT_ROOT / "qml" / "Components" / "ProfileCardDelegate.qml").read_text()
     assert "duplicateClicked" in card_qml
 
-    # Баннер read-only предлагает переключиться в Live одной кнопкой.
+    # Theme page exposes the live/profile scope switch and live editing actions.
     theme_qml = (PROJECT_ROOT / "qml" / "pages" / "ThemePage.qml").read_text()
-    assert "Switch to Live" in theme_qml
-    assert "actions:" in theme_qml
+    assert "themeBundle.openLive()" in theme_qml
+    assert "themeBundle.openProfile" in theme_qml
+    assert "themeBundle.applyChanges()" in theme_qml
 
 
 def test_main_page_thin_header_and_overflow_menu() -> None:
@@ -2021,15 +2038,14 @@ def test_main_page_thin_header_and_overflow_menu() -> None:
 
 
 def test_theme_overview_drill_in_and_save_as() -> None:
-    """M3: обзор → тайл секции открывает группу; live-режим — «Save as profile…»."""
+    """Обзор theme bundle → страница группы; live-режим — «Save as profile…»."""
     qml = (PROJECT_ROOT / "qml" / "pages" / "ThemePage.qml").read_text()
-    assert "SectionPage.qml" in qml
+    assert "ThemeComponentsPage.qml" in qml
+    assert "ThemeApplicationsPage.qml" in qml
     assert "Save as profile…" in qml
-    assert "saveAsDialog" in qml
-    assert "profileController.saveProfile" in qml
-    # Аккордеон ушёл.
-    assert "expandedSection" not in qml
-    assert "ThemeSectionCard" not in qml
+    assert "saveProfileDialog" in qml
+    assert "themeBundle.saveProfile" in qml
+    assert "themeBundle.groups" in qml
 
     section = (PROJECT_ROOT / "qml" / "pages" / "SectionPage.qml").read_text()
     assert "ThemeSectionFields" in section

@@ -72,6 +72,8 @@ A change is not done until the docs agree with the code. At minimum:
 | `docs/ROLLBACK.md` | Backup layout and recovery |
 | `docs/ROADMAP.md` | Direction and completed work |
 | `docs/TZ-QT-APP.md`, `docs/TZ-THEME-INSPECTOR.md` | Original specifications |
+| `docs/TZ-THEME-REBUILD.md` | Target product/design spec for the theme-bundle rebuild |
+| `docs/MCP.md` | Local MCP server usage, tool contract and safety notes |
 | `gui/qt-app/README.md` | GUI details: cores, tray, theming, wallpapers, architecture, dev commands |
 
 ## Contracts that must not drift
@@ -106,7 +108,7 @@ A change is not done until the docs agree with the code. At minimum:
 # Build the Rust CLI first
 cd gui/qt-app/src/core/rust_core && cargo build --release && cargo test && cargo clippy --all-targets -- -D warnings
 
-# Python tests (offscreen Qt; 212 tests)
+# Python tests (offscreen Qt; 229 tests)
 cd gui/qt-app && QT_QPA_PLATFORM=offscreen uv run --project . --extra dev pytest tests -q
 
 # Bash + installer tests (~121 assertions) — from the repo root

@@ -18,6 +18,7 @@ Kirigami.ScrollablePage {
     property string sectionId: ""
     property string sectionTitle: ""
     property bool showAdvanced: false
+    property string highlightFieldId: ""
 
     readonly property bool glassMode: themeController.isGlass
 
@@ -27,15 +28,58 @@ Kirigami.ScrollablePage {
             : ThemeColors.pageBg(page.glassMode)
     }
 
+    Shortcut {
+        sequence: "Ctrl+Z"
+        enabled: !themeInspector.readOnly && !themeInspector.busy
+            && (themeInspector.sessionChanges > 0 || themeInspector.undoDepth > 0)
+        onActivated: themeInspector.undo()
+    }
+
+    Shortcut {
+        sequence: "Ctrl+F"
+        onActivated: {
+            sectionSearch.forceActiveFocus()
+            sectionSearch.selectAll()
+        }
+    }
+
+    Shortcut {
+        sequence: "Escape"
+        onActivated: pageStack.layers.pop()
+    }
+
+    Kirigami.Dialog {
+        id: revertDialog
+        title: qsTr("Revert session changes?")
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+        preferredWidth: 420
+        onAccepted: themeInspector.revertAll()
+
+        Label {
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+            text: qsTr("Discard staged edits and restore all applied changes from this session?")
+            color: ThemeColors.fgColor(page.glassMode)
+        }
+    }
+
     ColumnLayout {
         Layout.margins: Platform.Units.largeSpacing
         spacing: Platform.Units.largeSpacing
+
+        TextField {
+            id: sectionSearch
+            Layout.fillWidth: true
+            placeholderText: qsTr("Search in %1…").arg(page.sectionTitle)
+        }
 
         ThemeSectionFields {
             Layout.fillWidth: true
             sectionId: page.sectionId
             glassMode: page.glassMode
             showAdvanced: page.showAdvanced
+            filterText: sectionSearch.text
+            highlightFieldId: page.highlightFieldId
         }
 
         RowLayout {
@@ -57,7 +101,7 @@ Kirigami.ScrollablePage {
                 text: qsTr("Undo")
                 icon.name: "edit-undo"
                 enabled: !themeInspector.readOnly
-                    && themeInspector.sessionChanges > 0
+                    && (themeInspector.sessionChanges > 0 || themeInspector.undoDepth > 0)
                     && !themeInspector.busy
                 onClicked: themeInspector.undo()
             }
@@ -66,9 +110,9 @@ Kirigami.ScrollablePage {
                 text: qsTr("Revert")
                 icon.name: "document-revert"
                 enabled: !themeInspector.readOnly
-                    && themeInspector.sessionChanges > 0
+                    && (themeInspector.sessionChanges > 0 || themeInspector.undoDepth > 0)
                     && !themeInspector.busy
-                onClicked: themeInspector.revertAll()
+                onClicked: revertDialog.open()
             }
         }
     }

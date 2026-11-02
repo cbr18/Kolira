@@ -77,7 +77,7 @@ Kirigami.ScrollablePage {
                 text: qsTr("Undo")
                 icon.name: "edit-undo"
                 enabled: !themeInspector.readOnly
-                    && themeInspector.sessionChanges > 0
+                    && (themeInspector.sessionChanges > 0 || themeInspector.undoDepth > 0)
                     && !themeInspector.busy
                 onClicked: themeInspector.undo()
             }
@@ -239,7 +239,7 @@ Kirigami.ScrollablePage {
                                     checked: page.expandedConfigs === modelData.id
                                     visible: page.configByApp[modelData.id] !== undefined
                                     ToolTip.text: qsTr("Show the config files this application stores")
-                                    ToolTip.visible: hovered
+                                    ToolTip.visible: hovered || activeFocus
                                     onClicked: page.expandedConfigs =
                                         page.expandedConfigs === modelData.id ? "" : modelData.id
                                 }

@@ -380,7 +380,11 @@ class ThemeCore(ABC):
 
     @abstractmethod
     def session_changes(self) -> int:
-        """Сколько изменений сделано в текущей сессии."""
+        """Сколько неприменённых изменений в текущей сессии."""
+
+    @abstractmethod
+    def undo_depth(self) -> int:
+        """Сколько применённых изменений можно отменить."""
 
 
 @dataclass(frozen=True, slots=True)

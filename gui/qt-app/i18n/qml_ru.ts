@@ -1,29 +1,39 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
 <TS version="2.1" language="ru_RU">
 <context>
     <name>AppConfigTree</name>
     <message>
-        <location filename="../qml/pages/AppConfigTree.qml" line="107" />
+        <location filename="../qml/pages/AppConfigTree.qml" line="110"/>
         <source>Edit value</source>
         <translation>Изменить значение</translation>
     </message>
     <message>
-        <location filename="../qml/pages/AppConfigTree.qml" line="124" />
         <source>truncated</source>
-        <translation>обрезано</translation>
+        <translation type="vanished">обрезано</translation>
     </message>
     <message>
-        <location filename="../qml/pages/AppConfigTree.qml" line="133" />
+        <location filename="../qml/pages/AppConfigTree.qml" line="129"/>
+        <source>Only the first 300 parameters are shown</source>
+        <translation>Показаны только первые 300 параметров</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/AppConfigTree.qml" line="137"/>
+        <source>Show all</source>
+        <translation>Показать все</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/AppConfigTree.qml" line="150"/>
         <source>Show in folder</source>
         <translation>Показать в папке</translation>
     </message>
     <message>
-        <location filename="../qml/pages/AppConfigTree.qml" line="147" />
+        <location filename="../qml/pages/AppConfigTree.qml" line="164"/>
         <source>No config files found for this application.</source>
         <translation>Конфиги этого приложения не найдены.</translation>
     </message>
     <message>
-        <location filename="../qml/pages/AppConfigTree.qml" line="154" />
+        <location filename="../qml/pages/AppConfigTree.qml" line="171"/>
         <source>Edit config value</source>
         <translation>Правка значения конфига</translation>
     </message>
@@ -31,152 +41,152 @@
 <context>
     <name>ApplicationsPage</name>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="15" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="15"/>
         <source>Applications</source>
         <translation>Приложения</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="61" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="61"/>
         <source>Tracked applications</source>
         <translation>Отслеживаемые приложения</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="67" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="67"/>
         <source>Apply</source>
         <translation>Применить</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="77" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="77"/>
         <source>Undo</source>
         <translation>Отменить</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="86" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="86"/>
         <source>Add application…</source>
         <translation>Добавить приложение…</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="93" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="93"/>
         <source>Checked applications take part in saving and applying profiles. Built-in ones can be disabled but not removed; your own can also be edited and deleted.</source>
         <translation>Отмеченные приложения участвуют в сохранении и применении профилей. Встроенные можно отключить, но не удалить; свои — ещё и изменить и удалить.</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="199" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="199"/>
         <source>reloads on apply</source>
         <translation>перезагружается при применении</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="220" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="220"/>
         <source>Edit</source>
         <translation>Изменить</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="227" />
-        <location filename="../qml/pages/ApplicationsPage.qml" line="416" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="227"/>
+        <location filename="../qml/pages/ApplicationsPage.qml" line="416"/>
         <source>Delete</source>
         <translation>Удалить</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="236" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="236"/>
         <source>Configs</source>
         <translation>Конфиги</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="241" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="241"/>
         <source>Show the config files this application stores</source>
         <translation>Показать конфиги этого приложения</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="273" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="273"/>
         <source>Add application</source>
         <translation>Добавить приложение</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="273" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="273"/>
         <source>Edit application</source>
         <translation>Изменить приложение</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="328" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="328"/>
         <source>Id</source>
         <translation>Идентификатор</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="330" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="330"/>
         <source>(generated from the name)</source>
         <translation>(генерируется из имени)</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="338" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="338"/>
         <source>Name</source>
         <translation>Имя</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="344" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="344"/>
         <source>Category</source>
         <translation>Категория</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="345" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="345"/>
         <source>Custom</source>
         <translation>Своя</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="351" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="351"/>
         <source>Config paths</source>
         <translation>Пути к конфигам</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="359" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="359"/>
         <source>Reload command</source>
         <translation>Команда перезагрузки</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="360" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="360"/>
         <source>optional, e.g. pkill -HUP myapp</source>
         <translation>необязательно, напр. pkill -HUP myapp</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="366" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="366"/>
         <source>Description</source>
         <translation>Описание</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="372" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="372"/>
         <source>Icon</source>
         <translation>Иконка</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="381" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="381"/>
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="386" />
-        <location filename="../qml/pages/ApplicationsPage.qml" line="425" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="386"/>
+        <location filename="../qml/pages/ApplicationsPage.qml" line="425"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="405" />
+        <location filename="../qml/pages/ApplicationsPage.qml" line="405"/>
         <source>Delete application</source>
         <translation>Удалить приложение</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ApplicationsPage.qml" line="408" />
-        <source>Delete '%1'? Its id is removed from the component selection; config files and profile snapshots are not touched.</source>
+        <location filename="../qml/pages/ApplicationsPage.qml" line="408"/>
+        <source>Delete &apos;%1&apos;? Its id is removed from the component selection; config files and profile snapshots are not touched.</source>
         <translation>Удалить «%1»? Его идентификатор уберётся из выбора компонентов; конфиги и снимки профилей не трогаются.</translation>
     </message>
 </context>
 <context>
     <name>ComponentCategoryGroup</name>
     <message>
-        <location filename="../qml/Components/ComponentCategoryGroup.qml" line="70" />
+        <location filename="../qml/Components/ComponentCategoryGroup.qml" line="70"/>
         <source>Collapse</source>
         <translation>Свернуть</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ComponentCategoryGroup.qml" line="70" />
+        <location filename="../qml/Components/ComponentCategoryGroup.qml" line="70"/>
         <source>Expand</source>
         <translation>Развернуть</translation>
     </message>
@@ -184,22 +194,22 @@
 <context>
     <name>ComponentCheckbox</name>
     <message>
-        <location filename="../qml/Components/ComponentCheckbox.qml" line="37" />
+        <location filename="../qml/Components/ComponentCheckbox.qml" line="37"/>
         <source>Installed</source>
         <translation>Установлено</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ComponentCheckbox.qml" line="38" />
+        <location filename="../qml/Components/ComponentCheckbox.qml" line="38"/>
         <source>Partial</source>
         <translation>Частично</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ComponentCheckbox.qml" line="39" />
+        <location filename="../qml/Components/ComponentCheckbox.qml" line="39"/>
         <source>Not installed</source>
         <translation>Не установлено</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ComponentCheckbox.qml" line="101" />
+        <location filename="../qml/Components/ComponentCheckbox.qml" line="101"/>
         <source>Live</source>
         <translation>Live</translation>
     </message>
@@ -207,249 +217,249 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="11" />
-        <location filename="../qml/Main.qml" line="122" />
+        <location filename="../qml/Main.qml" line="11"/>
+        <location filename="../qml/Main.qml" line="149"/>
         <source>Theme Profile Manager</source>
         <translation>Менеджер профилей тем</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="97" />
+        <location filename="../qml/Main.qml" line="124"/>
         <source>Applying profile…</source>
         <translation>Применяю профиль…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="99" />
+        <location filename="../qml/Main.qml" line="126"/>
         <source>Saving profile…</source>
         <translation>Сохраняю профиль…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="101" />
+        <location filename="../qml/Main.qml" line="128"/>
         <source>Deleting profile…</source>
         <translation>Удаляю профиль…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="103" />
+        <location filename="../qml/Main.qml" line="130"/>
         <source>Working…</source>
         <translation>Работаю…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="130" />
+        <location filename="../qml/Main.qml" line="157"/>
         <source>Profiles</source>
         <translation>Профили</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="135" />
+        <location filename="../qml/Main.qml" line="162"/>
         <source>Theme</source>
         <translation>Тема</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="140" />
+        <location filename="../qml/Main.qml" line="170"/>
         <source>Applications</source>
         <translation>Приложения</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="145" />
+        <location filename="../qml/Main.qml" line="175"/>
         <source>Settings</source>
         <translation>Настройки</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="159" />
-        <location filename="../qml/Main.qml" line="183" />
+        <location filename="../qml/Main.qml" line="189"/>
+        <location filename="../qml/Main.qml" line="213"/>
         <source>Theme Profiles</source>
         <translation>Профили тем</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="182" />
+        <location filename="../qml/Main.qml" line="212"/>
         <source>Active: %1</source>
         <translation>Активен: %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="187" />
+        <location filename="../qml/Main.qml" line="217"/>
         <source>Edit live theme…</source>
         <translation>Править живую тему…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="201" />
-        <location filename="../qml/Main.qml" line="356" />
+        <location filename="../qml/Main.qml" line="231"/>
+        <location filename="../qml/Main.qml" line="387"/>
         <source>Refresh</source>
         <translation>Обновить</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="207" />
+        <location filename="../qml/Main.qml" line="237"/>
         <source>Apply</source>
         <translation>Применить</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="232" />
+        <location filename="../qml/Main.qml" line="262"/>
         <source>Click a profile card to select it, then press Apply.</source>
         <translation>Кликните по карточке профиля, чтобы выбрать, затем нажмите «Применить».</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="234" />
+        <location filename="../qml/Main.qml" line="264"/>
         <source>Active profile: %1</source>
         <translation>Активный профиль: %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="235" />
-        <source>Selected "%1" (not applied yet). Active: %2</source>
+        <location filename="../qml/Main.qml" line="265"/>
+        <source>Selected &quot;%1&quot; (not applied yet). Active: %2</source>
         <translation>Выбран «%1» (ещё не применён). Активен: %2</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="260" />
+        <location filename="../qml/Main.qml" line="290"/>
         <source>Available Profiles</source>
         <translation>Доступные профили</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="265" />
+        <location filename="../qml/Main.qml" line="295"/>
         <source>Save current…</source>
         <translation>Сохранить текущее…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="325" />
+        <location filename="../qml/Main.qml" line="356"/>
         <source>No profiles found. Save the current theme to create one.</source>
         <translation>Профилей нет. Сохраните текущую тему, чтобы создать профиль.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="351" />
+        <location filename="../qml/Main.qml" line="382"/>
         <source>Wallpaper</source>
         <translation>Обои</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="396" />
+        <location filename="../qml/Main.qml" line="427"/>
         <source>No wallpaper information available.</source>
         <translation>Нет сведений об обоях.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="406" />
+        <location filename="../qml/Main.qml" line="437"/>
         <source>Previous</source>
         <translation>Предыдущие</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="413" />
+        <location filename="../qml/Main.qml" line="444"/>
         <source>Pick Wallpaper…</source>
         <translation>Выбрать обои…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="421" />
+        <location filename="../qml/Main.qml" line="452"/>
         <source>Next</source>
         <translation>Следующие</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="437" />
+        <location filename="../qml/Main.qml" line="468"/>
         <source>Apply Profile</source>
         <translation>Применить профиль</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="455" />
-        <source>Apply profile "%1"? This can restart Plasma components and change the current desktop appearance.</source>
+        <location filename="../qml/Main.qml" line="486"/>
+        <source>Apply profile &quot;%1&quot;? This can restart Plasma components and change the current desktop appearance.</source>
         <translation>Применить профиль «%1»? Это может перезапустить компоненты Plasma и изменить текущий вид рабочего стола.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="467" />
+        <location filename="../qml/Main.qml" line="498"/>
         <source>Delete Profile</source>
         <translation>Удалить профиль</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="485" />
-        <source>Delete profile "%1"? This cannot be undone.</source>
+        <location filename="../qml/Main.qml" line="516"/>
+        <source>Delete profile &quot;%1&quot;? This cannot be undone.</source>
         <translation>Удалить профиль «%1»? Это нельзя отменить.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="498" />
+        <location filename="../qml/Main.qml" line="529"/>
         <source>Save Profile</source>
         <translation>Сохранить профиль</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="512" />
+        <location filename="../qml/Main.qml" line="543"/>
         <source>Save the current theme as a new profile:</source>
         <translation>Сохранить текущую тему как новый профиль:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="518" />
-        <location filename="../qml/Main.qml" line="574" />
+        <location filename="../qml/Main.qml" line="549"/>
+        <location filename="../qml/Main.qml" line="605"/>
         <source>Profile name</source>
         <translation>Имя профиля</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="524" />
+        <location filename="../qml/Main.qml" line="555"/>
         <source>Description (optional)</source>
         <translation>Описание (необязательно)</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="532" />
-        <location filename="../qml/Main.qml" line="583" />
+        <location filename="../qml/Main.qml" line="563"/>
+        <location filename="../qml/Main.qml" line="614"/>
         <source>Use letters, digits, dots, dashes or underscores; the first character must not be a dot.</source>
         <translation>Используйте буквы, цифры, точки, дефисы и подчёркивания; первым символом не может быть точка.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="551" />
+        <location filename="../qml/Main.qml" line="582"/>
         <source>Duplicate Profile</source>
         <translation>Дублировать профиль</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="566" />
-        <source>Create a copy of "%1" under a new name:</source>
+        <location filename="../qml/Main.qml" line="597"/>
+        <source>Create a copy of &quot;%1&quot; under a new name:</source>
         <translation>Создать копию «%1» под новым именем:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="600" />
+        <location filename="../qml/Main.qml" line="631"/>
         <source>Profile Description</source>
         <translation>Описание профиля</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="615" />
-        <source>A note shown on the profile card (stored in the profile's manifest.json):</source>
+        <location filename="../qml/Main.qml" line="646"/>
+        <source>A note shown on the profile card (stored in the profile&apos;s manifest.json):</source>
         <translation>Заметка на карточке профиля (хранится в manifest.json профиля):</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="624" />
+        <location filename="../qml/Main.qml" line="655"/>
         <source>Optional description</source>
         <translation>Необязательное описание</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="638" />
+        <location filename="../qml/Main.qml" line="669"/>
         <source>Profile Diff</source>
         <translation>Различия профилей</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="654" />
-        <location filename="../qml/Main.qml" line="773" />
+        <location filename="../qml/Main.qml" line="685"/>
+        <location filename="../qml/Main.qml" line="804"/>
         <source>Comparing…</source>
         <translation>Сравниваю…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="657" />
-        <source>No differences: both profiles are "%1".</source>
+        <location filename="../qml/Main.qml" line="688"/>
+        <source>No differences: both profiles are &quot;%1&quot;.</source>
         <translation>Различий нет: оба профиля — «%1».</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="659" />
-        <location filename="../qml/Main.qml" line="769" />
+        <location filename="../qml/Main.qml" line="690"/>
+        <location filename="../qml/Main.qml" line="800"/>
         <source>No active profile to compare with.</source>
         <translation>Нет активного профиля для сравнения.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="687" />
-        <source>Difference between "%1" and "%2":</source>
+        <location filename="../qml/Main.qml" line="718"/>
+        <source>Difference between &quot;%1&quot; and &quot;%2&quot;:</source>
         <translation>Различия между «%1» и «%2»:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="732" />
+        <location filename="../qml/Main.qml" line="763"/>
         <source>Preview Profile Changes</source>
         <translation>Предпросмотр изменений профиля</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="771" />
-        <source>"%1" is already the active profile.</source>
+        <location filename="../qml/Main.qml" line="802"/>
+        <source>&quot;%1&quot; is already the active profile.</source>
         <translation>«%1» уже активен.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="798" />
-        <source>Applying "%1" will change the following components:</source>
+        <location filename="../qml/Main.qml" line="829"/>
+        <source>Applying &quot;%1&quot; will change the following components:</source>
         <translation>Применение «%1» изменит следующие компоненты:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="815" />
+        <location filename="../qml/Main.qml" line="846"/>
         <source>Diff against active profile:</source>
         <translation>Сравнение с активным профилем:</translation>
     </message>
@@ -457,94 +467,97 @@
 <context>
     <name>ProfileCardDelegate</name>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="29" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="29"/>
         <source>Glass</source>
         <translation>Glass</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="30" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="30"/>
         <source>Paper</source>
         <translation>Paper</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="45" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="45"/>
         <source>L&amp;F %1</source>
         <translation>L&amp;F %1</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="46" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="46"/>
         <source>Corners %1</source>
         <translation>Углы %1</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="47" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="47"/>
         <source>Blur %1</source>
         <translation>Blur %1</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="50" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="50"/>
         <source>Kitty %1%</source>
         <translation>Kitty %1%</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="57" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="57"/>
         <source>Saved %1</source>
         <translation>Сохранён %1</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="59" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="59"/>
         <source>%n components</source>
         <translation>
-            <numerusform>%n компонент</numerusform><numerusform>%n компонента</numerusform><numerusform>%n компонентов</numerusform></translation>
+            <numerusform>%n компонент</numerusform>
+            <numerusform>%n компонента</numerusform>
+            <numerusform>%n компонентов</numerusform>
+        </translation>
     </message>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="138" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="138"/>
         <source>Active</source>
         <translation>Активен</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="168" />
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="291" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="168"/>
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="291"/>
         <source>Edit description</source>
         <translation>Изменить описание</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="241" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="241"/>
         <source>Re-apply</source>
         <translation>Применить заново</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="241" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="241"/>
         <source>Apply</source>
         <translation>Применить</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="249" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="249"/>
         <source>Preview</source>
         <translation>Предпросмотр</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="257" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="257"/>
         <source>Inspect</source>
         <translation>Осмотреть</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="267" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="267"/>
         <source>More actions</source>
         <translation>Другие действия</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="280" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="280"/>
         <source>Duplicate</source>
         <translation>Дублировать</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="285" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="285"/>
         <source>Diff with active</source>
         <translation>Сравнить с активным</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ProfileCardDelegate.qml" line="298" />
+        <location filename="../qml/Components/ProfileCardDelegate.qml" line="298"/>
         <source>Delete</source>
         <translation>Удалить</translation>
     </message>
@@ -552,17 +565,32 @@
 <context>
     <name>SectionPage</name>
     <message>
-        <location filename="../qml/pages/SectionPage.qml" line="47" />
+        <location filename="../qml/pages/SectionPage.qml" line="53"/>
+        <source>Revert session changes?</source>
+        <translation>Отменить изменения этой сессии?</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SectionPage.qml" line="61"/>
+        <source>Discard staged edits and restore all applied changes from this session?</source>
+        <translation>Отбросить подготовленные правки и восстановить все применённые изменения этой сессии?</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SectionPage.qml" line="73"/>
+        <source>Search in %1…</source>
+        <translation>Поиск в разделе «%1»…</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SectionPage.qml" line="91"/>
         <source>Apply</source>
         <translation>Применить</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SectionPage.qml" line="57" />
+        <location filename="../qml/pages/SectionPage.qml" line="101"/>
         <source>Undo</source>
         <translation>Отменить</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SectionPage.qml" line="66" />
+        <location filename="../qml/pages/SectionPage.qml" line="110"/>
         <source>Revert</source>
         <translation>Вернуть</translation>
     </message>
@@ -570,206 +598,324 @@
 <context>
     <name>SettingsPage</name>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="12" />
+        <location filename="../qml/pages/SettingsPage.qml" line="12"/>
         <source>Settings</source>
         <translation>Настройки</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="18" />
-        <location filename="../qml/pages/SettingsPage.qml" line="166" />
+        <location filename="../qml/pages/SettingsPage.qml" line="18"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="166"/>
         <source>Choose wallpaper directory</source>
         <translation>Выбрать папку обоев</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="51" />
+        <location filename="../qml/pages/SettingsPage.qml" line="51"/>
         <source>Profile Apply Mode</source>
         <translation>Режим применения профилей</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="59" />
+        <location filename="../qml/pages/SettingsPage.qml" line="59"/>
         <source>Mode</source>
         <translation>Режим</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="64" />
+        <location filename="../qml/pages/SettingsPage.qml" line="64"/>
         <source>Apply ALL components (default)</source>
         <translation>Применять ВСЕ компоненты (по умолчанию)</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="67" />
+        <location filename="../qml/pages/SettingsPage.qml" line="67"/>
         <source>Apply all tracked components when switching profiles</source>
         <translation>Применять все отслеживаемые компоненты при переключении профилей</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="80" />
+        <location filename="../qml/pages/SettingsPage.qml" line="80"/>
         <source>Apply SELECTED components only</source>
         <translation>Применять только ВЫБРАННЫЕ компоненты</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="83" />
+        <location filename="../qml/pages/SettingsPage.qml" line="83"/>
         <source>Choose which components to apply per profile</source>
         <translation>Выбирать компоненты для каждого профиля</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="111" />
+        <location filename="../qml/pages/SettingsPage.qml" line="111"/>
         <source>Select components to include when applying/saving profiles:</source>
         <translation>Выберите компоненты для применения/сохранения профилей:</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="147" />
+        <location filename="../qml/pages/SettingsPage.qml" line="147"/>
         <source>Wallpaper</source>
         <translation>Обои</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="155" />
+        <location filename="../qml/pages/SettingsPage.qml" line="155"/>
         <source>Wallpaper directory</source>
         <translation>Папка обоев</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="167" />
+        <location filename="../qml/pages/SettingsPage.qml" line="167"/>
         <source>Choose a directory…</source>
         <translation>Выбрать папку…</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="192" />
+        <location filename="../qml/pages/SettingsPage.qml" line="192"/>
         <source>Appearance</source>
         <translation>Внешний вид</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="202" />
+        <location filename="../qml/pages/SettingsPage.qml" line="202"/>
         <source>Application theme</source>
         <translation>Тема приложения</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="218" />
+        <location filename="../qml/pages/SettingsPage.qml" line="218"/>
         <source>Core</source>
         <translation>Ядро</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="234" />
+        <location filename="../qml/pages/SettingsPage.qml" line="234"/>
         <source>Running: %1 — restart the app to apply.</source>
         <translation>Работает: %1 — перезапустите приложение для применения.</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="259" />
+        <location filename="../qml/pages/SettingsPage.qml" line="259"/>
         <source>Behavior</source>
         <translation>Поведение</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="268" />
+        <location filename="../qml/pages/SettingsPage.qml" line="268"/>
         <source>Auto-apply last profile on startup</source>
         <translation>Применять последний профиль при запуске</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="280" />
+        <location filename="../qml/pages/SettingsPage.qml" line="280"/>
         <source>Minimize to system tray</source>
         <translation>Сворачивать в системный трей</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="292" />
+        <location filename="../qml/pages/SettingsPage.qml" line="292"/>
         <source>Confirm before applying profile</source>
         <translation>Подтверждать применение профиля</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="304" />
+        <location filename="../qml/pages/SettingsPage.qml" line="304"/>
         <source>Show notification on success</source>
         <translation>Показывать уведомление об успехе</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="334" />
+        <location filename="../qml/pages/SettingsPage.qml" line="334"/>
         <source>Save Settings</source>
         <translation>Сохранить настройки</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="342" />
+        <location filename="../qml/pages/SettingsPage.qml" line="342"/>
         <source>Reset to Defaults</source>
         <translation>Сбросить настройки</translation>
     </message>
 </context>
 <context>
-    <name>ThemeFieldRow</name>
+    <name>ThemeApplicationsPage</name>
     <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="96" />
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="12"/>
+        <source>Application themes</source>
+        <translation>Темы приложений</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="34"/>
+        <source>Installed themes are detected for each application. If automatic control is not available, open the application&apos;s native theme settings.</source>
+        <translation>Установленные темы определяются для каждого приложения. Если автоматическое управление недоступно, откройте собственные настройки темы приложения.</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="82"/>
+        <source>No theme selected</source>
+        <translation>Тема не выбрана</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="83"/>
+        <source>Not installed</source>
+        <translation>Не установлено</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="120"/>
+        <source>%1 theme</source>
+        <translation>Тема: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="124"/>
+        <source>Launch</source>
+        <translation>Запустить</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="132"/>
+        <source>App theme settings</source>
+        <translation>Настройки темы приложения</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="144"/>
+        <source>This application can list themes, but automatic applying is not supported yet.</source>
+        <translation>Приложение умеет показывать список тем, но автоматическое применение пока не поддерживается.</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="145"/>
+        <source>No installed themes were detected for this application.</source>
+        <translation>Для этого приложения не найдено установленных тем.</translation>
+    </message>
+</context>
+<context>
+    <name>ThemeComponentsPage</name>
+    <message>
+        <location filename="../qml/pages/ThemeComponentsPage.qml" line="37"/>
+        <source>Choose wallpaper</source>
+        <translation>Выбор обоев</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeComponentsPage.qml" line="39"/>
+        <source>Images (*.png *.jpg *.jpeg *.webp *.bmp)</source>
+        <translation>Изображения (*.png *.jpg *.jpeg *.webp *.bmp)</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeComponentsPage.qml" line="39"/>
+        <source>All files (*)</source>
+        <translation>Все файлы (*)</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeComponentsPage.qml" line="54"/>
+        <source>This is a saved profile. Switch to Live system to edit components.</source>
+        <translation>Это сохранённый профиль. Переключитесь на «Живую систему», чтобы изменить компоненты.</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeComponentsPage.qml" line="113"/>
         <source>Staged — press Apply to write it</source>
         <translation>В очереди — нажмите «Применить» для записи</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="107" />
-        <source>Differs from %1</source>
-        <translation>Отличается от %1</translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="107" />
-        <source>profile</source>
-        <translation>профиля</translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="121" />
-        <source>app restart</source>
-        <translation>перезапуск приложения</translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="122" />
-        <source>relogin</source>
-        <translation>перелогин</translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="133" />
-        <source>Restore the value stored in the profile</source>
-        <translation>Вернуть значение из профиля</translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="150" />
-        <source>Profile: %1</source>
-        <translation>Профиль: %1</translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="163" />
-        <source>On</source>
-        <translation>Вкл</translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="163" />
-        <source>Off</source>
-        <translation>Выкл</translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="219" />
-        <source>Apply “%1”?</source>
-        <translation>Применить «%1»?</translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="220" />
-        <source>This applies several settings at once and may replace the wallpaper, colors or panel layout.</source>
-        <translation>Применится несколько настроек сразу: могут измениться обои, цвета или расположение панели.</translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="241" />
-        <source>Font family, e.g. Noto Sans</source>
-        <translation>Семейство шрифтов, напр. Noto Sans</translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="256" />
-        <source>Set</source>
-        <translation>Задано</translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="287" />
-        <source>not set</source>
-        <translation>не задано</translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="295" />
-        <source>Choose %1</source>
-        <translation>Выбрать: %1</translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="305" />
+        <location filename="../qml/pages/ThemeComponentsPage.qml" line="130"/>
         <source>Not set</source>
         <translation>Не задано</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeFieldRow.qml" line="331" />
+        <location filename="../qml/pages/ThemeComponentsPage.qml" line="156"/>
+        <source>On</source>
+        <translation>Вкл</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeComponentsPage.qml" line="156"/>
+        <source>Off</source>
+        <translation>Выкл</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeComponentsPage.qml" line="199"/>
+        <source>Choose…</source>
+        <translation>Выбрать…</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeComponentsPage.qml" line="223"/>
+        <source>KDE settings</source>
+        <translation>Настройки KDE</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeComponentsPage.qml" line="230"/>
+        <source>Customize</source>
+        <translation>Настроить</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeComponentsPage.qml" line="250"/>
+        <source>No components in this group.</source>
+        <translation>В этой группе нет компонентов.</translation>
+    </message>
+</context>
+<context>
+    <name>ThemeFieldRow</name>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="100"/>
+        <source>Staged — press Apply to write it</source>
+        <translation>В очереди — нажмите «Применить» для записи</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="116"/>
+        <source>Differs from %1</source>
+        <translation>Отличается от %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="116"/>
+        <source>profile</source>
+        <translation>профиля</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="131"/>
+        <source>app restart</source>
+        <translation>перезапуск приложения</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="132"/>
+        <source>relogin</source>
+        <translation>перелогин</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="143"/>
+        <source>Restore the value stored in the profile</source>
+        <translation>Вернуть значение из профиля</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="160"/>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="344"/>
+        <source>Profile: %1</source>
+        <translation>Профиль: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="173"/>
+        <source>On</source>
+        <translation>Вкл</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="173"/>
+        <source>Off</source>
+        <translation>Выкл</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="229"/>
+        <source>Apply “%1”?</source>
+        <translation>Применить «%1»?</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="230"/>
+        <source>This applies several settings at once and may replace the wallpaper, colors or panel layout.</source>
+        <translation>Применится несколько настроек сразу: могут измениться обои, цвета или расположение панели.</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="251"/>
+        <source>Font family, e.g. Noto Sans</source>
+        <translation>Семейство шрифтов, напр. Noto Sans</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="266"/>
+        <source>Set</source>
+        <translation>Задано</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="288"/>
+        <source>%1: %2</source>
+        <translation>%1: %2</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="289"/>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="314"/>
+        <source>not set</source>
+        <translation>не задано</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="322"/>
+        <source>Choose %1</source>
+        <translation>Выбрать: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="332"/>
+        <source>Not set</source>
+        <translation>Не задано</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeFieldRow.qml" line="367"/>
         <source>Apply theme component?</source>
         <translation>Применить компонент темы?</translation>
     </message>
@@ -777,224 +923,339 @@
 <context>
     <name>ThemePage</name>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="18" />
+        <location filename="../qml/pages/ThemePage.qml" line="14"/>
         <source>Theme</source>
         <translation>Тема</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="64" />
         <source>Save theme snapshot</source>
-        <translation>Сохранить снимок темы</translation>
+        <translation type="vanished">Сохранить снимок темы</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="67" />
         <source>JSON files (*.json)</source>
-        <translation>Файлы JSON (*.json)</translation>
+        <translation type="vanished">Файлы JSON (*.json)</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="67" />
         <source>All files (*)</source>
-        <translation>Все файлы (*)</translation>
+        <translation type="vanished">Все файлы (*)</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="73" />
+        <source>Revert session changes?</source>
+        <translation type="vanished">Отменить изменения этой сессии?</translation>
+    </message>
+    <message>
+        <source>Discard staged edits and restore all applied changes from this session?</source>
+        <translation type="vanished">Отбросить подготовленные правки и восстановить все применённые изменения этой сессии?</translation>
+    </message>
+    <message>
         <source>Save as Profile</source>
-        <translation>Сохранить как профиль</translation>
+        <translation type="vanished">Сохранить как профиль</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="87" />
         <source>Save the current live theme as a new profile:</source>
-        <translation>Сохранить текущую живую тему как новый профиль:</translation>
+        <translation type="vanished">Сохранить текущую живую тему как новый профиль:</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="95" />
+        <location filename="../qml/pages/ThemePage.qml" line="42"/>
+        <source>Profile: %1</source>
+        <translation>Профиль: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="91"/>
+        <source>Save theme bundle as profile</source>
+        <translation>Сохранить комплект темы как профиль</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="101"/>
+        <source>The current component choices, application themes and wallpaper will be saved as a v2 theme bundle.</source>
+        <translation>Текущий выбор компонентов, темы приложений и обои будут сохранены как комплект темы v2.</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="107"/>
         <source>Profile name</source>
         <translation>Имя профиля</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="101" />
+        <location filename="../qml/pages/ThemePage.qml" line="112"/>
         <source>Description (optional)</source>
         <translation>Описание (необязательно)</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="109" />
+        <location filename="../qml/pages/ThemePage.qml" line="120"/>
         <source>Use letters, digits, dots, dashes or underscores; the first character must not be a dot.</source>
         <translation>Используйте буквы, цифры, точки, дефисы и подчёркивания; первым символом не может быть точка.</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="163" />
-        <location filename="../qml/pages/ThemePage.qml" line="243" />
+        <location filename="../qml/pages/ThemePage.qml" line="137"/>
+        <source>Create custom derived theme</source>
+        <translation>Создать производную тему</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="147"/>
+        <source>Creates user-owned color and Kvantum themes from the current base themes without changing system themes.</source>
+        <translation>Создаёт пользовательские цветовые темы и темы Kvantum на основе текущих базовых тем, не изменяя системные темы.</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="153"/>
+        <source>Custom theme name</source>
+        <translation>Имя пользовательской темы</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="166"/>
+        <source>Revert theme changes?</source>
+        <translation>Отменить изменения темы?</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="174"/>
+        <source>Discard staged edits and restore applied changes from this session?</source>
+        <translation>Отбросить подготовленные правки и восстановить применённые изменения этой сессии?</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="190"/>
+        <source>Live theme bundle</source>
+        <translation>Комплект живой темы</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="191"/>
+        <source>Saved theme bundle</source>
+        <translation>Сохранённый комплект темы</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="214"/>
+        <source>Theme scope</source>
+        <translation>Область темы</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="218"/>
+        <source>Refresh</source>
+        <translation>Обновить</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="263"/>
+        <source>Active</source>
+        <translation>Активен</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="264"/>
+        <source>Read-only</source>
+        <translation>Только чтение</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="273"/>
+        <source>Apply profile</source>
+        <translation>Применить профиль</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="285"/>
+        <source>Active profile: %1 · %2 change(s)</source>
+        <translation>Активный профиль: %1 · изменений: %2</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="286"/>
+        <source>This profile is a saved theme bundle. Apply it to make it active.</source>
+        <translation>Этот профиль — сохранённый комплект темы. Примените его, чтобы сделать активным.</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="308"/>
+        <source>Create custom theme…</source>
+        <translation>Создать тему…</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="320"/>
+        <source>Apply changes</source>
+        <translation>Применить изменения</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="339"/>
+        <source>Revert</source>
+        <translation>Вернуть</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="433"/>
+        <source>Open</source>
+        <translation>Открыть</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="452"/>
+        <source>Application themes</source>
+        <translation>Темы приложений</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="453"/>
+        <source>Choose themes for supported applications</source>
+        <translation>Выбрать темы для поддерживаемых приложений</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="496"/>
+        <source>Applications</source>
+        <translation>Приложения</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="506"/>
+        <source>%1 supported · %2 installed</source>
+        <translation>Поддерживается: %1 · установлено: %2</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="514"/>
+        <source>Choose app themes</source>
+        <translation>Выбрать темы приложений</translation>
+    </message>
+    <message>
+        <source>Applying…</source>
+        <translation type="vanished">Применение…</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="41"/>
+        <location filename="../qml/pages/ThemePage.qml" line="207"/>
         <source>Live system</source>
         <translation>Живая система</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="164" />
         <source>Profile: </source>
-        <translation>Профиль: </translation>
+        <translation type="vanished">Профиль: </translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="174" />
         <source>Re-read the configuration</source>
-        <translation>Перечитать конфигурацию</translation>
+        <translation type="vanished">Перечитать конфигурацию</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="190" />
         <source>Profile snapshots are read-only. Switch to “Live system” to edit values.</source>
-        <translation>Снимки профилей доступны только для чтения. Переключитесь в «Живую систему», чтобы править значения.</translation>
+        <translation type="vanished">Снимки профилей доступны только для чтения. Переключитесь в «Живую систему», чтобы править значения.</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="194" />
         <source>Switch to Live</source>
-        <translation>Перейти в Live</translation>
+        <translation type="vanished">Перейти в Live</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="244" />
         <source>Snapshot: %1</source>
-        <translation>Снимок: %1</translation>
+        <translation type="vanished">Снимок: %1</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="251" />
         <source>Active profile: %1 · %2 difference(s)</source>
-        <translation>Активный профиль: %1 · отличий: %2</translation>
+        <translation type="vanished">Активный профиль: %1 · отличий: %2</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="260" />
         <source>%1 change(s) in this session</source>
-        <translation>Изменений в сессии: %1</translation>
+        <translation type="vanished">Изменений в сессии: %1</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="267" />
+        <location filename="../qml/pages/ThemePage.qml" line="296"/>
         <source>Save as profile…</source>
         <translation>Сохранить как профиль…</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="292" />
-        <location filename="../qml/pages/ThemePage.qml" line="625" />
         <source>Apply</source>
-        <translation>Применить</translation>
+        <translation type="vanished">Применить</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="300" />
+        <location filename="../qml/pages/ThemePage.qml" line="330"/>
         <source>Undo</source>
         <translation>Отменить</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="307" />
         <source>Revert all</source>
-        <translation>Вернуть всё</translation>
+        <translation type="vanished">Вернуть всё</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="319" />
+        <source>Open a section below to see and edit its settings.</source>
+        <translation type="vanished">Откройте раздел ниже, чтобы посмотреть и изменить его настройки.</translation>
+    </message>
+    <message>
         <source>Tap a section below to see and edit its settings.</source>
-        <translation>Нажмите на секцию ниже, чтобы посмотреть и изменить её настройки.</translation>
+        <translation type="vanished">Нажмите на секцию ниже, чтобы посмотреть и изменить её настройки.</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="329" />
         <source>Search settings… (accent, blur, kitty, шрифт)</source>
-        <translation>Поиск настроек… (accent, blur, kitty, шрифт)</translation>
+        <translation type="vanished">Поиск настроек… (accent, blur, kitty, шрифт)</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="358" />
         <source>Validation</source>
-        <translation>Валидация</translation>
+        <translation type="vanished">Валидация</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="363" />
         <source>%1 issue(s)</source>
-        <translation>Проблем: %1</translation>
+        <translation type="vanished">Проблем: %1</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="405" />
         <source>Fix</source>
-        <translation>Исправить</translation>
+        <translation type="vanished">Исправить</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="412" />
         <source>Show</source>
-        <translation>Показать</translation>
+        <translation type="vanished">Показать</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="434" />
         <source>%1 result(s) for “%2”</source>
-        <translation>Результатов по «%2»: %1</translation>
+        <translation type="vanished">Результатов по «%2»: %1</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="453" />
         <source>Nothing matches. Try “blur”, “font”, “cursor” or “kitty”.</source>
-        <translation>Ничего не найдено. Попробуйте «blur», «font», «cursor» или «kitty».</translation>
+        <translation type="vanished">Ничего не найдено. Попробуйте «blur», «font», «cursor» или «kitty».</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="566" />
         <source>Advanced</source>
-        <translation>Расширенные</translation>
+        <translation type="vanished">Расширенные</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="572" />
         <source>Show advanced fields</source>
-        <translation>Показывать расширенные поля</translation>
+        <translation type="vanished">Показывать расширенные поля</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="580" />
         <source>Deep settings stay in System Settings. These buttons open the right module instead of duplicating it.</source>
-        <translation>Глубокие настройки остаются в «Параметрах системы». Эти кнопки открывают нужный модуль вместо его дублирования.</translation>
+        <translation type="vanished">Глубокие настройки остаются в «Параметрах системы». Эти кнопки открывают нужный модуль вместо его дублирования.</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="592" />
         <source>Colors</source>
-        <translation>Цвета</translation>
+        <translation type="vanished">Цвета</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="593" />
         <source>Fonts</source>
-        <translation>Шрифты</translation>
+        <translation type="vanished">Шрифты</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="594" />
         <source>Icons</source>
-        <translation>Иконки</translation>
+        <translation type="vanished">Иконки</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="595" />
         <source>Cursors</source>
-        <translation>Курсоры</translation>
+        <translation type="vanished">Курсоры</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="596" />
         <source>Window effects</source>
-        <translation>Эффекты окон</translation>
+        <translation type="vanished">Эффекты окон</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="597" />
         <source>Kvantum</source>
-        <translation>Kvantum</translation>
+        <translation type="vanished">Kvantum</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="611" />
         <source>Open config folder</source>
-        <translation>Открыть папку конфигов</translation>
+        <translation type="vanished">Открыть папку конфигов</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="619" />
         <source>Export JSON…</source>
-        <translation>Экспорт JSON…</translation>
+        <translation type="vanished">Экспорт JSON…</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="633" />
         <source>Undo last change</source>
-        <translation>Отменить последнее изменение</translation>
+        <translation type="vanished">Отменить последнее изменение</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="640" />
         <source>Revert session</source>
-        <translation>Вернуть сессию</translation>
+        <translation type="vanished">Вернуть сессию</translation>
     </message>
 </context>
 <context>
     <name>ThemeSectionFields</name>
     <message>
-        <location filename="../qml/pages/ThemeSectionFields.qml" line="45" />
+        <location filename="../qml/pages/ThemeSectionFields.qml" line="78"/>
         <source>No fields in this section.</source>
         <translation>В этой секции нет полей.</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeSectionFields.qml" line="79"/>
+        <source>No settings match this filter.</source>
+        <translation>По этому фильтру ничего не найдено.</translation>
     </message>
 </context>
 </TS>

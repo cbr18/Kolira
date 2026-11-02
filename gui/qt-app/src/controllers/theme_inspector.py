@@ -162,6 +162,10 @@ class ThemeInspectorController(QObject):
     def sessionChanges(self) -> int:
         return self._core.session_changes()
 
+    @Property(int, notify=sectionsChanged)
+    def undoDepth(self) -> int:
+        return self._core.undo_depth()
+
     @Property(bool, notify=scopeChanged)
     def readOnly(self) -> bool:
         return self._scope != "live"
@@ -284,6 +288,26 @@ class ThemeInspectorController(QObject):
                 self.refresh()
 
         _run(self, work, done)
+
+    @Slot(str, int, result=list)
+    def appConfigParams(self, rel_path: str, limit: int) -> list:
+        """Перечитать параметры уже показанного файла с другим лимитом."""
+        known = any(
+            item.get("relPath") == rel_path
+            for app in self._app_configs
+            for item in app.get("files", [])
+        )
+        if not known:
+            return []
+        if self._scope == "live":
+            path = live_path(rel_path)
+        else:
+            try:
+                path = profile_dir(self._scope.split(":", 1)[1]) / rel_path
+            except (IndexError, ValueError):
+                return []
+        parsed = read_config_params(path, limit=max(1, limit))
+        return parsed["params"] if parsed else []
 
     @Slot(str, result=list)
     def fieldsFor(self, section: str) -> list:

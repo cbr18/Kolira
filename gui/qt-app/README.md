@@ -14,6 +14,16 @@ Native KDE Plasma application for managing theme profiles and wallpapers.
   differs from the active one *before* applying
 - **Granular Control** — Choose which components to apply per profile
   (*Settings* page in the global drawer)
+- **Theme bundles** — Theme page assembles KDE/Plasma assets, desktop/window
+  settings, Kvantum, GTK and app themes; installed themes are picked from
+  lists, edits are staged, and profiles store a v2 `theme-bundle.json` beside
+  the legacy snapshot
+- **Application theme adapters** — Zed, VS Code, Cursor, Obsidian, btop and
+  Kitty can expose current/installed themes; unsupported apps fall back to
+  their native theme settings
+- **MCP server** — `mcp/theme_profile_mcp.py` lets AI agents enumerate themes,
+  create derived color/Kvantum themes, build/validate profiles and explicitly
+  apply them (see `../docs/MCP.md`)
 - **Applications page** — manage what is tracked: disable built-in apps with a
   checkbox (they are never deleted), add/edit/remove your own components
   (files or folders to sync, optional reload command run after apply)
@@ -228,23 +238,32 @@ Known, harmless `qmllint` output:
 ```
 src/
 ├── core/
-│   ├── protocol.py       # Abstract Base Classes (CONTRACT)
-│   ├── cli_core.py       # CLI adapter (shells to theme-profile / wallpaper-*)
-│   └── tracked_apps.py   # App registry with detection
-├── controllers/          # PySide6 QObject controllers
+│   ├── protocol.py            # Abstract Base Classes (CONTRACT)
+│   ├── cli_core.py            # CLI adapter (shells to theme-profile / wallpaper-*)
+│   ├── tracked_apps.py        # App registry with detection
+│   ├── theme_core.py          # Curated field readers/writers + staging/undo
+│   ├── app_theme_adapters.py  # Per-app theme detection/list/apply
+│   └── theme_bundle.py        # High-level component registry + v2 profile bundles
+├── controllers/               # PySide6 QObject controllers
 │   ├── ProfileController
 │   ├── WallpaperController
 │   ├── TrackedAppsController
 │   ├── SettingsController
-│   └── MainController    # Aggregate
-├── theme_controller.py   # Dogfooding: app theming
-└── __main__.py           # Entry point
+│   ├── ThemeInspectorController  # Legacy field inspector (Advanced/Customize)
+│   ├── ThemeBundleController     # New theme bundle UI model
+│   └── MainController            # Aggregate
+├── theme_controller.py        # Dogfooding: app theming
+└── __main__.py                # Entry point
 
 qml/
 ├── Main.qml              # Main page (active profile, profiles, wallpaper) + dialogs
 ├── pages/
-│   ├── ApplicationsPage.qml # Tracked apps: disable built-ins, CRUD for custom
-│   └── SettingsPage.qml  # Settings with component toggles (drawer → Settings)
+│   ├── ThemePage.qml             # Theme bundle overview and scope switch
+│   ├── ThemeComponentsPage.qml   # KDE/Plasma, Desktop, Qt/Kvantum, GTK choices
+│   ├── ThemeApplicationsPage.qml # Per-app adapter cards and native fallbacks
+│   ├── SectionPage.qml           # Legacy field editor (Advanced/Customize)
+│   ├── ApplicationsPage.qml      # Tracked apps: disable built-ins, CRUD for custom
+│   └── SettingsPage.qml          # Settings with component toggles (drawer → Settings)
 └── Components/
     ├── ThemeColors.qml              # Singleton: the only colour source
     ├── TypeScale.qml                # Singleton: typography scale

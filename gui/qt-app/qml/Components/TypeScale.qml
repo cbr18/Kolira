@@ -20,6 +20,6 @@ QtObject {
     readonly property real body: base
     readonly property real subtitle: base + 1
     readonly property real title: base + 3
-    readonly property real caption: base > 1 ? base - 1 : base
+    readonly property real caption: Math.max(base > 1 ? base - 1 : base, 9)
     readonly property real monospace: base
 }

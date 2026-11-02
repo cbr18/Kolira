@@ -86,26 +86,36 @@ ColumnLayout {
             Layout.fillWidth: true
         }
 
-        // Staged edit: shown as the field value but not written to disk yet.
+        // A filled dot means staged; a ring means different from the profile.
         Rectangle {
             visible: row.fieldData.staged === true
-            width: 7
-            height: 7
-            radius: 3.5
+            width: 9
+            height: 9
+            radius: 4.5
+            activeFocusOnTab: true
             color: ThemeColors.warning()
-            ToolTip.text: qsTr("Staged — press Apply to write it")
-            ToolTip.visible: stagedHover.hovered
+            border.width: activeFocus ? 2 : 0
+            border.color: ThemeColors.accent()
+            Accessible.role: Accessible.StaticText
+            Accessible.name: qsTr("Staged — press Apply to write it")
+            ToolTip.text: Accessible.name
+            ToolTip.visible: stagedHover.hovered || activeFocus
             HoverHandler { id: stagedHover }
         }
 
         Rectangle {
             visible: row.fieldData.differs === true
-            width: 7
-            height: 7
-            radius: 3.5
-            color: ThemeColors.accent()
-            ToolTip.text: qsTr("Differs from %1").arg(themeInspector.activeProfile || qsTr("profile"))
-            ToolTip.visible: differsHover.hovered
+            width: 9
+            height: 9
+            radius: 4.5
+            activeFocusOnTab: true
+            color: "transparent"
+            border.width: 2
+            border.color: ThemeColors.accent()
+            Accessible.role: Accessible.StaticText
+            Accessible.name: qsTr("Differs from %1").arg(themeInspector.activeProfile || qsTr("profile"))
+            ToolTip.text: Accessible.name
+            ToolTip.visible: differsHover.hovered || activeFocus
             HoverHandler { id: differsHover }
         }
 
@@ -121,7 +131,7 @@ ColumnLayout {
                 text: row.fieldData.badge === "app" ? qsTr("app restart")
                     : row.fieldData.badge === "new" ? qsTr("relogin")
                     : row.fieldData.badge
-                font.pointSize: TypeScale.caption - 1
+                font.pointSize: TypeScale.caption
                 color: row.dim
             }
         }
@@ -131,7 +141,7 @@ ColumnLayout {
             visible: row.fieldData.differs === true && !row.isReadOnly
             enabled: !themeInspector.busy
             ToolTip.text: qsTr("Restore the value stored in the profile")
-            ToolTip.visible: hovered
+            ToolTip.visible: hovered || activeFocus
             onClicked: themeInspector.resetToProfile(row.fieldId)
         }
 
@@ -150,7 +160,7 @@ ColumnLayout {
                     text += "\n" + qsTr("Profile: %1").arg(row.fieldData.profileDisplay)
                 return text
             }
-            ToolTip.visible: hovered
+            ToolTip.visible: hovered || activeFocus
             onClicked: themeInspector.openFile(row.fieldData.file || "")
         }
     }
@@ -265,20 +275,37 @@ ColumnLayout {
         spacing: Platform.Units.smallSpacing
 
         Rectangle {
+            id: colorSwatch
             width: Platform.Units.gridUnit * 3
             height: Platform.Units.gridUnit * 1.4
             radius: 4
+            activeFocusOnTab: !row.isReadOnly
             color: row.fieldData.display || "transparent"
-            border.width: 1
-            border.color: ThemeColors.subtleBorder(row.glassMode)
+            border.width: activeFocus ? 2 : 1
+            border.color: activeFocus
+                ? ThemeColors.accent() : ThemeColors.subtleBorder(row.glassMode)
+            Accessible.role: Accessible.Button
+            Accessible.name: qsTr("%1: %2").arg(row.fieldData.label || row.fieldId)
+                .arg(row.fieldData.display || qsTr("not set"))
+
+            function openPicker() {
+                if (row.isReadOnly || themeInspector.busy)
+                    return
+                colorDialog.selectedColor = row.fieldData.display
+                colorDialog.open()
+            }
 
             MouseArea {
                 anchors.fill: parent
                 enabled: !row.isReadOnly && !themeInspector.busy
                 cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    colorDialog.selectedColor = row.fieldData.display
-                    colorDialog.open()
+                onClicked: colorSwatch.openPicker()
+            }
+            Keys.onPressed: function(event) {
+                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
+                        || event.key === Qt.Key_Space) {
+                    colorSwatch.openPicker()
+                    event.accepted = true
                 }
             }
         }
@@ -309,6 +336,15 @@ ColumnLayout {
                                 ? "" : row.fieldData.value))
                 themeInspector.setText(row.fieldId, text)
         }
+    }
+
+    Label {
+        Layout.fillWidth: true
+        visible: row.fieldData.differs === true && (row.fieldData.profileDisplay || "") !== ""
+        text: qsTr("Profile: %1").arg(row.fieldData.profileDisplay || "")
+        color: row.dim
+        font.pointSize: TypeScale.caption
+        wrapMode: Text.WordWrap
     }
 
     Label {

@@ -208,6 +208,19 @@ def test_write_kde_and_undo(home: Path) -> None:
     assert core.session_changes() == 0
 
 
+def test_undo_depth_tracks_applied_changes(home: Path) -> None:
+    core = AppThemeCore()
+    assert core.undo_depth() == 0
+    assert core.set_value("accent_color", "#ff0000").success
+    assert core.undo_depth() == 0
+    assert core.apply().success
+    assert core.session_changes() == 0
+    assert core.undo_depth() == 1
+    assert core.undo().success
+    assert core.undo_depth() == 0
+    assert core.get("accent_color")["value"] == "128,142,71"
+
+
 def test_write_jsonc_preserves_comments_and_trailing_commas(home: Path) -> None:
     core = AppThemeCore()
     result = core.set_value("zed_mode", "light")
@@ -296,6 +309,20 @@ def test_revert_session(home: Path) -> None:
     assert (home / ".config/kdeglobals").read_text() == original
     backups = list((home / ".config/theme-profile/backups").glob("inspector-*"))
     assert backups, "revert must keep a backup of the session"
+
+
+def test_revert_discards_staged_and_restores_applied_changes(home: Path) -> None:
+    core = AppThemeCore()
+    assert core.set_value("accent_color", "#010203").success
+    assert core.apply().success
+    assert core.set_value("kitty_opacity", 0.9).success
+
+    result = core.revert()
+    assert result.success, result.message
+    assert core.session_changes() == 0
+    assert core.undo_depth() == 0
+    assert core.get("accent_color")["value"] == "128,142,71"
+    assert core.get("kitty_opacity")["value"] == pytest.approx(0.5)
 
 
 def test_validation_flags_broken_values(home: Path) -> None:
@@ -434,22 +461,30 @@ def test_controller_profile_summary(home: Path) -> None:
 def test_qml_wiring() -> None:
     qml = PROJECT_ROOT / "qml"
     page = (qml / "pages" / "ThemePage.qml").read_text()
+    components_page = (qml / "pages" / "ThemeComponentsPage.qml").read_text()
+    apps_page = (qml / "pages" / "ThemeApplicationsPage.qml").read_text()
     section_page = (qml / "pages" / "SectionPage.qml").read_text()
     row = (qml / "pages" / "ThemeFieldRow.qml").read_text()
     main = (qml / "Main.qml").read_text()
 
-    assert "themeInspector.search" in page
-    assert "themeInspector.sections" in page
-    assert "themeInspector.scopes" in page
-    assert "showAdvanced" in page
-    # M3: тап по тайлу секции открывает SectionPage в стеке слоёв.
-    assert "SectionPage.qml" in page
+    # Новый главный экран — ThemeBundle, а не сырой инспектор полей.
+    assert "themeBundle.groups" in page
+    assert "themeBundle.applications" in page
+    assert "themeBundle.applyChanges()" in page
+    assert "ThemeComponentsPage.qml" in page
+    assert "ThemeApplicationsPage.qml" in page
+
+    # Группы открывают выбор установленных тем; fallback-поля живут в SectionPage.
+    assert "themeBundle.setComponent" in components_page
+    assert "themeBundle.openSystemSettings" in components_page
+    assert "themeBundle.launchApp" in apps_page
+    assert "themeBundle.openAppThemeSettings" in apps_page
     assert "ThemeSectionFields" in section_page
     assert "themeInspector.applyChanges" in section_page
     assert "ColorDialog" in row
     assert "themeInspector.setBool" in row
     assert "ThemePage.qml" in main
-    assert "openThemePage" in main
+    assert "themeBundle" in main
     assert "onInspectClicked" in main
 
 

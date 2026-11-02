@@ -350,13 +350,19 @@ def main() -> int:
     # Secondary launches ask this instance to pop up the window.
     _activate_on_secondary(single_instance, main_window)
 
-    # Dev helper for visual smoke tests: open the Theme inspector immediately.
+    # Dev helper for visual smoke tests: open a Theme page immediately.
     if os.environ.get("KTM_OPEN_THEME") == "1":
         from PySide6.QtCore import QMetaObject
 
+        page = os.environ.get("KTM_THEME_PAGE", "overview")
+        function = {
+            "overview": "openThemePage",
+            "components": "openThemeComponentsPageDefault",
+            "apps": "openThemeApplicationsPage",
+        }.get(page, "openThemePage")
         QTimer.singleShot(
             0,
-            lambda: QMetaObject.invokeMethod(main_window, "openThemePage"),
+            lambda: QMetaObject.invokeMethod(main_window, function),
         )
 
     # Apply theme synchronously before showing (avoid light flash)
