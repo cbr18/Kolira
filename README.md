@@ -174,6 +174,22 @@ The cached index is a *position* in that list, so a locale-aware sort
 the index to a different image than the one applied. All three scripts must keep
 enumerating identically — `tests/test-scripts.sh` (section 9) fails if they drift.
 
+**Wallpaper directory** (one Rust implementation, `theme-profile wallpaper dir`):
+`$WALLPAPER_DIR` → `wallpaper_directory` in `app-preferences.json` → `$(xdg-user-dir PICTURES)/Wallpaper` → `~/Pictures/Wallpaper`. On a Russian locale XDG Pictures is `~/Изображения`, so the
+default stays `~/Изображения/Wallpaper`; nothing is hard-coded to one language.
+`theme-profile wallpaper current` prints the wallpaper Plasma shows on the
+primary screen (`lastScreen=0`, `org.kde.image` only — slideshow/POTD report
+nothing). One wallpaper is applied to all screens (`plasma-apply-wallpaperimage`).
+
+**Wallpaper in profiles.** `theme-profile save` copies the current wallpaper into
+`<profile>/wallpaper/` (plus `source` — its original path) whenever the desktop
+layout (`plasma_shell`) is saved. `theme-profile apply` — CLI, `theme-menu`, GUI,
+MCP alike — uses the original if it still exists, otherwise puts the saved copy
+back (old path, else the wallpaper directory; existing files are never
+overwritten) and applies it. Profiles saved before this fall back to the
+`wallpaper` path in `theme-bundle.json`. `validate_profile` reports a wallpaper
+that is neither on disk nor saved.
+
 Environment overrides (also used by the GUI and the tests): `WALLPAPER_DIR`,
 `WALLPAPER_STATE`, `WALLPAPER_THUMB_DIR`, `PLASMA_APPLETSRC`,
 `WALLPAPER_DRY_RUN=1` (print the chosen file instead of applying it).
@@ -283,7 +299,7 @@ See [`docs/ROLLBACK.md`](docs/ROLLBACK.md) for full instructions. Quick summary:
 | `command not found: wofi` | Install: `sudo pacman -S wofi` |
 | wofi menu appears empty | Ensure `~/.config/wofi/style.css` exists |
 | `theme-profile list` shows nothing | `mkdir -p ~/.config/theme-profile/profiles && theme-profile save my-profile` |
-| Wallpaper picker shows no images | Default dir is `~/Изображения/Wallpaper`. Override with `export WALLPAPER_DIR="$HOME/Pictures/Wallpaper"` |
+| Wallpaper picker shows no images | Check `theme-profile wallpaper dir` (XDG Pictures/Wallpaper by default). Override with `export WALLPAPER_DIR=...` or the GUI setting |
 | Plasma won't start after `apply` | `systemctl --user start plasma-plasmashell.service` |
 
 ## Editing Rule / Правило редактирования

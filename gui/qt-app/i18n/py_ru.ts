@@ -255,6 +255,7 @@
         <translation>Обои, скругления, размытие, прозрачность и эффекты окон</translation>
     </message>
     <message>
+        <location filename="../src/core/theme_bundle.py" line="684" />
         <location filename="../src/core/theme_bundle.py" line="140" />
         <source>Wallpaper</source>
         <translation>Обои</translation>

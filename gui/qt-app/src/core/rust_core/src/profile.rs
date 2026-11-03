@@ -20,6 +20,7 @@ use crate::paths::{
 };
 use crate::tracked_apps::component_config_paths;
 use crate::types::ProfileInfo;
+use crate::wallpaper::{plasma_wallpaper_from, wallpaper_dir, APPLETSRC_REL};
 
 /// Version of the `manifest.json` theme-file format written by this tool.
 pub const MANIFEST_SCHEMA_VERSION: u32 = 1;
@@ -666,76 +667,6 @@ fn run_custom_reload_hooks(rel_paths: &[String]) {
     }
 }
 
-/// Order of qdbus commands matches the historical bash script.
-fn percent_decode(value: &str) -> String {
-    let bytes = value.as_bytes();
-    let mut out = Vec::with_capacity(bytes.len());
-    let mut i = 0;
-    while i < bytes.len() {
-        if bytes[i] == b'%' && i + 2 < bytes.len() {
-            if let Ok(hex) = u8::from_str_radix(&value[i + 1..i + 3], 16) {
-                out.push(hex);
-                i += 3;
-                continue;
-            }
-        }
-        out.push(bytes[i]);
-        i += 1;
-    }
-    String::from_utf8_lossy(&out).to_string()
-}
-
-fn first_wallpaper_image_in(appletsrc: &Path) -> Option<PathBuf> {
-    let text = fs::read_to_string(appletsrc).ok()?;
-    for line in text.lines() {
-        if let Some(value) = line.trim().strip_prefix("Image=file://") {
-            let decoded = percent_decode(value);
-            if !decoded.is_empty() {
-                return Some(PathBuf::from(decoded));
-            }
-        }
-    }
-    None
-}
-
-fn first_wallpaper_image(source: &Path) -> Option<PathBuf> {
-    // Профиль может не содержать appletsrc с Image= (в нём часто только
-    // wallpaperPlugin). В этом случае берём акцент из текущих обоев сессии —
-    // live конфиге — так как профиль требует accentColorFromWallpaper=true.
-    for appletsrc in [
-        source.join(".config/plasma-org.kde.plasma.desktop-appletsrc"),
-        config_home().join(".config/plasma-org.kde.plasma.desktop-appletsrc"),
-    ] {
-        if let Some(path) = first_wallpaper_image_in(&appletsrc) {
-            return Some(path);
-        }
-    }
-    None
-}
-
-fn parse_imagemagick_pixel(text: &str) -> Option<String> {
-    let start = text.find('(')?;
-    let end = text.rfind(')')?;
-    let inner = &text[start + 1..end];
-    let parts: Vec<&str> = inner.split(',').collect();
-    if parts.len() < 3 {
-        return None;
-    }
-    let to_byte = |part: &str| -> Option<u8> {
-        let trimmed = part.trim();
-        if trimmed.ends_with('%') {
-            let pct: f64 = trimmed.trim_end_matches('%').parse().ok()?;
-            Some((pct / 100.0 * 255.0).round().clamp(0.0, 255.0) as u8)
-        } else {
-            let v: f64 = trimmed.parse().ok()?;
-            Some(v.round().clamp(0.0, 255.0) as u8)
-        }
-    };
-    let rgb: Option<Vec<u8>> = parts[..3].iter().map(|p| to_byte(p)).collect();
-    let rgb = rgb?;
-    Some(format!("#{:02x}{:02x}{:02x}", rgb[0], rgb[1], rgb[2]))
-}
-
 fn rgb_string_to_hex(value: &str) -> Option<String> {
     let parts: Vec<&str> = value.split(',').collect();
     if parts.len() != 3 {
@@ -749,22 +680,15 @@ fn rgb_string_to_hex(value: &str) -> Option<String> {
     Some(format!("#{:02x}{:02x}{:02x}", rgb[0], rgb[1], rgb[2]))
 }
 
-fn wallpaper_accent_hex(path: &Path) -> Option<String> {
-    if !path.is_file() {
-        return None;
-    }
-    let path_string = path.to_string_lossy().to_string();
-    let pixel = run_external_capture(
-        "magick",
-        &[&path_string, "-resize", "200x200", "-colors", "1", "-format", "%[pixel:p{0,0}]", "info:"],
-    );
-    parse_imagemagick_pixel(pixel.trim())
-}
-
 /// Restoring kdeglobals is not enough: Qt/Plasma keeps the previous palette in
-/// memory. Re-apply the scheme explicitly, and when the profile says the accent
-/// comes from wallpaper, derive a concrete accent from the restored wallpaper so
-/// the running session updates even when the scheme name did not change.
+/// memory, so the scheme is re-applied explicitly.
+///
+/// Accent: an explicit `AccentColor` is passed along. When the profile takes
+/// the accent from the wallpaper we do *not* compute it ourselves — Plasma
+/// (plasmashell's accent service) reads `accentColorFromWallpaper` on start-up
+/// and recomputes the accent from the restored wallpaper with its own
+/// algorithm; `apply` restarts plasmashell right after these hooks. (Verified
+/// 2026-11-04; this replaced an ImageMagick average-colour approximation.)
 fn reapply_color_scheme(source: &Path) {
     let kdeglobals = source.join(".config/kdeglobals");
     let Some(scheme) = ini_group_key(&kdeglobals, "General", "ColorScheme") else {
@@ -774,23 +698,17 @@ fn reapply_color_scheme(source: &Path) {
         return;
     }
 
-    let explicit = ini_group_key(&kdeglobals, "General", "AccentColor")
-        .and_then(|value| rgb_string_to_hex(&value));
     let from_wallpaper = ini_group_key(&kdeglobals, "General", "accentColorFromWallpaper")
         .as_deref()
         == Some("true");
-    let accent = explicit.or_else(|| {
-        if from_wallpaper {
-            first_wallpaper_image(source).and_then(|path| wallpaper_accent_hex(&path))
-        } else {
-            None
-        }
-    });
+    let explicit = ini_group_key(&kdeglobals, "General", "AccentColor")
+        .and_then(|value| rgb_string_to_hex(&value));
 
-    if let Some(accent) = accent {
-        run_external("plasma-apply-colorscheme", &["--accent-color", &accent, &scheme]);
-    } else {
-        run_external("plasma-apply-colorscheme", &[&scheme]);
+    match explicit {
+        Some(accent) if !from_wallpaper => {
+            run_external("plasma-apply-colorscheme", &["--accent-color", &accent, &scheme]);
+        }
+        _ => run_external("plasma-apply-colorscheme", &[&scheme]),
     }
 }
 
@@ -953,7 +871,20 @@ fn apply_with_paths(profile: &str, rel_paths: &[String]) -> Result<PathBuf> {
 
     match restore_from_profile(profile, rel_paths) {
         Ok(()) => {
+            // Resolve (and if needed restore) the profile wallpaper while
+            // plasmashell is stopped, so the restored appletsrc finds its file.
+            let wallpaper = if tracks_desktop_layout(rel_paths) {
+                profile_wallpaper(&dir)
+            } else {
+                None
+            };
             apply_live_hooks(&dir);
+            if let Some(path) = wallpaper {
+                let shown = plasma_wallpaper_from(&live_path(APPLETSRC_REL));
+                if shown.as_deref() != Some(path.to_string_lossy().as_ref()) {
+                    apply_wallpaper_live(&path);
+                }
+            }
             run_custom_reload_hooks(rel_paths);
             Ok(backup)
         }
@@ -964,6 +895,110 @@ fn apply_with_paths(profile: &str, rel_paths: &[String]) -> Result<PathBuf> {
             Err(e)
         }
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Wallpaper inside profiles
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// `<profile>/wallpaper/` holds a copy of the desktop wallpaper plus `source`
+/// (its original absolute path), so a profile survives a moved/deleted image.
+const PROFILE_WALLPAPER_DIR: &str = "wallpaper";
+const PROFILE_WALLPAPER_SOURCE: &str = "source";
+
+/// Wallpaper belongs to the desktop layout component (plasma appletsrc).
+fn tracks_desktop_layout(rel_paths: &[String]) -> bool {
+    rel_paths.iter().any(|p| p == APPLETSRC_REL)
+}
+
+/// Copy the wallpaper Plasma shows into the snapshot being saved.
+fn capture_wallpaper(target: &Path, rel_paths: &[String]) -> Result<()> {
+    if !tracks_desktop_layout(rel_paths) {
+        return Ok(());
+    }
+    let Some(current) = plasma_wallpaper_from(&live_path(APPLETSRC_REL)) else {
+        return Ok(());
+    };
+    let source = PathBuf::from(&current);
+    let Some(name) = source.file_name() else {
+        return Ok(());
+    };
+    if !source.is_file() {
+        return Ok(());
+    }
+    let dir = target.join(PROFILE_WALLPAPER_DIR);
+    fs::create_dir_all(&dir)?;
+    fs::copy(&source, dir.join(name))
+        .with_context(|| format!("Failed to copy wallpaper {}", source.display()))?;
+    fs::write(dir.join(PROFILE_WALLPAPER_SOURCE), format!("{current}\n"))?;
+    Ok(())
+}
+
+/// The wallpaper file a profile wants, restoring the saved copy when the
+/// original is gone (back to its old path, else into [`wallpaper_dir`]; an
+/// existing file is never overwritten). Falls back to `theme-bundle.json`'s
+/// `wallpaper` path for profiles saved before copies existed.
+pub fn profile_wallpaper(profile_dir: &Path) -> Option<PathBuf> {
+    let dir = profile_dir.join(PROFILE_WALLPAPER_DIR);
+    let original = fs::read_to_string(dir.join(PROFILE_WALLPAPER_SOURCE))
+        .ok()
+        .map(|s| PathBuf::from(s.trim()))
+        .filter(|p| !p.as_os_str().is_empty());
+    let copy = fs::read_dir(&dir).ok().and_then(|entries| {
+        entries
+            .flatten()
+            .map(|e| e.path())
+            .find(|p| p.is_file() && p.file_name().is_some_and(|n| n != PROFILE_WALLPAPER_SOURCE))
+    });
+
+    if let Some(original) = original.as_ref().filter(|p| p.is_file()) {
+        return Some(original.clone());
+    }
+    if let Some(copy) = copy {
+        let name = copy.file_name()?.to_owned();
+        for target in [original, Some(wallpaper_dir().join(&name))].into_iter().flatten() {
+            if target.is_file() {
+                return Some(target);
+            }
+            let parent_ok = target.parent().is_some_and(|p| fs::create_dir_all(p).is_ok());
+            if parent_ok && fs::copy(&copy, &target).is_ok() {
+                return Some(target);
+            }
+        }
+        return Some(copy);
+    }
+    bundle_wallpaper(profile_dir)
+}
+
+fn bundle_wallpaper(profile_dir: &Path) -> Option<PathBuf> {
+    let text = fs::read_to_string(profile_dir.join("theme-bundle.json")).ok()?;
+    let json: serde_json::Value = serde_json::from_str(&text).ok()?;
+    let path = PathBuf::from(json.get("wallpaper")?.as_str()?);
+    path.is_file().then_some(path)
+}
+
+/// `plasma-apply-wallpaperimage` needs plasmashell's D-Bus API, which can lag
+/// a moment behind a restart — retry briefly instead of failing silently.
+fn apply_wallpaper_live(path: &Path) {
+    if no_apply() {
+        return;
+    }
+    for attempt in 0..5 {
+        let applied = Command::new("plasma-apply-wallpaperimage")
+            .arg(path)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
+        if applied {
+            return;
+        }
+        if attempt < 4 {
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+    }
+    eprintln!("Warning: could not apply wallpaper {}", path.display());
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -995,6 +1030,7 @@ fn save_with_paths(profile: &str, rel_paths: &[String]) -> Result<()> {
     fs::create_dir_all(&profiles)?;
     let tmp = unique_dir(&profiles, &format!(".save-{profile}"))?;
     let built = copy_tracked_into(&tmp, rel_paths)
+        .and(capture_wallpaper(&tmp, rel_paths))
         .and(capture_kde_effects_state(&tmp))
         .and(write_manifest(&tmp, profile, rel_paths));
 
@@ -1142,5 +1178,47 @@ mod tests {
         assert!(
             validate_reload_command("definitely-not-a-real-binary-ktm --x").is_err()
         );
+    }
+}
+
+#[cfg(test)]
+mod wallpaper_tests {
+    use super::*;
+
+    #[test]
+    fn profile_wallpaper_prefers_original_then_restores_copy() {
+        let tmp = tempfile::tempdir().unwrap();
+        let profile = tmp.path().join("profile");
+        let saved = profile.join(PROFILE_WALLPAPER_DIR);
+        fs::create_dir_all(&saved).unwrap();
+        let original = tmp.path().join("walls/forest.jpg");
+        fs::write(saved.join("forest.jpg"), b"jpeg-bytes").unwrap();
+        fs::write(saved.join(PROFILE_WALLPAPER_SOURCE), format!("{}\n", original.display())).unwrap();
+
+        // Original missing → the copy is put back where it was.
+        assert_eq!(profile_wallpaper(&profile), Some(original.clone()));
+        assert_eq!(fs::read(&original).unwrap(), b"jpeg-bytes");
+
+        // Original present (even if it changed) → used as is, never overwritten.
+        fs::write(&original, b"edited").unwrap();
+        assert_eq!(profile_wallpaper(&profile), Some(original.clone()));
+        assert_eq!(fs::read(&original).unwrap(), b"edited");
+    }
+
+    #[test]
+    fn profile_wallpaper_falls_back_to_bundle_path() {
+        let tmp = tempfile::tempdir().unwrap();
+        let profile = tmp.path().join("old-profile");
+        fs::create_dir_all(&profile).unwrap();
+        let image = tmp.path().join("bundle.png");
+        fs::write(&image, b"png").unwrap();
+        fs::write(
+            profile.join("theme-bundle.json"),
+            format!("{{\"wallpaper\": \"{}\"}}", image.display()),
+        )
+        .unwrap();
+        assert_eq!(profile_wallpaper(&profile), Some(image.clone()));
+        fs::remove_file(&image).unwrap();
+        assert_eq!(profile_wallpaper(&profile), None);
     }
 }

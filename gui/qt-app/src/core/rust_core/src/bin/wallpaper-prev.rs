@@ -6,8 +6,8 @@
 use std::path::PathBuf;
 use std::process::{Command, ExitCode};
 
-use kde_theme_core::paths::{cache_home, config_home, home_dir};
-use kde_theme_core::wallpaper::{list_wallpapers_in, step_index};
+use kde_theme_core::paths::{cache_home, config_home};
+use kde_theme_core::wallpaper::{wallpaper_dir, list_wallpapers_in, step_index};
 
 fn env_or(key: &str, default: PathBuf) -> PathBuf {
     std::env::var_os(key)
@@ -16,7 +16,7 @@ fn env_or(key: &str, default: PathBuf) -> PathBuf {
 }
 
 fn main() -> ExitCode {
-    let dir = env_or("WALLPAPER_DIR", home_dir().join("Изображения/Wallpaper"));
+    let dir = wallpaper_dir(); // $WALLPAPER_DIR → GUI setting → XDG Pictures
     let state = env_or("WALLPAPER_STATE", cache_home().join("wallpaper_index"));
     let plasma = env_or(
         "PLASMA_APPLETSRC",

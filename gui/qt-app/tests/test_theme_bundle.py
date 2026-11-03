@@ -214,6 +214,9 @@ def bundle_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     theme = AppThemeCore()
     profiles = FakeProfileCore(tmp_path)
     wallpapers = FakeWallpaperCore()
+    # A real file, so profile validation sees an existing wallpaper.
+    put("Pictures/Wallpaper/night.jpg", "jpeg")
+    wallpapers.current_value = str(tmp_path / "Pictures/Wallpaper/night.jpg")
     core = ThemeBundleCore(theme, profiles, wallpapers)
     return {
         "home": tmp_path,
@@ -461,7 +464,9 @@ def test_apply_profile_uses_legacy_core_and_bundle_references(bundle_home):
     result = core.apply_profile("night")
     assert result.success, result.message
     assert bundle_home["profiles"].applied == ["night"]
-    assert bundle_home["wallpapers"].applied
+    # The wallpaper is restored by `theme-profile apply` (Rust), not by a
+    # second Python call that the CLI/theme-menu path would never make.
+    assert not bundle_home["wallpapers"].applied
     assert "Applied profile: night" in result.message
     assert "Applied 12 change(s)" in result.message
 
@@ -479,6 +484,24 @@ def test_validate_profile_reports_missing_references(bundle_home):
     assert not result.success
     assert "RemovedTheme" in result.message
     assert "Removed Zed Theme" in result.message
+    assert "night.jpg" not in result.message  # the wallpaper exists
+
+    # Wallpaper file gone and no saved copy → reported.
+    (bundle_home["home"] / "Pictures/Wallpaper/night.jpg").unlink()
+    result = core.validate_profile_bundle("night")
+    assert "Pictures/Wallpaper/night.jpg" in result.message
+
+
+def test_validate_profile_accepts_saved_wallpaper_copy(bundle_home):
+    core = bundle_home["core"]
+    core.save_profile("night")
+    saved = profile_dir("night") / "wallpaper"
+    saved.mkdir()
+    (saved / "night.jpg").write_bytes(b"jpeg")
+    (saved / "source").write_text("/wallpapers/night.jpg\n", encoding="utf-8")
+    (bundle_home["home"] / "Pictures/Wallpaper/night.jpg").unlink()
+    result = core.validate_profile_bundle("night")
+    assert "night.jpg" not in result.message
 
 
 def test_create_custom_theme_creates_user_owned_assets(bundle_home):

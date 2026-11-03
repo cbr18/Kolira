@@ -220,6 +220,49 @@ else
   fail "apply nonexistent-profile stopped plasma before validation failed!"
 fi
 
+# --- 5b. Wallpaper travels with the profile ----------------------------------
+echo "=== Section 5b: profile wallpaper copy ==="
+
+WP_HOME="$TMP_ROOT/wp-home"
+mkdir -p "$WP_HOME/.config/theme-profile" "$WP_HOME/Pictures/Wallpaper"
+printf 'jpeg' >"$WP_HOME/Pictures/Wallpaper/forest one.jpg"
+cat >"$WP_HOME/.config/plasma-org.kde.plasma.desktop-appletsrc" <<APPLETS
+[Containments][1]
+lastScreen=0
+
+[Containments][1][Wallpaper][org.kde.image][General]
+Image=file://$WP_HOME/Pictures/Wallpaper/forest%20one.jpg
+APPLETS
+
+wp_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$WP_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+
+if [ "$(wp_cli wallpaper dir)" = "$WP_HOME/Pictures/Wallpaper" ]; then
+  ok "wallpaper dir: no localised hard-coded folder (~/Pictures/Wallpaper)"
+else
+  fail "wallpaper dir unexpected: $(wp_cli wallpaper dir)"
+fi
+if [ "$(wp_cli wallpaper current)" = "$WP_HOME/Pictures/Wallpaper/forest one.jpg" ]; then
+  ok "wallpaper current decodes the primary screen's image"
+else
+  fail "wallpaper current unexpected: $(wp_cli wallpaper current)"
+fi
+
+wp_cli save wp-test >/dev/null 2>&1
+saved="$WP_HOME/.config/theme-profile/profiles/wp-test/wallpaper"
+if [ -f "$saved/forest one.jpg" ] && grep -q "forest one.jpg" "$saved/source"; then
+  ok "save copies the wallpaper into the profile"
+else
+  fail "save did not copy the wallpaper"
+fi
+
+rm "$WP_HOME/Pictures/Wallpaper/forest one.jpg"
+wp_cli apply wp-test >/dev/null 2>&1
+if [ "$(cat "$WP_HOME/Pictures/Wallpaper/forest one.jpg" 2>/dev/null)" = "jpeg" ]; then
+  ok "apply restores a deleted wallpaper from the profile copy"
+else
+  fail "apply did not restore the deleted wallpaper"
+fi
+
 # --- 6. Wallpaper index wrapping ---------------------------------------------
 echo "=== Section 6: Wallpaper index wrapping ==="
 
@@ -660,7 +703,7 @@ EOF
 
   MOCK_BIN_LF="$TMP_ROOT/mock-bin-lf"
   mkdir -p "$MOCK_BIN_LF"
-  for cmd in systemctl qdbus6 kbuildsycoca6; do
+  for cmd in systemctl qdbus6 kbuildsycoca6 plasma-apply-wallpaperimage; do
     cat > "$MOCK_BIN_LF/$cmd" <<'MOCK'
 #!/usr/bin/env bash
 exit 0
@@ -724,7 +767,7 @@ EOF
 
   MOCK_BIN_ACC="$TMP_ROOT/mock-bin-accent"
   mkdir -p "$MOCK_BIN_ACC"
-  for cmd in systemctl qdbus6 kbuildsycoca6; do
+  for cmd in systemctl qdbus6 kbuildsycoca6 plasma-apply-wallpaperimage; do
     cat > "$MOCK_BIN_ACC/$cmd" <<'MOCK'
 #!/usr/bin/env bash
 exit 0
@@ -764,11 +807,14 @@ EOF
     "$CLI_DIR/theme-profile" save accent-wallpaper >/dev/null 2>&1
   if HOME="$ACC_HOME" PATH="$MOCK_BIN_ACC:$PATH" \
     "$CLI_DIR/theme-profile" apply accent-wallpaper >/dev/null 2>&1 \
-    && grep -q -- "--accent-color #9a974d Breeze1" "$ACC_CALLS" \
-    && grep -q '^magick ' "$ACC_CALLS"; then
-    ok "apply derives a concrete wallpaper accent and applies it"
+    && grep -qx -- "plasma-apply-colorscheme Breeze1" "$ACC_CALLS" \
+    && ! grep -q -- "--accent-color" "$ACC_CALLS" \
+    && ! grep -q '^magick ' "$ACC_CALLS"; then
+    # Plasma's accent service recomputes it from the wallpaper when
+    # plasmashell restarts — no ImageMagick approximation of our own.
+    ok "apply leaves a wallpaper accent to Plasma (no magick, no forced accent)"
   else
-    fail "apply did not derive/apply the wallpaper accent"
+    fail "apply forced/derived the wallpaper accent itself: $(cat "$ACC_CALLS")"
   fi
 fi
 
@@ -797,7 +843,7 @@ EOF
 
   MOCK_BIN_STYLE="$TMP_ROOT/mock-bin-style"
   mkdir -p "$MOCK_BIN_STYLE"
-  for cmd in systemctl qdbus6 kbuildsycoca6; do
+  for cmd in systemctl qdbus6 kbuildsycoca6 plasma-apply-wallpaperimage; do
     cat > "$MOCK_BIN_STYLE/$cmd" <<'MOCK'
 #!/usr/bin/env bash
 exit 0
@@ -946,7 +992,7 @@ printf 'theme=dark\n' > "$APP_HOME/.config/mockapp/settings.conf"
 # the mock app's reload command, which records its invocations.
 MOCK_BIN_APP="$TMP_ROOT/mock-bin-app"
 mkdir -p "$MOCK_BIN_APP"
-for cmd in systemctl qdbus6 kbuildsycoca6; do
+for cmd in systemctl qdbus6 kbuildsycoca6 plasma-apply-wallpaperimage; do
   cat > "$MOCK_BIN_APP/$cmd" <<'MOCK'
 #!/usr/bin/env bash
 exit 0

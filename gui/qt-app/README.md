@@ -195,8 +195,10 @@ profiles created before XDG support keep working unchanged.
 
 The theme itself is not stored by the app — applying a profile writes the usual
 KDE configuration (`~/.config/kdeglobals`, `kwinrc`, `gtk-3.0/settings.ini`, …).
-Wallpapers live in `~/Изображения/Wallpaper` (or `wallpaper_directory` from the
-settings) with the index cache in `~/.cache/wallpaper_index`.
+Wallpapers live in the directory reported by `theme-profile wallpaper dir`
+(`$WALLPAPER_DIR` → `wallpaper_directory` setting → XDG Pictures/Wallpaper →
+`~/Pictures/Wallpaper`) with the index cache in `~/.cache/wallpaper_index`.
+Profiles carry a copy of their wallpaper in `<profile>/wallpaper/`.
 
 ### Running from the source tree (development)
 
@@ -223,7 +225,7 @@ mypy src/
 # QML syntax/type lint (PySide6 6.12 ships its own qmllint)
 .venv/bin/pyside6-qmllint -I qml -I /usr/lib/qt6/qml qml/Main.qml qml/pages/SettingsPage.qml qml/Components/*.qml
 
-# Tests (Python: 236, from gui/qt-app)
+# Tests (Python: 237, from gui/qt-app)
 .venv/bin/python -m pytest tests/ -q
 
 # CLI + installer tests (118, from the repo root)
@@ -320,9 +322,11 @@ makes them self-healing. Guarded by
 `tests/test_gui.py::TestWallpaperOrdering` (runs the real script and compares the
 walked order) and `tests/test-scripts.sh` sections 8–9.
 
-The app passes `WALLPAPER_DIR` to the scripts so that a custom
-`wallpaper_directory` in the settings file cannot diverge from the scripts'
-default.
+Directory and "current wallpaper" come from the Rust CLI (`theme-profile
+wallpaper dir|current`) — the GUI no longer parses the appletsrc itself. The app
+still passes `WALLPAPER_DIR` to the scripts so an unsaved explicit setting
+cannot diverge from what they enumerate. Tests point the GUI at the freshly
+built CLI via `KTM_THEME_PROFILE_BIN` (`tests/conftest.py`).
 
 `wallpaper-picker` passes `--define dmenu-print_line_num=true` to wofi and uses
 the printed value as a **direct 0-based index** into the displayed list: wofi
@@ -395,7 +399,7 @@ Settings stored in `~/.config/theme-profile/app-preferences.json` (or
   "default_components_mode": "all",
   "custom_components": [],
   "wallpaper_linked_to_profile": false,
-  "wallpaper_directory": "~/Изображения/Wallpaper",
+  "wallpaper_directory": "",
   "theme": "system",
   "show_not_installed_warning": true,
   "auto_apply_on_startup": false,

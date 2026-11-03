@@ -9,12 +9,10 @@ CLI Core Implementation — адаптер над Rust CLI.
 
 import json
 import os
-import re
 import subprocess
 import shutil
 from pathlib import Path
 from typing import Optional
-from urllib.parse import unquote, urlsplit
 
 from .fileutil import atomic_write_text
 from .paths import (
@@ -39,17 +37,25 @@ from .tracked_apps import (
 # Profile Core
 # ──────────────────────────────────────────────────────────────
 
+def resolve_cli_bin(name: str = "theme-profile") -> str:
+    """Path of a Rust CLI binary: $KTM_THEME_PROFILE_BIN (theme-profile only;
+    tests point it at the freshly built one) → PATH → ~/.local/bin."""
+    override = os.environ.get("KTM_THEME_PROFILE_BIN")
+    if name == "theme-profile" and override:
+        return override
+    resolved = shutil.which(name)
+    if resolved:
+        return resolved
+    fallback = Path.home() / ".local/bin" / name
+    return str(fallback) if fallback.exists() else name
+
+
 class CliProfileCore(ProfileCore):
     """Обёртка над Rust CLI `theme-profile`."""
 
     def __init__(self, theme_profile_bin: str = "theme-profile"):
         # Resolve binary path: check PATH, then fallback to ~/.local/bin/
-        resolved = shutil.which(theme_profile_bin)
-        if resolved:
-            self.bin = resolved
-        else:
-            fallback = Path.home() / ".local/bin" / theme_profile_bin
-            self.bin = str(fallback) if fallback.exists() else theme_profile_bin
+        self.bin = resolve_cli_bin(theme_profile_bin)
         # Cached for compatibility with the existing test-suite; the public
         # properties keep the rest of the code free of direct attribute use.
         self._profiles_dir = profiles_dir()
@@ -283,14 +289,23 @@ class CliWallpaperCore(WallpaperCore):
         self.cache_index = cache_home() / "wallpaper_index"
 
     def _resolve_wallpaper_dir(self) -> Path:
-        """Resolve wallpaper directory from AppSettings (falls back to default)."""
+        """Wallpaper directory: the explicit GUI setting, else the Rust CLI's
+        answer (`theme-profile wallpaper dir`: $WALLPAPER_DIR → setting →
+        XDG Pictures/Wallpaper), so GUI, theme-menu and hotkeys agree."""
         if self._wallpaper_dir is None:
+            configured = ""
             try:
-                settings_core = CoreFactory.settings_core()
-                settings = settings_core.load()
-                self._wallpaper_dir = Path(settings.wallpaper_directory).expanduser()
+                configured = CoreFactory.settings_core().load().wallpaper_directory.strip()
             except Exception:
-                self._wallpaper_dir = Path.home() / "Изображения/Wallpaper"
+                configured = ""
+            if configured:
+                self._wallpaper_dir = Path(configured).expanduser()
+            else:
+                res = self._run([resolve_cli_bin(), "wallpaper", "dir"], timeout=5)
+                self._wallpaper_dir = (
+                    Path(res.message) if res.success and res.message
+                    else Path.home() / "Pictures" / "Wallpaper"
+                )
         return self._wallpaper_dir
 
     @property
@@ -301,33 +316,18 @@ class CliWallpaperCore(WallpaperCore):
     # authoritative answer to "what is on the desktop right now".
     PLASMA_CONFIG = live_path(".config/plasma-org.kde.plasma.desktop-appletsrc")
 
-    _IMAGE_GROUP_RE = re.compile(
-        r"^\[Containments\]\[\d+\]\[Wallpaper\]\[org\.kde\.image\]\[General\]$"
-    )
-
     def _plasma_wallpaper(self) -> Optional[str]:
-        """Путь обоев, которые Plasma показывает сейчас (None — не прочитать)."""
-        try:
-            text = self.PLASMA_CONFIG.read_text(errors="replace")
-        except OSError:
-            return None
+        """Путь обоев, которые Plasma показывает сейчас (None — не прочитать).
 
-        url: Optional[str] = None
-        in_image_group = False
-        for line in text.splitlines():
-            if line.startswith("["):
-                in_image_group = self._IMAGE_GROUP_RE.match(line) is not None
-                continue
-            if in_image_group and line.startswith("Image="):
-                url = line[len("Image="):].strip()
-
-        if not url:
-            return None
-        if url.startswith("file://"):
-            path = unquote(urlsplit(url).path)
-        else:
-            path = unquote(url)
-        return path or None
+        One implementation for everyone: the Rust CLI (`theme-profile
+        wallpaper current`) picks the primary screen's org.kde.image wallpaper.
+        """
+        res = self._run(
+            [resolve_cli_bin(), "wallpaper", "current"],
+            timeout=5,
+            env={"PLASMA_APPLETSRC": str(self.PLASMA_CONFIG)},
+        )
+        return res.message if res.success and res.message else None
 
     def _run(
         self, args: list[str], timeout: int = 15, env: Optional[dict[str, str]] = None
@@ -351,9 +351,9 @@ class CliWallpaperCore(WallpaperCore):
     def _script_env(self) -> dict[str, str]:
         """Force the scripts to use the directory the app is showing.
 
-        The scripts default to ~/Изображения/Wallpaper, while the app reads
-        `wallpaper_directory` from the settings file; if the two ever differ
-        the index written by a script would point into another list.
+        The scripts resolve the directory themselves (same rules), but the
+        app may hold an explicit setting not yet saved to disk; pinning it
+        keeps the index written by a script pointing into the same list.
         """
         return {"WALLPAPER_DIR": str(self.wallpaper_dir)}
 

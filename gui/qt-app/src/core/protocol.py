@@ -396,7 +396,8 @@ class AppSettings:
 
     # Обои
     wallpaper_linked_to_profile: bool = False
-    wallpaper_directory: str = "~/Изображения/Wallpaper"
+    # "" = auto: $WALLPAPER_DIR → XDG Pictures/Wallpaper (resolved by the Rust CLI)
+    wallpaper_directory: str = ""
 
     # UI
     theme: str = "system"                       # "system" | "glass" | "paper" | "dark" | "light"
@@ -449,7 +450,7 @@ class AppSettings:
             default_components_mode=data.get("default_components_mode", "all"),
             custom_components=tuple(data.get("custom_components", [])),
             wallpaper_linked_to_profile=data.get("wallpaper_linked_to_profile", False),
-            wallpaper_directory=data.get("wallpaper_directory", "~/Изображения/Wallpaper"),
+            wallpaper_directory=data.get("wallpaper_directory", ""),
             theme=data.get("theme", "system"),
             show_not_installed_warning=data.get("show_not_installed_warning", True),
             auto_apply_on_startup=data.get("auto_apply_on_startup", False),

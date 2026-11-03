@@ -184,32 +184,145 @@ pub fn step_index(
     Ok(index)
 }
 
-/// Path of the wallpaper Plasma is showing right now (None — unreadable),
-/// read from an explicit appletsrc path (the CLI honours `PLASMA_APPLETSRC`).
+/// Plasma's desktop layout file, relative to `$HOME` (profile snapshot layout).
+pub const APPLETSRC_REL: &str = ".config/plasma-org.kde.plasma.desktop-appletsrc";
+
+/// Wallpaper directory used by the picker, next/prev and the GUI.
 ///
-/// Plasma keeps the desktop wallpaper per containment in the appletsrc; it is
-/// the authoritative answer to "what is on the desktop". The *last* `Image=`
-/// inside a `[Containments][N][Wallpaper][org.kde.image][General]` group wins.
+/// Order: `$WALLPAPER_DIR` → GUI setting `wallpaper_directory` in
+/// `app-preferences.json` → `$(xdg-user-dir PICTURES)/Wallpaper` →
+/// `~/Pictures/Wallpaper`. Never a hard-coded localised folder name.
+pub fn wallpaper_dir() -> PathBuf {
+    wallpaper_dir_from(
+        std::env::var_os("WALLPAPER_DIR"),
+        &crate::paths::settings_file(),
+        &crate::paths::config_home().join("user-dirs.dirs"),
+        &crate::paths::home_dir(),
+    )
+}
+
+/// Pure resolution behind [`wallpaper_dir`] (testable without touching `$HOME`).
+pub fn wallpaper_dir_from(
+    env: Option<std::ffi::OsString>,
+    settings: &Path,
+    user_dirs: &Path,
+    home: &Path,
+) -> PathBuf {
+    if let Some(value) = env.filter(|v| !v.is_empty()) {
+        return expand_home(&value.to_string_lossy(), home);
+    }
+    if let Some(dir) = settings_wallpaper_dir(settings, home) {
+        return dir;
+    }
+    if let Some(pictures) = xdg_pictures_dir(user_dirs, home) {
+        return pictures.join("Wallpaper");
+    }
+    home.join("Pictures").join("Wallpaper")
+}
+
+fn expand_home(value: &str, home: &Path) -> PathBuf {
+    if value == "~" || value == "$HOME" {
+        return home.to_path_buf();
+    }
+    for prefix in ["~/", "$HOME/"] {
+        if let Some(rest) = value.strip_prefix(prefix) {
+            return home.join(rest);
+        }
+    }
+    PathBuf::from(value)
+}
+
+fn settings_wallpaper_dir(settings: &Path, home: &Path) -> Option<PathBuf> {
+    let text = fs::read_to_string(settings).ok()?;
+    let json: serde_json::Value = serde_json::from_str(&text).ok()?;
+    let value = json.get("wallpaper_directory")?.as_str()?.trim();
+    if value.is_empty() {
+        None
+    } else {
+        Some(expand_home(value, home))
+    }
+}
+
+/// `XDG_PICTURES_DIR` from `user-dirs.dirs` (None when unset or equal to `$HOME`,
+/// which the XDG spec uses to mean "disabled").
+fn xdg_pictures_dir(user_dirs: &Path, home: &Path) -> Option<PathBuf> {
+    let text = fs::read_to_string(user_dirs).ok()?;
+    for line in text.lines() {
+        let Some(value) = line.trim().strip_prefix("XDG_PICTURES_DIR=") else {
+            continue;
+        };
+        let value = value.trim().trim_matches('"');
+        let path = expand_home(value, home);
+        if path.as_os_str().is_empty() || path == home {
+            return None;
+        }
+        return Some(path);
+    }
+    None
+}
+
+/// Path of the wallpaper Plasma is showing right now (None — unreadable or not
+/// an `org.kde.image` wallpaper), read from an explicit appletsrc path.
+///
+/// One answer for every caller (next/prev, GUI, profile save/apply): the
+/// `Image=` of the desktop containment on the *primary* screen (`lastScreen=0`,
+/// else the lowest screen number); among several containments for that screen
+/// (activities) the last one in the file wins. Plugins other than
+/// `org.kde.image` (slideshow, POTD) have no image group and are ignored.
 pub fn plasma_wallpaper_from(config: &Path) -> Option<String> {
     let text = fs::read_to_string(config).ok()?;
 
-    let mut url: Option<String> = None;
-    let mut in_image_group = false;
+    #[derive(Default)]
+    struct Containment {
+        screen: Option<i64>,
+        image: Option<String>,
+        image_seq: usize,
+    }
+    let mut containments: std::collections::BTreeMap<String, Containment> = Default::default();
+    let mut current: Option<(String, bool)> = None; // (containment id, in image group)
+    let mut seq = 0usize; // position of each Image= line: later lines win ties
+
     for line in text.lines() {
-        if line.starts_with('[') {
-            let trimmed = line.trim();
-            in_image_group = trimmed.starts_with("[Containments]")
-                && trimmed.ends_with("[Wallpaper][org.kde.image][General]");
+        let trimmed = line.trim();
+        if trimmed.starts_with('[') {
+            current = None;
+            let Some(rest) = trimmed.strip_prefix("[Containments][") else {
+                continue;
+            };
+            let Some(end) = rest.find(']') else { continue };
+            let id = rest[..end].to_string();
+            let tail = &rest[end + 1..];
+            if tail.is_empty() {
+                current = Some((id, false));
+            } else if tail == "[Wallpaper][org.kde.image][General]" {
+                current = Some((id, true));
+            }
             continue;
         }
-        if in_image_group {
-            if let Some(value) = line.strip_prefix("Image=") {
-                url = Some(value.trim().to_string());
+        let Some((id, in_image)) = current.as_ref() else { continue };
+        let entry = containments.entry(id.clone()).or_default();
+        if *in_image {
+            if let Some(value) = trimmed.strip_prefix("Image=") {
+                seq += 1;
+                entry.image = Some(value.trim().to_string());
+                entry.image_seq = seq;
             }
+        } else if let Some(value) = trimmed.strip_prefix("lastScreen=") {
+            entry.screen = value.trim().parse::<i64>().ok().filter(|n| *n >= 0);
         }
     }
 
-    let url = url?;
+    let url = containments
+        .values()
+        .filter(|c| c.image.as_deref().is_some_and(|i| !i.is_empty()))
+        .min_by(|a, b| {
+            let sa = a.screen.unwrap_or(i64::MAX);
+            let sb = b.screen.unwrap_or(i64::MAX);
+            sa.cmp(&sb).then(b.image_seq.cmp(&a.image_seq))
+        })?
+        .image
+        .clone()?;
+
     let path = if let Some(rest) = url.strip_prefix("file://") {
         percent_decode(rest)
     } else {
@@ -292,4 +405,93 @@ pub fn write_cache_index(state: &Path, index: usize) -> Result<()> {
     }
     fs::write(state, format!("{index}\n"))?;
     Ok(())
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn write(path: &Path, text: &str) {
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, text).unwrap();
+    }
+
+    #[test]
+    fn wallpaper_dir_resolution_order() {
+        let tmp = tempfile::tempdir().unwrap();
+        let home = tmp.path();
+        let settings = home.join("settings.json");
+        let user_dirs = home.join("user-dirs.dirs");
+
+        // Nothing configured → ~/Pictures/Wallpaper, not a localised name.
+        assert_eq!(
+            wallpaper_dir_from(None, &settings, &user_dirs, home),
+            home.join("Pictures/Wallpaper")
+        );
+        // XDG_PICTURES_DIR (localised) → <pictures>/Wallpaper.
+        write(&user_dirs, "XDG_PICTURES_DIR=\"$HOME/Изображения\"\n");
+        assert_eq!(
+            wallpaper_dir_from(None, &settings, &user_dirs, home),
+            home.join("Изображения/Wallpaper")
+        );
+        // GUI setting beats XDG; `~` expands.
+        write(&settings, r#"{"wallpaper_directory": "~/Walls"}"#);
+        assert_eq!(
+            wallpaper_dir_from(None, &settings, &user_dirs, home),
+            home.join("Walls")
+        );
+        // An empty setting means "auto".
+        write(&settings, r#"{"wallpaper_directory": ""}"#);
+        assert_eq!(
+            wallpaper_dir_from(None, &settings, &user_dirs, home),
+            home.join("Изображения/Wallpaper")
+        );
+        // $WALLPAPER_DIR beats everything.
+        assert_eq!(
+            wallpaper_dir_from(Some("/srv/w".into()), &settings, &user_dirs, home),
+            PathBuf::from("/srv/w")
+        );
+        // XDG_PICTURES_DIR == $HOME means "disabled" per the spec.
+        write(&user_dirs, "XDG_PICTURES_DIR=\"$HOME/\"\n");
+        fs::remove_file(&settings).unwrap();
+        assert_eq!(
+            wallpaper_dir_from(None, &settings, &user_dirs, home),
+            home.join("Pictures/Wallpaper")
+        );
+    }
+
+    #[test]
+    fn current_wallpaper_is_the_primary_screen() {
+        let tmp = tempfile::tempdir().unwrap();
+        let rc = tmp.path().join("appletsrc");
+        write(
+            &rc,
+            "[Containments][1]\nlastScreen=1\nwallpaperplugin=org.kde.image\n\n\
+             [Containments][1][Wallpaper][org.kde.image][General]\nImage=file:///w/second.jpg\n\n\
+             [Containments][2]\nlastScreen=0\n\n\
+             [Containments][2][Wallpaper][org.kde.image][General]\nImage=file:///w/pri%20mary.jpg\n\n\
+             [Containments][3]\nlastScreen=-1\n\n\
+             [Containments][3][Wallpaper][org.kde.image][General]\nImage=file:///w/orphan.jpg\n\n\
+             [Containments][4]\nlastScreen=0\nwallpaperplugin=org.kde.slideshow\n\n\
+             [Containments][4][Wallpaper][org.kde.slideshow][General]\nSlidePaths=/w\n",
+        );
+        // Screen 0 wins over file order; the slideshow has no Image.
+        assert_eq!(plasma_wallpaper_from(&rc).as_deref(), Some("/w/pri mary.jpg"));
+
+        // Two activities on screen 0: the later Image= wins.
+        let mut text = fs::read_to_string(&rc).unwrap();
+        text.push_str(
+            "\n[Containments][9]\nlastScreen=0\n\n\
+             [Containments][9][Wallpaper][org.kde.image][General]\nImage=/w/activity.png\n",
+        );
+        write(&rc, &text);
+        assert_eq!(plasma_wallpaper_from(&rc).as_deref(), Some("/w/activity.png"));
+    }
+
+    #[test]
+    fn no_image_wallpaper_is_none() {
+        let tmp = tempfile::tempdir().unwrap();
+        let rc = tmp.path().join("appletsrc");
+        write(&rc, "[Containments][1]\nlastScreen=0\nwallpaperplugin=org.kde.potd\n");
+        assert_eq!(plasma_wallpaper_from(&rc), None);
+    }
 }

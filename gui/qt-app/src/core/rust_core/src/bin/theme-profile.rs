@@ -13,6 +13,7 @@ use kde_theme_core::profile::{
     save_profile_cli, set_profile_description, get_profile_description,
 };
 use kde_theme_core::status::status;
+use kde_theme_core::wallpaper::{plasma_wallpaper_from, wallpaper_dir};
 
 const USAGE: &str = "\
 Usage:
@@ -25,6 +26,7 @@ Usage:
   theme-profile delete NAME
   theme-profile describe NAME [--set=...]
   theme-profile components <list|add|edit|remove> [json_or_id]
+  theme-profile wallpaper <dir|current>
 
 Components: kwin, plasma_shell, kdeglobals, gtk3, gtk4, qt5ct,
             klassy, kvantum, alacritty, kitty, wofi, btop,
@@ -190,6 +192,31 @@ fn main() -> ExitCode {
                 }
             }
         }
+        "wallpaper" => match args.get(1).map(String::as_str) {
+            // Single source of truth for the GUI and scripts.
+            Some("dir") => {
+                println!("{}", wallpaper_dir().display());
+                ExitCode::SUCCESS
+            }
+            Some("current") => {
+                let appletsrc = std::env::var_os("PLASMA_APPLETSRC")
+                    .map(std::path::PathBuf::from)
+                    .unwrap_or_else(|| {
+                        kde_theme_core::paths::live_path(kde_theme_core::wallpaper::APPLETSRC_REL)
+                    });
+                match plasma_wallpaper_from(&appletsrc) {
+                    Some(path) => {
+                        println!("{path}");
+                        ExitCode::SUCCESS
+                    }
+                    None => fail("No org.kde.image wallpaper found"),
+                }
+            }
+            _ => {
+                eprint!("{USAGE}");
+                fail("Usage error: wallpaper <dir|current>")
+            }
+        },
         "save" => {
             let (positional, raw, desc) = parse_args(&args[1..]);
             let Some(name) = positional.first().copied() else {

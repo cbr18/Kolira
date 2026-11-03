@@ -1,6 +1,6 @@
 # Проверить интеграцию с обоями: от чего она зависит
 
-Status: TODO
+Status: DONE (ветка feat/wallpaper-integration)
 
 ## Проблема
 
@@ -49,20 +49,50 @@ Status: TODO
 7. **Обои без `org.kde.image`** (слайдшоу, `org.kde.potd`, видео-плагины)
    никак не распознаются — текущие обои «пустые», next/prev стартуют с 0.
 
-## Что сделать
+## Решения (согласованы 2026-11-04)
 
-- [ ] Каталог обоев: `WALLPAPER_DIR` → настройка GUI → `xdg-user-dir PICTURES`/Wallpaper
-      → `~/Pictures/Wallpaper`; одна реализация в Rust, GUI читает её же.
-- [ ] Решить: копировать файл обоев в профиль (`profile/wallpaper.<ext>`) или
-      хранить путь + проверять в `validate_profile_bundle` с понятной ошибкой.
-- [ ] `theme-profile apply` должен применять `wallpaper` из bundle (единый путь
-      для CLI/GUI/MCP, логика — в Rust).
-- [ ] Исправить `first_wallpaper_image` (`config_home().join("plasma-…")`) и
-      свести поиск текущих обоев к одной функции `plasma_wallpaper_from`.
-- [ ] Мультимонитор: определить поведение (все экраны / по экрану) и покрыть тестом.
-- [ ] Деградация без `magick`/`wofi`: явное сообщение вместо тихого пропуска.
-- [ ] Тесты: локаль en/ru, отсутствующий файл обоев, два экрана, не-image плагин.
-- [ ] Обновить `README.md`, `docs/CURRENT_APP.md`, `gui/qt-app/README.md`.
+- Каталог: `$WALLPAPER_DIR` → настройка GUI `wallpaper_directory` → `$(xdg-user-dir PICTURES)/Wallpaper` → `~/Pictures/Wallpaper`.
+- Обои в профиле — **копия файла** (`<профиль>/wallpaper/<имя>` + `source`).
+- Несколько мониторов — одни обои на все; «текущие» = основной экран.
+- Акцент из обоев — **отдаём Plasma**, без ImageMagick.
+
+## Что сделано
+
+- [x] Одна реализация каталога в Rust (`wallpaper::wallpaper_dir`, `theme-profile wallpaper dir`);
+      бинарники `wallpaper-*` и GUI используют её; дефолт настройки GUI — `""` (авто).
+- [x] Копия обоев в профиле при `save` (если сохраняется `plasma_shell`);
+      `apply` берёт оригинал, иначе возвращает копию (старый путь → каталог обоев,
+      существующие файлы не перезаписываются) и применяет с ретраями после
+      старта plasmashell. Старые профили — fallback на `wallpaper` из bundle.
+- [x] `theme-profile apply` применяет обои сам; шаг `set_wallpaper` в Python убран.
+- [x] Убраны `first_wallpaper_image*` (баг `~/.config/.config`), `wallpaper_accent_hex`,
+      `parse_imagemagick_pixel`; поиск текущих обоев — одна функция
+      `plasma_wallpaper_from` (основной экран, при активностях — последний `Image=`);
+      GUI спрашивает `theme-profile wallpaper current` вместо своего парсера.
+- [x] Мультимонитор: одни обои на все, текущие — `lastScreen=0`; тест.
+- [x] magick больше не нужен для акцента; без magick/wofi picker сообщает
+      «No displayable wallpapers» / «could not start wofi».
+- [x] `validate_profile` сообщает об обоях, которых нет ни на диске, ни в копии.
+- [x] Тесты: Rust (каталог en/ru/настройка/env, основной экран, активности,
+      не-image плагин, восстановление копии, fallback на bundle), bash (CLI
+      `wallpaper dir|current`, save копирует, apply восстанавливает, акцент
+      отдаётся Plasma), Python (валидация обоев, apply без второго вызова).
+- [x] Документация: `README.md`, `docs/CURRENT_APP.md`, `docs/ROLLBACK.md`,
+      `gui/qt-app/README.md`, `AGENTS.md`.
+
+## Заметки
+
+- Проверено вживую: Plasma читает `accentColorFromWallpaper` только при старте
+  plasmashell; после рестарта акцент пересчитывается и следует за сменой обоев
+  (Everforest-обои → `77,154,84`, другие → `90,152,180`). `apply` перезапускает
+  plasmashell, поэтому этого достаточно.
+- Замечено: `plasma-apply-colorscheme --accent-color X <та же схема>` печатает
+  «успешно назначен», но `AccentColor` в kdeglobals не меняется, если до этого
+  акцент шёл из обоев; помогла явная запись `kwriteconfig6 --notify`. Явный
+  акцент профиля в `apply` идёт через `--accent-color` — при регрессии
+  переключения акцента смотреть сюда.
+- `save` копирует обои при каждом сохранении (несколько МБ на профиль, плюс
+  pre-save бэкап).
 
 ## Не входит в задачу
 

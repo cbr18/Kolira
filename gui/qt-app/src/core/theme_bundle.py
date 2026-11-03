@@ -650,10 +650,9 @@ class ThemeBundleCore:
             for app_id, theme in dict(data.get("applications") or {}).items():
                 app_result = self.set_component(str(app_id), theme)
                 messages.append(f"{app_id}: {app_result.message}")
-            wallpaper = str(data.get("wallpaper") or "")
-            if wallpaper and self._wallpapers is not None:
-                wallpaper_result = self._wallpapers.set_wallpaper(wallpaper)
-                messages.append(wallpaper_result.message)
+            # The wallpaper is restored by `theme-profile apply` itself (saved
+            # copy in <profile>/wallpaper/, bundle path as fallback) so CLI,
+            # theme-menu and GUI behave the same.
             return Result.ok("; ".join(messages))
         return applied
 
@@ -676,6 +675,13 @@ class ThemeBundleCore:
                 labels = {str(theme_item["id"]) for theme_item in app["themes"]}
                 if str(theme) not in labels:
                     missing.append(f"{app['name']}: {theme}")
+        wallpaper = str(data.get("wallpaper") or "")
+        saved_copy = profile_dir(name) / "wallpaper"
+        has_copy = saved_copy.is_dir() and any(
+            item.is_file() and item.name != "source" for item in saved_copy.iterdir()
+        )
+        if wallpaper and not has_copy and not Path(wallpaper).is_file():
+            missing.append(f"{_tr(QT_TRANSLATE_NOOP('ThemeBundle', 'Wallpaper'))}: {wallpaper}")
         if missing:
             return Result.err("Missing theme references: " + "; ".join(missing))
         return Result.ok("Theme bundle is complete")

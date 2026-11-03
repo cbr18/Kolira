@@ -213,8 +213,10 @@ theme-profile save my-profile
 
 ### Wallpaper picker shows no images
 
-The wallpaper directory defaults to `~/Изображения/Wallpaper` (or `~/Pictures/Wallpaper`
-on English systems). Override with:
+Check which directory is used: `theme-profile wallpaper dir`. Default:
+`$(xdg-user-dir PICTURES)/Wallpaper` (`~/Изображения/Wallpaper` on a Russian
+locale, `~/Pictures/Wallpaper` otherwise); the GUI setting `wallpaper_directory`
+wins over it. Override with:
 
 ```bash
 export WALLPAPER_DIR="$HOME/Pictures/MyWallpapers"
