@@ -79,7 +79,7 @@ wallpaper-prev                   # предыдущие обои
 `~/.config/theme-profile/profiles/`).
 Активный профиль — маркер `theme-profile/active-profile` в том же корне.
 
-При apply Rust-ядро после восстановления файлов заново применяет цветовую схему через `plasma-apply-colorscheme`. Если в профиле есть явный `AccentColor`, он передаётся через `--accent-color`; если включён `accentColorFromWallpaper`, accent выводится из обоев профиля и тоже применяется явно. Если `accentColorFromWallpaper=true`, но образа обоев в профиле нет, accent не форсируется — Plasma оставит палитру текущей сессии. Профили `glass` и `paper` имеют `accentColorFromWallpaper=false`, поэтому акцент переключается между ними: `glass` берёт акцент из схемы `Breeze1`, `paper` — из явного `AccentColor=155,150,77`.
+При apply Rust-ядро после восстановления файлов заново применяет цветовую схему через `plasma-apply-colorscheme`. Если в профиле есть явный `AccentColor`, он передаётся через `--accent-color`; если включён `accentColorFromWallpaper`, accent выводится из обоев профиля и тоже применяется явно. Если `accentColorFromWallpaper=true`, accent выводится из обоев (сначала из `Image=` в профиле, затем из текущих обоев сессии в live конфиге); если образа нет, Plasma оставит палитру сессии. Профиль `glass` имеет `accentColorFromWallpaper=true` (акцент из обоев), профиль `paper` — `accentColorFromWallpaper=false` с явным `AccentColor=155,150,77`. Поэтому акцент переключается между профилями: `glass` берёт акцент из обоев, `paper` — оливковый из явного `AccentColor`.
 
 ---
 
