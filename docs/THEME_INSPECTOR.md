@@ -48,7 +48,7 @@
 | `wofi` | `wofi/style.css`, `wallpaper.css` | цвета меню через `@define-color` |
 | `btop` | `btop.conf`, `themes/*.theme` | тема, скругления |
 | `zed` / `vscode` / `cursor` | `settings.json` | active theme (light/dark/mode) |
-| `zen` | `user.js`, `userChrome.css`, `userContent.css` | 8 prefs прозрачности/темы |
+| `zen` | `user.js`, `userChrome.css`, `userContent.css` | prefs прозрачности/темы, включая `zen.view.window.scheme` (0 dark, 1 light, 2 system) |
 | `obsidian` | `appearance.json`, `Preferences` | тема, cssTheme |
 | `fastfetch` | `config.jsonc`, `logo` | логотип/конфиг |
 | `color_schemes` | `~/.local/share/color-schemes/*.colors` | сами схемы |
@@ -160,7 +160,7 @@
 | btop | `theme` (enum из `btop/themes`), `rounded_corners` | restart |
 | zed | `theme.mode`, `theme.light`, `theme.dark` | live (Zed перечитывает) |
 | VS Code / Cursor | `workbench.colorTheme` | live |
-| Zen | 8 prefs из `user.js` (transparency, opacity, color) | restart |
+| Zen | prefs из `user.js`: transparency, opacity, color, `zen.view.window.scheme` | restart |
 | Obsidian | `theme`, `cssTheme` | reload |
 | wofi | цвета `@define-color` | при следующем открытии |
 | fastfetch | `logo`, путь конфига | при следующем запуске |
@@ -433,7 +433,7 @@ reload-хуки. Практика показала, что промежуточ�
 4. **Kvantum-варианты**: тема может быть файлом внутри чужого каталога (`Orchis/OrchisDark.kvconfig`). Список — по `*.kvconfig`, не по каталогам.
 5. **Kvantum/GTK/иконки** не применяются к уже запущенным приложениям — честный бейдж `restart app`.
 6. **Эффекты KWin**: конфиг и фактическое состояние расходятся (`loadedEffects` vs `[Plugins]`). Показывать оба, предупреждать о двух blur-провайдерах.
-7. **`kwriteconfig6 --notify` не гарантирует live-перечитывание** — для цветов использовать `plasma-apply-colorscheme`, для эффектов D-Bus.
+7. **`kwriteconfig6 --notify` не гарантирует live-перечитывание** — для цветов использовать `plasma-apply-colorscheme`, для эффектов D-Bus. После apply профиля схема переприменяется принудительно; wallpaper-accent переводится в конкретный цвет через `magick`, чтобы уже запущенная Plasma обновила палитру.
 8. **Wayland/D-Bus API** может отличаться по версии KWin — все вызовы best-effort, ошибки видимы.
 9. **52 системные + 16 пользовательских color scheme** — группировать «User / System», иначе комбобокс нечитаем.
 10. **Flatpak GTK** не видит пользовательские темы — предупреждение в GTK-разделе.

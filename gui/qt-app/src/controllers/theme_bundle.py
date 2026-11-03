@@ -266,6 +266,11 @@ class ThemeBundleController(QObject):
         self.toast.emit(result.message, result.success)
 
     @Slot(str)
+    def openAppConfig(self, app_id: str) -> None:
+        result = self._core.open_app_config(app_id)
+        self.toast.emit(result.message, result.success)
+
+    @Slot(str)
     def openAppThemeSettings(self, app_id: str) -> None:
         result = self._core.open_app_theme_settings(app_id)
         self.toast.emit(result.message, result.success)

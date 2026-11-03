@@ -128,7 +128,8 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         '{\n  "workbench.colorTheme": "Cursor Dark Midnight"\n}\n')
     put(".zen/test (release)/user.js",
         'user_pref("browser.tabs.allow_transparent_browser", true);\n'
-        'user_pref("mod.sameerasw.zen_bg_opacity", "0.55");\n')
+        'user_pref("mod.sameerasw.zen_bg_opacity", "0.55");\n'
+        'user_pref("zen.view.window.scheme", 0);\n')
     put("obsidian/vault/.obsidian/appearance.json", "{}")
     (tmp_path / ".local/share/plasma/look-and-feel/glass/contents").mkdir(parents=True)
 
@@ -173,6 +174,8 @@ def test_reads_live_values(home: Path) -> None:
     assert core.get("vscode_theme")["value"] == "Default Dark Modern"
     assert core.get("cursor_ide_theme")["value"] == "Cursor Dark Midnight"
     assert core.get("zen_opacity")["value"] == pytest.approx(0.55)
+    assert core.get("zen_window_scheme")["value"] == "0"
+    assert core.get("zen_window_scheme")["display"] == "Dark"
     assert core.get("obsidian_theme")["value"] is None
     assert core.get("cursor_theme")["display"] == "System default"
     assert core.get("kvantum_theme")["value"] == "OrchisDark"
@@ -206,6 +209,18 @@ def test_write_kde_and_undo(home: Path) -> None:
     assert result.success, result.message
     assert core.get("accent_color")["value"] == "128,142,71"
     assert core.session_changes() == 0
+
+
+def test_write_zen_window_scheme_as_integer(home: Path) -> None:
+    core = AppThemeCore()
+    result = core.set_value("zen_window_scheme", "1")
+    assert result.success, result.message
+    assert core.apply().success
+
+    zen_profile = next((home / ".zen").glob("*/user.js"))
+    text = zen_profile.read_text(encoding="utf-8")
+    assert 'user_pref("zen.view.window.scheme", 1);' in text
+    assert 'user_pref("zen.view.window.scheme", "1");' not in text
 
 
 def test_undo_depth_tracks_applied_changes(home: Path) -> None:
@@ -478,7 +493,10 @@ def test_qml_wiring() -> None:
     assert "themeBundle.setComponent" in components_page
     assert "themeBundle.openSystemSettings" in components_page
     assert "themeBundle.launchApp" in apps_page
+    assert "themeBundle.openAppConfig" in apps_page
     assert "themeBundle.openAppThemeSettings" in apps_page
+    assert "Open config" in apps_page
+    assert "This application is styled through its config file." in apps_page
     assert "ThemeSectionFields" in section_page
     assert "themeInspector.applyChanges" in section_page
     assert "ColorDialog" in row

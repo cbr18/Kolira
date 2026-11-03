@@ -108,10 +108,10 @@ A change is not done until the docs agree with the code. At minimum:
 # Build the Rust CLI first
 cd gui/qt-app/src/core/rust_core && cargo build --release && cargo test && cargo clippy --all-targets -- -D warnings
 
-# Python tests (offscreen Qt; 229 tests)
+# Python tests (offscreen Qt; 231 tests)
 cd gui/qt-app && QT_QPA_PLATFORM=offscreen uv run --project . --extra dev pytest tests -q
 
-# Bash + installer tests (~121 assertions) — from the repo root
+# Bash + installer tests (~117 assertions) — from the repo root
 bash tests/test-scripts.sh
 
 # Shell static analysis (installer scripts)
@@ -132,7 +132,7 @@ codebase to satisfy them unless asked.
 1. Edit `gui/qt-app/src/core/rust_core/**` for the CLI and core; deploy with
    `scripts/install-theme-profile-kit.sh` (builds with `cargo build --release`).
 2. Edit `gui/qt-app/**` for the GUI; deploy with
-   `scripts/install-kde-theme-manager.sh` (or the kit installer).
+   `scripts/install-theme-profile-kit.sh` (use `--only-gui` for the app alone).
 3. Do **not** edit `~/.config/kwinrc`, `plasmashellrc`, `kdeglobals` without a
    backup; do **not** edit Zen `prefs.js` (use the profile `user.js`).
 4. Prefer `uv` for Python and `cargo` for Rust on this machine.

@@ -388,6 +388,9 @@ class ThemeBundleCore:
             themes: list[dict] = []
             status = "ok"
             status_text = ""
+            config_file = adapter.config_file()
+            if config_file is None and adapter.config_paths:
+                config_file = live_path(adapter.config_paths[0])
 
             if not installed:
                 status = "not_installed"
@@ -412,7 +415,10 @@ class ThemeBundleCore:
                 "name": adapter.name,
                 "icon": adapter.icon,
                 "installed": installed,
+                "integration": adapter.integration,
                 "capabilities": capabilities,
+                "configPath": str(config_file or ""),
+                "configDisplay": str(config_file.name if config_file else ""),
                 "currentValue": str(current.get("value") or ""),
                 "currentDisplay": str(current.get("label") or current.get("value") or ""),
                 "mode": str(current.get("mode") or ""),
@@ -742,6 +748,15 @@ class ThemeBundleCore:
         if result.get("ok"):
             return Result.ok(str(result.get("message") or "Application launched"))
         return Result.err(str(result.get("message") or "Launch failed"))
+
+    def open_app_config(self, app_id: str) -> Result:
+        adapter = adapter_for(app_id)
+        if adapter is None:
+            return Result.err(f"Unknown application: {app_id}")
+        result = adapter.open_config()
+        if result.get("ok"):
+            return Result.ok(str(result.get("message") or "Config opened"))
+        return Result.err(str(result.get("message") or "Config cannot be opened"))
 
     def open_app_theme_settings(self, app_id: str) -> Result:
         adapter = adapter_for(app_id)

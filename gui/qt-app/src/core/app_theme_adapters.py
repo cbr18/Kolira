@@ -75,6 +75,7 @@ class AppThemeAdapter:
     icon = "application-x-executable"
     launch_command: tuple[str, ...] = ()
     config_paths: tuple[str, ...] = ()
+    integration = "generic"
     capabilities = {
         "detect": True,
         "current_theme": False,
@@ -82,12 +83,20 @@ class AppThemeAdapter:
         "apply_theme": False,
         "launch": False,
         "open_theme_settings": False,
+        "open_config": False,
     }
 
     def detect(self) -> bool:
         if self.launch_command and shutil.which(self.launch_command[0]):
             return True
         return any(live_path(path).exists() for path in self.config_paths)
+
+    def config_file(self) -> Optional[Path]:
+        for relative in self.config_paths:
+            candidate = live_path(relative)
+            if candidate.is_file():
+                return candidate
+        return None
 
     def current_theme(self) -> dict:
         return _err(f"{self.name} does not expose the current theme")
@@ -109,6 +118,21 @@ class AppThemeAdapter:
 
     def open_theme_settings(self) -> dict:
         return _err(f"{self.name} has no known theme settings command")
+
+    def open_config(self) -> dict:
+        target = self.config_file()
+        if target is None:
+            if not self.config_paths:
+                return _err(f"{self.name} has no known config file")
+            target = live_path(self.config_paths[0])
+            if not target.parent.is_dir():
+                return _err(f"{self.name} config folder not found")
+            target = target.parent
+        try:
+            subprocess.Popen(["xdg-open", str(target)])
+        except OSError as exc:
+            return _err(str(exc), "open_failed")
+        return _ok(message=f"Opened {target}")
 
 
 class JsonSettingsAdapter(AppThemeAdapter):
@@ -472,58 +496,13 @@ class KittyAdapter(AppThemeAdapter):
     name = "Kitty"
     icon = "kitty"
     launch_command = ("kitty",)
-    config_paths = (".config/kitty/kitty.conf", ".config/kitty/themes")
+    config_paths = (".config/kitty/kitty.conf",)
+    integration = "config"
     capabilities = {
         **AppThemeAdapter.capabilities,
-        "current_theme": True,
-        "installed_themes": True,
-        "apply_theme": True,
         "launch": True,
+        "open_config": True,
     }
-
-    def config_path(self) -> Path:
-        return live_path(".config/kitty/kitty.conf")
-
-    def current_theme(self) -> dict:
-        path = self.config_path()
-        if not path.is_file():
-            return _err("kitty.conf not found", "not_installed")
-        for line in (_read_text(path) or "").splitlines():
-            stripped = line.strip()
-            if stripped.startswith("include") and "themes/" in stripped:
-                value = stripped.split("themes/", 1)[1].strip().strip('"')
-                return _ok({"value": value.removesuffix(".conf"), "label": value.removesuffix(".conf")})
-        return _ok({"value": "", "label": ""}, "No Kitty color theme selected")
-
-    def installed_themes(self) -> dict:
-        root = live_path(".config/kitty/themes")
-        try:
-            files = sorted(root.glob("*.conf"), key=lambda p: p.name.casefold())
-        except OSError:
-            files = []
-        return _ok({
-            "themes": [AdapterTheme(path.stem, path.stem, str(path)).to_dict() for path in files]
-        })
-
-    def apply_theme(self, theme_id: str) -> dict:
-        if not theme_id:
-            return _err("Theme is empty")
-        theme = live_path(f".config/kitty/themes/{theme_id}.conf")
-        if not theme.is_file():
-            return _err(f"Kitty theme not found: {theme_id}", "theme_not_installed")
-        path = self.config_path()
-        old_text = _read_text(path) or ""
-        lines = [line for line in old_text.splitlines()
-                 if not line.strip().startswith("include") or "themes/" not in line]
-        lines.append(f"include themes/{theme_id}.conf")
-        new_text = "\n".join(lines).rstrip() + "\n"
-        backup_file(path)
-        try:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            atomic_write_text(path, new_text)
-        except OSError as exc:
-            return _err(str(exc), "apply_failed")
-        return _ok(message=f"Kitty theme set to {theme_id}")
 
 
 class AlacrittyAdapter(AppThemeAdapter):
@@ -532,27 +511,12 @@ class AlacrittyAdapter(AppThemeAdapter):
     icon = "alacritty"
     launch_command = ("alacritty",)
     config_paths = (".config/alacritty/alacritty.toml",)
+    integration = "config"
     capabilities = {
         **AppThemeAdapter.capabilities,
-        "current_theme": False,
-        "installed_themes": True,
-        "apply_theme": False,
         "launch": True,
+        "open_config": True,
     }
-
-    def installed_themes(self) -> dict:
-        roots = (live_path(".config/alacritty/themes"), Path("/usr/share/alacritty/themes"))
-        themes: list[AdapterTheme] = []
-        for root in roots:
-            try:
-                files = sorted(root.iterdir(), key=lambda p: p.name.casefold())
-            except OSError:
-                continue
-            for path in files:
-                if path.suffix.lower() in (".toml", ".yml", ".yaml", ".json"):
-                    themes.append(AdapterTheme(path.stem, path.stem, str(path)))
-        unique = {theme.id: theme for theme in themes}
-        return _ok({"themes": [theme.to_dict() for theme in unique.values()]})
 
 
 ADAPTERS: dict[str, AppThemeAdapter] = {

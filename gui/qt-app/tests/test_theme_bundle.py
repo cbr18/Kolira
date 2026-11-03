@@ -171,6 +171,7 @@ def bundle_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     put(".config/gtk-3.0/settings.ini", "[Settings]\ngtk-theme-name=Fluent-Dark\ngtk-application-prefer-dark-theme=true\n")
     put(".config/Kvantum/kvantum.kvconfig", KVANTUM)
     put(".config/Kvantum/Orchis/OrchisDark.kvconfig", KVANTUM_THEME)
+    put(".config/alacritty/alacritty.toml", "[window]\nopacity = 0.5\n")
 
     # Installed assets visible to the theme registry.
     put(".local/share/color-schemes/Breeze1.colors", "[General]\nName=Breeze1\nColorScheme=Breeze1\nAccentColor=128,142,71\n\n[Colors:Window]\nBackgroundNormal=32,36,31\n")
@@ -268,7 +269,9 @@ def test_component_set_and_apply_stages_core_values(bundle_home):
     assert "WindowCornerRadius=14" in live_path(".config/klassy/klassyrc").read_text(encoding="utf-8")
 
 
-def test_application_adapters_detect_and_apply_with_backups(bundle_home):
+def test_application_adapters_detect_and_apply_with_backups(
+    bundle_home, monkeypatch: pytest.MonkeyPatch
+):
     home = bundle_home["home"]
     adapters = ADAPTERS
 
@@ -310,15 +313,47 @@ def test_application_adapters_detect_and_apply_with_backups(bundle_home):
 
     kitty = KittyAdapter()
     assert kitty.detect()
-    assert kitty.current_theme()["value"] == "old"
-    assert "night" in {theme["id"] for theme in kitty.installed_themes()["themes"]}
-    assert kitty.apply_theme("night")["ok"]
-    kitty_text = (home / ".config/kitty/kitty.conf").read_text(encoding="utf-8")
-    assert "include themes/night.conf" in kitty_text
-    assert kitty_text.count("include themes/") == 1
+    assert kitty.integration == "config"
+    assert kitty.capabilities["open_config"] is True
+    assert kitty.capabilities["apply_theme"] is False
+    assert not kitty.apply_theme("night")["ok"]
+    opened: list[list[str]] = []
+    monkeypatch.setattr(
+        "core.app_theme_adapters.subprocess.Popen",
+        lambda args: opened.append(list(args)),
+    )
+    assert kitty.open_config()["ok"]
+    assert opened == [["xdg-open", str(home / ".config/kitty/kitty.conf")]]
+
+    alacritty = adapters["alacritty"]
+    assert alacritty.detect()
+    assert alacritty.integration == "config"
+    assert alacritty.capabilities["open_config"] is True
+    assert alacritty.capabilities["apply_theme"] is False
 
     backups = list((theme_root() / "backups").glob("app-theme-*/**/*"))
     assert backups, "adapter writes must create backup copies"
+
+
+def test_config_only_app_model_and_open_config(
+    bundle_home, monkeypatch: pytest.MonkeyPatch
+):
+    core = bundle_home["core"]
+    apps = {app["id"]: app for app in core.applications()}
+    kitty = apps["kitty"]
+    assert kitty["integration"] == "config"
+    assert kitty["capabilities"]["open_config"] is True
+    assert kitty["capabilities"]["installed_themes"] is False
+    assert kitty["configPath"] == str(bundle_home["home"] / ".config/kitty/kitty.conf")
+
+    opened: list[list[str]] = []
+    monkeypatch.setattr(
+        "core.app_theme_adapters.subprocess.Popen",
+        lambda args: opened.append(list(args)),
+    )
+    result = core.open_app_config("kitty")
+    assert result.success, result.message
+    assert opened == [["xdg-open", kitty["configPath"]]]
 
 
 def test_theme_bundle_core_tracks_adapter_changes(bundle_home):

@@ -737,27 +737,42 @@
         <translation>Не установлено</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="120"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="122"/>
         <source>%1 theme</source>
         <translation>Тема: %1</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="124"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="126"/>
+        <source>Open config</source>
+        <translation>Открыть конфиг</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="134"/>
         <source>Launch</source>
         <translation>Запустить</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="132"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="142"/>
         <source>App theme settings</source>
         <translation>Настройки темы приложения</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="144"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="153"/>
+        <source>Config: %1</source>
+        <translation>Конфиг: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="163"/>
+        <source>This application is styled through its config file. Open it in the default editor; profile snapshots still include the file.</source>
+        <translation>Оформление этого приложения задаётся конфигом. Откройте его в редакторе по умолчанию; снапшоты профилей по-прежнему сохраняют файл.</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="165"/>
         <source>This application can list themes, but automatic applying is not supported yet.</source>
         <translation>Приложение умеет показывать список тем, но автоматическое применение пока не поддерживается.</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="145"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="166"/>
         <source>No installed themes were detected for this application.</source>
         <translation>Для этого приложения не найдено установленных тем.</translation>
     </message>

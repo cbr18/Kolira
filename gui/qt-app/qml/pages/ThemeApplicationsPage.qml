@@ -104,6 +104,8 @@ Kirigami.ScrollablePage {
                         ComboBox {
                             id: themeChooser
                             Layout.fillWidth: true
+                            visible: modelData.capabilities.installed_themes === true
+                                && modelData.themes.length > 0
                             model: modelData.themes
                             textRole: "label"
                             valueRole: "id"
@@ -118,6 +120,14 @@ Kirigami.ScrollablePage {
                                     themeBundle.setComponent(modelData.id, modelData.themes[index].id)
                             }
                             Accessible.name: qsTr("%1 theme").arg(modelData.name)
+                        }
+
+                        Button {
+                            text: qsTr("Open config")
+                            icon.name: "document-open"
+                            visible: modelData.capabilities.open_config === true
+                            enabled: modelData.configPath !== "" && !themeBundle.busy
+                            onClicked: themeBundle.openAppConfig(modelData.id)
                         }
 
                         Button {
@@ -139,10 +149,21 @@ Kirigami.ScrollablePage {
 
                     Label {
                         Layout.fillWidth: true
+                        visible: modelData.configPath !== "" && modelData.integration === "config"
+                        text: qsTr("Config: %1").arg(modelData.configDisplay)
+                        wrapMode: Text.WordWrap
+                        color: ThemeColors.dimColorSoft(page.glassMode)
+                        font.pointSize: TypeScale.caption
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
                         visible: modelData.capabilities.apply_theme !== true && modelData.installed
-                        text: modelData.themes.length > 0
-                            ? qsTr("This application can list themes, but automatic applying is not supported yet.")
-                            : qsTr("No installed themes were detected for this application.")
+                        text: modelData.integration === "config"
+                            ? qsTr("This application is styled through its config file. Open it in the default editor; profile snapshots still include the file.")
+                            : modelData.themes.length > 0
+                                ? qsTr("This application can list themes, but automatic applying is not supported yet.")
+                                : qsTr("No installed themes were detected for this application.")
                         wrapMode: Text.WordWrap
                         color: ThemeColors.dimColorSoft(page.glassMode)
                         font.pointSize: TypeScale.caption

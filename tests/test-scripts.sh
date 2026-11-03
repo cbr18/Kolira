@@ -50,9 +50,7 @@ echo "=== Section 1: Syntax check (bash -n) ==="
 for script in \
     "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" \
     "$SCRIPT_DIR/scripts/uninstall-theme-profile-kit.sh" \
-    "$SCRIPT_DIR/scripts/update-theme-profile-kit.sh" \
-    "$SCRIPT_DIR/scripts/install-kde-theme-manager.sh" \
-    "$SCRIPT_DIR/scripts/uninstall-kde-theme-manager.sh"; do
+    "$SCRIPT_DIR/scripts/update-theme-profile-kit.sh"; do
 
   if run_silent bash -n "$script"; then
     ok "bash -n: $script"
@@ -68,9 +66,7 @@ if command -v shellcheck >/dev/null 2>&1; then
   for script in \
       "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" \
       "$SCRIPT_DIR/scripts/uninstall-theme-profile-kit.sh" \
-      "$SCRIPT_DIR/scripts/update-theme-profile-kit.sh" \
-      "$SCRIPT_DIR/scripts/install-kde-theme-manager.sh" \
-      "$SCRIPT_DIR/scripts/uninstall-kde-theme-manager.sh"; do
+      "$SCRIPT_DIR/scripts/update-theme-profile-kit.sh"; do
 
     if shellcheck "$script" 2>/dev/null; then
       ok "shellcheck: $script"
@@ -97,8 +93,7 @@ else
   fail "theme-profile -h should exit 0"
 fi
 
-for installer in install-theme-profile-kit.sh uninstall-theme-profile-kit.sh \
-  install-kde-theme-manager.sh uninstall-kde-theme-manager.sh; do
+for installer in install-theme-profile-kit.sh uninstall-theme-profile-kit.sh; do
   if "$SCRIPT_DIR/scripts/$installer" --help >/dev/null 2>&1; then
     ok "$installer --help exits 0"
   else
@@ -439,13 +434,13 @@ mkdir -p "$FAKE_HOME"
 gui_install() {
   env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
     PATH="/usr/bin:/bin" \
-    bash "$SCRIPT_DIR/scripts/install-kde-theme-manager.sh" --no-venv
+    bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --only-gui --no-venv
 }
 
 if gui_install >/dev/null 2>&1; then
-  ok "install-kde-theme-manager.sh runs"
+  ok "install --only-gui runs"
 else
-  fail "install-kde-theme-manager.sh failed"
+  fail "install --only-gui failed"
 fi
 
 check_installed() { # path description
@@ -511,7 +506,7 @@ fi
 
 env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
   PATH="/usr/bin:/bin" \
-  bash "$SCRIPT_DIR/scripts/uninstall-kde-theme-manager.sh" --force >/dev/null 2>&1
+  bash "$SCRIPT_DIR/scripts/uninstall-theme-profile-kit.sh" --only-gui --force >/dev/null 2>&1
 
 check_gone() { # path description
   if [ -e "$1" ]; then fail "still present: $1"; else ok "$2"; fi
@@ -529,14 +524,14 @@ mkdir -p "$FAKE_HOME/.local/share/kde-theme-manager-not-ours"
 printf 'keep me\n' > "$FAKE_HOME/.local/share/kde-theme-manager-not-ours/data"
 env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
   PATH="/usr/bin:/bin" \
-  bash "$SCRIPT_DIR/scripts/uninstall-kde-theme-manager.sh" --force >/dev/null 2>&1
+  bash "$SCRIPT_DIR/scripts/uninstall-theme-profile-kit.sh" --only-gui --force >/dev/null 2>&1
 if [ -f "$FAKE_HOME/.local/share/kde-theme-manager-not-ours/data" ]; then
   ok "uninstall leaves unrelated data alone"
 else
   fail "uninstall removed an unrelated directory"
 fi
 
-# The kit installer must bring up both the CLI and the GUI (and --no-gui must
+# The kit installer must bring up both the CLI and the GUI (and --only-cli must
 # install the CLI only).
 if env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
   PATH="/usr/bin:/bin:$REAL_CARGO_BIN" CARGO_HOME="$REAL_CARGO_HOME" RUSTUP_HOME="$REAL_RUSTUP_HOME" \
@@ -563,20 +558,20 @@ fi
 rm -rf "$FAKE_HOME/.local/share/kde-theme-manager" "$FAKE_HOME/.local/bin/kde-theme-manager"
 env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
   PATH="/usr/bin:/bin:$REAL_CARGO_BIN" CARGO_HOME="$REAL_CARGO_HOME" RUSTUP_HOME="$REAL_RUSTUP_HOME" \
-  bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --no-gui >/dev/null 2>&1
+  bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --only-cli >/dev/null 2>&1
 if [ ! -e "$FAKE_HOME/.local/bin/kde-theme-manager" ]; then
-  ok "--no-gui installs the CLI without the app"
+  ok "--only-cli installs the CLI without the app"
 else
-  fail "--no-gui still installed the app"
+  fail "--only-cli still installed the app"
 fi
 
 if env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
   PATH="/usr/bin:/bin" \
-  bash "$SCRIPT_DIR/scripts/uninstall-theme-profile-kit.sh" --force --no-gui >/dev/null 2>&1 &&
+  bash "$SCRIPT_DIR/scripts/uninstall-theme-profile-kit.sh" --force --only-cli >/dev/null 2>&1 &&
   [ ! -e "$FAKE_HOME/.local/bin/theme-profile" ]; then
-  ok "uninstall-theme-profile-kit.sh --force --no-gui removes the CLI"
+  ok "uninstall-theme-profile-kit.sh --force --only-cli removes the CLI"
 else
-  fail "kit uninstaller (--no-gui) did not remove the CLI"
+  fail "kit uninstaller (--only-cli) did not remove the CLI"
 fi
 
 # --- 12. The GUI install ships no Rust library --------------------------------
@@ -587,7 +582,7 @@ echo "=== Section 12: no Rust library in the GUI install ==="
 FAKE_HOME_RUST="$TMP_ROOT/fake-home-rust"
 mkdir -p "$FAKE_HOME_RUST"
 
-if bash "$SCRIPT_DIR/scripts/install-kde-theme-manager.sh" --help 2>&1 |
+if bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --help 2>&1 |
   grep -q -- "--with-rust"; then
   fail "installer --help still documents the removed --with-rust / --no-rust"
 else
@@ -596,7 +591,7 @@ fi
 
 if env -i HOME="$FAKE_HOME_RUST" XDG_DATA_HOME="$FAKE_HOME_RUST/.local/share" \
   PATH="/usr/bin:/bin" \
-  bash "$SCRIPT_DIR/scripts/install-kde-theme-manager.sh" --no-venv >/dev/null 2>&1; then
+  bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --only-gui --no-venv >/dev/null 2>&1; then
   if [ -e "$FAKE_HOME_RUST/.local/share/kde-theme-manager/lib" ]; then
     fail "installer still creates a Rust library directory"
   else
@@ -670,6 +665,79 @@ MOCK
     fail "apply wrote kreadconfig6 --help into kdeglobals"
   else
     ok "apply does not write command help into kdeglobals"
+  fi
+fi
+
+# --- 13b. apply re-applies the color scheme and accent ------------------------
+echo "=== Section 13b: apply re-applies color scheme and accent ==="
+if ! command -v kreadconfig6 >/dev/null 2>&1 || ! command -v kwriteconfig6 >/dev/null 2>&1; then
+  echo "  ⏭  kreadconfig6/kwriteconfig6 not installed (KDE tooling) — skipping"
+else
+  ACC_HOME="$TMP_ROOT/accent-home"
+  ACC_CALLS="$TMP_ROOT/accent-calls.log"
+  export ACC_CALLS
+  mkdir -p "$ACC_HOME/.config/theme-profile" "$ACC_HOME/.config"
+  : > "$ACC_CALLS"
+
+  cat > "$ACC_HOME/.config/kdeglobals" <<'EOF'
+[General]
+ColorScheme=Breeze1
+AccentColor=154,151,77
+accentColorFromWallpaper=false
+EOF
+  cat > "$ACC_HOME/.config/plasma-org.kde.plasma.desktop-appletsrc" <<EOF
+[Containments][1][Wallpaper][org.kde.image][General]
+Image=file://$ACC_HOME/wallpaper.jpg
+EOF
+  touch "$ACC_HOME/wallpaper.jpg"
+
+  MOCK_BIN_ACC="$TMP_ROOT/mock-bin-accent"
+  mkdir -p "$MOCK_BIN_ACC"
+  for cmd in systemctl qdbus6 kbuildsycoca6; do
+    cat > "$MOCK_BIN_ACC/$cmd" <<'MOCK'
+#!/usr/bin/env bash
+exit 0
+MOCK
+    chmod +x "$MOCK_BIN_ACC/$cmd"
+  done
+  cat > "$MOCK_BIN_ACC/plasma-apply-colorscheme" <<'MOCK'
+#!/usr/bin/env bash
+echo "plasma-apply-colorscheme $*" >> "$ACC_CALLS"
+exit 0
+MOCK
+  cat > "$MOCK_BIN_ACC/magick" <<'MOCK'
+#!/usr/bin/env bash
+echo "magick $*" >> "$ACC_CALLS"
+printf 'srgb(154,151,77)'
+MOCK
+  chmod +x "$MOCK_BIN_ACC/plasma-apply-colorscheme" "$MOCK_BIN_ACC/magick"
+
+  HOME="$ACC_HOME" PATH="$MOCK_BIN_ACC:$PATH" \
+    "$CLI_DIR/theme-profile" save accent-explicit >/dev/null 2>&1
+  HOME="$ACC_HOME" kwriteconfig6 --file kdeglobals --group General --key AccentColor 200,200,200
+  if HOME="$ACC_HOME" PATH="$MOCK_BIN_ACC:$PATH" \
+    "$CLI_DIR/theme-profile" apply accent-explicit >/dev/null 2>&1 \
+    && grep -q -- "--accent-color #9a974d Breeze1" "$ACC_CALLS"; then
+    ok "apply re-applies an explicit profile accent"
+  else
+    fail "apply did not call plasma-apply-colorscheme with the explicit accent"
+  fi
+
+  : > "$ACC_CALLS"
+  cat > "$ACC_HOME/.config/kdeglobals" <<'EOF'
+[General]
+ColorScheme=Breeze1
+accentColorFromWallpaper=true
+EOF
+  HOME="$ACC_HOME" PATH="$MOCK_BIN_ACC:$PATH" \
+    "$CLI_DIR/theme-profile" save accent-wallpaper >/dev/null 2>&1
+  if HOME="$ACC_HOME" PATH="$MOCK_BIN_ACC:$PATH" \
+    "$CLI_DIR/theme-profile" apply accent-wallpaper >/dev/null 2>&1 \
+    && grep -q -- "--accent-color #9a974d Breeze1" "$ACC_CALLS" \
+    && grep -q '^magick ' "$ACC_CALLS"; then
+    ok "apply derives a concrete wallpaper accent and applies it"
+  else
+    fail "apply did not derive/apply the wallpaper accent"
   fi
 fi
 

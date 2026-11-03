@@ -352,8 +352,8 @@ cd gui/qt-app && KTM_SCREENSHOT=/tmp/theme-page.png .venv/bin/kde-theme-manager
 Установка и деплой — только из исходников:
 
 ```bash
-scripts/install-theme-profile-kit.sh
-scripts/install-kde-theme-manager.sh
+scripts/install-theme-profile-kit.sh          # CLI + GUI
+scripts/install-theme-profile-kit.sh --only-gui
 ```
 
 ---

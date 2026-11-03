@@ -40,9 +40,9 @@
 | ярлык | `~/.local/share/applications/kde-theme-manager.desktop` |
 | иконка | `~/.local/share/icons/hicolor/scalable/apps/ktm-theme-manager.svg` |
 
-Только скрипты: `install-theme-profile-kit.sh --no-gui`.
-Отдельно GUI: `scripts/install-kde-theme-manager.sh` (venv создаётся лишь
-если в системе нет PySide6) и `scripts/uninstall-kde-theme-manager.sh`.
+Только CLI: `install-theme-profile-kit.sh --only-cli`. Только GUI:
+`install-theme-profile-kit.sh --only-gui` (для работы приложения CLI уже должен
+быть установлен). Venv создаётся лишь если в системе нет PySide6.
 
 Данные (профили, бэкапы, настройки) живут отдельно, в
 `$XDG_CONFIG_HOME/theme-profile/` (по умолчанию `~/.config/theme-profile/`), и
@@ -78,6 +78,8 @@ wallpaper-prev                   # предыдущие обои
 Профили хранятся в `$XDG_CONFIG_HOME/theme-profile/profiles/` (по умолчанию
 `~/.config/theme-profile/profiles/`).
 Активный профиль — маркер `theme-profile/active-profile` в том же корне.
+
+При apply Rust-ядро после восстановления файлов заново применяет цветовую схему через `plasma-apply-colorscheme`. Если в профиле есть явный `AccentColor`, он передаётся через `--accent-color`; если включён `accentColorFromWallpaper`, accent выводится из текущих обоев и тоже применяется явно — иначе Plasma может оставить прежнюю палитру после смены wallpaper.
 
 ---
 
@@ -122,7 +124,7 @@ wallpaper-prev                   # предыдущие обои
 - `.config/Cursor/User/settings.json`
 
 ### Browser (опционально)
-- `.zen/<профиль>/user.js` — каталог профиля авто-детектится (первый с `user.js`)
+- `.zen/<профиль>/user.js` — каталог профиля авто-детектится (первый с `user.js`); включая `zen.view.window.scheme` (`0` dark, `1` light, `2` system)
 - `.zen/<профиль>/chrome/userChrome.css`
 - `.zen/<профиль>/chrome/userContent.css`
 - `.zen/<профиль>/chrome/zen-themes.css`
@@ -166,7 +168,7 @@ Qt/QML-приложение (`gui/qt-app/`) ставится установщи�
 
 - **ThemeBundleCore** (`src/core/theme_bundle.py`) собирает компоненты из установленных тем: KDE/Plasma (Global theme, Plasma Style, colors, decorations, icons, cursors, fonts), Desktop & Windows (обои, углы, blur, translucency, animations), Qt/Kvantum и GTK;
 - выбор компонента идёт из списков установленных ресурсов; core-поля сначала стейджатся и применяются одним батчом через `AppThemeCore`;
-- адаптеры приложений (`src/core/app_theme_adapters.py`) умеют обнаруживать приложение, читать текущую тему, перечислять установленные темы и применять выбор; поддержаны Zed, VS Code, Cursor, Obsidian, btop, Kitty; Alacritty — частичный список без авто-применения;
+- адаптеры приложений (`src/core/app_theme_adapters.py`) имеют уровень интеграции: Zed, VS Code, Cursor, Obsidian и btop умеют показывать/применять темы; Kitty и Alacritty — `integration=config`, без списка тем и авто-применения, с кнопкой **Open config**, которая открывает конфиг в системном редакторе через `xdg-open`;
 - адаптеры перед записью копируют старый конфиг в `theme-profile/backups/app-theme-<timestamp>/`;
 - профили v2 сохраняют `theme-bundle.json` с компонентными/приложенными ссылками поверх старого снимка; профили v1 открываются как legacy и по возможности синтезируют bundle из снимка;
 - есть создание пользовательских производных тем (`create_custom_theme`): копия базовой color scheme в `$XDG_DATA_HOME/color-schemes` и Kvantum-темы в `$XDG_DATA_HOME/Kvantum`; системные базовые темы не изменяются;

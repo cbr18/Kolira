@@ -166,7 +166,7 @@ This removes:
 - the GUI: `~/.local/share/kde-theme-manager/`, `~/.local/bin/kde-theme-manager`,
   `~/.local/share/applications/kde-theme-manager.desktop`,
   `~/.local/share/icons/hicolor/scalable/apps/ktm-theme-manager.svg`
-  (keep the app with `--no-gui`; remove only it with `uninstall-kde-theme-manager.sh`)
+  (component-only removal: `--only-cli` or `--only-gui`)
 
 **But does NOT touch** — you must revert these manually if needed:
 - `~/.config/wofi/*.css` — wofi styles

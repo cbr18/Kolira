@@ -90,6 +90,7 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 
 - Core-поля KDE/Plasma/Kvantum/GTK сначала попадают в staging.
 - Адаптеры приложений применяют тему сразу и делают резервную копию изменённого конфига в `backups/app-theme-*`.
+- Config-only приложения (сейчас Kitty и Alacritty) не принимают `set_component` как выбор темы; их конфиги нужно менять вручную через GUI-кнопку **Open config** или внешний редактор.
 
 Аргументы:
 

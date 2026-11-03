@@ -18,9 +18,9 @@ Native KDE Plasma application for managing theme profiles and wallpapers.
   settings, Kvantum, GTK and app themes; installed themes are picked from
   lists, edits are staged, and profiles store a v2 `theme-bundle.json` beside
   the legacy snapshot
-- **Application theme adapters** — Zed, VS Code, Cursor, Obsidian, btop and
-  Kitty can expose current/installed themes; unsupported apps fall back to
-  their native theme settings
+- **Application theme adapters** — Zed, VS Code, Cursor, Obsidian and btop can
+  expose current/installed themes; Kitty and Alacritty are config-only
+  integrations with an “Open config” action via `xdg-open`
 - **MCP server** — `mcp/theme_profile_mcp.py` lets AI agents enumerate themes,
   create derived color/Kvantum themes, build/validate profiles and explicitly
   apply them (see `../docs/MCP.md`)
@@ -139,16 +139,19 @@ Normal use — one command installs the app, its launcher and the desktop entry
 (with a backup of whatever it replaces):
 
 ```bash
-# From the theme-profile-kit root
-scripts/install-kde-theme-manager.sh
+# From the theme-profile-kit root: full install (CLI + GUI)
+scripts/install-theme-profile-kit.sh
+
+# GUI only (CLI must already be installed)
+scripts/install-theme-profile-kit.sh --only-gui
 
 # Options
-scripts/install-kde-theme-manager.sh --help       # paths and details
-scripts/install-kde-theme-manager.sh --no-venv    # never build a venv
-scripts/install-kde-theme-manager.sh --with-venv  # always build one
+scripts/install-theme-profile-kit.sh --help       # paths and details
+scripts/install-theme-profile-kit.sh --no-venv    # never build a venv
+scripts/install-theme-profile-kit.sh --with-venv  # always build one
 
-# Remove it again (profiles and data are kept)
-scripts/uninstall-kde-theme-manager.sh
+# Remove only the GUI again (profiles and data are kept)
+scripts/uninstall-theme-profile-kit.sh --only-gui
 ```
 
 | Installed | Where |
@@ -214,7 +217,7 @@ mypy src/
 # Tests (Python: 212, from gui/qt-app)
 .venv/bin/python -m pytest tests/ -q
 
-# CLI + installer tests (121, from the repo root)
+# CLI + installer tests (117, from the repo root)
 bash tests/test-scripts.sh
 
 # Static shell analysis (repo root)
@@ -410,8 +413,8 @@ compatibility and are ignored by the GUI:
 
 ### Desktop Entry
 
-Installed by `theme-profile-kit/scripts/install-kde-theme-manager.sh` (which
-`install-theme-profile-kit.sh` runs by default):
+Installed by `theme-profile-kit/scripts/install-theme-profile-kit.sh` (GUI
+installation is included by default; use `--only-gui` for the app alone):
 
 - `~/.local/bin/kde-theme-manager` — launcher (execs the app's own
   `theme-profile-manager.sh`, which sets the QML import paths)

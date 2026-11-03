@@ -796,6 +796,8 @@ class AppThemeCore(ThemeCore):
             return _color_hex(value)
         if field.type == "font":
             return _font_display(value, field.file.endswith(".ini") and "gtk" in field.file)
+        if field.id == "zen_window_scheme":
+            return {"0": "Dark", "1": "Light", "2": "System"}.get(str(value), str(value))
         if field.type in ("int", "float"):
             return f"{_fmt_number(float(value))}{field.suffix}"
         return str(value)
@@ -914,6 +916,7 @@ class AppThemeCore(ThemeCore):
         elif section_id == "apps":
             parts = [
                 f"kitty {val('kitty_opacity')}" if val("kitty_opacity") else "",
+                f"Zen {val('zen_window_scheme')}" if val("zen_window_scheme") else "",
                 f"Zed {val('zed_mode')}" if val("zed_mode") else "",
             ]
         else:
@@ -1049,6 +1052,12 @@ class AppThemeCore(ThemeCore):
             result = [Choice(v) for v in (
                 "ShadowNone", "ShadowSmall", "ShadowMedium", "ShadowLarge", "ShadowVeryLarge",
             )]
+        elif key == "zen_window_schemes":
+            result = [
+                Choice("0", "Dark"),
+                Choice("1", "Light"),
+                Choice("2", "System"),
+            ]
         elif key == "zed_modes":
             result = [Choice(v) for v in ("system", "light", "dark")]
         else:
@@ -1395,6 +1404,12 @@ class AppThemeCore(ThemeCore):
         return Result.ok(message)
 
     def _normalize_input(self, field: FieldDef, value: Any) -> Any:
+        if field.id == "zen_window_scheme":
+            try:
+                number = int(float(value))
+            except (TypeError, ValueError):
+                return None
+            return number if number in (0, 1, 2) else None
         if field.type == "bool":
             return _as_bool(value)
         if field.type == "int":

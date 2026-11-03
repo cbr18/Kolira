@@ -169,6 +169,7 @@ pub fn status() -> String {
         ("zen_transparency_color", "mod.sameerasw.zen_transparency_color"),
         ("zen_bg_color_enabled", "mod.sameerasw.zen_bg_color_enabled"),
         ("zen_bg_opacity", "mod.sameerasw.zen_bg_opacity"),
+        ("zen_window_scheme", "zen.view.window.scheme"),
     ] {
         emit(key, user_js_pref(&zen_user_js, pref));
     }

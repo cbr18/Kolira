@@ -104,11 +104,11 @@ The applied theme itself is the usual KDE configuration (`kdeglobals`,
 
 Options:
 ```bash
-install-theme-profile-kit.sh --help      # show help
-install-theme-profile-kit.sh --no-gui    # scripts only, no app
-
-# GUI alone (paths, --with-venv / --no-venv):
-scripts/install-kde-theme-manager.sh --help
+install-theme-profile-kit.sh --help       # show help
+install-theme-profile-kit.sh --only-cli   # Rust CLI only, no GUI
+install-theme-profile-kit.sh --only-gui   # GUI only (CLI must already be installed)
+install-theme-profile-kit.sh --no-venv    # use system PySide6, never build a venv
+install-theme-profile-kit.sh --with-venv  # always build a venv in the installed app
 ```
 
 A virtual environment is created inside the installed app only when the system
@@ -206,9 +206,12 @@ Profiles keep the existing snapshot layout and additionally receive
 profiles remain usable as legacy snapshots.
 
 Supported application adapters currently include Zed, VS Code, Cursor,
-Obsidian, btop and Kitty. Alacritty can list conventional theme files but does
-not apply them automatically yet. Unsupported capabilities are shown as
-fallbacks with a button to open the app's native theme settings.
+Obsidian and btop. Kitty and Alacritty use a config-only integration: the UI
+does not pretend they have familiar theme entities, but exposes their config
+file and opens it in the system's default editor via `xdg-open`. Profile
+snapshots still include those config files when the apps are enabled in the
+tracked component list. Unsupported capabilities are shown as fallbacks with a
+button to open the app's native theme settings.
 
 The repository also includes a local MCP server for AI agents:
 
@@ -236,12 +239,10 @@ too). Warns if you have uncommitted local changes.
 ## Uninstall / Удаление
 
 ```bash
-~/theme-profile-kit/scripts/uninstall-theme-profile-kit.sh      # interactive (confirms)
-~/theme-profile-kit/scripts/uninstall-theme-profile-kit.sh --force  # skip confirmation
-~/theme-profile-kit/scripts/uninstall-theme-profile-kit.sh --no-gui # keep the app
-
-# GUI alone (profiles and data are kept):
-scripts/uninstall-kde-theme-manager.sh
+~/theme-profile-kit/scripts/uninstall-theme-profile-kit.sh            # interactive (confirms)
+~/theme-profile-kit/scripts/uninstall-theme-profile-kit.sh --force    # skip confirmation
+~/theme-profile-kit/scripts/uninstall-theme-profile-kit.sh --only-cli # remove CLI only, keep GUI/data
+~/theme-profile-kit/scripts/uninstall-theme-profile-kit.sh --only-gui # remove GUI only, keep CLI/data
 ```
 
 Removes the scripts from `~/.local/bin/`, the app from
