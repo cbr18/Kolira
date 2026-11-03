@@ -201,6 +201,20 @@ order). Subtracting 1 there applied the image *above* the clicked one, so the
 number is now used as a direct index into the displayed list — section 10 of the
 test suite clicks lines 0, 3 and the last one against a stubbed `wofi`.
 
+## Palette / Палитра
+
+A generated theme starts from a **base16 palette + KDE accent** (any
+[tinted-theming](https://github.com/tinted-theming/schemes) scheme imports as-is):
+
+```bash
+theme-profile palette import everforest.yaml
+theme-profile palette set accent=#a7c080
+theme-profile palette apply            # → ThemeProfileEverforest.colors, applied with the accent
+```
+
+The live palette is saved with profiles (component `palette`). Mapping, CLI and
+limits: [`docs/PALETTE.md`](docs/PALETTE.md).
+
 ## Profiles / Профили
 
 - **`glass`** — полупрозрачные окна с размытием, KWin glass enabled

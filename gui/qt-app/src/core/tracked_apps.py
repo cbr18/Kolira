@@ -286,6 +286,14 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         icon="preferences-desktop-color",
     ),
     TrackedAppDef(
+        id="palette",
+        name="Palette",
+        category="System Profiles",
+        config_paths=(".config/theme-profile/palette.json",),
+        description="base16 palette the generated theme was built from",
+        icon="color-management",
+    ),
+    TrackedAppDef(
         id="look_and_feel",
         name="Look & Feel",
         category="System Profiles",

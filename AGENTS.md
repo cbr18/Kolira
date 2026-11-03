@@ -74,6 +74,7 @@ A change is not done until the docs agree with the code. At minimum:
 | `docs/TZ-QT-APP.md`, `docs/TZ-THEME-INSPECTOR.md` | Original specifications |
 | `docs/TZ-THEME-REBUILD.md` | Target product/design spec for the theme-bundle rebuild |
 | `docs/MCP.md` | Local MCP server usage, tool contract and safety notes |
+| `docs/PALETTE.md` | base16 palette model, `theme-profile palette` CLI, base16 → KDE role mapping |
 | `gui/qt-app/README.md` | GUI details: cores, tray, theming, wallpapers, architecture, dev commands |
 
 ## Contracts that must not drift
@@ -111,7 +112,7 @@ cd gui/qt-app/src/core/rust_core && cargo build --release && cargo test && cargo
 # Python tests (offscreen Qt; 237 tests)
 cd gui/qt-app && QT_QPA_PLATFORM=offscreen uv run --project . --extra dev pytest tests -q
 
-# Bash + installer tests (~125 assertions) — from the repo root
+# Bash + installer tests (~132 assertions) — from the repo root
 bash tests/test-scripts.sh
 
 # Shell static analysis (installer scripts)

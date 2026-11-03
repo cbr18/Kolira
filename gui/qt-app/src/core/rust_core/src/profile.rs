@@ -704,11 +704,12 @@ fn reapply_color_scheme(source: &Path) {
     let explicit = ini_group_key(&kdeglobals, "General", "AccentColor")
         .and_then(|value| rgb_string_to_hex(&value));
 
-    match explicit {
-        Some(accent) if !from_wallpaper => {
-            run_external("plasma-apply-colorscheme", &["--accent-color", &accent, &scheme]);
-        }
-        _ => run_external("plasma-apply-colorscheme", &[&scheme]),
+    // Scheme first, accent in a separate call: given `--accent-color`,
+    // plasma-apply-colorscheme sets only the accent and silently ignores the
+    // scheme argument (verified 2026-11-04, Plasma 6).
+    run_external("plasma-apply-colorscheme", &[&scheme]);
+    if let Some(accent) = explicit.filter(|_| !from_wallpaper) {
+        run_external("plasma-apply-colorscheme", &["--accent-color", &accent]);
     }
 }
 

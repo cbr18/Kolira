@@ -14,6 +14,7 @@ use kde_theme_core::profile::{
 };
 use kde_theme_core::status::status;
 use kde_theme_core::wallpaper::{plasma_wallpaper_from, wallpaper_dir};
+use kde_theme_core::palette;
 
 const USAGE: &str = "\
 Usage:
@@ -27,11 +28,16 @@ Usage:
   theme-profile describe NAME [--set=...]
   theme-profile components <list|add|edit|remove> [json_or_id]
   theme-profile wallpaper <dir|current>
+  theme-profile palette show [--json]
+  theme-profile palette import FILE           (base16 YAML or palette JSON)
+  theme-profile palette set SLOT=#rrggbb ...  (base00..base0F, accent)
+  theme-profile palette generate kde          (print the generated file)
+  theme-profile palette apply [--targets=kde]
 
 Components: kwin, plasma_shell, kdeglobals, gtk3, gtk4, qt5ct,
             klassy, kvantum, alacritty, kitty, wofi, btop,
             fastfetch, zed, vscode, cursor, zen, obsidian,
-            color_schemes, look_and_feel
+            color_schemes, palette, look_and_feel
 
 Use --components=all for all (default).
 
@@ -90,6 +96,119 @@ fn component_suffix(raw: Option<&str>) -> String {
 fn fail(msg: impl std::fmt::Display) -> ExitCode {
     eprintln!("{msg}");
     ExitCode::from(1)
+}
+
+fn print_palette(p: &palette::Palette) {
+    println!("name={}", p.name);
+    println!("variant={}", match p.variant {
+        palette::Variant::Dark => "dark",
+        palette::Variant::Light => "light",
+    });
+    for (slot, value) in palette::SLOTS.iter().zip(&p.base) {
+        println!("{slot}={value}");
+    }
+    println!("accent={}", p.accent);
+    println!("source={}", p.source);
+    for warning in p.contrast_warnings() {
+        println!("warning={warning}");
+    }
+}
+
+fn load_live_palette() -> Result<palette::Palette, ExitCode> {
+    let path = palette::live_palette_path();
+    palette::load(&path).map_err(|e| {
+        fail(format!("No palette yet ({}): {e}. Use `theme-profile palette import FILE`.", path.display()))
+    })
+}
+
+fn palette_cmd(args: &[String]) -> ExitCode {
+    match args.first().map(String::as_str) {
+        Some("show") => match load_live_palette() {
+            Ok(p) if args.iter().any(|a| a == "--json") => {
+                println!("{}", serde_json::to_string_pretty(&p).unwrap_or_default());
+                ExitCode::SUCCESS
+            }
+            Ok(p) => {
+                print_palette(&p);
+                ExitCode::SUCCESS
+            }
+            Err(code) => code,
+        },
+        Some("import") => {
+            let Some(file) = args.get(1) else {
+                return fail("Usage error: palette import FILE");
+            };
+            let p = match palette::load(std::path::Path::new(file)) {
+                Ok(p) => p,
+                Err(e) => return fail(format!("{e:#}")),
+            };
+            if let Err(e) = palette::save(&p, &palette::live_palette_path()) {
+                return fail(e);
+            }
+            print_palette(&p);
+            ExitCode::SUCCESS
+        }
+        Some("set") => {
+            let mut p = match load_live_palette() {
+                Ok(p) => p,
+                Err(code) => return code,
+            };
+            if args.len() < 2 {
+                return fail("Usage error: palette set SLOT=#rrggbb ...");
+            }
+            for pair in &args[1..] {
+                let Some((slot, value)) = pair.split_once('=') else {
+                    return fail(format!("Expected SLOT=#rrggbb, got {pair:?}"));
+                };
+                if let Err(e) = p.set(slot, value) {
+                    return fail(e);
+                }
+            }
+            p.source = "manual".to_string();
+            if let Err(e) = palette::save(&p, &palette::live_palette_path()) {
+                return fail(e);
+            }
+            print_palette(&p);
+            ExitCode::SUCCESS
+        }
+        Some("generate") => {
+            let p = match load_live_palette() {
+                Ok(p) => p,
+                Err(code) => return code,
+            };
+            match args.get(1).map(String::as_str) {
+                Some("kde") => {
+                    print!("{}", palette::kde_color_scheme(&p));
+                    ExitCode::SUCCESS
+                }
+                other => fail(format!("Unknown generator {other:?} (known: kde)")),
+            }
+        }
+        Some("apply") => {
+            let p = match load_live_palette() {
+                Ok(p) => p,
+                Err(code) => return code,
+            };
+            let targets: Vec<String> = args[1..]
+                .iter()
+                .find_map(|a| a.strip_prefix("--targets="))
+                .map(|t| t.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect())
+                .unwrap_or_else(|| palette::TARGETS.iter().map(|t| t.to_string()).collect());
+            match palette::apply(&p, &targets) {
+                Ok(lines) => {
+                    for line in lines {
+                        println!("{line}");
+                    }
+                    ExitCode::SUCCESS
+                }
+                Err(e) => fail(e),
+            }
+        }
+        _ => {
+            eprint!("{USAGE}");
+            fail("Usage error: palette <show|import|set|generate|apply>")
+        }
+    }
 }
 
 fn main() -> ExitCode {
@@ -192,6 +311,7 @@ fn main() -> ExitCode {
                 }
             }
         }
+        "palette" => palette_cmd(&args[1..]),
         "wallpaper" => match args.get(1).map(String::as_str) {
             // Single source of truth for the GUI and scripts.
             Some("dir") => {

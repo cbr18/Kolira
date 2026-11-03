@@ -349,6 +349,18 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             docs_url: "".to_string(),
         },
         TrackedAppDef {
+            id: "palette".to_string(),
+            name: "Palette".to_string(),
+            category: "System Profiles".to_string(),
+            config_paths: vec![".config/theme-profile/palette.json".to_string()],
+            detect_command: None,
+            flatpak_id: None,
+            supports_live_reload: false,
+            description: "base16 palette the generated theme was built from".to_string(),
+            icon: "color-management".to_string(),
+            docs_url: "".to_string(),
+        },
+        TrackedAppDef {
             id: "look_and_feel".to_string(),
             name: "Look & Feel".to_string(),
             category: "System Profiles".to_string(),

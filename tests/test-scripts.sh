@@ -263,6 +263,52 @@ else
   fail "apply did not restore the deleted wallpaper"
 fi
 
+# --- 5c. Palette: import → set → generate → apply → saved with the profile ---
+echo "=== Section 5c: palette CLI ==="
+
+PAL_HOME="$TMP_ROOT/pal-home"
+mkdir -p "$PAL_HOME/.config/theme-profile"
+pal_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$PAL_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+BASE16="$SCRIPT_DIR/gui/qt-app/src/core/rust_core/data/base16/everforest.yaml"
+
+if pal_cli palette import "$BASE16" | grep -qx "base0B=#a7c080"; then
+  ok "palette import reads a tinted-theming base16 file"
+else
+  fail "palette import failed"
+fi
+if pal_cli palette set accent=#A7C080 | grep -qx "accent=#a7c080"; then
+  ok "palette set updates the accent"
+else
+  fail "palette set did not update the accent"
+fi
+if pal_cli palette set base99=#000000 >/dev/null 2>&1; then
+  fail "palette set accepted an unknown slot"
+else
+  ok "palette set rejects unknown slots"
+fi
+if pal_cli palette generate kde | grep -q "^ColorScheme=ThemeProfileEverforest$"; then
+  ok "palette generate kde prints a colour scheme"
+else
+  fail "palette generate kde output unexpected"
+fi
+pal_cli palette apply --targets=kde >/dev/null 2>&1
+if grep -q "^Name=Everforest$" "$PAL_HOME/.local/share/color-schemes/ThemeProfileEverforest.colors" 2>/dev/null; then
+  ok "palette apply writes ThemeProfile*.colors (never a user scheme name)"
+else
+  fail "palette apply did not write the colour scheme"
+fi
+if pal_cli palette apply --targets=gtk4 >/dev/null 2>&1; then
+  fail "palette apply accepted an unknown target"
+else
+  ok "palette apply rejects unknown targets"
+fi
+pal_cli save pal-test >/dev/null 2>&1
+if grep -q '"accent": "#a7c080"' "$PAL_HOME/.config/theme-profile/profiles/pal-test/.config/theme-profile/palette.json" 2>/dev/null; then
+  ok "profiles snapshot the live palette"
+else
+  fail "palette.json missing from the profile snapshot"
+fi
+
 # --- 6. Wallpaper index wrapping ---------------------------------------------
 echo "=== Section 6: Wallpaper index wrapping ==="
 
@@ -791,7 +837,9 @@ MOCK
   HOME="$ACC_HOME" kwriteconfig6 --file kdeglobals --group General --key AccentColor 200,200,200
   if HOME="$ACC_HOME" PATH="$MOCK_BIN_ACC:$PATH" \
     "$CLI_DIR/theme-profile" apply accent-explicit >/dev/null 2>&1 \
-    && grep -q -- "--accent-color #9a974d Breeze1" "$ACC_CALLS"; then
+    && grep -qx -- "plasma-apply-colorscheme Breeze1" "$ACC_CALLS" \
+    && grep -qx -- "plasma-apply-colorscheme --accent-color #9a974d" "$ACC_CALLS"; then
+    # Separate calls: with --accent-color the scheme argument is ignored.
     ok "apply re-applies an explicit profile accent"
   else
     fail "apply did not call plasma-apply-colorscheme with the explicit accent"
