@@ -1812,6 +1812,18 @@ def test_theme_controller_applies_palette() -> None:
     )
 
 
+def test_theme_controller_profile_names_are_case_insensitive() -> None:
+    """Profiles saved as 'Paper'/'GLASS' must still dogfood the right app theme."""
+    import theme_controller as theme_controller_mod
+
+    controller = theme_controller_mod.ThemeController()
+    assert controller._theme_for_profile("Paper") == "paper"
+    assert controller._theme_for_profile("paper") == "paper"
+    assert controller._theme_for_profile("GLASS") == "glass"
+    assert controller._theme_for_profile("glass") == "glass"
+    assert controller._theme_for_profile("custom") == ""
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 23. core uses shutil.which for binary path resolution
 # ─────────────────────────────────────────────────────────────────────────────

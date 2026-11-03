@@ -215,7 +215,7 @@ mypy src/
 # QML syntax/type lint (PySide6 6.12 ships its own qmllint)
 .venv/bin/pyside6-qmllint -I qml -I /usr/lib/qt6/qml qml/Main.qml qml/pages/SettingsPage.qml qml/Components/*.qml
 
-# Tests (Python: 232, from gui/qt-app)
+# Tests (Python: 233, from gui/qt-app)
 .venv/bin/python -m pytest tests/ -q
 
 # CLI + installer tests (118, from the repo root)

@@ -259,11 +259,21 @@ class ThemeController(QObject):
         """Системная тема (follow system)."""
         self._apply_flags(glass=False, dark=self._system_is_dark())
 
+    @staticmethod
+    def _theme_for_profile(profile_name: str) -> str:
+        normalized = (profile_name or "").strip().casefold()
+        if normalized == "glass":
+            return "glass"
+        if normalized == "paper":
+            return "paper"
+        return ""
+
     @Slot(str)
     def sync_with_active_profile(self, profile_name: str) -> None:
         """Синхронизировать тему приложения с активным профилем."""
-        if profile_name in ("glass", "paper"):
-            self.currentTheme = profile_name
+        theme = self._theme_for_profile(profile_name)
+        if theme:
+            self.currentTheme = theme
         else:
             self._detect_from_kdeglobals()
 
@@ -276,10 +286,14 @@ class ThemeController(QObject):
             if kdeglobals.exists():
                 config = configparser.ConfigParser()
                 config.read(kdeglobals)
-                color_scheme = config.get("General", "ColorScheme", fallback="")
-                if "dark" in color_scheme.lower():
+                color_scheme = config.get("General", "ColorScheme", fallback="").lower()
+                if "paper" in color_scheme:
+                    self.currentTheme = "paper"
+                elif "glass" in color_scheme:
+                    self.currentTheme = "glass"
+                elif "dark" in color_scheme:
                     self.currentTheme = "dark"
-                elif "light" in color_scheme.lower():
+                elif "light" in color_scheme:
                     self.currentTheme = "light"
         except Exception:
             pass
