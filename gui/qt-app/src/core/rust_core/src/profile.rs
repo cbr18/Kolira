@@ -685,8 +685,8 @@ fn percent_decode(value: &str) -> String {
     String::from_utf8_lossy(&out).to_string()
 }
 
-fn first_wallpaper_image(source: &Path) -> Option<PathBuf> {
-    let text = fs::read_to_string(source.join(".config/plasma-org.kde.plasma.desktop-appletsrc")).ok()?;
+fn first_wallpaper_image_in(appletsrc: &Path) -> Option<PathBuf> {
+    let text = fs::read_to_string(appletsrc).ok()?;
     for line in text.lines() {
         if let Some(value) = line.trim().strip_prefix("Image=file://") {
             let decoded = percent_decode(value);
@@ -698,17 +698,40 @@ fn first_wallpaper_image(source: &Path) -> Option<PathBuf> {
     None
 }
 
+fn first_wallpaper_image(source: &Path) -> Option<PathBuf> {
+    // Профиль может не содержать appletsrc с Image= (в нём часто только
+    // wallpaperPlugin). В этом случае берём акцент из текущих обоев сессии —
+    // live конфиге — так как профиль требует accentColorFromWallpaper=true.
+    for appletsrc in [
+        source.join(".config/plasma-org.kde.plasma.desktop-appletsrc"),
+        config_home().join(".config/plasma-org.kde.plasma.desktop-appletsrc"),
+    ] {
+        if let Some(path) = first_wallpaper_image_in(&appletsrc) {
+            return Some(path);
+        }
+    }
+    None
+}
+
 fn parse_imagemagick_pixel(text: &str) -> Option<String> {
     let start = text.find('(')?;
     let end = text.rfind(')')?;
-    let parts: Vec<&str> = text[start + 1..end].split(',').collect();
+    let inner = &text[start + 1..end];
+    let parts: Vec<&str> = inner.split(',').collect();
     if parts.len() < 3 {
         return None;
     }
-    let rgb: Option<Vec<u8>> = parts[..3]
-        .iter()
-        .map(|part| part.trim().parse::<f64>().ok().map(|v| v.round().clamp(0.0, 255.0) as u8))
-        .collect();
+    let to_byte = |part: &str| -> Option<u8> {
+        let trimmed = part.trim();
+        if trimmed.ends_with('%') {
+            let pct: f64 = trimmed.trim_end_matches('%').parse().ok()?;
+            Some((pct / 100.0 * 255.0).round().clamp(0.0, 255.0) as u8)
+        } else {
+            let v: f64 = trimmed.parse().ok()?;
+            Some(v.round().clamp(0.0, 255.0) as u8)
+        }
+    };
+    let rgb: Option<Vec<u8>> = parts[..3].iter().map(|p| to_byte(p)).collect();
     let rgb = rgb?;
     Some(format!("#{:02x}{:02x}{:02x}", rgb[0], rgb[1], rgb[2]))
 }
