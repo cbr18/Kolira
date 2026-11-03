@@ -302,6 +302,29 @@ if pal_cli palette apply --targets=gtk4 >/dev/null 2>&1; then
 else
   ok "palette apply rejects unknown targets"
 fi
+# Gallery (offline: never touches the network in tests).
+gal_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u XDG_CACHE_HOME HOME="$PAL_HOME" KTM_OFFLINE=1 KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+if [ "$(gal_cli palette gallery | grep -c "	bundled	")" -ge 15 ] &&
+  gal_cli palette gallery rose | grep -q "^rose-pine-dawn	bundled	light	"; then
+  ok "palette gallery lists the bundled schemes offline (with search)"
+else
+  fail "palette gallery offline listing unexpected"
+fi
+if gal_cli palette import gallery:nord | grep -qx "name=Nord" &&
+  gal_cli palette show | grep -qx "source=gallery:nord"; then
+  ok "palette import gallery:ID uses the bundled scheme"
+else
+  fail "palette import gallery:nord failed"
+fi
+if gal_cli palette import gallery:not-bundled-x >/dev/null 2>&1 ||
+  gal_cli palette import gallery:../etc >/dev/null 2>&1; then
+  fail "gallery import accepted an unavailable/invalid id offline"
+else
+  ok "gallery import rejects unknown ids offline and invalid ids"
+fi
+pal_cli palette import "$BASE16" >/dev/null
+pal_cli palette set accent=#a7c080 >/dev/null
+
 # Terminals: only colour lines/keys change, re-apply is idempotent, backups made.
 mkdir -p "$PAL_HOME/.config/kitty" "$PAL_HOME/.config/alacritty"
 printf 'font_size 11\nbackground_opacity 0.9\n' >"$PAL_HOME/.config/kitty/kitty.conf"

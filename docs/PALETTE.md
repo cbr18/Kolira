@@ -20,6 +20,8 @@
 
 ```bash
 theme-profile palette import FILE          # base16 YAML (новый/старый формат) или JSON палитры
+theme-profile palette import gallery:nord  # схема из галереи
+theme-profile palette gallery [ЗАПРОС] [--online] [--refresh] [--json]
 theme-profile palette show [--json]        # слоты, акцент, предупреждения о контрасте
 theme-profile palette set accent=#a7c080 base0F=#9da9a0
 theme-profile palette generate kde|kitty|alacritty   # напечатать сгенерированное
@@ -108,12 +110,29 @@ OKLab:
 окне, текста на списках и текста на выделении; предупреждения выводятся строками
 `warning=…`.
 
-## Встроенные схемы
+## Галерея
 
-`rust_core/data/base16/*.yaml` — копии из tinted-theming (MIT, см. README в
-каталоге); используются в тестах и как офлайн-набор будущей галереи.
+`theme-profile palette gallery` (модуль `gallery.rs`) показывает схемы из трёх
+источников: `id  origin  variant  name`.
+
+| origin | Откуда | Сеть |
+|---|---|---|
+| `bundled` | 15 схем, вкомпилированы из `rust_core/data/base16/*.yaml` (Everforest, Gruvbox ×2, Nord, Catppuccin ×2, Tokyo Night, Rosé Pine ×2, Dracula, Solarized ×2, OneDark, One Light, Kanagawa) | нет |
+| `cached` | ранее скачанные, `$XDG_CACHE_HOME/theme-profile/base16/<id>.yaml` | нет |
+| `online` | каталог tinted-theming (`spec-0.11`, ~360 схем): индекс через GitHub tree API, кэш на 7 дней (`index.json`), `--refresh` — обновить | только с `--online`/`--refresh` |
+
+`palette import gallery:<id>` берёт схему из встроенных → кэша → скачивает
+(raw.githubusercontent.com) и кладёт в кэш после проверки разбора. id
+проверяется до любого сетевого запроса (`[a-z0-9][a-z0-9._-]*`), ответы
+ограничены по размеру. Сеть отключается настройкой `"network_enabled": false` в
+`app-preferences.json` (поле `AppSettings.network_enabled`) или `KTM_OFFLINE=1`
+(тесты); тогда доступны только встроенные и кэшированные схемы и уже
+сохранённый индекс.
+
+Встроенные схемы — копии из tinted-theming (MIT, атрибуция в
+`data/base16/README.md`).
 
 ## Дальше (P1)
 
-Галерея, палитра из обоев, GUI-страница,
+Палитра из обоев, GUI-страница,
 инструменты MCP — см. план.

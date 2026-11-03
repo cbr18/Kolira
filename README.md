@@ -207,7 +207,8 @@ A generated theme starts from a **base16 palette + KDE accent** (any
 [tinted-theming](https://github.com/tinted-theming/schemes) scheme imports as-is):
 
 ```bash
-theme-profile palette import everforest.yaml
+theme-profile palette gallery gruv      # 15 bundled schemes; --online for ~360 from tinted-theming
+theme-profile palette import gallery:gruvbox-dark-medium   # or: palette import everforest.yaml
 theme-profile palette set accent=#a7c080
 theme-profile palette apply            # KDE scheme + kitty/Alacritty colours (backups first)
 theme-profile palette apply --targets=kvantum   # recolour an installed Kvantum theme (KvArcDark/KvArc)

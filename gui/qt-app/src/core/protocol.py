@@ -402,6 +402,9 @@ class AppSettings:
     # UI
     theme: str = "system"                       # "system" | "glass" | "paper" | "dark" | "light"
     show_not_installed_warning: bool = True
+    # Online features (base16 gallery catalogue, app theme stores). Read by the
+    # Rust CLI from app-preferences.json; $KTM_OFFLINE=1 forces offline.
+    network_enabled: bool = True
     auto_apply_on_startup: bool = False
     minimize_to_tray: bool = False
     global_hotkey: str = ""                     # e.g. "Meta+T"
@@ -434,6 +437,7 @@ class AppSettings:
             "wallpaper_directory": self.wallpaper_directory,
             "theme": self.theme,
             "show_not_installed_warning": self.show_not_installed_warning,
+            "network_enabled": self.network_enabled,
             "auto_apply_on_startup": self.auto_apply_on_startup,
             "minimize_to_tray": self.minimize_to_tray,
             "global_hotkey": self.global_hotkey,
@@ -453,6 +457,7 @@ class AppSettings:
             wallpaper_directory=data.get("wallpaper_directory", ""),
             theme=data.get("theme", "system"),
             show_not_installed_warning=data.get("show_not_installed_warning", True),
+            network_enabled=bool(data.get("network_enabled", True)),
             auto_apply_on_startup=data.get("auto_apply_on_startup", False),
             minimize_to_tray=data.get("minimize_to_tray", False),
             global_hotkey=data.get("global_hotkey", ""),

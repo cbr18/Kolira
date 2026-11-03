@@ -15,6 +15,7 @@ use kde_theme_core::profile::{
 use kde_theme_core::status::status;
 use kde_theme_core::wallpaper::{plasma_wallpaper_from, wallpaper_dir};
 use kde_theme_core::palette;
+use kde_theme_core::gallery;
 
 const USAGE: &str = "\
 Usage:
@@ -29,7 +30,9 @@ Usage:
   theme-profile components <list|add|edit|remove> [json_or_id]
   theme-profile wallpaper <dir|current>
   theme-profile palette show [--json]
-  theme-profile palette import FILE           (base16 YAML or palette JSON)
+  theme-profile palette import FILE|gallery:ID   (base16 YAML, palette JSON or a gallery scheme)
+  theme-profile palette gallery [QUERY] [--online] [--refresh] [--json]
+                              (bundled + cached schemes; --online adds the tinted-theming catalogue)
   theme-profile palette set SLOT=#rrggbb ...  (base00..base0F, accent)
   theme-profile palette generate <kde|kitty|alacritty>   (print the generated colours)
   theme-profile palette apply [--targets=kde,kitty,alacritty,kvantum] [--kvantum-base=THEME]
@@ -135,11 +138,49 @@ fn palette_cmd(args: &[String]) -> ExitCode {
             }
             Err(code) => code,
         },
+        Some("gallery") => {
+            let query = args[1..].iter().find(|a| !a.starts_with("--")).map_or("", String::as_str);
+            let online = args.iter().any(|a| a == "--online");
+            let refresh = args.iter().any(|a| a == "--refresh");
+            let entries = match gallery::list(query, online || refresh, refresh) {
+                Ok(e) => e,
+                Err(e) => return fail(format!("{e:#}")),
+            };
+            let variant = |v: Option<palette::Variant>| match v {
+                Some(palette::Variant::Dark) => "dark",
+                Some(palette::Variant::Light) => "light",
+                None => "",
+            };
+            if args.iter().any(|a| a == "--json") {
+                let items: Vec<serde_json::Value> = entries
+                    .iter()
+                    .map(|e| {
+                        serde_json::json!({
+                            "id": e.id, "origin": e.origin.as_str(),
+                            "name": e.name, "variant": variant(e.variant),
+                        })
+                    })
+                    .collect();
+                println!("{}", serde_json::Value::Array(items));
+            } else {
+                for e in &entries {
+                    println!("{}\t{}\t{}\t{}", e.id, e.origin.as_str(), variant(e.variant), e.name.as_deref().unwrap_or(""));
+                }
+            }
+            if online && !gallery::network_enabled() {
+                eprintln!("Network is disabled (network_enabled=false or KTM_OFFLINE=1): cached catalogue only.");
+            }
+            ExitCode::SUCCESS
+        }
         Some("import") => {
             let Some(file) = args.get(1) else {
-                return fail("Usage error: palette import FILE");
+                return fail("Usage error: palette import FILE|gallery:ID");
             };
-            let p = match palette::load(std::path::Path::new(file)) {
+            let loaded = match file.strip_prefix("gallery:") {
+                Some(id) => gallery::fetch(id),
+                None => palette::load(std::path::Path::new(file)),
+            };
+            let p = match loaded {
                 Ok(p) => p,
                 Err(e) => return fail(format!("{e:#}")),
             };

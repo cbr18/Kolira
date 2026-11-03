@@ -72,6 +72,9 @@ def test_import_core_protocol() -> None:
     assert settings.theme == "system"
     assert settings.custom_components == ()
     assert "wallpaper_directory" in settings.to_dict()
+    # The Rust CLI reads network_enabled from the same file; a GUI save must keep it.
+    assert settings.to_dict()["network_enabled"] is True
+    assert AppSettings.from_dict({"network_enabled": False}).to_dict()["network_enabled"] is False
 
 
 def test_import_tracked_apps() -> None:
