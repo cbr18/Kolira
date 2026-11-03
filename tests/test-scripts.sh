@@ -504,6 +504,37 @@ else
   ok "backup prunes .venv and rust_core target"
 fi
 
+# A copy running from the installed app dir keeps the old code: the installer
+# must warn about it, and --restart must stop it. The fake process mimics the
+# launcher (cwd = app dir, `-m src` in argv); `; :` stops bash from exec'ing.
+fake_gui() {
+  (cd "$FAKE_HOME/.local/share/kde-theme-manager" && exec bash -c 'sleep 30; :' fake -m src) &
+  FAKE_GUI_PID=$!
+  sleep 0.3
+}
+fake_gui
+out="$(gui_install 2>&1 || true)"
+case "$out" in
+  *"$FAKE_GUI_PID"*"старой версии"*) ok "installer warns about a running old copy" ;;
+  *) fail "installer did not warn about the running copy: $out" ;;
+esac
+if kill -0 "$FAKE_GUI_PID" 2>/dev/null; then
+  ok "without --restart the running copy is left alone"
+else
+  fail "installer killed the running copy without --restart"
+fi
+env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
+  PATH="/usr/bin:/bin" KTM_INSTALL_NO_LAUNCH=1 \
+  bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --only-gui --no-venv --restart >/dev/null 2>&1 || true
+sleep 0.3
+if kill -0 "$FAKE_GUI_PID" 2>/dev/null; then
+  fail "--restart did not stop the running copy"
+  kill "$FAKE_GUI_PID" 2>/dev/null || true
+else
+  ok "--restart stops the running copy"
+fi
+wait "$FAKE_GUI_PID" 2>/dev/null || true
+
 env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
   PATH="/usr/bin:/bin" \
   bash "$SCRIPT_DIR/scripts/uninstall-theme-profile-kit.sh" --only-gui --force >/dev/null 2>&1

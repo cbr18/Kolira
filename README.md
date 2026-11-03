@@ -109,7 +109,13 @@ install-theme-profile-kit.sh --only-cli   # Rust CLI only, no GUI
 install-theme-profile-kit.sh --only-gui   # GUI only (CLI must already be installed)
 install-theme-profile-kit.sh --no-venv    # use system PySide6, never build a venv
 install-theme-profile-kit.sh --with-venv  # always build a venv in the installed app
+install-theme-profile-kit.sh --restart    # restart a running KDE Theme Manager afterwards
 ```
+
+A running KDE Theme Manager keeps executing the old code after an update. The
+installer detects a copy running from the installed app directory and warns;
+with `--restart` it stops it (SIGTERM — unapplied staged edits are lost) and
+starts the new version.
 
 A virtual environment is created inside the installed app only when the system
 Python cannot `import PySide6` (e.g. `pyside6` is not installed from the

@@ -2779,14 +2779,36 @@ def test_single_instance_second_launch_is_rejected() -> None:
     name = f"ktm-test-{os.getpid()}"
     first = QLocalServer(app)
     try:
-        assert main_module._acquire_single_instance(name, first) is True, (
+        assert main_module._acquire_single_instance(name, first) is main_module.SingleInstance.ACQUIRED, (
             "the first instance must acquire the single-instance lock"
         )
         second = QLocalServer(app)
-        assert main_module._acquire_single_instance(name, second) is False, (
+        assert main_module._acquire_single_instance(name, second) is main_module.SingleInstance.HANDED_OVER, (
             "a second instance must be told to hand over, not start"
         )
         second.close()
     finally:
         first.close()
         QLocalServer.removeServer(name)
+
+
+def test_single_instance_unusable_socket_is_not_already_running(tmp_path, monkeypatch) -> None:
+    """A socket path over the AF_UNIX limit (long $TMPDIR) used to be reported
+    as "already running"; it must be UNAVAILABLE with a helpful reason."""
+    from PySide6.QtCore import QCoreApplication
+    from PySide6.QtNetwork import QLocalServer
+
+    main_module = _load_main_module()
+    app = QCoreApplication.instance() or QCoreApplication([])
+
+    long_tmp = tmp_path / ("x" * 120)
+    long_tmp.mkdir()
+    monkeypatch.setenv("TMPDIR", str(long_tmp))
+    server = QLocalServer(app)
+    try:
+        outcome = main_module._acquire_single_instance("kde-theme-manager", server)
+        assert outcome is main_module.SingleInstance.UNAVAILABLE
+        message = main_module._single_instance_error("kde-theme-manager", server)
+        assert "108-byte" in message and str(long_tmp) in message
+    finally:
+        server.close()

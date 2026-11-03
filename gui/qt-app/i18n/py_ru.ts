@@ -375,17 +375,17 @@
         <translation>Просить GTK-приложения использовать тёмный вариант</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="351" />
+        <location filename="../src/core/theme_bundle.py" line="373" />
         <source>Custom: %1</source>
         <translation>Своя: %1</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="357" />
+        <location filename="../src/core/theme_bundle.py" line="379" />
         <source>Selected theme is not installed</source>
         <translation>Выбранная тема не установлена</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="413" />
+        <location filename="../src/core/theme_bundle.py" line="435" />
         <source>Application not detected</source>
         <translation>Приложение не найдено</translation>
     </message>

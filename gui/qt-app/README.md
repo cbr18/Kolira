@@ -36,7 +36,10 @@ Native KDE Plasma application for managing theme profiles and wallpapers.
 - **Non-blocking** — apply/save/delete *and* wallpaper operations (including the
   interactive picker) run off the GUI thread with a busy state
 - **Single instance** — a second launch hands over to the running app (raises
-  its window) and exits, so there is never more than one tray icon
+  its window) and exits, so there is never more than one tray icon. If the
+  local socket cannot be created at all (e.g. `$TMPDIR` so long that the path
+  exceeds the 108-byte AF_UNIX limit), the app prints the reason and starts
+  without single-instance protection instead of claiming it is "already running"
 - **Dogfooding** — App themes itself from the *active* profile: `glass` →
   translucent dark, `paper` → light; any other profile/scheme (e.g.
   `everforest`) uses **System** mode, which reads the live `kdeglobals`
@@ -220,7 +223,7 @@ mypy src/
 # QML syntax/type lint (PySide6 6.12 ships its own qmllint)
 .venv/bin/pyside6-qmllint -I qml -I /usr/lib/qt6/qml qml/Main.qml qml/pages/SettingsPage.qml qml/Components/*.qml
 
-# Tests (Python: 233, from gui/qt-app)
+# Tests (Python: 236, from gui/qt-app)
 .venv/bin/python -m pytest tests/ -q
 
 # CLI + installer tests (118, from the repo root)

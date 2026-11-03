@@ -25,6 +25,7 @@ GUI_BACKUP_DIR="$BACKUP_ROOT/deploy-kde-theme-manager-$(date +%Y%m%d-%H%M%S)"
 
 MODE="all" # all | cli | gui
 VENV_MODE="auto" # auto | yes | no
+RESTART="no"     # yes: restart a running KDE Theme Manager after install
 
 usage() {
   cat <<'EOF'
@@ -40,6 +41,8 @@ Options:
                 be installed for the app to work)
   --with-venv   Always build a venv inside the installed app
   --no-venv     Never build a venv — use the system PySide6
+  --restart     Restart a running KDE Theme Manager so it picks up the new
+                version (default: only warn that the old copy is running)
   -h, --help    Show this help message and exit.
 
 Binaries installed to ${XDG_BIN_HOME:-~/.local/bin}:
@@ -75,6 +78,9 @@ while [ $# -gt 0 ]; do
     --no-venv)
       VENV_MODE="no"
       ;;
+    --restart)
+      RESTART="yes"
+      ;;
     *)
       say "Unknown option: $1" >&2
       usage >&2
@@ -91,6 +97,55 @@ CLI_SCRIPTS=(
   "wallpaper-next"
   "wallpaper-prev"
 )
+
+# PIDs of KDE Theme Manager processes running from the installed copy: the
+# launcher cd's into $APPDIR and execs `python -m src`.
+running_gui_pids() {
+  local proc pid cwd cmdline app_real
+  app_real="$(readlink -f "$APPDIR" 2>/dev/null || printf '%s' "$APPDIR")"
+  for proc in /proc/[0-9]*; do
+    pid="${proc#/proc/}"
+    [ "$pid" = "$$" ] && continue
+    cwd="$(readlink "$proc/cwd" 2>/dev/null)" || continue
+    [ "$cwd" = "$app_real" ] || continue
+    cmdline="$(tr '\0' ' ' <"$proc/cmdline" 2>/dev/null)" || continue
+    case "$cmdline" in
+      *" -m src"*) printf '%s\n' "$pid" ;;
+    esac
+  done
+}
+
+# A running copy keeps executing the old code until it is restarted.
+handle_running_gui() {
+  local pids
+  pids="$(running_gui_pids | tr '\n' ' ')"
+  pids="${pids% }"
+  [ -n "$pids" ] || return 0
+
+  if [ "$RESTART" != "yes" ]; then
+    warn "KDE Theme Manager запущен (PID $pids) и работает на старой версии."
+    warn "Перезапустите приложение или запустите установщик с --restart."
+    return 0
+  fi
+
+  say "Перезапуск KDE Theme Manager (PID $pids)"
+  # shellcheck disable=SC2086 # word splitting of the PID list is intended
+  kill -TERM $pids 2>/dev/null || true
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    [ -z "$(running_gui_pids)" ] && break
+    sleep 0.5
+  done
+  if [ -n "$(running_gui_pids)" ]; then
+    warn "Старая копия не завершилась — перезапустите её вручную."
+    return 0
+  fi
+  if [ -z "${KTM_INSTALL_NO_LAUNCH:-}" ] && command -v setsid >/dev/null 2>&1; then
+    setsid -f "$BINDIR/kde-theme-manager" >/dev/null 2>&1 </dev/null || true
+    say "Запущена новая версия."
+  else
+    say "Старая копия завершена; запустите kde-theme-manager."
+  fi
+}
 
 install_cli() {
   say "Installing theme-profile-kit CLI (Rust)"
@@ -261,6 +316,7 @@ LAUNCHER
   if [ -d "$GUI_BACKUP_DIR" ]; then
     say "Бэкап заменённых GUI-файлов: $GUI_BACKUP_DIR"
   fi
+  handle_running_gui
 }
 
 case "$MODE" in

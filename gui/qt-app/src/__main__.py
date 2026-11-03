@@ -4,6 +4,7 @@ KDE Theme Profile Manager — Qt/QML Application Entry Point.
 v0.5.0 — Native KDE UI with Kirigami, Clean Architecture, Rust core + CLI.
 """
 
+import enum
 import os
 import sys
 from pathlib import Path
@@ -15,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtCore import QUrl, QCoreApplication, QTimer, Qt
+from PySide6.QtCore import QDir, QUrl, QCoreApplication, QTimer, Qt
 from PySide6.QtGui import QPalette, QColor
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 
@@ -92,43 +93,64 @@ def _list_cores() -> int:
 SINGLE_INSTANCE_SOCKET = "kde-theme-manager"
 
 
-def _raise_existing_instance(name: str) -> None:
-    """Ask the already-running instance to show its window."""
+class SingleInstance(enum.Enum):
+    """Outcome of the single-instance handshake."""
+
+    ACQUIRED = "acquired"        # we own the socket — run normally
+    HANDED_OVER = "handed_over"  # a live instance was asked to show itself — exit
+    UNAVAILABLE = "unavailable"  # the socket cannot be created — run without the lock
+
+
+def _ask_running_instance_to_show(name: str) -> bool:
+    """Ask a live instance to show its window; False when nobody answers."""
     sock = QLocalSocket()
     sock.connectToServer(name)
-    if sock.waitForConnected(300):
-        sock.write(b"show")
-        sock.flush()
-        sock.waitForBytesWritten(300)
+    if not sock.waitForConnected(300):
+        sock.disconnectFromServer()
+        return False
+    sock.write(b"show")
+    sock.flush()
+    sock.waitForBytesWritten(300)
     sock.disconnectFromServer()
+    return True
 
 
-def _acquire_single_instance(name: str, server: QLocalServer) -> bool:
-    """Become the single instance (True) or hand over to the running one (False).
+def _acquire_single_instance(name: str, server: QLocalServer) -> SingleInstance:
+    """Become the single instance, hand over to the running one, or report
+    that the lock is unavailable.
 
     A live instance can be connected to; only then do we consider the socket
     stale and clean it up. Blindly removing the socket when `listen` fails
     would break the genuinely running first instance (two tray icons). The
-    `removeServer` before the second `listen` handles the crashed-run case.
+    `removeServer` before `listen` handles the crashed-run case.
+
+    `listen` can also fail for reasons unrelated to another copy — e.g. a
+    socket path over the 108-byte AF_UNIX limit when $TMPDIR is long. That
+    used to be reported as "already running"; now it is UNAVAILABLE and the
+    caller starts without the lock and says why.
     """
-    probe = QLocalSocket()
-    probe.connectToServer(name)
-    if probe.waitForConnected(300):
-        # Another instance is alive — tell it to show the window and exit.
-        probe.write(b"show")
-        probe.flush()
-        probe.waitForBytesWritten(300)
-        probe.disconnectFromServer()
-        return False
-    probe.disconnectFromServer()
+    if _ask_running_instance_to_show(name):
+        return SingleInstance.HANDED_OVER
 
     QLocalServer.removeServer(name)  # stale socket from a previously-crashed run
     if server.listen(name):
-        return True
+        return SingleInstance.ACQUIRED
 
-    # Lost a race — someone grabbed the name between the probe and the listen.
-    _raise_existing_instance(name)
-    return False
+    # Lost a race (someone grabbed the name between the probe and the listen)
+    # only if that someone answers now; otherwise the socket itself is broken.
+    if _ask_running_instance_to_show(name):
+        return SingleInstance.HANDED_OVER
+    return SingleInstance.UNAVAILABLE
+
+
+def _single_instance_error(name: str, server: QLocalServer) -> str:
+    """Human-readable reason why the single-instance socket is unavailable."""
+    path = Path(QDir.tempPath()) / name
+    reason = server.errorString() or "unknown error"
+    hint = ""
+    if len(str(path).encode()) >= 108:
+        hint = " (socket path exceeds the 108-byte AF_UNIX limit; shorten $TMPDIR)"
+    return f"single-instance socket unavailable at {path}: {reason}{hint}"
 
 
 def _activate_on_secondary(single_instance: Optional[QLocalServer], main_window: object) -> None:
@@ -290,10 +312,19 @@ def main() -> int:
 
     # Single instance: two running copies meant two tray icons. A second
     # launch tells the first to show its window and exits.
-    single_instance = QLocalServer(app)
-    if not _acquire_single_instance(SINGLE_INSTANCE_SOCKET, single_instance):
+    single_instance: Optional[QLocalServer] = QLocalServer(app)
+    outcome = _acquire_single_instance(SINGLE_INSTANCE_SOCKET, single_instance)
+    if outcome is SingleInstance.HANDED_OVER:
         print("KDE Theme Manager is already running.", file=sys.stderr)
         return 0
+    if outcome is SingleInstance.UNAVAILABLE:
+        print(
+            "warning: "
+            + _single_instance_error(SINGLE_INSTANCE_SOCKET, single_instance)
+            + " — starting without single-instance protection.",
+            file=sys.stderr,
+        )
+        single_instance = None
 
     # Ensure valid palette for Kirigami (PySide6 bundled Qt may lack KDE palette)
     _setup_palette(app)
