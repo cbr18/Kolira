@@ -1803,13 +1803,47 @@ def test_theme_controller_applies_palette() -> None:
     assert "setPalette(" in content, (
         "ThemeController must apply the palette via QGuiApplication.setPalette"
     )
-    assert "_apply_palette(dark=True)" in content, (
-        "Glass theme must apply a dark palette so QQC2 controls match"
-    )
     # The window colour must be owned by QML, not overridden from Python.
     assert "_window.setColor(" not in content, (
         "ThemeController must not call QWindow.setColor() — it fights the QML binding"
     )
+
+
+def test_theme_controller_palettes(tmp_path, monkeypatch) -> None:
+    """Glass → dark palette; System/unknown profile → the live KDE scheme colours."""
+    import theme_controller as theme_controller_mod
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
+    monkeypatch.setenv("KTM_THEME_NO_APPLY", "1")
+    (tmp_path / ".config").mkdir()
+    (tmp_path / ".config/kdeglobals").write_text(
+        "[General]\nColorScheme=Everforest\n\n"
+        "[Colors:Window]\nBackgroundNormal=45,53,59\nForegroundNormal=211,198,170\n"
+        "ForegroundInactive=133,146,137\n\n"
+        "[Colors:View]\nBackgroundNormal=35,42,46\nBackgroundAlternate=45,53,59\n\n"
+        "[Colors:Button]\nBackgroundNormal=61,72,77\n\n"
+        "[Colors:Selection]\nBackgroundNormal=167,192,128\nForegroundNormal=45,53,59\n",
+        encoding="utf-8",
+    )
+    controller = theme_controller_mod.ThemeController()
+    calls: list[tuple[bool, object]] = []
+    monkeypatch.setattr(
+        controller, "_apply_palette",
+        lambda dark, colors=None: calls.append((dark, colors)),
+    )
+
+    controller._apply_glass_theme()
+    assert calls[-1] == (True, None)
+
+    controller.sync_with_active_profile("everforest")
+    assert controller.currentTheme == "system"
+    controller._apply_theme()
+    dark, colors = calls[-1]
+    assert dark is True
+    assert colors["window"].name() == "#2d353b"
+    assert colors["highlight"].name() == "#a7c080"
+    assert controller.isGlass is False
 
 
 def test_theme_controller_profile_names_are_case_insensitive() -> None:
