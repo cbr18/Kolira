@@ -19,8 +19,9 @@ Native KDE Plasma application for managing theme profiles and wallpapers.
   lists, edits are staged, and profiles store a v2 `theme-bundle.json` beside
   the legacy snapshot
 - **Application theme adapters** — Zed, VS Code, Cursor, Obsidian and btop can
-  expose current/installed themes; Kitty and Alacritty are config-only
-  integrations with an “Open config” action via `xdg-open`
+  expose current/installed themes; Discord/Telegram provide safe partial
+  integrations; Kitty and Alacritty are config-only integrations with an “Open
+  config” action via `xdg-open`
 - **MCP server** — `mcp/theme_profile_mcp.py` lets AI agents enumerate themes,
   create derived color/Kvantum themes, build/validate profiles and explicitly
   apply them (see `../docs/MCP.md`)
@@ -214,10 +215,10 @@ mypy src/
 # QML syntax/type lint (PySide6 6.12 ships its own qmllint)
 .venv/bin/pyside6-qmllint -I qml -I /usr/lib/qt6/qml qml/Main.qml qml/pages/SettingsPage.qml qml/Components/*.qml
 
-# Tests (Python: 212, from gui/qt-app)
+# Tests (Python: 232, from gui/qt-app)
 .venv/bin/python -m pytest tests/ -q
 
-# CLI + installer tests (117, from the repo root)
+# CLI + installer tests (118, from the repo root)
 bash tests/test-scripts.sh
 
 # Static shell analysis (repo root)

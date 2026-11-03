@@ -794,6 +794,32 @@ fn reapply_color_scheme(source: &Path) {
     }
 }
 
+fn reapply_widget_style(source: &Path) {
+    let kdeglobals = source.join(".config/kdeglobals");
+    let Some(widget_style) = ini_group_key(&kdeglobals, "KDE", "widgetStyle") else {
+        return;
+    };
+    if widget_style.is_empty() {
+        return;
+    }
+
+    run_external(
+        "kwriteconfig6",
+        &["--file", "kdeglobals", "--group", "KDE", "--key", "widgetStyle", &widget_style],
+    );
+
+    if widget_style != "kvantum" {
+        return;
+    }
+    let Some(theme) = ini_group_key(&source.join(".config/Kvantum/kvantum.kvconfig"), "General", "theme") else {
+        return;
+    };
+    if theme.is_empty() {
+        return;
+    }
+    run_external("kvantummanager", &["--set", &theme]);
+}
+
 fn apply_live_hooks(source: &Path) {
     // Read from the profile, never via `kreadconfig6` on the live config: that
     // used to pass the profile path as an extra positional argument, making
@@ -808,6 +834,7 @@ fn apply_live_hooks(source: &Path) {
     }
 
     reapply_color_scheme(source);
+    reapply_widget_style(source);
 
     run_external("kbuildsycoca6", &[]);
     run_external("systemctl", &["--user", "stop", "swaync.service"]);

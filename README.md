@@ -206,7 +206,9 @@ Profiles keep the existing snapshot layout and additionally receive
 profiles remain usable as legacy snapshots.
 
 Supported application adapters currently include Zed, VS Code, Cursor,
-Obsidian and btop. Kitty and Alacritty use a config-only integration: the UI
+Obsidian and btop. Discord reads its current light/dark background preference
+and opens native settings; Telegram can list `.tdesktop-theme` files. Kitty and
+Alacritty use a config-only integration: the UI
 does not pretend they have familiar theme entities, but exposes their config
 file and opens it in the system's default editor via `xdg-open`. Profile
 snapshots still include those config files when the apps are enabled in the

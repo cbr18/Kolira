@@ -204,6 +204,9 @@ def bundle_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     put(".config/btop/btop.conf", 'color_theme = "noctalia"\nrounded_corners = true\n')
     put(".config/btop/themes/noctalia.theme", "# noctalia\n")
     put(".config/btop/themes/nord.theme", "# nord\n")
+    put(".config/discord/settings.json", '{\n  "BACKGROUND_COLOR": "#ffffff",\n  "IS_MAXIMIZED": true\n}\n')
+    put(".config/telegram-desktop/themes/noctalia.tdesktop-theme", "windowBg: #121415;\n")
+    put(".config/noctalia/Assets/Templates/telegram.tdesktop-theme", "windowBg: #f6f0e6;\n")
     put(".config/kitty/kitty.conf", "background_opacity 0.5\ninclude themes/old.conf\n")
     put(".config/kitty/themes/old.conf", "# old\n")
     put(".config/kitty/themes/night.conf", "# night\n")
@@ -354,6 +357,33 @@ def test_config_only_app_model_and_open_config(
     result = core.open_app_config("kitty")
     assert result.success, result.message
     assert opened == [["xdg-open", kitty["configPath"]]]
+
+
+def test_discord_and_telegram_adapters_use_safe_fallbacks(
+    bundle_home, monkeypatch: pytest.MonkeyPatch
+):
+    adapters = ADAPTERS
+    discord = adapters["discord"]
+    telegram = adapters["telegram"]
+
+    assert discord.detect()
+    assert discord.current_theme()["label"] == "Light"
+    assert discord.capabilities["apply_theme"] is False
+    assert discord.capabilities["open_config"] is True
+
+    assert telegram.detect()
+    telegram_themes = {theme["id"] for theme in telegram.installed_themes()["themes"]}
+    assert {"noctalia", "telegram"} <= telegram_themes
+    assert telegram.capabilities["apply_theme"] is False
+    assert telegram.capabilities["installed_themes"] is True
+
+    opened: list[list[str]] = []
+    monkeypatch.setattr(
+        "core.app_theme_adapters.subprocess.Popen",
+        lambda args: opened.append(list(args)),
+    )
+    assert telegram.open_config()["ok"]
+    assert opened == [["xdg-open", str(bundle_home["home"] / ".config/telegram-desktop/themes")]]
 
 
 def test_theme_bundle_core_tracks_adapter_changes(bundle_home):

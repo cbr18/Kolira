@@ -125,9 +125,12 @@ class AppThemeAdapter:
             if not self.config_paths:
                 return _err(f"{self.name} has no known config file")
             target = live_path(self.config_paths[0])
-            if not target.parent.is_dir():
+            if target.is_dir():
+                pass
+            elif target.parent.is_dir():
+                target = target.parent
+            else:
                 return _err(f"{self.name} config folder not found")
-            target = target.parent
         try:
             subprocess.Popen(["xdg-open", str(target)])
         except OSError as exc:
@@ -519,11 +522,89 @@ class AlacrittyAdapter(AppThemeAdapter):
     }
 
 
+class DiscordAdapter(AppThemeAdapter):
+    id = "discord"
+    name = "Discord"
+    icon = "discord"
+    launch_command = ("discord",)
+    config_paths = (".config/discord/settings.json",)
+    integration = "config"
+    capabilities = {
+        **AppThemeAdapter.capabilities,
+        "current_theme": True,
+        "launch": True,
+        "open_config": True,
+        "open_theme_settings": True,
+    }
+
+    def current_theme(self) -> dict:
+        path = self.config_file()
+        if path is None:
+            return _err("Discord settings.json not found", "not_installed")
+        try:
+            data = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+        except (OSError, json.JSONDecodeError) as exc:
+            return _err(f"Could not parse Discord settings.json: {exc}", "parse_error")
+        value = str(data.get("BACKGROUND_COLOR") or data.get("theme") or "")
+        lowered = value.lower()
+        if lowered in ("#ffffff", "#fff", "light", "white"):
+            label = "Light"
+        elif value:
+            label = "Dark"
+        else:
+            label = ""
+        return _ok({"value": value, "label": label})
+
+    def open_theme_settings(self) -> dict:
+        # Native Discord does not expose a stable external theme-apply API.
+        # Opening the app is the safe fallback; appearance lives inside Discord.
+        return self.launch()
+
+
+class TelegramAdapter(AppThemeAdapter):
+    id = "telegram"
+    name = "Telegram Desktop"
+    icon = "telegram"
+    launch_command = ("telegram-desktop",)
+    config_paths = (".config/telegram-desktop/themes",)
+    integration = "config"
+    capabilities = {
+        **AppThemeAdapter.capabilities,
+        "installed_themes": True,
+        "launch": True,
+        "open_config": True,
+        "open_theme_settings": True,
+    }
+
+    def installed_themes(self) -> dict:
+        roots = (
+            live_path(".config/telegram-desktop/themes"),
+            live_path(".config/noctalia/Assets/Templates"),
+            live_path(".local/share/TelegramDesktop/tdata/theme"),
+        )
+        themes: list[AdapterTheme] = []
+        for root in roots:
+            try:
+                files = sorted(root.glob("*.tdesktop-theme"), key=lambda p: p.name.casefold())
+            except OSError:
+                continue
+            themes.extend(AdapterTheme(path.stem, path.stem, str(path)) for path in files)
+        unique = {theme.id: theme for theme in themes}
+        return _ok({"themes": [theme.to_dict() for theme in unique.values()]})
+
+    def open_theme_settings(self) -> dict:
+        # Telegram stores the active theme internally; open the app rather than
+        # editing tdata/settingss from outside.
+        return self.launch()
+
+
 ADAPTERS: dict[str, AppThemeAdapter] = {
     "zed": ZedAdapter(),
     "vscode": VSCodeAdapter(),
     "cursor": CursorAdapter(),
     "obsidian": ObsidianAdapter(),
+    "discord": DiscordAdapter(),
+    "telegram": TelegramAdapter(),
     "btop": BtopAdapter(),
     "kitty": KittyAdapter(),
     "alacritty": AlacrittyAdapter(),

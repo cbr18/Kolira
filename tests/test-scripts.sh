@@ -741,6 +741,61 @@ EOF
   fi
 fi
 
+# --- 13c. apply re-applies the Qt widget style and Kvantum theme --------------
+echo "=== Section 13c: apply re-applies Qt widget style and Kvantum theme ==="
+if ! command -v kreadconfig6 >/dev/null 2>&1 || ! command -v kwriteconfig6 >/dev/null 2>&1; then
+  echo "  ⏭  kreadconfig6/kwriteconfig6 not installed (KDE tooling) — skipping"
+else
+  STYLE_HOME="$TMP_ROOT/style-home"
+  STYLE_CALLS="$TMP_ROOT/style-calls.log"
+  export STYLE_CALLS
+  mkdir -p "$STYLE_HOME/.config/theme-profile" "$STYLE_HOME/.config/Kvantum"
+  : > "$STYLE_CALLS"
+  cat > "$STYLE_HOME/.config/kdeglobals" <<'EOF'
+[General]
+ColorScheme=Breeze1
+
+[KDE]
+LookAndFeelPackage=Paper
+widgetStyle=kvantum
+EOF
+  cat > "$STYLE_HOME/.config/Kvantum/kvantum.kvconfig" <<'EOF'
+[General]
+theme=Sandstone
+EOF
+
+  MOCK_BIN_STYLE="$TMP_ROOT/mock-bin-style"
+  mkdir -p "$MOCK_BIN_STYLE"
+  for cmd in systemctl qdbus6 kbuildsycoca6; do
+    cat > "$MOCK_BIN_STYLE/$cmd" <<'MOCK'
+#!/usr/bin/env bash
+exit 0
+MOCK
+    chmod +x "$MOCK_BIN_STYLE/$cmd"
+  done
+  cat > "$MOCK_BIN_STYLE/plasma-apply-colorscheme" <<'MOCK'
+#!/usr/bin/env bash
+echo "plasma-apply-colorscheme $*" >> "$STYLE_CALLS"
+exit 0
+MOCK
+  cat > "$MOCK_BIN_STYLE/kvantummanager" <<'MOCK'
+#!/usr/bin/env bash
+echo "kvantummanager $*" >> "$STYLE_CALLS"
+exit 0
+MOCK
+  chmod +x "$MOCK_BIN_STYLE/plasma-apply-colorscheme" "$MOCK_BIN_STYLE/kvantummanager"
+
+  HOME="$STYLE_HOME" PATH="$MOCK_BIN_STYLE:$PATH" \
+    "$CLI_DIR/theme-profile" save qt-style-test >/dev/null 2>&1
+  if HOME="$STYLE_HOME" PATH="$MOCK_BIN_STYLE:$PATH" \
+    "$CLI_DIR/theme-profile" apply qt-style-test >/dev/null 2>&1 \
+    && grep -q '^kvantummanager --set Sandstone$' "$STYLE_CALLS"; then
+    ok "apply re-applies the Kvantum Qt widget theme"
+  else
+    fail "apply did not re-apply the Kvantum Qt widget theme"
+  fi
+fi
+
 # --- 14. manifest.json, describe and custom components -------------------------
 echo "=== Section 14: manifest.json / describe / components ==="
 
