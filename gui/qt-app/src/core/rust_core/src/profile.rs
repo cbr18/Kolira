@@ -667,6 +667,110 @@ fn run_custom_reload_hooks(rel_paths: &[String]) {
 }
 
 /// Order of qdbus commands matches the historical bash script.
+fn percent_decode(value: &str) -> String {
+    let bytes = value.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let Ok(hex) = u8::from_str_radix(&value[i + 1..i + 3], 16) {
+                out.push(hex);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).to_string()
+}
+
+fn first_wallpaper_image(source: &Path) -> Option<PathBuf> {
+    let text = fs::read_to_string(source.join(".config/plasma-org.kde.plasma.desktop-appletsrc")).ok()?;
+    for line in text.lines() {
+        if let Some(value) = line.trim().strip_prefix("Image=file://") {
+            let decoded = percent_decode(value);
+            if !decoded.is_empty() {
+                return Some(PathBuf::from(decoded));
+            }
+        }
+    }
+    None
+}
+
+fn parse_imagemagick_pixel(text: &str) -> Option<String> {
+    let start = text.find('(')?;
+    let end = text.rfind(')')?;
+    let parts: Vec<&str> = text[start + 1..end].split(',').collect();
+    if parts.len() < 3 {
+        return None;
+    }
+    let rgb: Option<Vec<u8>> = parts[..3]
+        .iter()
+        .map(|part| part.trim().parse::<f64>().ok().map(|v| v.round().clamp(0.0, 255.0) as u8))
+        .collect();
+    let rgb = rgb?;
+    Some(format!("#{:02x}{:02x}{:02x}", rgb[0], rgb[1], rgb[2]))
+}
+
+fn rgb_string_to_hex(value: &str) -> Option<String> {
+    let parts: Vec<&str> = value.split(',').collect();
+    if parts.len() != 3 {
+        return None;
+    }
+    let rgb: Option<Vec<u8>> = parts
+        .iter()
+        .map(|part| part.trim().parse::<u8>().ok())
+        .collect();
+    let rgb = rgb?;
+    Some(format!("#{:02x}{:02x}{:02x}", rgb[0], rgb[1], rgb[2]))
+}
+
+fn wallpaper_accent_hex(path: &Path) -> Option<String> {
+    if !path.is_file() {
+        return None;
+    }
+    let path_string = path.to_string_lossy().to_string();
+    let pixel = run_external_capture(
+        "magick",
+        &[&path_string, "-resize", "200x200", "-colors", "1", "-format", "%[pixel:p{0,0}]", "info:"],
+    );
+    parse_imagemagick_pixel(pixel.trim())
+}
+
+/// Restoring kdeglobals is not enough: Qt/Plasma keeps the previous palette in
+/// memory. Re-apply the scheme explicitly, and when the profile says the accent
+/// comes from wallpaper, derive a concrete accent from the restored wallpaper so
+/// the running session updates even when the scheme name did not change.
+fn reapply_color_scheme(source: &Path) {
+    let kdeglobals = source.join(".config/kdeglobals");
+    let Some(scheme) = ini_group_key(&kdeglobals, "General", "ColorScheme") else {
+        return;
+    };
+    if scheme.is_empty() {
+        return;
+    }
+
+    let explicit = ini_group_key(&kdeglobals, "General", "AccentColor")
+        .and_then(|value| rgb_string_to_hex(&value));
+    let from_wallpaper = ini_group_key(&kdeglobals, "General", "accentColorFromWallpaper")
+        .as_deref()
+        == Some("true");
+    let accent = explicit.or_else(|| {
+        if from_wallpaper {
+            first_wallpaper_image(source).and_then(|path| wallpaper_accent_hex(&path))
+        } else {
+            None
+        }
+    });
+
+    if let Some(accent) = accent {
+        run_external("plasma-apply-colorscheme", &["--accent-color", &accent, &scheme]);
+    } else {
+        run_external("plasma-apply-colorscheme", &[&scheme]);
+    }
+}
+
 fn apply_live_hooks(source: &Path) {
     // Read from the profile, never via `kreadconfig6` on the live config: that
     // used to pass the profile path as an extra positional argument, making
@@ -679,6 +783,8 @@ fn apply_live_hooks(source: &Path) {
             &["--file", "kdeglobals", "--group", "KDE", "--key", "LookAndFeelPackage", &look_and_feel],
         );
     }
+
+    reapply_color_scheme(source);
 
     run_external("kbuildsycoca6", &[]);
     run_external("systemctl", &["--user", "stop", "swaync.service"]);
