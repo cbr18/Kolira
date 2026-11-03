@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from .fileutil import atomic_write_text
-from .paths import home_dir, live_path, theme_root
+from .paths import data_home, home_dir, live_path, theme_root
 from .theme_core import _ini_get, _json_patch, _json_read, _set_ini_text, _strip_jsonc
 
 
@@ -212,6 +212,16 @@ class VSCodeAdapter(JsonSettingsAdapter):
     def theme_path(self) -> tuple[str, ...]:
         return ("workbench.colorTheme",)
 
+    def current_theme(self) -> dict:
+        result = super().current_theme()
+        value = str(result.get("value") or "")
+        if result.get("ok") and value:
+            themes = self.installed_themes().get("themes") or []
+            label = next((t["label"] for t in themes if t["id"] == value), "")
+            if label:
+                result["label"] = label
+        return result
+
     def extensions_root(self) -> Path:
         return home_dir() / self.extensions_rel
 
@@ -239,8 +249,11 @@ class VSCodeAdapter(JsonSettingsAdapter):
             extension_id = data.get("name") or package.parent.name
             for item in data.get("contributes", {}).get("themes", []):
                 label = str(item.get("label") or Path(str(item.get("path", "theme"))).stem)
+                # VS Code stores a theme's ``id`` in workbench.colorTheme when the
+                # extension declares one (e.g. Doki uses UUIDs), else its label.
+                theme_id = str(item.get("id") or label)
                 if label:
-                    themes.append(AdapterTheme(label, label, f"{extension_id}:{package.parent.name}"))
+                    themes.append(AdapterTheme(theme_id, label, f"{extension_id}:{package.parent.name}"))
         unique: dict[str, AdapterTheme] = {theme.id: theme for theme in themes}
         return _ok({"themes": [theme.to_dict() for theme in unique.values()]})
 
@@ -305,19 +318,33 @@ class ZedAdapter(JsonSettingsAdapter):
 
     def installed_themes(self) -> dict:
         themes = [AdapterTheme(name, name, "built-in") for name in self.built_in_themes]
-        root = live_path(".config/zed/themes")
-        try:
-            files = sorted(root.glob("*.json"))
-        except OSError:
-            files = []
+        files: list[Path] = []
+        # User themes plus themes shipped by installed Zed extensions.
+        for pattern_root, pattern in (
+            (live_path(".config/zed/themes"), "*.json"),
+            (data_home() / "zed/extensions/installed", "*/themes/*.json"),
+        ):
+            try:
+                files.extend(sorted(pattern_root.glob(pattern)))
+            except OSError:
+                continue
         for path in files:
-            label = path.stem
+            # A Zed theme file is a *family*: the selectable names live in
+            # ``themes[].name`` (settings.json stores one of those), the
+            # top-level ``name`` is only the family title.
+            names: list[str] = []
             try:
                 data = json.loads(_strip_jsonc(path.read_text(encoding="utf-8", errors="replace")))
-                label = str(data.get("name") or label)
             except (OSError, json.JSONDecodeError):
-                pass
-            themes.append(AdapterTheme(label, label, str(path)))
+                data = {}
+            if isinstance(data, dict):
+                for item in data.get("themes") or []:
+                    if isinstance(item, dict) and item.get("name"):
+                        names.append(str(item["name"]))
+                if not names and data.get("name"):
+                    names.append(str(data["name"]))
+            for label in names or [path.stem]:
+                themes.append(AdapterTheme(label, label, str(path)))
         unique = {theme.id: theme for theme in themes}
         return _ok({"themes": [theme.to_dict() for theme in unique.values()]})
 

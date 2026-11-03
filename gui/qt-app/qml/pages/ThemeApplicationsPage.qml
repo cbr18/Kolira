@@ -78,9 +78,11 @@ Kirigami.ScrollablePage {
                             }
                             Label {
                                 Layout.fillWidth: true
-                                text: modelData.installed
-                                    ? (modelData.currentDisplay || qsTr("No theme selected"))
-                                    : qsTr("Not installed")
+                                text: !modelData.installed
+                                    ? qsTr("Not installed")
+                                    : modelData.capabilities.current_theme !== true
+                                        ? qsTr("Theme is chosen inside the app")
+                                        : (modelData.currentDisplay || qsTr("No theme selected"))
                                 color: ThemeColors.dimColor(page.glassMode)
                                 elide: Text.ElideRight
                             }
@@ -104,7 +106,10 @@ Kirigami.ScrollablePage {
                         ComboBox {
                             id: themeChooser
                             Layout.fillWidth: true
+                            // A list we can neither read nor apply (Telegram) is
+                            // just an empty disabled box — hide it.
                             visible: modelData.capabilities.installed_themes === true
+                                && modelData.capabilities.apply_theme === true
                                 && modelData.themes.length > 0
                             model: modelData.themes
                             textRole: "label"

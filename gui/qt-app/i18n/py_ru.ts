@@ -163,6 +163,233 @@
         <translation>Не удалось применить профиль</translation>
     </message>
 </context><context>
+    <name>ThemeBundle</name>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="79" />
+        <source>KDE &amp; Plasma</source>
+        <translation>KDE и Plasma</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="80" />
+        <source>Global theme, Plasma Style, colors, decorations, icons, cursors and fonts</source>
+        <translation>Глобальная тема, стиль Plasma, цвета, оформление окон, значки, курсоры и шрифты</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="83" />
+        <source>Global theme</source>
+        <translation>Глобальная тема</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="85" />
+        <source>Look &amp; Feel package used by Plasma</source>
+        <translation>Пакет оформления (Look &amp; Feel) для Plasma</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="90" />
+        <source>Plasma Style</source>
+        <translation>Стиль Plasma</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="92" />
+        <source>Visual style of Plasma widgets and panels</source>
+        <translation>Внешний вид виджетов и панелей Plasma</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="97" />
+        <source>Color scheme</source>
+        <translation>Цветовая схема</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="99" />
+        <source>Installed KDE color scheme</source>
+        <translation>Установленная цветовая схема KDE</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="104" />
+        <source>Window decoration</source>
+        <translation>Оформление окон</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="106" />
+        <source>Theme used by the selected window decoration plugin</source>
+        <translation>Тема выбранного модуля оформления окон</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="111" />
+        <source>Icon theme</source>
+        <translation>Значки</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="113" />
+        <source>Icon theme for Plasma and Qt applications</source>
+        <translation>Тема значков для Plasma и Qt-приложений</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="118" />
+        <source>Cursor theme</source>
+        <translation>Курсоры</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="120" />
+        <source>Mouse cursor theme</source>
+        <translation>Тема указателя мыши</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="126" />
+        <source>Fonts</source>
+        <translation>Шрифты</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="129" />
+        <source>UI, menu, title and fixed fonts</source>
+        <translation>Шрифты интерфейса, меню, заголовков и моноширинный</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="136" />
+        <source>Desktop &amp; Windows</source>
+        <translation>Рабочий стол и окна</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="137" />
+        <source>Wallpaper, corners, blur, translucency and window effects</source>
+        <translation>Обои, скругления, размытие, прозрачность и эффекты окон</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="140" />
+        <source>Wallpaper</source>
+        <translation>Обои</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="143" />
+        <source>Wallpaper used by the current Plasma session</source>
+        <translation>Обои текущего сеанса Plasma</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="146" />
+        <source>Corner radius</source>
+        <translation>Радиус скругления</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="149" />
+        <source>Window corner radius used by Klassy</source>
+        <translation>Радиус скругления углов окон в Klassy</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="153" />
+        <source>Blur strength</source>
+        <translation>Сила размытия</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="156" />
+        <source>Better Blur DX strength</source>
+        <translation>Сила размытия Better Blur DX</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="160" />
+        <source>Inactive window opacity</source>
+        <translation>Непрозрачность неактивных окон</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="163" />
+        <source>Opacity of inactive windows</source>
+        <translation>Непрозрачность неактивных окон</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="167" />
+        <source>Animation speed</source>
+        <translation>Скорость анимации</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="170" />
+        <source>Global animation duration multiplier</source>
+        <translation>Общий множитель длительности анимаций</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="176" />
+        <source>Qt &amp; Kvantum</source>
+        <translation>Qt и Kvantum</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="177" />
+        <source>Qt widget style and Kvantum theme</source>
+        <translation>Стиль виджетов Qt и тема Kvantum</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="180" />
+        <source>Qt widget style</source>
+        <translation>Стиль виджетов Qt</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="182" />
+        <source>Qt application widget style</source>
+        <translation>Стиль виджетов Qt-приложений</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="187" />
+        <source>Kvantum theme</source>
+        <translation>Тема Kvantum</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="189" />
+        <source>SVG widget theme used by the Kvantum Qt style</source>
+        <translation>SVG-тема виджетов для стиля Qt Kvantum</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="194" />
+        <source>Kvantum translucent windows</source>
+        <translation>Прозрачные окна Kvantum</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="197" />
+        <source>Let Kvantum paint translucent windows</source>
+        <translation>Разрешить Kvantum рисовать полупрозрачные окна</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="203" />
+        <source>GTK</source>
+        <translation>GTK</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="204" />
+        <source>GTK 2, GTK 3 and GTK 4 application themes</source>
+        <translation>Темы приложений GTK 2, GTK 3 и GTK 4</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="207" />
+        <source>GTK theme</source>
+        <translation>Тема GTK</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="209" />
+        <source>Theme used by GTK applications</source>
+        <translation>Тема GTK-приложений</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="213" />
+        <source>Prefer dark GTK variant</source>
+        <translation>Предпочитать тёмный вариант GTK</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="216" />
+        <source>Ask GTK applications to use their dark variant</source>
+        <translation>Просить GTK-приложения использовать тёмный вариант</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="351" />
+        <source>Custom: %1</source>
+        <translation>Своя: %1</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="357" />
+        <source>Selected theme is not installed</source>
+        <translation>Выбранная тема не установлена</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="413" />
+        <source>Application not detected</source>
+        <translation>Приложение не найдено</translation>
+    </message>
+</context><context>
     <name>ThemeBundleController</name>
     <message>
         <location filename="../src/controllers/theme_bundle.py" line="231" />

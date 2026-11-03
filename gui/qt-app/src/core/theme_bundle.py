@@ -36,6 +36,22 @@ from .theme_core import AppThemeCore, _read_text, _set_ini_text
 BUNDLE_SCHEMA = "theme-bundle/1"
 
 
+def QT_TRANSLATE_NOOP(context: str, text: str) -> str:  # noqa: N802
+    """Mark a static string for pylupdate6; translated later by ``_tr``."""
+    del context
+    return text
+
+
+def _tr(text: str) -> str:
+    """Translate a user-visible bundle string (context ``ThemeBundle``).
+
+    Without a loaded translator (tests, CLI use) the source text is returned.
+    """
+    from PySide6.QtCore import QCoreApplication
+
+    return QCoreApplication.translate("ThemeBundle", text)
+
+
 @dataclass(frozen=True, slots=True)
 class BundleComponentDef:
     id: str
@@ -60,144 +76,144 @@ class BundleGroupDef:
 
 GROUPS: tuple[BundleGroupDef, ...] = (
     BundleGroupDef(
-        "plasma", "KDE & Plasma", "preferences-desktop-theme",
-        "Global theme, Plasma Style, colors, decorations, icons, cursors and fonts",
+        "plasma", QT_TRANSLATE_NOOP("ThemeBundle", "KDE & Plasma"), "preferences-desktop-theme",
+        QT_TRANSLATE_NOOP("ThemeBundle", "Global theme, Plasma Style, colors, decorations, icons, cursors and fonts"),
         (
             BundleComponentDef(
-                "plasma_global", "Global theme", "look_and_feel",
+                "plasma_global", QT_TRANSLATE_NOOP("ThemeBundle", "Global theme"), "look_and_feel",
                 icon="preferences-desktop-theme-global",
-                description="Look & Feel package used by Plasma",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Look & Feel package used by Plasma"),
                 external_module="kcm_lookandfeel",
                 legacy_section="assets",
             ),
             BundleComponentDef(
-                "plasma_style", "Plasma Style", "plasma_theme",
+                "plasma_style", QT_TRANSLATE_NOOP("ThemeBundle", "Plasma Style"), "plasma_theme",
                 icon="preferences-desktop-theme",
-                description="Visual style of Plasma widgets and panels",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Visual style of Plasma widgets and panels"),
                 external_module="kcm_desktoptheme",
                 legacy_section="assets",
             ),
             BundleComponentDef(
-                "color_scheme", "Color scheme", "color_scheme",
+                "color_scheme", QT_TRANSLATE_NOOP("ThemeBundle", "Color scheme"), "color_scheme",
                 icon="preferences-desktop-color",
-                description="Installed KDE color scheme",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Installed KDE color scheme"),
                 external_module="kcm_colors",
                 legacy_section="colors",
             ),
             BundleComponentDef(
-                "decoration_theme", "Window decoration", "decoration_theme",
+                "decoration_theme", QT_TRANSLATE_NOOP("ThemeBundle", "Window decoration"), "decoration_theme",
                 icon="preferences-system-windows",
-                description="Theme used by the selected window decoration plugin",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Theme used by the selected window decoration plugin"),
                 external_module="kcm_kwindecoration",
                 legacy_section="windows",
             ),
             BundleComponentDef(
-                "icon_theme", "Icon theme", "icon_theme",
+                "icon_theme", QT_TRANSLATE_NOOP("ThemeBundle", "Icon theme"), "icon_theme",
                 icon="preferences-desktop-icons",
-                description="Icon theme for Plasma and Qt applications",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Icon theme for Plasma and Qt applications"),
                 external_module="kcm_icons",
                 legacy_section="assets",
             ),
             BundleComponentDef(
-                "cursor_theme", "Cursor theme", "cursor_theme",
+                "cursor_theme", QT_TRANSLATE_NOOP("ThemeBundle", "Cursor theme"), "cursor_theme",
                 icon="preferences-desktop-cursors",
-                description="Mouse cursor theme",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Mouse cursor theme"),
                 external_module="kcm_cursortheme",
                 legacy_section="assets",
                 profile_tracked=False,
             ),
             BundleComponentDef(
-                "ui_font", "Fonts", "ui_font",
+                "ui_font", QT_TRANSLATE_NOOP("ThemeBundle", "Fonts"), "ui_font",
                 kind="font",
                 icon="preferences-desktop-font",
-                description="UI, menu, title and fixed fonts",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "UI, menu, title and fixed fonts"),
                 external_module="kcm_fonts",
                 legacy_section="typography",
             ),
         ),
     ),
     BundleGroupDef(
-        "desktop", "Desktop & Windows", "preferences-system-windows",
-        "Wallpaper, corners, blur, translucency and window effects",
+        "desktop", QT_TRANSLATE_NOOP("ThemeBundle", "Desktop & Windows"), "preferences-system-windows",
+        QT_TRANSLATE_NOOP("ThemeBundle", "Wallpaper, corners, blur, translucency and window effects"),
         (
             BundleComponentDef(
-                "wallpaper", "Wallpaper", "",
+                "wallpaper", QT_TRANSLATE_NOOP("ThemeBundle", "Wallpaper"), "",
                 kind="wallpaper",
                 icon="preferences-desktop-wallpaper",
-                description="Wallpaper used by the current Plasma session",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Wallpaper used by the current Plasma session"),
             ),
             BundleComponentDef(
-                "corner_radius", "Corner radius", "klassy_radius",
+                "corner_radius", QT_TRANSLATE_NOOP("ThemeBundle", "Corner radius"), "klassy_radius",
                 kind="int",
                 icon="rounded",
-                description="Window corner radius used by Klassy",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Window corner radius used by Klassy"),
                 legacy_section="windows",
             ),
             BundleComponentDef(
-                "blur_strength", "Blur strength", "blur_strength",
+                "blur_strength", QT_TRANSLATE_NOOP("ThemeBundle", "Blur strength"), "blur_strength",
                 kind="int",
                 icon="blur",
-                description="Better Blur DX strength",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Better Blur DX strength"),
                 legacy_section="windows",
             ),
             BundleComponentDef(
-                "translucency", "Inactive window opacity", "translucency_inactive",
+                "translucency", QT_TRANSLATE_NOOP("ThemeBundle", "Inactive window opacity"), "translucency_inactive",
                 kind="int",
                 icon="translucency",
-                description="Opacity of inactive windows",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Opacity of inactive windows"),
                 legacy_section="windows",
             ),
             BundleComponentDef(
-                "animations", "Animation speed", "animation_factor",
+                "animations", QT_TRANSLATE_NOOP("ThemeBundle", "Animation speed"), "animation_factor",
                 kind="float",
                 icon="preferences-desktop-animation",
-                description="Global animation duration multiplier",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Global animation duration multiplier"),
                 legacy_section="windows",
             ),
         ),
     ),
     BundleGroupDef(
-        "qt", "Qt & Kvantum", "preferences-desktop-theme",
-        "Qt widget style and Kvantum theme",
+        "qt", QT_TRANSLATE_NOOP("ThemeBundle", "Qt & Kvantum"), "preferences-desktop-theme",
+        QT_TRANSLATE_NOOP("ThemeBundle", "Qt widget style and Kvantum theme"),
         (
             BundleComponentDef(
-                "widget_style", "Qt widget style", "widget_style",
+                "widget_style", QT_TRANSLATE_NOOP("ThemeBundle", "Qt widget style"), "widget_style",
                 icon="preferences-desktop-theme-style",
-                description="Qt application widget style",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Qt application widget style"),
                 external_module="kcm_style",
                 legacy_section="colors",
             ),
             BundleComponentDef(
-                "kvantum_theme", "Kvantum theme", "kvantum_theme",
+                "kvantum_theme", QT_TRANSLATE_NOOP("ThemeBundle", "Kvantum theme"), "kvantum_theme",
                 icon="kvantum",
-                description="SVG widget theme used by the Kvantum Qt style",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "SVG widget theme used by the Kvantum Qt style"),
                 external_module="kcm_style",
                 legacy_section="assets",
             ),
             BundleComponentDef(
-                "kvantum_translucent", "Kvantum translucent windows", "kvantum_translucent",
+                "kvantum_translucent", QT_TRANSLATE_NOOP("ThemeBundle", "Kvantum translucent windows"), "kvantum_translucent",
                 kind="bool",
                 icon="translucency",
-                description="Let Kvantum paint translucent windows",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Let Kvantum paint translucent windows"),
                 legacy_section="assets",
             ),
         ),
     ),
     BundleGroupDef(
-        "gtk", "GTK", "gtk",
-        "GTK 2, GTK 3 and GTK 4 application themes",
+        "gtk", QT_TRANSLATE_NOOP("ThemeBundle", "GTK"), "gtk",
+        QT_TRANSLATE_NOOP("ThemeBundle", "GTK 2, GTK 3 and GTK 4 application themes"),
         (
             BundleComponentDef(
-                "gtk_theme", "GTK theme", "gtk_theme",
+                "gtk_theme", QT_TRANSLATE_NOOP("ThemeBundle", "GTK theme"), "gtk_theme",
                 icon="gtk",
-                description="Theme used by GTK applications",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Theme used by GTK applications"),
                 legacy_section="assets",
             ),
             BundleComponentDef(
-                "gtk_dark", "Prefer dark GTK variant", "gtk_dark",
+                "gtk_dark", QT_TRANSLATE_NOOP("ThemeBundle", "Prefer dark GTK variant"), "gtk_dark",
                 kind="bool",
                 icon="dark-mode",
-                description="Ask GTK applications to use their dark variant",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Ask GTK applications to use their dark variant"),
                 legacy_section="assets",
             ),
         ),
@@ -238,6 +254,28 @@ def _line_preserving_set(text: str, group: str, key: str, value: str) -> str:
     except Exception:
         pattern = re.compile(rf"(?m)^({re.escape(key)}\s*=).*$")
         return pattern.sub(rf"\1 {value}", text)
+
+
+def _live_palette_entries() -> list[tuple[str, str, str]]:
+    """``(group, key, value)`` of the live palette groups in kdeglobals.
+
+    Plasma writes the full effective palette into ``[Colors:*]`` / ``[WM]`` when
+    a scheme is applied, and Theme Inspector colour edits land there too.
+    """
+    entries: list[tuple[str, str, str]] = []
+    group = ""
+    for line in (_read_text(live_path(".config/kdeglobals")) or "").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            group = stripped[1:-1]
+            continue
+        if not (group.startswith("Colors:") or group == "WM"):
+            continue
+        if "=" in stripped and not stripped.startswith(("#", ";")):
+            key, value = stripped.split("=", 1)
+            if key.strip():
+                entries.append((group, key.strip(), value.strip()))
+    return entries
 
 
 def _set_group_key(text: str, group: str, key: str, value: str) -> str:
@@ -296,9 +334,9 @@ class ThemeBundleCore:
     def _group_to_dict(self, group: BundleGroupDef, scope: str) -> dict:
         return {
             "id": group.id,
-            "label": group.label,
+            "label": _tr(group.label),
             "icon": group.icon,
-            "description": group.description,
+            "description": _tr(group.description),
             "components": [
                 self._component_to_dict(component, scope)
                 for component in group.components
@@ -332,20 +370,20 @@ class ThemeBundleCore:
             if current and component.kind == "choice" and all(
                 str(item["value"]) != current for item in choices
             ):
-                choices.append({"value": current, "label": f"Custom: {current}"})
+                choices.append({"value": current, "label": _tr(QT_TRANSLATE_NOOP("ThemeBundle", "Custom: %1")).replace("%1", current)})
             if component.kind == "choice":
                 installed = {str(item["value"]) for item in choices}
                 supported = bool(choices)
                 if current and installed and current not in installed:
                     status = "warning"
-                    status_text = "Selected theme is not installed"
+                    status_text = _tr(QT_TRANSLATE_NOOP("ThemeBundle", "Selected theme is not installed"))
 
         return {
             "id": component.id,
-            "label": component.label,
+            "label": _tr(component.label),
             "icon": component.icon,
             "kind": component.kind,
-            "description": component.description,
+            "description": _tr(component.description),
             "currentValue": current,
             "currentDisplay": current_display,
             "choices": choices,
@@ -394,7 +432,7 @@ class ThemeBundleCore:
 
             if not installed:
                 status = "not_installed"
-                status_text = "Application not detected"
+                status_text = _tr(QT_TRANSLATE_NOOP("ThemeBundle", "Application not detected"))
             elif capabilities.get("current_theme"):
                 current_result = adapter.current_theme()
                 if current_result.get("ok"):
@@ -553,7 +591,7 @@ class ThemeBundleCore:
             if not described.success:
                 return described
 
-        bundle = self._bundle_data(name, wallpaper=wallpaper)
+        bundle = self._bundle_data(name, wallpaper=wallpaper, description=description.strip())
         target = self._bundle_path(name)
         backup_file(target)
         try:
@@ -563,7 +601,7 @@ class ThemeBundleCore:
             return Result.err(f"Failed to write theme bundle: {exc}")
         return Result.ok(f"Saved profile and theme bundle: {name}", data=bundle)
 
-    def _bundle_data(self, name: str, wallpaper: str = "") -> dict:
+    def _bundle_data(self, name: str, wallpaper: str = "", description: str = "") -> dict:
         components: dict[str, Any] = {}
         for group in self.groups("live"):
             for component in group["components"]:
@@ -571,12 +609,15 @@ class ThemeBundleCore:
                     components[component["id"]] = component["currentValue"]
         apps: dict[str, str] = {}
         for app in self.applications():
-            if app["installed"] and app["currentValue"]:
+            # Only apps whose theme we can re-apply belong in the bundle;
+            # Discord's background colour etc. would just fail on apply.
+            if (app["installed"] and app["currentValue"]
+                    and app["capabilities"].get("apply_theme")):
                 apps[str(app["id"])] = str(app["currentValue"])
         return {
             "schema": BUNDLE_SCHEMA,
             "name": name,
-            "description": "",
+            "description": description,
             "createdAt": datetime.now().isoformat(timespec="seconds"),
             "components": components,
             "applications": apps,
@@ -628,7 +669,7 @@ class ThemeBundleCore:
                 item = self._component_to_dict(component, "live")
                 values = {str(choice["value"]) for choice in item["choices"]}
                 if values and str(value) not in values:
-                    missing.append(f"{component.label}: {value}")
+                    missing.append(f"{_tr(component.label)}: {value}")
         for app_id, theme in dict(data.get("applications") or {}).items():
             app = next((item for item in self.applications() if item["id"] == app_id), None)
             if app and app["themes"]:
@@ -683,6 +724,10 @@ class ThemeBundleCore:
             return Result.err(f"Color scheme already exists: {name}")
         try:
             text = source.read_text(encoding="utf-8", errors="replace")
+            # Bake the live palette in: Theme Inspector colour edits (window_bg,
+            # selection_bg, …) live in kdeglobals, not in the base .colors file.
+            for group, key, value in _live_palette_entries():
+                text = _set_group_key(text, group, key, value)
             text = _set_group_key(text, "General", "Name", name)
             text = _set_group_key(text, "General", "ColorScheme", name)
             accent = self._theme.get("accent_color", "live") or {}

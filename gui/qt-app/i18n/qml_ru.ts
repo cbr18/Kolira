@@ -280,7 +280,7 @@
     </message>
     <message>
         <location filename="../qml/Main.qml" line="231"/>
-        <location filename="../qml/Main.qml" line="387"/>
+        <location filename="../qml/Main.qml" line="390"/>
         <source>Refresh</source>
         <translation>Обновить</translation>
     </message>
@@ -290,176 +290,175 @@
         <translation>Применить</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="262"/>
+        <location filename="../qml/Main.qml" line="265"/>
         <source>Click a profile card to select it, then press Apply.</source>
         <translation>Кликните по карточке профиля, чтобы выбрать, затем нажмите «Применить».</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="264"/>
         <source>Active profile: %1</source>
-        <translation>Активный профиль: %1</translation>
+        <translation type="vanished">Активный профиль: %1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="265"/>
+        <location filename="../qml/Main.qml" line="268"/>
         <source>Selected &quot;%1&quot; (not applied yet). Active: %2</source>
         <translation>Выбран «%1» (ещё не применён). Активен: %2</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="290"/>
+        <location filename="../qml/Main.qml" line="293"/>
         <source>Available Profiles</source>
         <translation>Доступные профили</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="295"/>
+        <location filename="../qml/Main.qml" line="298"/>
         <source>Save current…</source>
         <translation>Сохранить текущее…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="356"/>
+        <location filename="../qml/Main.qml" line="359"/>
         <source>No profiles found. Save the current theme to create one.</source>
         <translation>Профилей нет. Сохраните текущую тему, чтобы создать профиль.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="382"/>
+        <location filename="../qml/Main.qml" line="385"/>
         <source>Wallpaper</source>
         <translation>Обои</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="427"/>
+        <location filename="../qml/Main.qml" line="430"/>
         <source>No wallpaper information available.</source>
         <translation>Нет сведений об обоях.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="437"/>
+        <location filename="../qml/Main.qml" line="440"/>
         <source>Previous</source>
         <translation>Предыдущие</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="444"/>
+        <location filename="../qml/Main.qml" line="447"/>
         <source>Pick Wallpaper…</source>
         <translation>Выбрать обои…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="452"/>
+        <location filename="../qml/Main.qml" line="455"/>
         <source>Next</source>
         <translation>Следующие</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="468"/>
+        <location filename="../qml/Main.qml" line="471"/>
         <source>Apply Profile</source>
         <translation>Применить профиль</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="486"/>
+        <location filename="../qml/Main.qml" line="489"/>
         <source>Apply profile &quot;%1&quot;? This can restart Plasma components and change the current desktop appearance.</source>
         <translation>Применить профиль «%1»? Это может перезапустить компоненты Plasma и изменить текущий вид рабочего стола.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="498"/>
+        <location filename="../qml/Main.qml" line="501"/>
         <source>Delete Profile</source>
         <translation>Удалить профиль</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="516"/>
+        <location filename="../qml/Main.qml" line="519"/>
         <source>Delete profile &quot;%1&quot;? This cannot be undone.</source>
         <translation>Удалить профиль «%1»? Это нельзя отменить.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="529"/>
+        <location filename="../qml/Main.qml" line="532"/>
         <source>Save Profile</source>
         <translation>Сохранить профиль</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="543"/>
+        <location filename="../qml/Main.qml" line="546"/>
         <source>Save the current theme as a new profile:</source>
         <translation>Сохранить текущую тему как новый профиль:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="549"/>
-        <location filename="../qml/Main.qml" line="605"/>
+        <location filename="../qml/Main.qml" line="552"/>
+        <location filename="../qml/Main.qml" line="608"/>
         <source>Profile name</source>
         <translation>Имя профиля</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="555"/>
+        <location filename="../qml/Main.qml" line="558"/>
         <source>Description (optional)</source>
         <translation>Описание (необязательно)</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="563"/>
-        <location filename="../qml/Main.qml" line="614"/>
+        <location filename="../qml/Main.qml" line="566"/>
+        <location filename="../qml/Main.qml" line="617"/>
         <source>Use letters, digits, dots, dashes or underscores; the first character must not be a dot.</source>
         <translation>Используйте буквы, цифры, точки, дефисы и подчёркивания; первым символом не может быть точка.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="582"/>
+        <location filename="../qml/Main.qml" line="585"/>
         <source>Duplicate Profile</source>
         <translation>Дублировать профиль</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="597"/>
+        <location filename="../qml/Main.qml" line="600"/>
         <source>Create a copy of &quot;%1&quot; under a new name:</source>
         <translation>Создать копию «%1» под новым именем:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="631"/>
+        <location filename="../qml/Main.qml" line="634"/>
         <source>Profile Description</source>
         <translation>Описание профиля</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="646"/>
+        <location filename="../qml/Main.qml" line="649"/>
         <source>A note shown on the profile card (stored in the profile&apos;s manifest.json):</source>
         <translation>Заметка на карточке профиля (хранится в manifest.json профиля):</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="655"/>
+        <location filename="../qml/Main.qml" line="658"/>
         <source>Optional description</source>
         <translation>Необязательное описание</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="669"/>
+        <location filename="../qml/Main.qml" line="672"/>
         <source>Profile Diff</source>
         <translation>Различия профилей</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="685"/>
-        <location filename="../qml/Main.qml" line="804"/>
+        <location filename="../qml/Main.qml" line="688"/>
+        <location filename="../qml/Main.qml" line="807"/>
         <source>Comparing…</source>
         <translation>Сравниваю…</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="688"/>
+        <location filename="../qml/Main.qml" line="691"/>
         <source>No differences: both profiles are &quot;%1&quot;.</source>
         <translation>Различий нет: оба профиля — «%1».</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="690"/>
-        <location filename="../qml/Main.qml" line="800"/>
+        <location filename="../qml/Main.qml" line="693"/>
+        <location filename="../qml/Main.qml" line="803"/>
         <source>No active profile to compare with.</source>
         <translation>Нет активного профиля для сравнения.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="718"/>
+        <location filename="../qml/Main.qml" line="721"/>
         <source>Difference between &quot;%1&quot; and &quot;%2&quot;:</source>
         <translation>Различия между «%1» и «%2»:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="763"/>
+        <location filename="../qml/Main.qml" line="766"/>
         <source>Preview Profile Changes</source>
         <translation>Предпросмотр изменений профиля</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="802"/>
+        <location filename="../qml/Main.qml" line="805"/>
         <source>&quot;%1&quot; is already the active profile.</source>
         <translation>«%1» уже активен.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="829"/>
+        <location filename="../qml/Main.qml" line="832"/>
         <source>Applying &quot;%1&quot; will change the following components:</source>
         <translation>Применение «%1» изменит следующие компоненты:</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="846"/>
+        <location filename="../qml/Main.qml" line="849"/>
         <source>Diff against active profile:</source>
         <translation>Сравнение с активным профилем:</translation>
     </message>
@@ -727,52 +726,57 @@
         <translation>Установленные темы определяются для каждого приложения. Если автоматическое управление недоступно, откройте собственные настройки темы приложения.</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="82"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="85"/>
         <source>No theme selected</source>
         <translation>Тема не выбрана</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="83"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="82"/>
         <source>Not installed</source>
         <translation>Не установлено</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="122"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="84"/>
+        <source>Theme is chosen inside the app</source>
+        <translation>Тема выбирается в самом приложении</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="127"/>
         <source>%1 theme</source>
         <translation>Тема: %1</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="126"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="131"/>
         <source>Open config</source>
         <translation>Открыть конфиг</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="134"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="139"/>
         <source>Launch</source>
         <translation>Запустить</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="142"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="147"/>
         <source>App theme settings</source>
         <translation>Настройки темы приложения</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="153"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="158"/>
         <source>Config: %1</source>
         <translation>Конфиг: %1</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="163"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="168"/>
         <source>This application is styled through its config file. Open it in the default editor; profile snapshots still include the file.</source>
         <translation>Оформление этого приложения задаётся конфигом. Откройте его в редакторе по умолчанию; снапшоты профилей по-прежнему сохраняют файл.</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="165"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="170"/>
         <source>This application can list themes, but automatic applying is not supported yet.</source>
         <translation>Приложение умеет показывать список тем, но автоматическое применение пока не поддерживается.</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="166"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="171"/>
         <source>No installed themes were detected for this application.</source>
         <translation>Для этого приложения не найдено установленных тем.</translation>
     </message>
@@ -1086,32 +1090,32 @@
         <translation>Вернуть</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="433"/>
+        <location filename="../qml/pages/ThemePage.qml" line="435"/>
         <source>Open</source>
         <translation>Открыть</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="452"/>
+        <location filename="../qml/pages/ThemePage.qml" line="454"/>
         <source>Application themes</source>
         <translation>Темы приложений</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="453"/>
+        <location filename="../qml/pages/ThemePage.qml" line="455"/>
         <source>Choose themes for supported applications</source>
         <translation>Выбрать темы для поддерживаемых приложений</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="496"/>
+        <location filename="../qml/pages/ThemePage.qml" line="498"/>
         <source>Applications</source>
         <translation>Приложения</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="506"/>
+        <location filename="../qml/pages/ThemePage.qml" line="508"/>
         <source>%1 supported · %2 installed</source>
         <translation>Поддерживается: %1 · установлено: %2</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="514"/>
+        <location filename="../qml/pages/ThemePage.qml" line="516"/>
         <source>Choose app themes</source>
         <translation>Выбрать темы приложений</translation>
     </message>

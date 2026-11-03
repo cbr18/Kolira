@@ -340,7 +340,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             id: "color_schemes".to_string(),
             name: "Color Schemes".to_string(),
             category: "System Profiles".to_string(),
-            config_paths: vec![".local/share/color-schemes/ThemeProfilePaper.colors".to_string()],
+            config_paths: vec![".local/share/color-schemes".to_string()],
             detect_command: None,
             flatpak_id: None,
             supports_live_reload: false,

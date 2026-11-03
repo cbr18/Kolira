@@ -252,8 +252,11 @@ Kirigami.ApplicationWindow {
                     : Kirigami.MessageType.Error
             }
 
+            // Selection hint. Hidden while the selection is the active
+            // profile: the header already says "Active: <name>".
             Label {
                 Layout.fillWidth: true
+                visible: text !== ""
                 wrapMode: Text.WordWrap
                 color: ThemeColors.dimColor(root.glassMode)
                 font.pointSize: TypeScale.caption
@@ -261,7 +264,7 @@ Kirigami.ApplicationWindow {
                     if (root.selectedProfile === "")
                         return qsTr("Click a profile card to select it, then press Apply.")
                     if (root.selectedProfile === profileController.activeProfile)
-                        return qsTr("Active profile: %1").arg(root.selectedProfile)
+                        return ""
                     return qsTr("Selected \"%1\" (not applied yet). Active: %2")
                         .arg(root.selectedProfile)
                         .arg(profileController.activeProfile)

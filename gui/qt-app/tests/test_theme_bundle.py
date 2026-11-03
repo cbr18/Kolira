@@ -283,6 +283,14 @@ def test_application_adapters_detect_and_apply_with_backups(
     assert zed.current_theme()["value"] == "Transparent New Darcula Darker"
     zed_themes = {theme["id"] for theme in zed.installed_themes()["themes"]}
     assert {"Ayu Dark", "Local Theme"} <= zed_themes
+    # Theme *families*: settings.json stores a ``themes[].name``, not the family title.
+    (home / ".config/zed/themes/family.json").write_text(json.dumps({
+        "name": "Transparent Family",
+        "themes": [{"name": "Family Dark"}, {"name": "Family Darker"}],
+    }), encoding="utf-8")
+    zed_themes = {theme["id"] for theme in zed.installed_themes()["themes"]}
+    assert {"Family Dark", "Family Darker"} <= zed_themes
+    assert "Transparent Family" not in zed_themes
     assert zed.apply_theme("Ayu Dark")["ok"]
     assert '"dark": "Ayu Dark"' in (home / ".config/zed/settings.json").read_text(encoding="utf-8")
 
@@ -292,6 +300,24 @@ def test_application_adapters_detect_and_apply_with_backups(
     assert "One Dark Pro" in vscode_themes
     assert vscode.apply_theme("One Dark Pro")["ok"]
     assert '"workbench.colorTheme": "One Dark Pro"' in (home / ".config/Code/User/settings.json").read_text(encoding="utf-8")
+
+    # Themes declaring an ``id`` (Doki uses UUIDs) are stored by id but shown
+    # by their label.
+    doki = home / ".vscode/extensions/doki-1.0.0"
+    doki.mkdir(parents=True)
+    (doki / "package.json").write_text(json.dumps({
+        "name": "doki",
+        "contributes": {"themes": [{
+            "id": "dfd05a73-uuid", "label": "Doki: Tsubasa", "path": "./t.json",
+        }]},
+    }), encoding="utf-8")
+    assert {"id": "dfd05a73-uuid", "label": "Doki: Tsubasa"}.items() <= next(
+        t for t in vscode.installed_themes()["themes"] if t["id"] == "dfd05a73-uuid"
+    ).items()
+    assert vscode.apply_theme("dfd05a73-uuid")["ok"]
+    current = vscode.current_theme()
+    assert current["value"] == "dfd05a73-uuid"
+    assert current["label"] == "Doki: Tsubasa"
 
     cursor = adapters["cursor"]
     assert cursor.detect()
@@ -474,6 +500,22 @@ def test_create_custom_theme_creates_user_owned_assets(bundle_home):
 
     duplicate = core.create_custom_theme("MyNight")
     assert not duplicate.success
+
+
+def test_create_custom_theme_bakes_live_palette_edits(bundle_home):
+    """Inspector colour edits live in kdeglobals; the derived scheme keeps them."""
+    core = bundle_home["core"]
+    assert core.set_component("color_scheme", "Breeze1").success
+    assert core._theme.set_value("window_bg", "#2d353b").success
+    assert core._theme.set_value("selection_bg", "#a7c080").success
+    assert core.apply().success
+
+    assert core.create_custom_theme("Forest").success
+    text = (bundle_home["home"] / ".local/share/color-schemes/Forest.colors").read_text(encoding="utf-8")
+    window = text.split("[Colors:Window]", 1)[1].split("\n[", 1)[0]
+    selection = text.split("[Colors:Selection]", 1)[1].split("\n[", 1)[0]
+    assert "BackgroundNormal=45,53,59" in window
+    assert "BackgroundNormal=167,192,128" in selection
 
 
 def test_groups_for_profile_scope_are_read_only_values(bundle_home):

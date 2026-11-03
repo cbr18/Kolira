@@ -281,7 +281,7 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         id="color_schemes",
         name="Color Schemes",
         category="System Profiles",
-        config_paths=(".local/share/color-schemes/ThemeProfilePaper.colors",),
+        config_paths=(".local/share/color-schemes",),
         description="KDE color scheme files",
         icon="preferences-desktop-color",
     ),

@@ -19,8 +19,9 @@ Native KDE Plasma application for managing theme profiles and wallpapers.
   lists, edits are staged, and profiles store a v2 `theme-bundle.json` beside
   the legacy snapshot
 - **Application theme adapters** — Zed, VS Code, Cursor, Obsidian and btop can
-  expose current/installed themes; Discord/Telegram provide safe partial
-  integrations; Kitty and Alacritty are config-only integrations with an “Open
+  expose current/installed themes (VS Code/Cursor map a theme `id` such as a
+  Doki UUID back to its label); Discord/Telegram provide safe partial
+  integrations (Telegram shows no picker — its active theme lives in `tdata`); Kitty and Alacritty are config-only integrations with an “Open
   config” action via `xdg-open`
 - **MCP server** — `mcp/theme_profile_mcp.py` lets AI agents enumerate themes,
   create derived color/Kvantum themes, build/validate profiles and explicitly
@@ -36,7 +37,11 @@ Native KDE Plasma application for managing theme profiles and wallpapers.
   interactive picker) run off the GUI thread with a busy state
 - **Single instance** — a second launch hands over to the running app (raises
   its window) and exits, so there is never more than one tray icon
-- **Dogfooding** — App themes itself from the *active* profile
+- **Dogfooding** — App themes itself from the *active* profile: `glass` →
+  translucent dark, `paper` → light; any other profile/scheme (e.g.
+  `everforest`) uses **System** mode, which reads the live `kdeglobals`
+  `[Colors:*]` palette. `ThemeController.colors` publishes that palette to
+  `ThemeColors.qml`, so cards, borders and dim text follow dark schemes too
 - **Single core** — a Python adapter (`core/cli_core.py`) shells out to the Rust
   `theme-profile` / `wallpaper-*` binaries; every selector (`--core core|auto`,
   `$KTM_CORE`, Settings → Core) names that one core

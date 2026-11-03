@@ -134,7 +134,7 @@ wallpaper-prev                   # предыдущие обои
 - `obsidian/vault/.obsidian/appearance.json`
 
 ### System Profiles
-- `.local/share/color-schemes/ThemeProfilePaper.colors`
+- `.local/share/color-schemes/` — весь каталог пользовательских схем (раньше только `ThemeProfilePaper.colors`), чтобы профиль со своей схемой (например, `Everforest.colors`) был самодостаточным; восстановление сливает файлы и не удаляет схемы, созданные позже
 - `.local/share/plasma/look-and-feel/glass/`
 - `.local/share/plasma/look-and-feel/paper/`
 
@@ -168,13 +168,13 @@ Qt/QML-приложение (`gui/qt-app/`) ставится установщи�
 
 - **ThemeBundleCore** (`src/core/theme_bundle.py`) собирает компоненты из установленных тем: KDE/Plasma (Global theme, Plasma Style, colors, decorations, icons, cursors, fonts), Desktop & Windows (обои, углы, blur, translucency, animations), Qt/Kvantum и GTK;
 - выбор компонента идёт из списков установленных ресурсов; core-поля сначала стейджатся и применяются одним батчом через `AppThemeCore`;
-- адаптеры приложений (`src/core/app_theme_adapters.py`) имеют уровень интеграции: Zed, VS Code, Cursor, Obsidian и btop умеют показывать/применять темы; Discord читает текущий light/dark fallback и открывает нативные настройки; Telegram перечисляет `.tdesktop-theme`, но не пишет `tdata`; Kitty и Alacritty — `integration=config`, без списка тем и авто-применения, с кнопкой **Open config**, которая открывает конфиг в системном редакторе через `xdg-open`;
+- адаптеры приложений (`src/core/app_theme_adapters.py`) имеют уровень интеграции: Zed, VS Code, Cursor, Obsidian и btop умеют показывать/применять темы (Zed перечисляет имена из `themes[]` каждого файла-семейства в `~/.config/zed/themes` и в установленных расширениях); в `theme-bundle.json` попадают только приложения, чью тему можно применить (`apply_theme`), а `description` берётся из сохранения профиля; Discord читает текущий light/dark fallback и открывает нативные настройки; Telegram перечисляет `.tdesktop-theme`, но не пишет `tdata` — поэтому в UI для него нет выпадающего списка, только подпись «Тема выбирается в самом приложении»; VS Code/Cursor хранят в `workbench.colorTheme` поле `id` темы из `package.json` расширения (у Doki это UUID), а в UI показывается её `label`; Kitty и Alacritty — `integration=config`, без списка тем и авто-применения, с кнопкой **Open config**, которая открывает конфиг в системном редакторе через `xdg-open`;
 - адаптеры перед записью копируют старый конфиг в `theme-profile/backups/app-theme-<timestamp>/`;
 - профили v2 сохраняют `theme-bundle.json` с компонентными/приложенными ссылками поверх старого снимка; профили v1 открываются как legacy и по возможности синтезируют bundle из снимка;
-- есть создание пользовательских производных тем (`create_custom_theme`): копия базовой color scheme в `$XDG_DATA_HOME/color-schemes` и Kvantum-темы в `$XDG_DATA_HOME/Kvantum`; системные базовые темы не изменяются;
+- есть создание пользовательских производных тем (`create_custom_theme`): копия базовой color scheme в `$XDG_DATA_HOME/color-schemes` с перенесёнными живыми группами `[Colors:*]`/`[WM]` из `kdeglobals` (правки цветов из Theme Inspector не теряются) и Kvantum-темы в `$XDG_DATA_HOME/Kvantum`; системные базовые темы не изменяются;
 - старый field-based Theme Inspector остаётся для Advanced/Customize (`SectionPage.qml`, `ThemeFieldRow.qml`), но не является главным экраном;
 - для AI-агентов добавлен stdio MCP-сервер `mcp/theme_profile_mcp.py` (см. `docs/MCP.md`): перечисление тем, сборка/валидация/явное применение профилей, создание производных тем; удаление профилей не экспонируется;
-- интерфейс на системном языке: QML через `qsTr`, Python через `tr()`; пайплайн `scripts/update-translations.sh` по-прежнему собирает `kde-theme-manager_ru.qm`.
+- интерфейс на системном языке: QML через `qsTr`, Python через `tr()`; статические подписи групп/компонентов `ThemeBundleCore` помечены `QT_TRANSLATE_NOOP("ThemeBundle", …)` и переводятся при выдаче в QML; пайплайн `scripts/update-translations.sh` по-прежнему собирает `kde-theme-manager_ru.qm`.
 
 Карточки профилей показывают палитру-свотчи, отпечаток темы, дату, число
 компонентов (без дублирующих чипов) и описание (правится карандашом на

@@ -425,7 +425,9 @@ Kirigami.ScrollablePage {
                             Layout.fillWidth: true
                             text: page.groupSummary(modelData)
                             color: ThemeColors.dimColor(page.glassMode)
-                            wrapMode: Text.WordWrap
+                            // Text.Wrap (not WordWrap): long wallpaper file names
+                            // have no spaces and would otherwise overflow the tile.
+                            wrapMode: Text.Wrap
                         }
 
                         Button {

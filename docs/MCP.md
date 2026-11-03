@@ -105,7 +105,7 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 
 Создаёт пользовательские производные ресурсы, не изменяя системные темы:
 
-- цветовая схема в `$XDG_DATA_HOME/color-schemes/<name>.colors`;
+- цветовая схема в `$XDG_DATA_HOME/color-schemes/<name>.colors` — копия базовой с текущей живой палитрой из `kdeglobals` (`[Colors:*]`, `[WM]`), т. е. с правками `window_bg`, `selection_bg` и т. п.;
 - тема Kvantum в `$XDG_DATA_HOME/Kvantum/<name>/<name>.kvconfig`.
 
 Аргументы:
