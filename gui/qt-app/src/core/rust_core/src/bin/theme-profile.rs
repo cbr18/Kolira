@@ -31,8 +31,8 @@ Usage:
   theme-profile palette show [--json]
   theme-profile palette import FILE           (base16 YAML or palette JSON)
   theme-profile palette set SLOT=#rrggbb ...  (base00..base0F, accent)
-  theme-profile palette generate kde          (print the generated file)
-  theme-profile palette apply [--targets=kde]
+  theme-profile palette generate <kde|kitty|alacritty>   (print the generated colours)
+  theme-profile palette apply [--targets=kde,kitty,alacritty]   (default: all)
 
 Components: kwin, plasma_shell, kdeglobals, gtk3, gtk4, qt5ct,
             klassy, kvantum, alacritty, kitty, wofi, btop,
@@ -181,7 +181,18 @@ fn palette_cmd(args: &[String]) -> ExitCode {
                     print!("{}", palette::kde_color_scheme(&p));
                     ExitCode::SUCCESS
                 }
-                other => fail(format!("Unknown generator {other:?} (known: kde)")),
+                Some("kitty") => {
+                    print!("{}", palette::kitty_colors(&p));
+                    ExitCode::SUCCESS
+                }
+                Some("alacritty") => match palette::alacritty_with_palette("", &p) {
+                    Ok(text) => {
+                        print!("{text}");
+                        ExitCode::SUCCESS
+                    }
+                    Err(e) => fail(e),
+                },
+                other => fail(format!("Unknown generator {other:?} (known: kde, kitty, alacritty)")),
             }
         }
         Some("apply") => {

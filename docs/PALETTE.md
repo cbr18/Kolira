@@ -22,14 +22,25 @@
 theme-profile palette import FILE          # base16 YAML (новый/старый формат) или JSON палитры
 theme-profile palette show [--json]        # слоты, акцент, предупреждения о контрасте
 theme-profile palette set accent=#a7c080 base0F=#9da9a0
-theme-profile palette generate kde         # напечатать сгенерированный .colors
-theme-profile palette apply [--targets=kde]
+theme-profile palette generate kde|kitty|alacritty   # напечатать сгенерированное
+theme-profile palette apply [--targets=kde,kitty,alacritty]   # по умолчанию — все
 ```
 
 `apply` пишет `$XDG_DATA_HOME/color-schemes/ThemeProfile<Имя>.colors` (имя с
 префиксом — пользовательские схемы вроде `Everforest.colors` не
 перезаписываются), выключает `accentColorFromWallpaper` и применяет схему и
 акцент. `KTM_THEME_NO_APPLY=1` отключает внешние команды.
+
+**Терминалы.** kitty: в `~/.config/kitty/kitty.conf` заменяется (или дописывается
+в конец — у kitty побеждает последнее значение) блок между
+`# BEGIN theme-profile palette …` и `# END theme-profile palette`; всё вне
+маркеров не трогается, повторное применение идемпотентно. Запущенные kitty
+перезагружают цвета через `kitty @ set-colors` по всем сокетам
+`/tmp/kitty-theme-profile[-<pid>]` (kitty дописывает PID к `listen_on`). Alacritty:
+в `alacritty.toml` через `toml_edit` выставляются только ключи `[colors.*]`,
+комментарии и остальные настройки сохраняются; Alacritty перечитывает файл сам.
+Перед правкой оба конфига копируются в `backups/palette-apply-<время>/`; права
+файла сохраняются. Если конфига нет — цель пропускается, файл не создаётся.
 
 > `plasma-apply-colorscheme --accent-color X SCHEME` меняет **только** акцент и
 > молча игнорирует схему, поэтому схема и акцент применяются двумя вызовами
@@ -54,6 +65,19 @@ theme-profile palette apply [--targets=kde]
 | DecorationHover | `accent` + 25 % к `base05` | то же |
 | Текст на выделении | лучший по контрасту из `base00`/`base07`/`base05` | то же |
 
+Терминалы (kitty и Alacritty):
+
+| Роль | Источник |
+|---|---|
+| фон / текст | `base00` / `base05` |
+| выделение фон / текст | `accent` / текст на выделении (как в KDE) |
+| курсор / текст под курсором | `base05` / `base00` |
+| ссылки (kitty `url_color`) | `base0D` |
+| рамка активного окна, активная вкладка kitty | `accent` |
+| ANSI 0 / 8 (чёрный) | `base02` / `base03` — видны на фоне |
+| ANSI 1–6, 9–14 | `base08` `base0B` `base0A` `base0D` `base0E` `base0C` |
+| ANSI 7 / 15 (белый) | `base05` / `base07` |
+
 `ColorEffects` берутся из Breeze. Plasma при применении акцента дополнительно
 подкрашивает `[Colors:Selection]` своим алгоритмом — это ожидаемо.
 
@@ -70,5 +94,5 @@ theme-profile palette apply [--targets=kde]
 
 ## Дальше (P1)
 
-kitty/Alacritty, шаблон Kvantum, галерея, палитра из обоев, GUI-страница,
+Шаблон Kvantum, галерея, палитра из обоев, GUI-страница,
 инструменты MCP — см. план.

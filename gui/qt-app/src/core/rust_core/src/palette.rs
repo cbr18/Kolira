@@ -430,11 +430,125 @@ pub fn kde_color_scheme(p: &Palette) -> String {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Terminals (kitty, Alacritty)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Markers of the palette block inside `kitty.conf`; everything outside them
+/// is the user's and is never touched.
+pub const KITTY_BEGIN: &str = "# BEGIN theme-profile palette (generated, edits are overwritten)";
+pub const KITTY_END: &str = "# END theme-profile palette";
+
+/// ANSI colours 0–15 from base16. `color0`/`color8` use `base02`/`base03`
+/// rather than `base00`, so "black" text stays visible on the background
+/// (same choice as the official Everforest/Gruvbox terminal ports).
+pub fn ansi16(p: &Palette) -> [Rgb; 16] {
+    let s = |i: usize| p.slot(i);
+    [
+        s(0x02), s(0x08), s(0x0B), s(0x0A), s(0x0D), s(0x0E), s(0x0C), s(0x05),
+        s(0x03), s(0x08), s(0x0B), s(0x0A), s(0x0D), s(0x0E), s(0x0C), s(0x07),
+    ]
+}
+
+/// The kitty colour block (with markers).
+pub fn kitty_colors(p: &Palette) -> String {
+    let r = kde_roles(p);
+    let mut out = format!("{KITTY_BEGIN}\n# palette: {}\n", p.name);
+    let mut line = |key: &str, value: Rgb| {
+        let _ = writeln!(out, "{key} {}", value.hex());
+    };
+    line("foreground", r.text);
+    line("background", r.window);
+    line("selection_foreground", r.selection_text);
+    line("selection_background", r.accent);
+    line("cursor", r.text);
+    line("cursor_text_color", r.window);
+    line("url_color", r.link);
+    line("active_border_color", r.accent);
+    line("inactive_border_color", p.slot(0x02));
+    line("bell_border_color", r.neutral);
+    line("active_tab_foreground", r.selection_text);
+    line("active_tab_background", r.accent);
+    line("inactive_tab_foreground", r.text_inactive);
+    line("inactive_tab_background", r.window_alt);
+    line("tab_bar_background", r.view);
+    for (i, color) in ansi16(p).iter().enumerate() {
+        line(&format!("color{i}"), *color);
+    }
+    out.push_str(KITTY_END);
+    out.push('\n');
+    out
+}
+
+/// `kitty.conf` with the palette block replaced (or appended at the end, so
+/// it wins over earlier colour lines — kitty uses the last value).
+pub fn kitty_conf_with_palette(existing: &str, p: &Palette) -> String {
+    let mut kept: Vec<&str> = Vec::new();
+    let mut inside = false;
+    for line in existing.lines() {
+        if line.starts_with("# BEGIN theme-profile palette") {
+            inside = true;
+            continue;
+        }
+        if inside {
+            if line.starts_with(KITTY_END) {
+                inside = false;
+            }
+            continue;
+        }
+        kept.push(line);
+    }
+    while kept.last().is_some_and(|l| l.trim().is_empty()) {
+        kept.pop();
+    }
+    let mut out = kept.join("\n");
+    if !out.is_empty() {
+        out.push_str("\n\n");
+    }
+    out.push_str(&kitty_colors(p));
+    out
+}
+
+/// `alacritty.toml` with `[colors.*]` set from the palette; comments, order
+/// and every other key are preserved (toml_edit, no reserialisation).
+pub fn alacritty_with_palette(existing: &str, p: &Palette) -> Result<String> {
+    use toml_edit::{value, DocumentMut, Item, Table};
+
+    let mut doc: DocumentMut = existing.parse().context("alacritty.toml is not valid TOML")?;
+    let r = kde_roles(p);
+    let ansi = ansi16(p);
+    let names = ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"];
+
+    let colors = doc
+        .entry("colors")
+        .or_insert(Item::Table(Table::new()))
+        .as_table_mut()
+        .ok_or_else(|| anyhow!("alacritty.toml: `colors` is not a table"))?;
+    colors.set_implicit(true);
+    let mut set = |table: &str, entries: Vec<(&str, Rgb)>| -> Result<()> {
+        let t = colors
+            .entry(table)
+            .or_insert(Item::Table(Table::new()))
+            .as_table_mut()
+            .ok_or_else(|| anyhow!("alacritty.toml: `colors.{table}` is not a table"))?;
+        for (key, color) in entries {
+            t[key] = value(color.hex());
+        }
+        Ok(())
+    };
+    set("primary", vec![("background", r.window), ("foreground", r.text)])?;
+    set("cursor", vec![("text", r.window), ("cursor", r.text)])?;
+    set("selection", vec![("text", r.selection_text), ("background", r.accent)])?;
+    set("normal", names.iter().copied().zip(ansi[..8].iter().copied()).collect())?;
+    set("bright", names.iter().copied().zip(ansi[8..].iter().copied()).collect())?;
+    Ok(doc.to_string())
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Applying
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Targets a palette can be applied to (more come with later generators).
-pub const TARGETS: [&str; 1] = ["kde"];
+/// Targets a palette can be applied to.
+pub const TARGETS: [&str; 3] = ["kde", "kitty", "alacritty"];
 
 fn no_apply() -> bool {
     std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1")
@@ -453,19 +567,65 @@ fn run(cmd: &str, args: &[&str]) -> bool {
         .unwrap_or(false)
 }
 
+/// Remote-control sockets of running kitty instances started with
+/// `listen_on unix:/tmp/kitty-theme-profile`. kitty appends `-<pid>` to the
+/// path, so the bare name alone never matches.
+pub fn kitty_sockets() -> Vec<String> {
+    kitty_sockets_in(Path::new("/tmp"))
+}
+
+fn kitty_sockets_in(dir: &Path) -> Vec<String> {
+    const BASE: &str = "kitty-theme-profile";
+    let mut sockets: Vec<String> = std::fs::read_dir(dir)
+        .map(|entries| {
+            entries
+                .flatten()
+                .filter_map(|e| {
+                    let name = e.file_name().to_string_lossy().to_string();
+                    let is_ours = name == BASE
+                        || name
+                            .strip_prefix(BASE)
+                            .and_then(|rest| rest.strip_prefix('-'))
+                            .is_some_and(|pid| !pid.is_empty() && pid.bytes().all(|b| b.is_ascii_digit()));
+                    is_ours.then(|| format!("unix:{}", dir.join(&name).display()))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    sockets.sort();
+    sockets
+}
+
+/// Atomic write that keeps the permissions of an existing file.
 fn write_atomic(path: &Path, text: &str) -> Result<()> {
+    use std::os::unix::fs::PermissionsExt;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
+    let mode = std::fs::metadata(path).map(|m| m.permissions().mode()).ok();
     let tmp = path.with_extension("tmp-theme-profile");
     std::fs::write(&tmp, text)?;
+    if let Some(mode) = mode {
+        std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(mode))?;
+    }
     std::fs::rename(&tmp, path)?;
     Ok(())
 }
 
+/// Copy a user config into `backups/palette-apply-<time>/` before editing it.
+fn backup(path: &Path, stamp: &str) -> Result<()> {
+    let dir = crate::paths::backups_dir().join(format!("palette-apply-{stamp}"));
+    std::fs::create_dir_all(&dir)?;
+    let name = path.file_name().ok_or_else(|| anyhow!("no file name"))?;
+    std::fs::copy(path, dir.join(name))?;
+    Ok(())
+}
+
 /// Generate and apply the palette to `targets`; returns one line per action.
-/// Generated files carry `ThemeProfile*` names, so user-made assets are never
-/// overwritten. The palette becomes the live palette (`palette.json`).
+/// Generated files carry `ThemeProfile*` names and terminal configs only get
+/// their colour keys/blocks replaced (after a backup), so user-made assets are
+/// never overwritten. A missing terminal config is skipped, not created. The
+/// palette becomes the live palette (`palette.json`).
 pub fn apply(p: &Palette, targets: &[String]) -> Result<Vec<String>> {
     p.validate()?;
     for target in targets {
@@ -473,8 +633,11 @@ pub fn apply(p: &Palette, targets: &[String]) -> Result<Vec<String>> {
             return Err(anyhow!("unknown target {target:?} (known: {})", TARGETS.join(", ")));
         }
     }
+    let wants = |t: &str| targets.iter().any(|x| x == t);
+    let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
     let mut report = Vec::new();
-    if targets.iter().any(|t| t == "kde") {
+
+    if wants("kde") {
         let id = kde_scheme_id(p);
         let path = crate::paths::data_home().join("color-schemes").join(format!("{id}.colors"));
         write_atomic(&path, &kde_color_scheme(p))?;
@@ -494,6 +657,45 @@ pub fn apply(p: &Palette, targets: &[String]) -> Result<Vec<String>> {
             if applied { "" } else { " — plasma-apply-colorscheme failed" }
         ));
     }
+
+    if wants("kitty") {
+        let path = crate::paths::live_path(".config/kitty/kitty.conf");
+        if path.is_file() {
+            let existing = std::fs::read_to_string(&path)?;
+            backup(&path, &stamp)?;
+            write_atomic(&path, &kitty_conf_with_palette(&existing, p))?;
+            // Live reload needs a kitty started with allow_remote_control and
+            // listen_on unix:/tmp/kitty-theme-profile (see AGENTS.md).
+            let config = path.to_string_lossy().to_string();
+            let sockets = if which::which("kitty").is_ok() { kitty_sockets() } else { Vec::new() };
+            let mut live = false;
+            for socket in &sockets {
+                live |= run("kitty", &["@", "--to", socket, "set-colors", "--all", "--configured", &config]);
+            }
+            report.push(format!(
+                "kitty: {}{}",
+                path.display(),
+                if live { "" } else { " (no running kitty to reload)" }
+            ));
+        } else {
+            report.push(format!("kitty: skipped, {} not found", path.display()));
+        }
+    }
+
+    if wants("alacritty") {
+        let path = crate::paths::live_path(".config/alacritty/alacritty.toml");
+        if path.is_file() {
+            let existing = std::fs::read_to_string(&path)?;
+            let updated = alacritty_with_palette(&existing, p)?;
+            backup(&path, &stamp)?;
+            // Alacritty watches its config and reloads by itself.
+            write_atomic(&path, &updated)?;
+            report.push(format!("alacritty: {}", path.display()));
+        } else {
+            report.push(format!("alacritty: skipped, {} not found", path.display()));
+        }
+    }
+
     save(p, &live_palette_path())?;
     Ok(report)
 }
@@ -608,5 +810,55 @@ mod tests {
         assert!(Rgb(rgb[0], rgb[1], rgb[2]).luminance() > Rgb(251, 241, 199).luminance());
         assert_eq!(kde_scheme_id(&p), "ThemeProfileGruvboxLightMedium");
         assert!(p.contrast_warnings().is_empty(), "{:?}", p.contrast_warnings());
+    }
+
+    #[test]
+    fn kitty_block_is_replaced_not_duplicated() {
+        let mut p = parse_base16(EVERFOREST, "t").unwrap();
+        p.set("accent", "#a7c080").unwrap();
+        let user = "font_size 11\nbackground #000000\n";
+        let once = kitty_conf_with_palette(user, &p);
+        assert!(once.starts_with("font_size 11\nbackground #000000\n\n# BEGIN theme-profile palette"));
+        assert!(once.contains("\nbackground #2d353b\n"));
+        assert!(once.contains("\nselection_background #a7c080\n"));
+        assert!(once.contains("\ncolor0 #475258\n"), "color0 = base02, visible on the background");
+        assert!(once.contains("\ncolor15 #fdf6e3\n"));
+        let twice = kitty_conf_with_palette(&once, &p);
+        assert_eq!(once, twice, "re-applying is idempotent");
+        assert_eq!(twice.matches("# BEGIN theme-profile palette").count(), 1);
+        let light = parse_base16(GRUVBOX_LIGHT, "t").unwrap();
+        let switched = kitty_conf_with_palette(&twice, &light);
+        assert!(switched.contains("\nbackground #fbf1c7\n"));
+        assert!(!switched.contains("#2d353b"));
+        assert!(switched.starts_with("font_size 11\n"));
+    }
+
+    #[test]
+    fn alacritty_keeps_user_settings_and_comments() {
+        let p = parse_base16(EVERFOREST, "t").unwrap();
+        let user = "[window]\nopacity = 0.5 # keep me\n\n[colors.primary]\n#background = \"#1e1b2e\"\n\n[[keyboard.bindings]]\nkey = \"V\"\n";
+        let out = alacritty_with_palette(user, &p).unwrap();
+        assert!(out.contains("opacity = 0.5 # keep me"));
+        assert!(out.contains("#background = \"#1e1b2e\""));
+        assert!(out.contains("key = \"V\""));
+        let doc: toml::Value = toml::from_str(&out).unwrap();
+        assert_eq!(doc["colors"]["primary"]["background"].as_str(), Some("#2d353b"));
+        assert_eq!(doc["colors"]["normal"]["red"].as_str(), Some("#e67e80"));
+        assert_eq!(doc["colors"]["bright"]["white"].as_str(), Some("#fdf6e3"));
+        assert_eq!(doc["colors"]["selection"]["background"].as_str(), Some("#7fbbb3"));
+        assert_eq!(alacritty_with_palette(&out, &p).unwrap(), out, "idempotent");
+        assert!(alacritty_with_palette("colors = 3\n", &p).is_err());
+        assert!(alacritty_with_palette("[broken\n", &p).is_err());
+    }
+
+    #[test]
+    fn kitty_sockets_include_pid_suffixed_ones() {
+        let tmp = tempfile::tempdir().unwrap();
+        for name in ["kitty-theme-profile-5466", "kitty-theme-profile", "kitty-theme-profile-x1", "kitty-other-1"] {
+            std::fs::write(tmp.path().join(name), "").unwrap();
+        }
+        let found = kitty_sockets_in(tmp.path());
+        let d = tmp.path().display();
+        assert_eq!(found, vec![format!("unix:{d}/kitty-theme-profile"), format!("unix:{d}/kitty-theme-profile-5466")]);
     }
 }

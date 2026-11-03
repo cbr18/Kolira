@@ -1,6 +1,6 @@
 # Конструктор тем: палитра, генераторы, магазины, база для новой темы
 
-Status: IN PROGRESS — P0 ✅, обои ✅, P1: палитра + генератор KDE ✅
+Status: IN PROGRESS — P0 ✅, обои ✅, P1: палитра + генераторы KDE/kitty/Alacritty ✅
 
 Plan: [2026_11_04_09_00_theme-constructor-palette.md](../plans/2026_11_04_09_00_theme-constructor-palette.md)
 
@@ -89,5 +89,11 @@ Kvantum не перекрашивается, тем для редакторов 
   `palette`, `docs/PALETTE.md`. Найдено и исправлено: `plasma-apply-colorscheme
   --accent-color X SCHEME` игнорирует схему — схема и акцент теперь двумя вызовами
   (и в `theme-profile apply`).
-- Дальше в P1: kitty/Alacritty, шаблон Kvantum, галерея base16, палитра из обоев,
+- 2026-11-04 — **P1, часть 2**: генераторы kitty (блок между маркерами,
+  идемпотентно) и Alacritty (`toml_edit`, только `[colors.*]`), бэкапы и
+  сохранение прав, пропуск отсутствующего конфига. Найдено и исправлено: kitty
+  дописывает `-<pid>` к `listen_on`, поэтому live-reload (и в `theme-profile apply`)
+  стучался в несуществующий сокет — теперь перебираются все
+  `/tmp/kitty-theme-profile[-<pid>]`.
+- Дальше в P1: шаблон Kvantum, галерея base16, палитра из обоев,
   магазины Zed/Cursor, детект по бинарнику, GUI-страница «Палитра», MCP.

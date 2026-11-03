@@ -567,12 +567,17 @@ fn apply_kitty_live(source: &Path) {
     if !config.is_file() || which::which("kitty").is_err() {
         return;
     }
-    let socket = "unix:/tmp/kitty-theme-profile";
     let config_str = config.to_string_lossy().to_string();
+    // kitty appends `-<pid>` to the listen_on path: reload every instance.
+    for socket in crate::palette::kitty_sockets() {
+        reload_kitty(&socket, &config, &config_str);
+    }
+}
 
-    run_external("kitty", &["@", "--to", socket, "load-config", &config_str]);
+fn reload_kitty(socket: &str, config: &Path, config_str: &str) {
+    run_external("kitty", &["@", "--to", socket, "load-config", config_str]);
 
-    let opacity = std::fs::read_to_string(&config)
+    let opacity = std::fs::read_to_string(config)
         .ok()
         .and_then(|content| {
             content.lines().find_map(|line| {
@@ -588,7 +593,7 @@ fn apply_kitty_live(source: &Path) {
         run_external("kitty", &["@", "--to", socket, "set-background-opacity", "--all", &opacity]);
     }
 
-    run_external("kitty", &["@", "--to", socket, "set-colors", "--all", "--configured", &config_str]);
+    run_external("kitty", &["@", "--to", socket, "set-colors", "--all", "--configured", config_str]);
 }
 
 /// Order of qdbus commands matches the historical bash script.

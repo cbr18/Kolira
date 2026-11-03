@@ -302,6 +302,44 @@ if pal_cli palette apply --targets=gtk4 >/dev/null 2>&1; then
 else
   ok "palette apply rejects unknown targets"
 fi
+# Terminals: only colour lines/keys change, re-apply is idempotent, backups made.
+mkdir -p "$PAL_HOME/.config/kitty" "$PAL_HOME/.config/alacritty"
+printf 'font_size 11\nbackground_opacity 0.9\n' >"$PAL_HOME/.config/kitty/kitty.conf"
+printf '[window]\nopacity = 0.5 # mine\n' >"$PAL_HOME/.config/alacritty/alacritty.toml"
+chmod 600 "$PAL_HOME/.config/kitty/kitty.conf"
+pal_cli palette apply >/dev/null 2>&1
+pal_cli palette apply >/dev/null 2>&1
+kitty_conf="$PAL_HOME/.config/kitty/kitty.conf"
+if [ "$(grep -c '^# BEGIN theme-profile palette' "$kitty_conf")" = 1 ] &&
+  grep -qx "background #2d353b" "$kitty_conf" && grep -qx "font_size 11" "$kitty_conf"; then
+  ok "palette apply writes one kitty colour block and keeps user lines"
+else
+  fail "kitty.conf palette block wrong: $(cat "$kitty_conf")"
+fi
+if [ "$(stat -c %a "$kitty_conf")" = 600 ]; then
+  ok "palette apply keeps kitty.conf permissions"
+else
+  fail "kitty.conf permissions changed to $(stat -c %a "$kitty_conf")"
+fi
+alacritty_toml="$PAL_HOME/.config/alacritty/alacritty.toml"
+if grep -q '^opacity = 0.5 # mine$' "$alacritty_toml" && grep -q 'background = "#2d353b"' "$alacritty_toml"; then
+  ok "palette apply sets Alacritty colours and keeps comments"
+else
+  fail "alacritty.toml unexpected: $(cat "$alacritty_toml")"
+fi
+if compgen -G "$PAL_HOME/.config/theme-profile/backups/palette-apply-*/kitty.conf" >/dev/null; then
+  ok "palette apply backs up terminal configs"
+else
+  fail "no palette-apply backup"
+fi
+rm "$alacritty_toml"
+if pal_cli palette apply --targets=alacritty | grep -q "skipped"; then
+  ok "palette apply skips a missing Alacritty config instead of creating it"
+else
+  fail "palette apply did not skip the missing config"
+fi
+[ ! -e "$alacritty_toml" ] || fail "palette apply created alacritty.toml"
+
 pal_cli save pal-test >/dev/null 2>&1
 if grep -q '"accent": "#a7c080"' "$PAL_HOME/.config/theme-profile/profiles/pal-test/.config/theme-profile/palette.json" 2>/dev/null; then
   ok "profiles snapshot the live palette"

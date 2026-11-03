@@ -209,7 +209,7 @@ A generated theme starts from a **base16 palette + KDE accent** (any
 ```bash
 theme-profile palette import everforest.yaml
 theme-profile palette set accent=#a7c080
-theme-profile palette apply            # → ThemeProfileEverforest.colors, applied with the accent
+theme-profile palette apply            # KDE scheme + kitty/Alacritty colours (backups first)
 ```
 
 The live palette is saved with profiles (component `palette`). Mapping, CLI and
