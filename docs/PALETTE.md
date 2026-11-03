@@ -23,7 +23,8 @@ theme-profile palette import FILE          # base16 YAML (новый/стары�
 theme-profile palette show [--json]        # слоты, акцент, предупреждения о контрасте
 theme-profile palette set accent=#a7c080 base0F=#9da9a0
 theme-profile palette generate kde|kitty|alacritty   # напечатать сгенерированное
-theme-profile palette apply [--targets=kde,kitty,alacritty]   # по умолчанию — все
+theme-profile palette apply [--targets=kde,kitty,alacritty,kvantum] [--kvantum-base=THEME]
+                                           # по умолчанию kde,kitty,alacritty
 ```
 
 `apply` пишет `$XDG_DATA_HOME/color-schemes/ThemeProfile<Имя>.colors` (имя с
@@ -41,6 +42,26 @@ theme-profile palette apply [--targets=kde,kitty,alacritty]   # по умолч�
 комментарии и остальные настройки сохраняются; Alacritty перечитывает файл сам.
 Перед правкой оба конфига копируются в `backups/palette-apply-<время>/`; права
 файла сохраняются. Если конфига нет — цель пропускается, файл не создаётся.
+
+**Kvantum** (цель `kvantum`, включается явно — она переключает стиль виджетов на
+`kvantum`). Темы Kvantum — GPL-графика, поэтому в репозитории их нет: при
+применении берётся **установленная** базовая тема (по умолчанию `KvArcDark` для
+тёмной палитры и `KvArc` для светлой, любую другую — `--kvantum-base=…`), её SVG и
+kvconfig копируются в `~/.config/Kvantum/ThemeProfile<Имя>/` с перекраской в
+OKLab:
+
+- почти серые цвета сохраняют своё место на шкале «фон → текст» базовой темы и
+  переносятся на шкалу палитры (с экстраполяцией: тени и блики не теряют глубину);
+- цвета, близкие по тону (±45°) к `highlight.color` базы, становятся `accent`
+  с тем же сдвигом яркости и относительной насыщенностью;
+- прочие насыщенные (смысловые красный/зелёный) не меняются; альфа сохраняется;
+- в `[GeneralColors]` ключи с понятной ролью выставляются явно (окно, списки,
+  кнопки, акцент, текст на выделении, ссылки); `text.press/toggle.color`,
+  совпадающие с `highlight.text.color` базы, получают текст на выделении.
+
+Затем `kvantummanager --set ThemeProfile<Имя>` и `widgetStyle=kvantum`. Профили
+сохраняют **активную** пользовательскую тему Kvantum целиком (каталог из
+`~/.config/Kvantum/<theme>`) и восстанавливают её при `apply`.
 
 > `plasma-apply-colorscheme --accent-color X SCHEME` меняет **только** акцент и
 > молча игнорирует схему, поэтому схема и акцент применяются двумя вызовами
@@ -94,5 +115,5 @@ theme-profile palette apply [--targets=kde,kitty,alacritty]   # по умолч�
 
 ## Дальше (P1)
 
-Шаблон Kvantum, галерея, палитра из обоев, GUI-страница,
+Галерея, палитра из обоев, GUI-страница,
 инструменты MCP — см. план.

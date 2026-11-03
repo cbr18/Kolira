@@ -340,6 +340,37 @@ else
 fi
 [ ! -e "$alacritty_toml" ] || fail "palette apply created alacritty.toml"
 
+# Kvantum: recolour an installed base theme; profiles carry the active theme.
+KV="$PAL_HOME/.config/Kvantum"
+mkdir -p "$KV/FakeBase"
+printf '[GeneralColors]\nwindow.color=#383c4a\nwindow.text.color=#ffffff\nhighlight.color=#5294e2\n' >"$KV/FakeBase/FakeBase.kvconfig"
+printf '<rect style="fill:#5294e2"/>' >"$KV/FakeBase/FakeBase.svg"
+if pal_cli palette apply --targets=kvantum --kvantum-base=FakeBase | grep -q "recoloured from FakeBase" &&
+  grep -q "#a7c080" "$KV/ThemeProfileEverforest/ThemeProfileEverforest.svg"; then
+  ok "palette apply --targets=kvantum recolours an installed base theme"
+else
+  fail "Kvantum recolour failed"
+fi
+if pal_cli palette apply --targets=kvantum --kvantum-base=Missing >/dev/null 2>&1; then
+  fail "palette apply accepted a missing Kvantum base"
+else
+  ok "palette apply reports a missing Kvantum base"
+fi
+printf '[General]\ntheme=ThemeProfileEverforest\n' >"$KV/kvantum.kvconfig"
+pal_cli save kv-test >/dev/null 2>&1
+if [ -f "$PAL_HOME/.config/theme-profile/profiles/kv-test/.config/Kvantum/ThemeProfileEverforest/ThemeProfileEverforest.svg" ]; then
+  ok "profiles snapshot the active user Kvantum theme"
+else
+  fail "active Kvantum theme missing from the snapshot"
+fi
+rm -rf "$KV/ThemeProfileEverforest"
+pal_cli apply kv-test >/dev/null 2>&1
+if [ -f "$KV/ThemeProfileEverforest/ThemeProfileEverforest.kvconfig" ]; then
+  ok "apply restores the profile's Kvantum theme"
+else
+  fail "apply did not restore the Kvantum theme"
+fi
+
 pal_cli save pal-test >/dev/null 2>&1
 if grep -q '"accent": "#a7c080"' "$PAL_HOME/.config/theme-profile/profiles/pal-test/.config/theme-profile/palette.json" 2>/dev/null; then
   ok "profiles snapshot the live palette"

@@ -210,6 +210,7 @@ A generated theme starts from a **base16 palette + KDE accent** (any
 theme-profile palette import everforest.yaml
 theme-profile palette set accent=#a7c080
 theme-profile palette apply            # KDE scheme + kitty/Alacritty colours (backups first)
+theme-profile palette apply --targets=kvantum   # recolour an installed Kvantum theme (KvArcDark/KvArc)
 ```
 
 The live palette is saved with profiles (component `palette`). Mapping, CLI and

@@ -11,6 +11,7 @@ pub mod paths;
 pub mod profile;
 pub mod wallpaper;
 pub mod palette;
+pub mod kvantum;
 pub mod tracked_apps;
 pub mod custom_components;
 pub mod config_parser;

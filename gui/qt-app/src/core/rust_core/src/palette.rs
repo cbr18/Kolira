@@ -548,7 +548,18 @@ pub fn alacritty_with_palette(existing: &str, p: &Palette) -> Result<String> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Targets a palette can be applied to.
-pub const TARGETS: [&str; 3] = ["kde", "kitty", "alacritty"];
+pub const TARGETS: [&str; 4] = ["kde", "kitty", "alacritty", "kvantum"];
+
+/// Targets used when none are given. `kvantum` is opt-in: it switches the Qt
+/// widget style, which the user may have chosen deliberately (e.g. Breeze).
+pub const DEFAULT_TARGETS: [&str; 3] = ["kde", "kitty", "alacritty"];
+
+/// Extra knobs for [`apply`].
+#[derive(Debug, Default, Clone)]
+pub struct ApplyOptions {
+    /// Installed Kvantum theme to recolour (default by variant: KvArcDark/KvArc).
+    pub kvantum_base: Option<String>,
+}
 
 fn no_apply() -> bool {
     std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1")
@@ -626,7 +637,7 @@ fn backup(path: &Path, stamp: &str) -> Result<()> {
 /// their colour keys/blocks replaced (after a backup), so user-made assets are
 /// never overwritten. A missing terminal config is skipped, not created. The
 /// palette becomes the live palette (`palette.json`).
-pub fn apply(p: &Palette, targets: &[String]) -> Result<Vec<String>> {
+pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<Vec<String>> {
     p.validate()?;
     for target in targets {
         if !TARGETS.contains(&target.as_str()) {
@@ -694,6 +705,21 @@ pub fn apply(p: &Palette, targets: &[String]) -> Result<Vec<String>> {
         } else {
             report.push(format!("alacritty: skipped, {} not found", path.display()));
         }
+    }
+
+    if wants("kvantum") {
+        let base = options
+            .kvantum_base
+            .clone()
+            .unwrap_or_else(|| crate::kvantum::default_base(p).to_string());
+        let (id, dir) = crate::kvantum::build(p, &base)?;
+        let set = run("kvantummanager", &["--set", &id])
+            && run("kwriteconfig6", &["--notify", "--file", "kdeglobals", "--group", "KDE", "--key", "widgetStyle", "kvantum"]);
+        report.push(format!(
+            "kvantum: {} (recoloured from {base}){}",
+            dir.display(),
+            if set { "" } else { " — kvantummanager failed" }
+        ));
     }
 
     save(p, &live_palette_path())?;

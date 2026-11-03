@@ -32,7 +32,8 @@ Usage:
   theme-profile palette import FILE           (base16 YAML or palette JSON)
   theme-profile palette set SLOT=#rrggbb ...  (base00..base0F, accent)
   theme-profile palette generate <kde|kitty|alacritty>   (print the generated colours)
-  theme-profile palette apply [--targets=kde,kitty,alacritty]   (default: all)
+  theme-profile palette apply [--targets=kde,kitty,alacritty,kvantum] [--kvantum-base=THEME]
+                              (default targets: kde,kitty,alacritty; kvantum switches the widget style)
 
 Components: kwin, plasma_shell, kdeglobals, gtk3, gtk4, qt5ct,
             klassy, kvantum, alacritty, kitty, wofi, btop,
@@ -204,8 +205,14 @@ fn palette_cmd(args: &[String]) -> ExitCode {
                 .iter()
                 .find_map(|a| a.strip_prefix("--targets="))
                 .map(|t| t.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect())
-                .unwrap_or_else(|| palette::TARGETS.iter().map(|t| t.to_string()).collect());
-            match palette::apply(&p, &targets) {
+                .unwrap_or_else(|| palette::DEFAULT_TARGETS.iter().map(|t| t.to_string()).collect());
+            let options = palette::ApplyOptions {
+                kvantum_base: args[1..]
+                    .iter()
+                    .find_map(|a| a.strip_prefix("--kvantum-base="))
+                    .map(str::to_string),
+            };
+            match palette::apply(&p, &targets, &options) {
                 Ok(lines) => {
                     for line in lines {
                         println!("{line}");

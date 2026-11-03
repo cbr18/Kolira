@@ -884,6 +884,9 @@ fn apply_with_paths(profile: &str, rel_paths: &[String]) -> Result<PathBuf> {
             } else {
                 None
             };
+            if let Err(e) = restore_active_kvantum_theme(&dir, rel_paths) {
+                eprintln!("Warning: could not restore the Kvantum theme: {e}");
+            }
             apply_live_hooks(&dir);
             if let Some(path) = wallpaper {
                 let shown = plasma_wallpaper_from(&live_path(APPLETSRC_REL));
@@ -1008,6 +1011,63 @@ fn apply_wallpaper_live(path: &Path) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Active Kvantum theme inside profiles
+// ─────────────────────────────────────────────────────────────────────────────
+
+const KVANTUM_CONFIG_REL: &str = ".config/Kvantum/kvantum.kvconfig";
+
+/// User Kvantum theme named by a `kvantum.kvconfig` (None for system themes,
+/// which are not copied, and for unsafe names).
+fn kvantum_theme_rel(kvantum_config: &Path) -> Option<String> {
+    let theme = ini_group_key(kvantum_config, "General", "theme")?;
+    let theme = theme.trim();
+    if theme.is_empty() || theme.contains('/') || theme.starts_with('.') {
+        return None;
+    }
+    Some(format!(".config/Kvantum/{theme}"))
+}
+
+/// Copy the *active* user Kvantum theme directory into the snapshot, so
+/// profiles using a generated (`ThemeProfile*`) or downloaded theme are
+/// self-contained. Tied to the kvantum component.
+fn capture_active_kvantum_theme(target: &Path, rel_paths: &[String]) -> Result<()> {
+    if !rel_paths.iter().any(|p| p == KVANTUM_CONFIG_REL) {
+        return Ok(());
+    }
+    let Some(rel) = kvantum_theme_rel(&live_path(KVANTUM_CONFIG_REL)) else {
+        return Ok(());
+    };
+    let source = live_path(&rel);
+    let dest = target.join(&rel);
+    if !source.is_dir() || dest.exists() {
+        return Ok(()); // system theme, or already tracked explicitly
+    }
+    if let Some(parent) = dest.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    copy_tree(&source, &dest).with_context(|| format!("Failed to copy Kvantum theme {}", source.display()))
+}
+
+/// Put the profile's Kvantum theme directory back (merge, like any restore).
+fn restore_active_kvantum_theme(profile_dir: &Path, rel_paths: &[String]) -> Result<()> {
+    if !rel_paths.iter().any(|p| p == KVANTUM_CONFIG_REL) {
+        return Ok(());
+    }
+    let Some(rel) = kvantum_theme_rel(&profile_dir.join(KVANTUM_CONFIG_REL)) else {
+        return Ok(());
+    };
+    let saved = profile_dir.join(&rel);
+    if !saved.is_dir() || rel_paths.contains(&rel) {
+        return Ok(());
+    }
+    let live = live_path(&rel);
+    if let Some(parent) = live.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    copy_tree(&saved, &live)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Save
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1037,6 +1097,7 @@ fn save_with_paths(profile: &str, rel_paths: &[String]) -> Result<()> {
     let tmp = unique_dir(&profiles, &format!(".save-{profile}"))?;
     let built = copy_tracked_into(&tmp, rel_paths)
         .and(capture_wallpaper(&tmp, rel_paths))
+        .and(capture_active_kvantum_theme(&tmp, rel_paths))
         .and(capture_kde_effects_state(&tmp))
         .and(write_manifest(&tmp, profile, rel_paths));
 
