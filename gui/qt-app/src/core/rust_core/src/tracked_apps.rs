@@ -407,6 +407,19 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             docs_url: "https://neovim.io/doc/user/syntax.html#%3Acolorscheme".to_string(),
         },
         TrackedAppDef {
+            id: "discord".to_string(),
+            name: "Discord (Vencord / Vesktop)".to_string(),
+            category: "Chat".to_string(),
+            // themes/ + only enabledThemes/themeLinks of settings.json (discord.rs).
+            config_paths: crate::discord::config_paths(),
+            detect_command: Some("vesktop|discord".to_string()),
+            flatpak_id: Some("dev.vencord.Vesktop".to_string()),
+            supports_live_reload: true,
+            description: "CSS themes of Vencord / Vesktop (palette → midnight-based theme)".to_string(),
+            icon: "discord".to_string(),
+            docs_url: "https://vencord.dev/".to_string(),
+        },
+        TrackedAppDef {
             id: "konsole".to_string(),
             name: "Konsole".to_string(),
             category: "Terminals".to_string(),

@@ -145,6 +145,9 @@ pub fn policy(rel: &str) -> Policy {
     if rel.starts_with(".local/share/konsole/") && rel.ends_with(".profile") {
         return Policy::Ini(KONSOLE_PROFILE);
     }
+    if crate::discord::is_settings(rel) {
+        return Policy::Jsonc(crate::discord::SETTINGS_KEYS);
+    }
     match rel {
         ".config/kdeglobals" => Policy::Ini(KDEGLOBALS),
         ".config/kwinrc" => Policy::Ini(KWINRC),

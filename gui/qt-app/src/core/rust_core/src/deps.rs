@@ -143,6 +143,7 @@ fn decoration_plugin(library: &str) -> Option<PathBuf> {
 pub fn installed(d: &Dependency) -> bool {
     match d.kind.as_str() {
         "decoration" => decoration_plugin(&d.name).is_some(),
+        "discord-client" => crate::discord::CLIENTS.iter().any(|(_, rel)| home_dir().join(rel).exists()),
         "firefox-theme" => crate::tracked_apps::firefox_profile_dir().is_some_and(|dir| {
             home_dir().join(".mozilla/firefox").join(dir).join("extensions").join(format!("{}.xpi", d.name)).exists()
         }),
@@ -395,6 +396,19 @@ pub fn detect(dir: &Path, values: &std::collections::BTreeMap<String, Value>, so
                 add(describe("plasmoid", plugin, &[user]));
             }
         }
+    }
+    // Discord themes need a theming client (stock Discord has none).
+    let carries_discord = crate::discord::CLIENTS.iter().any(|(_, rel)| dir.join(rel).join("themes").exists());
+    if carries_discord {
+        add(Dependency {
+            kind: "discord-client".into(),
+            name: "Vesktop".into(),
+            source: "aur".into(),
+            id: "vesktop-bin".into(),
+            title: "Vesktop (Discord with Vencord) — or install Vencord into Discord: https://vencord.dev/download/".into(),
+            url: "https://vencord.dev/download/".into(),
+            exact: true,
+        });
     }
     // Firefox theme add-on (installed from inside Firefox — link only).
     for user_js in crate::tracked_apps::firefox_config_paths().iter().filter(|p| p.ends_with("/user.js")) {

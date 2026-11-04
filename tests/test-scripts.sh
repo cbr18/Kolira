@@ -1711,6 +1711,45 @@ else
   fail "Neovim apply wrong: $(cat "$NV_B/.config/nvim/init.lua")"
 fi
 
+# --- 22. Discord (Vesktop/Vencord): generated CSS theme, only theme settings --
+echo "=== Section 22: Discord ==="
+DC_A="$TMP_ROOT/dc-a"; DC_B="$TMP_ROOT/dc-b"; DC_C="$TMP_ROOT/dc-c"
+mkdir -p "$DC_A/.config/vesktop/settings" "$DC_B/.config/Vencord/settings" "$DC_C"
+printf '{\n  "minimizeToTray": true,\n  "enabledThemes": []\n}\n' >"$DC_A/.config/vesktop/settings/settings.json"
+printf '{\n  "autoUpdate": false,\n  "plugins": {"x": {"enabled": true}}\n}\n' >"$DC_B/.config/Vencord/settings/settings.json"
+dc() { local h="$1"; shift; env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$h" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+dc "$DC_A" palette import "$BASE16" >/dev/null 2>&1
+dc "$DC_A" palette apply --targets=discord >/dev/null 2>&1
+if grep -q "midnight-discord" "$DC_A/.config/vesktop/themes/theme-profile.theme.css" 2>/dev/null &&
+  grep -q '"theme-profile.theme.css"' "$DC_A/.config/vesktop/settings/settings.json" &&
+  grep -q '"minimizeToTray": true' "$DC_A/.config/vesktop/settings/settings.json"; then
+  ok "palette apply writes and enables a Discord theme in Vesktop, keeping other settings"
+else
+  fail "Discord palette apply wrong: $(cat "$DC_A/.config/vesktop/settings/settings.json")"
+fi
+dc "$DC_A" save disc >/dev/null 2>&1
+dc_store="$DC_A/.config/theme-profile/profiles/disc/.config/vesktop"
+if grep -q enabledThemes "$dc_store/settings/settings.json" && ! grep -q minimizeToTray "$dc_store/settings/settings.json" &&
+  [ -f "$dc_store/themes/theme-profile.theme.css" ]; then
+  ok "save stores the Discord themes and only enabledThemes/themeLinks"
+else
+  fail "Discord save wrong: $(cat "$dc_store/settings/settings.json" 2>&1)"
+fi
+dc "$DC_A" export disc --out="$TMP_ROOT/disc.zip" >/dev/null 2>&1
+dc "$DC_B" import "$TMP_ROOT/disc.zip" --apply >/dev/null 2>&1
+if [ -f "$DC_B/.config/Vencord/themes/theme-profile.theme.css" ] && grep -q '"autoUpdate": false' "$DC_B/.config/Vencord/settings/settings.json" &&
+  grep -q '"theme-profile.theme.css"' "$DC_B/.config/Vencord/settings/settings.json" && [ ! -e "$DC_B/.config/vesktop" ]; then
+  ok "a Vesktop theme lands in a Vencord user's client, keeping their settings"
+else
+  fail "Vencord settings changed: $(cat "$DC_B/.config/Vencord/settings/settings.json")"
+fi
+dc "$DC_C" import "$TMP_ROOT/disc.zip" >/dev/null 2>&1
+if dc "$DC_C" deps disc | grep -q "discord-client Vesktop"; then
+  ok "without Vencord/Vesktop the receiver is told to get a Discord theming client"
+else
+  fail "no discord-client dependency: $(dc "$DC_C" deps disc)"
+fi
+
 # --- Summary ------------------------------------------------------------------
 echo ""
 echo "═══════════════════════════════════════"

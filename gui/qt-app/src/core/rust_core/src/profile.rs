@@ -916,6 +916,15 @@ pub(crate) fn theme_file(theme: &Path, rel: &str) -> PathBuf {
             }
         }
     }
+    // Vencord and Vesktop share the themes/settings format.
+    for (from, to) in [(".config/Vencord/", ".config/vesktop/"), (".config/vesktop/", ".config/Vencord/")] {
+        if let Some(inner) = rel.strip_prefix(from) {
+            let other = theme.join(to).join(inner);
+            if other.exists() {
+                return other;
+            }
+        }
+    }
     for root in PROFILE_ROOTS {
         let Some(rest) = rel.strip_prefix(&format!("{root}/")) else { continue };
         let Some((_, inner)) = rest.split_once('/') else { continue };

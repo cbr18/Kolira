@@ -88,6 +88,13 @@ theme-profile palette apply [--targets=kde,kitty,alacritty,kvantum] [--kvantum-b
 строкой `pcall(require, "theme-profile")`. Новые сессии получают схему,
 в открытой — `:colorscheme theme-profile`.
 
+**Discord** (цель `discord`, по умолчанию включена; обычный Discord тем не
+поддерживает — нужен Vencord или Vesktop): в `themes/` клиента пишется
+`theme-profile.theme.css` — цвета палитры поверх популярной темы midnight
+(MIT, refact0r; подключается с её сайта, как в шаблоне matugen) — и
+включается в `settings/settings.json` `enabledThemes` (точечная правка, прочие
+настройки не трогаются). Vencord перечитывает темы сам.
+
 **Kvantum** (цель `kvantum`, включается явно — она переключает стиль виджетов на
 `kvantum`). Темы Kvantum — GPL-графика, поэтому в репозитории их нет: при
 применении берётся **установленная** базовая тема (по умолчанию `KvArcDark` для

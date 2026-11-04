@@ -281,6 +281,18 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         docs_url="https://neovim.io/doc/user/syntax.html#%3Acolorscheme",
     ),
     TrackedAppDef(
+        id="discord",
+        name="Discord (Vencord / Vesktop)",
+        category="Chat",
+        # Fallback; live paths come from discord_config_paths().
+        config_paths=(".config/vesktop/themes",),
+        detect_command="vesktop|discord",
+        flatpak_id="dev.vencord.Vesktop",
+        description="CSS themes of Vencord / Vesktop (palette → midnight-based theme)",
+        icon="discord",
+        docs_url="https://vencord.dev/",
+    ),
+    TrackedAppDef(
         id="konsole",
         name="Konsole",
         category="Terminals",
@@ -568,6 +580,18 @@ def konsole_config_paths() -> tuple[str, ...]:
     return tuple(paths)
 
 
+def discord_config_paths() -> tuple[str, ...]:
+    """themes/ and settings.json of Vencord / Vesktop set up here (mirrors Rust)."""
+    import os
+
+    home = os.path.expanduser("~")
+    out: list[str] = []
+    for rel in (".config/Vencord", ".config/vesktop"):
+        if os.path.exists(os.path.join(home, rel)):
+            out += [f"{rel}/settings/settings.json", f"{rel}/themes"]
+    return tuple(out)
+
+
 def config_paths_for(app: TrackedAppDef) -> tuple[str, ...]:
     """Актуальные пути приложения (zen — авто-детект, остальные — static)."""
     if app.id == "zen":
@@ -576,6 +600,8 @@ def config_paths_for(app: TrackedAppDef) -> tuple[str, ...]:
         return firefox_config_paths()
     if app.id == "konsole":
         return konsole_config_paths()
+    if app.id == "discord":
+        return discord_config_paths()
     return app.config_paths
 
 

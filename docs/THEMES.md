@@ -34,6 +34,7 @@ takes the family from the theme and keeps the live size.
 | Zed `settings.json` | `theme`, `icon_theme`, `ui_font_family/features/weight`, `buffer_font_family/features/weight`, `theme_overrides` | font sizes, agent/models, panels, keymap, sessions, … |
 | kitty | `kitty/theme-profile.conf` (font faces, colours, cursor, opacity/blur, padding, borders, tab bar) | `kitty.conf` — keeps `font_size`/`modify_font` and gains `include theme-profile.conf` (last line) |
 | Neovim | `lua/theme-profile.lua` (picks the scheme, transparent background when the theme's terminal is translucent) + `colors/theme-profile.lua` (base16 scheme generated from the palette) | `init.lua` — only gains `pcall(require, "theme-profile")` (last line); `init.vim` setups are left alone |
+| Discord (Vencord / Vesktop) | `themes/` (CSS themes) + `settings/settings.json` `enabledThemes`/`themeLinks`; Vesktop ↔ Vencord themes map to whichever client the receiver has | every other client setting; stock Discord has no themes → `discord-client` dependency |
 | Konsole | the default profile's `[Appearance]` (`ColorScheme`, font family — live size kept) + its `.colorscheme` (whole: colours, opacity, blur; travels as an asset) | the profile's command, scrolling, keys…; without a profile a `Theme Profile` (`Parent=FALLBACK/`) is created and made default |
 | Firefox (default profile from `installs.ini`/`profiles.ini`) | `chrome/userChrome.css`, `chrome/userContent.css` (whole); `user.js` only look prefs (`browser.theme.*`, `toolkit.legacyUserProfileCustomizations.stylesheets`, `extensions.activeThemeID`, …) | privacy/behaviour prefs in `user.js` |
 | Alacritty | `alacritty/theme-profile.toml` (`[colors.*]`, `[font]` faces, window opacity/blur/padding/decorations, cursor style) | `[font] size`/offsets; `alacritty.toml` gains `general.import` |
@@ -168,7 +169,8 @@ references but does not carry: icons, cursors, GTK, Kvantum, Plasma style,
 Global Theme, colour scheme, window decoration (plugin or Aurorae), panel
 widgets the user installed, editor themes, the Firefox theme add-on
 (`amo`: link to addons.mozilla.org — add-ons are installed from inside
-Firefox). KDE's own assets (Breeze, Oxygen,
+Firefox), a Discord theming client (`discord-client`: Vesktop from the AUR or
+Vencord). KDE's own assets (Breeze, Oxygen,
 `org.kde.*`) are never dependencies. Sources, in order:
 
 1. **KDE Store, exact** — KDE's KNewStuff registries

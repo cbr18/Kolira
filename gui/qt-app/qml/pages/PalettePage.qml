@@ -49,6 +49,7 @@ Kirigami.ScrollablePage {
         if (alacrittyTarget.checked) t.push("alacritty")
         if (konsoleTarget.checked) t.push("konsole")
         if (nvimTarget.checked) t.push("nvim")
+        if (discordTarget.checked) t.push("discord")
         if (kvantumTarget.checked) t.push("kvantum")
         return t
     }
@@ -338,6 +339,7 @@ Kirigami.ScrollablePage {
                     CheckBox { id: alacrittyTarget; text: qsTr("Alacritty"); checked: true }
                     CheckBox { id: konsoleTarget; text: qsTr("Konsole"); checked: true }
                     CheckBox { id: nvimTarget; text: qsTr("Neovim"); checked: true }
+                    CheckBox { id: discordTarget; text: qsTr("Discord (Vencord / Vesktop)"); checked: true }
                     CheckBox {
                         id: kvantumTarget
                         text: qsTr("Kvantum (switches the widget style)")
