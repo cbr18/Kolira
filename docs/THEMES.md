@@ -171,7 +171,11 @@ Global Theme, colour scheme, window decoration (plugin or Aurorae), panel
 widgets the user installed, editor themes, the Firefox theme add-on
 (`amo`: link to addons.mozilla.org — add-ons are installed from inside
 Firefox), a Discord theming client (`discord-client`: Vesktop from the AUR or
-Vencord). KDE's own assets (Breeze, Oxygen,
+Vencord), the login screen (`sddm`: SDDM's `[Theme] Current` lives in `/etc`
+and needs root — the dependency carries the commands to install the theme
+package and select it, e.g. `sudo kwriteconfig6 --file
+/etc/sddm.conf.d/kde_settings.conf --group Theme --key Current <theme>`; the
+app never runs sudo). KDE's own assets (Breeze, Oxygen,
 `org.kde.*`) are never dependencies. Sources, in order:
 
 1. **KDE Store, exact** — KDE's KNewStuff registries
