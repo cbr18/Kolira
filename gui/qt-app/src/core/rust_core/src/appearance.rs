@@ -102,6 +102,7 @@ const GTK_SETTINGS: &[Rule] = &[r(
         "gtk-xft-antialias", "gtk-xft-hinting", "gtk-xft-hintstyle", "gtk-xft-rgba",
     ]),
 )];
+const KCMINPUTRC: &[Rule] = &[r("Mouse", Keys::Only(&["cursorTheme", "cursorSize"]))];
 const BTOP: &[&str] = &["color_theme", "theme_background", "truecolor", "rounded_corners", "graph_symbol*"];
 const VSCODE: &[&str] = &[
     "workbench.colorTheme", "workbench.iconTheme", "workbench.productIconTheme",
@@ -125,6 +126,7 @@ pub fn policy(rel: &str) -> Policy {
         ".config/kwinrc" => Policy::Ini(KWINRC),
         ".config/kwinrulesrc" => Policy::KwinRules,
         ".config/plasmarc" => Policy::Ini(PLASMARC),
+        ".config/kcminputrc" => Policy::Ini(KCMINPUTRC),
         ".config/plasmashellrc" => Policy::Ini(PLASMASHELLRC),
         ".config/gtk-3.0/settings.ini" | ".config/gtk-4.0/settings.ini" => Policy::Ini(GTK_SETTINGS),
         ".config/btop/btop.conf" => Policy::Kv(BTOP),

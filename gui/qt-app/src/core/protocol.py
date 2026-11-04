@@ -139,6 +139,14 @@ class ProfileCore(ABC):
         """Import a theme from ``path`` (.zip or unpacked dir); data = report."""
         return Result.err("Import is not supported by this core")
 
+    def dependencies(self, name: str) -> Result:
+        """Missing dependencies of theme ``name``: data = [{index, kind, name, source, …}]."""
+        return Result.err("Dependencies are not supported by this core")
+
+    def install_dependencies(self, name: str, indexes: Optional[list[int]] = None) -> Result:
+        """Install dependencies (None = all missing); data = [{index, ok, message}]."""
+        return Result.err("Dependencies are not supported by this core")
+
 
 class WallpaperCore(ABC):
     """Управление обоями."""

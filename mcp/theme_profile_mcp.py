@@ -75,6 +75,8 @@ class ThemeProfileMcpServer:
             "apply_profile": self._apply_profile,
             "export_theme": self._export_theme,
             "import_theme": self._import_theme,
+            "list_dependencies": self._list_dependencies,
+            "install_dependencies": self._install_dependencies,
             "palette_show": self._palette_show,
             "palette_gallery": self._palette_gallery,
             "palette_import": self._palette_import,
@@ -272,6 +274,27 @@ class ThemeProfileMcpServer:
                 },
             },
             {
+                "name": "list_dependencies",
+                "description": "What a saved theme needs that is not installed here (icons, cursors, GTK, Kvantum, Plasma style, widgets, decoration, editor themes) with the official source; packages carry the command to run.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {"name": {"type": "string"}},
+                    "required": ["name"],
+                },
+            },
+            {
+                "name": "install_dependencies",
+                "description": "Download and install a theme's missing dependencies from their official sources (KDE Store via kpackagetool6 or unpacking, VS Code Marketplace / Open VSX / Zed). Never installs system packages. Ask the user first; search results (exact=false) need their confirmation.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "indexes": {"type": "array", "items": {"type": "integer"}, "description": "Indexes from list_dependencies; omit for all."},
+                    },
+                    "required": ["name"],
+                },
+            },
+            {
                 "name": "palette_show",
                 "description": "Live base16 palette (16 slots + accent, variant, source, contrast warnings, generated KDE scheme id) or null.",
                 "inputSchema": {"type": "object", "properties": {}},
@@ -462,6 +485,20 @@ class ThemeProfileMcpServer:
         if not result.success:
             raise ValueError(result.message)
         return {"ok": True, **(result.data or {})}
+
+    def _list_dependencies(self, arguments: dict) -> dict:
+        result = self.profiles.dependencies(str(arguments.get("name") or ""))
+        if not result.success:
+            raise ValueError(result.message)
+        return {"dependencies": result.data or []}
+
+    def _install_dependencies(self, arguments: dict) -> dict:
+        indexes = arguments.get("indexes")
+        result = self.profiles.install_dependencies(
+            str(arguments.get("name") or ""),
+            None if indexes is None else [int(i) for i in indexes],
+        )
+        return {"ok": result.success, "message": result.message, "results": result.data or []}
 
     def _apply_profile(self, arguments: dict) -> dict:
         result = self.core.apply_profile(

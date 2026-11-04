@@ -107,7 +107,7 @@
 </context><context>
     <name>ProfileController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="225" />
+        <location filename="../src/controllers/__init__.py" line="240" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>
@@ -440,7 +440,7 @@
 </context><context>
     <name>WallpaperController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="500" />
+        <location filename="../src/controllers/__init__.py" line="535" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>

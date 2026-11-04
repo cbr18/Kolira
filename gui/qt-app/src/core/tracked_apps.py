@@ -63,7 +63,8 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         id="kdeglobals",
         name="KDE Globals",
         category="KDE / Plasma",
-        config_paths=(".config/kdeglobals",),
+        # kcminputrc: only the cursor theme/size (appearance.rs).
+        config_paths=(".config/kdeglobals", ".config/kcminputrc"),
         description="Colors, accent, Look & Feel, color scheme, widget style",
         icon="preferences-desktop-theme",
     ),

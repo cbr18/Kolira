@@ -22,6 +22,9 @@ Native KDE Plasma application for managing theme profiles and wallpapers.
 - **Themes** — save dialog with *Include the current wallpaper*, apply dialog
   with *Keep the current wallpaper*, and a *Missing Theme Parts* dialog (links +
   *Install from stores*) fed by `theme-profile apply --json`
+- **Dependencies** — after apply/import a *This Theme Needs* dialog lists what
+  is missing with its source (KDE Store / package command / editor store) and
+  installs the ticked items (`theme-profile deps --install`), then re-applies
 - **Export / import** — card menu → *Export…* (`.ktmtheme.zip`, optional
   wallpaper), *Import theme…* (name conflict → new name or replace); the
   missing-parts dialog follows an import too (`theme-profile import --json`)

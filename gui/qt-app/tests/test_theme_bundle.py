@@ -749,3 +749,26 @@ def test_mcp_export_import_round_trip(tmp_path: Path, monkeypatch: pytest.Monkey
     # The home path travels as $HOME and comes back expanded.
     kdeglobals = (profile_dir("night2") / ".config/kdeglobals").read_text(encoding="utf-8")
     assert "$HOME" not in kdeglobals
+
+
+def test_needed_offers_dependencies_or_falls_back_to_missing_refs():
+    from controllers import _needed
+
+    dep = {"index": 0, "kind": "icons", "name": "Candy", "source": "kde-store", "exact": True}
+    assert _needed({"dependencies": [dep], "missing": [{"field": "x"}]}) == [dep]
+    old = _needed({"missing": [{"field": "icon_theme", "name": "YAMIS", "source": "https://store"}]})
+    assert old[0]["index"] == -1 and old[0]["source"] == "none" and old[0]["url"] == "https://store"
+    assert _needed(None) == []
+
+
+def test_mcp_lists_dependencies(monkeypatch: pytest.MonkeyPatch, cli_bundle_home):
+    monkeypatch.setattr(CoreFactory, "_theme_core", cli_bundle_home["theme"])
+    monkeypatch.setattr(CoreFactory, "_profile_core", cli_bundle_home["profiles"])
+    monkeypatch.setattr(CoreFactory, "_wallpaper_core", cli_bundle_home["wallpapers"])
+    server = ThemeProfileMcpServer()
+    assert cli_bundle_home["core"].save_profile("night").success
+    reply = server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                           "params": {"name": "list_dependencies", "arguments": {"name": "night"}}})
+    assert reply["result"]["isError"] is False, reply
+    payload = json.loads(reply["result"]["content"][0]["text"])
+    assert isinstance(payload["dependencies"], list)

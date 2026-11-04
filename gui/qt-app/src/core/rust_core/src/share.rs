@@ -95,6 +95,8 @@ pub struct ImportReport {
     pub files: usize,
     pub replaced: Option<String>,
     pub missing: Vec<Missing>,
+    /// Dependencies not installed here, offered for installation.
+    pub dependencies: Vec<theme::Needed>,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -458,7 +460,8 @@ pub fn import(src: &Path, options: &ImportOptions) -> Result<ImportReport> {
     }
     fs::rename(&tmp, &target)?;
     let missing = theme::check(&name)?;
-    Ok(ImportReport { name, files: files.len(), replaced, missing })
+    let dependencies = theme::needed(&name)?;
+    Ok(ImportReport { name, files: files.len(), replaced, missing, dependencies })
 }
 
 #[cfg(test)]

@@ -110,7 +110,8 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             id: "kdeglobals".to_string(),
             name: "KDE Globals".to_string(),
             category: "KDE / Plasma".to_string(),
-            config_paths: vec![".config/kdeglobals".to_string()],
+            // kcminputrc: only the cursor theme/size (appearance.rs).
+            config_paths: vec![".config/kdeglobals".to_string(), ".config/kcminputrc".to_string()],
             detect_command: None,
             flatpak_id: None,
             supports_live_reload: false,

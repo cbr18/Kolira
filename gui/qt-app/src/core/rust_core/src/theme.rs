@@ -86,6 +86,10 @@ pub struct Package {
     /// before 2026-11-04 evening are converted by `migrate`.
     #[serde(default)]
     pub appearance_only: bool,
+    /// What the theme needs that does not travel inside it, with the source
+    /// to install it from (deps.rs).
+    #[serde(default)]
+    pub dependencies: Vec<crate::deps::Dependency>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -119,6 +123,51 @@ pub struct ApplyReport {
     pub missing: Vec<Missing>,
     pub errors: Vec<String>,
     pub backup: String,
+    /// Dependencies not installed here (deps.rs), to offer for installation.
+    pub dependencies: Vec<Needed>,
+}
+
+/// A missing dependency with its index in `theme.json` (for `deps --install`)
+/// and, for system packages, the command the user runs.
+#[derive(Debug, Clone, Serialize)]
+pub struct Needed {
+    pub index: usize,
+    #[serde(flatten)]
+    pub dependency: crate::deps::Dependency,
+    pub command: Option<String>,
+}
+
+/// Dependencies of theme `name` not installed on this machine.
+pub fn needed(name: &str) -> Result<Vec<Needed>> {
+    let package = load(&profile_dir(name)?)?;
+    Ok(crate::deps::missing(&package.dependencies)
+        .into_iter()
+        .map(|(index, d)| Needed { index, dependency: d.clone(), command: crate::deps::package_command(d) })
+        .collect())
+}
+
+/// Re-detect the dependencies of theme `name` on this machine (themes saved
+/// before dependencies existed, or after installing something).
+pub fn refresh_dependencies(name: &str) -> Result<Vec<crate::deps::Dependency>> {
+    let dir = profile_dir(name)?;
+    let mut package = load(&dir)?;
+    package.dependencies = crate::deps::detect(&dir, &package.values, &package.sources);
+    write_manifest(&dir, &package)?;
+    Ok(package.dependencies)
+}
+
+/// Install dependencies `indexes` (None = all missing) of theme `name`;
+/// `(index, result message or error)` per dependency.
+pub fn install_dependencies(name: &str, indexes: Option<&[usize]>) -> Result<Vec<(usize, Result<String>)>> {
+    let package = load(&profile_dir(name)?)?;
+    let mut out = Vec::new();
+    for (i, d) in crate::deps::missing(&package.dependencies) {
+        if indexes.is_some_and(|ix| !ix.contains(&i)) {
+            continue;
+        }
+        out.push((i, crate::deps::install(d)));
+    }
+    Ok(out)
 }
 
 pub fn is_package(dir: &Path) -> bool {
@@ -399,6 +448,7 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
         fs::remove_dir_all(&wallpaper_dir)?;
     }
 
+    package.dependencies = crate::deps::detect(dir, &values, &package.sources);
     package.values = values;
     package.appearance_only = true;
     write_manifest(dir, &package)?;
@@ -549,6 +599,7 @@ pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
         }
     }
     report.missing = check(name)?;
+    report.dependencies = needed(name)?;
 
     // Assets that live outside the tracked files (e.g. a user Plasma style).
     let home = home_dir();

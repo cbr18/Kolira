@@ -77,7 +77,9 @@ Plasma style `.local/share/plasma/desktoptheme/<id>/`, btop and Zed theme files.
 | `palette` | base16 palette + accent (see `docs/PALETTE.md`) when the colour scheme is generated from it, else `null` |
 | `wallpaper` | `wallpaper/<file>`, or `null` → applying keeps the current wallpaper |
 | `assets[]` | `{kind, name, path, origin: generated\|user, redistributable}` — local assets, `path` inside the theme |
-| `sources` | field id → `{store, id, url}`: where to get what is not bundled (`vscode-marketplace`, `open-vsx`, `zed`, or a URL) |
+| `sources` | field id → `{store, id, url}`: editor-theme extensions (`vscode-marketplace`, `open-vsx`, `zed`) |
+| `dependencies[]` | `{kind, name, source, id, title, url, exact}` — everything the theme needs that does not travel inside it (see *Dependencies*) |
+| `appearance_only` | the stored files hold only the look |
 
 System resources (Breeze, `/usr/share/Kvantum/*`, icon themes, Zed and VS Code
 built-ins, …) are referenced by name, not copied. Editor themes from the VS Code
@@ -92,6 +94,7 @@ theme-profile check NAME [--json]          # what the theme references but this 
 theme-profile migrate NAME|--all           # add theme.json to a snapshot profile (files untouched)
 theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper]
 theme-profile import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
+theme-profile deps NAME [--refresh] [--install[=all|0,2]] [--json]
 ```
 
 - **save** snapshots the look of every tracked file (filtered as above; old
@@ -131,16 +134,50 @@ and written directly if the tool did not store it
 
 - **Save Profile** dialog: name, description, *Include the current wallpaper*.
 - **Apply** (confirmation dialog): *Keep the current wallpaper*.
-- After applying, a **Missing Theme Parts** dialog lists what the theme needs
-  but this machine lacks, with links; **Install from stores** re-applies with
-  `--install-missing` when an editor theme has a store id.
+- After applying or importing, a **This Theme Needs** dialog lists the missing
+  dependencies with their source: store items have a checkbox (exact matches
+  ticked, search results unticked until confirmed), system packages show the
+  command; **Install selected** installs them and (optionally) applies the
+  theme again.
 - The Theme page's profile scope reads the theme values (read-only).
 
 ## MCP
 
 `create_profile` (`includeWallpaper`), `apply_profile` (`keepWallpaper`,
 `installMissing`, returns `missing`/`installed`), `validate_profile` (returns
-`missing`). See `docs/MCP.md`.
+`missing`), `list_dependencies`, `install_dependencies`. See `docs/MCP.md`.
+
+## Dependencies
+
+Detected when a theme is saved (`rust_core/src/deps.rs`) for every asset it
+references but does not carry: icons, cursors, GTK, Kvantum, Plasma style,
+Global Theme, colour scheme, window decoration (plugin or Aurorae), panel
+widgets the user installed, editor themes. KDE's own assets (Breeze, Oxygen,
+`org.kde.*`) are never dependencies. Sources, in order:
+
+1. **KDE Store, exact** — KDE's KNewStuff registries
+   (`~/.local/share/knewstuff3/*.knsregistry`, written by *Get New…*) record the
+   store id of everything installed that way;
+2. **package** — `pacman -Qqo` on any installed copy (repo or AUR; a user copy
+   shadowing a packaged one — Klassy's generated icons — is looked through);
+3. **editor stores** — the installed VS Code / Cursor extension or Zed
+   extension;
+4. **KDE Store, search** (`exact: false`) — the OCS API searched by name within
+   the right category, ranked (exact title, acronym like YAMIS = *Yet Another
+   Monochrome Icon Set*, KDE/Plasma builds over forks); shown for confirmation;
+5. otherwise just a KDE Store search link.
+
+`theme-profile deps NAME` lists those not installed here (`--json` for the
+GUI/MCP; the apply and import reports carry them as `dependencies`).
+`--install` fetches them from the official source: KDE Store items through the
+OCS API (`api.kde-look.org`) — Plasma styles, Global Themes and widgets with
+`kpackagetool6`, icons/cursors/GTK/Kvantum/Aurorae unpacked into the user's
+folders (zip via enclosed names, tarballs via `tar`; symlinks escaping the
+tree are dropped; an existing folder is never overwritten), colour schemes
+copied; editor themes via their stores. **System packages are never installed**
+(no sudo): the report carries `sudo pacman -S …` / `yay -S …`. Network access
+follows *Settings → Network* (`KTM_OFFLINE=1` turns it off); `--refresh`
+re-detects the dependencies of a theme saved earlier.
 
 ## Export and import
 

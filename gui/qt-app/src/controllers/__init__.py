@@ -112,6 +112,21 @@ def _run_async(
 # Контроллер профилей
 # ──────────────────────────────────────────────────────────────
 
+def _needed(report: Optional[dict]) -> list:
+    """What to offer after apply/import: the theme's missing dependencies
+    (with sources), or — for themes saved before dependencies existed — the
+    missing references converted to the same shape."""
+    report = report or {}
+    deps = list(report.get("dependencies") or [])
+    if deps:
+        return deps
+    return [
+        {"index": -1, "kind": m.get("field", ""), "name": m.get("name", ""), "source": "none",
+         "id": "", "title": "", "url": m.get("source", ""), "exact": True, "command": None}
+        for m in report.get("missing") or []
+    ]
+
+
 class ProfileController(QObject):
     """Контроллер для управления профилями."""
 
@@ -284,7 +299,7 @@ class ProfileController(QObject):
                 result = self._core.apply(
                     profile, keep_wallpaper=keep_wallpaper, install_missing=install_missing
                 )
-                self._pending_missing = (profile, list((result.data or {}).get("missing") or []))
+                self._pending_missing = (profile, _needed(result.data))
                 return result.success, result.message
 
             self._start_operation("apply", _work)
@@ -372,12 +387,32 @@ class ProfileController(QObject):
             result = self._core.import_theme(path, name, force)
             if result.success:
                 report = result.data or {}
-                self._pending_missing = (
-                    str(report.get("name", "")), list(report.get("missing") or [])
-                )
+                self._pending_missing = (str(report.get("name", "")), _needed(report))
             return result.success, result.message
 
         self._start_operation("import", _work)
+
+    @Slot(str, list, bool)
+    def installDependencies(self, profile: str, indexes: list, reapply: bool) -> None:
+        """Install the chosen dependencies from their official sources, then
+        (optionally) apply the theme again so they take effect."""
+        try:
+            profile = validate_profile_name(profile)
+        except ValueError as exc:
+            self.operationFinished.emit(False, str(exc))
+            return
+        chosen = [int(i) for i in indexes]
+
+        def _work() -> tuple[bool, str]:
+            result = self._core.install_dependencies(profile, chosen)
+            message = result.message
+            if reapply and any(i.get("ok") for i in (result.data or [])):
+                applied = self._core.apply(profile)
+                message += "\n" + applied.message.splitlines()[0] if applied.message else ""
+                self._pending_missing = (profile, _needed(applied.data))
+            return result.success, message
+
+        self._start_operation("install", _work)
 
     @Slot(str)
     def deleteProfile(self, name: str) -> None:

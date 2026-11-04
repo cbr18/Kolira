@@ -47,6 +47,8 @@ for tool in plasma-apply-lookandfeel plasma-apply-colorscheme plasma-apply-deskt
   chmod +x "$SAFE_BIN/$tool"
 done
 export PATH="$SAFE_BIN:$PATH"
+# …and never the network (saving a theme searches the KDE Store for sources).
+export KTM_OFFLINE=1
 
 # --- 0. Precondition: the Rust CLI is built ----------------------------------
 echo "=== Section 0: Rust CLI binaries are built ==="
@@ -1569,6 +1571,51 @@ if [ -e "$EX_B/.config/theme-profile/profiles/tampered" ] || compgen -G "$EX_B/.
   fail "a refused import left files behind"
 else
   ok "a refused import leaves nothing behind"
+fi
+
+# --- 18. dependencies: sources detected at save, listed where missing ---------
+echo "=== Section 18: theme dependencies ==="
+DEP_A="$TMP_ROOT/deps-a"; DEP_B="$TMP_ROOT/deps-b"
+mkdir -p "$DEP_A/.local/share/icons/Candy" "$DEP_A/.local/share/knewstuff3" "$DEP_A/.config" "$DEP_B"
+printf '[Icon Theme]\nName=Candy\n' >"$DEP_A/.local/share/icons/Candy/index.theme"
+printf '[Icons]\nTheme=Candy\n' >"$DEP_A/.config/kdeglobals"
+cat >"$DEP_A/.local/share/knewstuff3/icons.knsregistry" <<REG
+<?xml version="1.0" encoding="UTF-8"?>
+<hotnewstuffregistry>
+ <stuff category="132">
+  <name>Candy icons</name>
+  <providerid>api.kde-look.org</providerid>
+  <installedfile>$DEP_A/.local/share/icons/Candy/*</installedfile>
+  <id>1305251</id>
+ </stuff>
+</hotnewstuffregistry>
+REG
+dep_a() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$DEP_A" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+dep_b() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$DEP_B" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+dep_a save candy >/dev/null 2>&1
+if python3 -c 'import json,sys; d=json.load(open(sys.argv[1]))["dependencies"]; assert any(x["kind"]=="icons" and x["name"]=="Candy" and x["source"]=="kde-store" and x["id"]=="1305251" and x["exact"] for x in d), d' \
+  "$DEP_A/.config/theme-profile/profiles/candy/theme.json" 2>/dev/null; then
+  ok "save records the KDE Store id of icons installed via Get New… (KNewStuff registry)"
+else
+  fail "dependency source not detected: $(cat "$DEP_A/.config/theme-profile/profiles/candy/theme.json")"
+fi
+if [ "$(dep_a deps candy)" = "All dependencies are installed." ]; then
+  ok "deps lists nothing on the machine that has everything"
+else
+  fail "deps on the author's machine: $(dep_a deps candy)"
+fi
+dep_a export candy --out="$TMP_ROOT/candy.zip" >/dev/null 2>&1
+report=$(dep_b import "$TMP_ROOT/candy.zip" --json 2>/dev/null)
+if printf '%s' "$report" | python3 -c 'import json,sys; r=json.load(sys.stdin); d=r["dependencies"]; assert d and d[0]["id"]=="1305251" and d[0]["url"].endswith("/p/1305251"), r' 2>/dev/null &&
+  dep_b deps candy | grep -q "icons Candy — kde-store"; then
+  ok "import reports the missing icons with their KDE Store source"
+else
+  fail "import/deps did not report the missing dependency: $report"
+fi
+if out=$(dep_b deps candy --install=0 2>&1); then
+  fail "install worked offline?! $out"
+else
+  case "$out" in *"network is disabled"*) ok "installing respects the offline switch" ;; *) fail "unexpected install output: $out" ;; esac
 fi
 
 # --- Summary ------------------------------------------------------------------

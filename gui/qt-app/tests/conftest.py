@@ -13,5 +13,9 @@ _RELEASE_CLI = (
     / "src" / "core" / "rust_core" / "target" / "release" / "theme-profile"
 )
 
+# Tests never reach the network (saving a theme would search the KDE Store
+# for dependency sources).
+os.environ["KTM_OFFLINE"] = "1"
+
 if _RELEASE_CLI.is_file() and "KTM_THEME_PROFILE_BIN" not in os.environ:
     os.environ["KTM_THEME_PROFILE_BIN"] = str(_RELEASE_CLI)

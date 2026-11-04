@@ -32,6 +32,8 @@ Usage:
                               (restores the theme; missing assets are reported,
                                --install-missing installs app themes from their stores)
   theme-profile check NAME [--json]           (what applying NAME would miss)
+  theme-profile deps NAME [--refresh] [--install[=all|0,2]] [--json]
+                              (what the theme needs and where from; install from official sources)
   theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper]
                               (portable copy: $HOME for the home dir, no desktop icons)
   theme-profile import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
@@ -789,6 +791,68 @@ fn main() -> ExitCode {
                 }
             }
             ExitCode::SUCCESS
+        }
+        "deps" => {
+            let Some(name) = args.get(1).filter(|a| !a.starts_with("--")) else {
+                return fail("Usage error: deps NAME [--refresh] [--install[=all|1,2]] [--json]");
+            };
+            let json = args.iter().any(|a| a == "--json");
+            if args.iter().any(|a| a == "--refresh") {
+                if let Err(e) = theme::refresh_dependencies(name) {
+                    return fail(format!("{e:#}"));
+                }
+            }
+            if let Some(spec) = args.iter().find_map(|a| a.strip_prefix("--install").map(|r| r.trim_start_matches('=').to_string())) {
+                let indexes: Option<Vec<usize>> = if spec.is_empty() || spec == "all" {
+                    None
+                } else {
+                    match spec.split(',').map(|x| x.trim().parse::<usize>()).collect() {
+                        Ok(v) => Some(v),
+                        Err(_) => return fail("--install expects all or indexes like 0,2"),
+                    }
+                };
+                let results = match theme::install_dependencies(name, indexes.as_deref()) {
+                    Ok(r) => r,
+                    Err(e) => return fail(format!("{e:#}")),
+                };
+                let failed = results.iter().any(|(_, r)| r.is_err());
+                if json {
+                    let list: Vec<serde_json::Value> = results
+                        .iter()
+                        .map(|(i, r)| match r {
+                            Ok(m) => serde_json::json!({"index": i, "ok": true, "message": m}),
+                            Err(e) => serde_json::json!({"index": i, "ok": false, "message": format!("{e:#}")}),
+                        })
+                        .collect();
+                    println!("{}", serde_json::to_string(&list).unwrap_or_default());
+                } else {
+                    for (i, r) in &results {
+                        match r {
+                            Ok(m) => println!("installed[{i}]: {m}"),
+                            Err(e) => println!("failed[{i}]: {e:#}"),
+                        }
+                    }
+                }
+                return if failed { ExitCode::from(2) } else { ExitCode::SUCCESS };
+            }
+            match theme::needed(name) {
+                Ok(list) if json => {
+                    println!("{}", serde_json::to_string(&list).unwrap_or_default());
+                    ExitCode::SUCCESS
+                }
+                Ok(list) => {
+                    if list.is_empty() {
+                        println!("All dependencies are installed.");
+                    }
+                    for n in list {
+                        let d = &n.dependency;
+                        let how = n.command.clone().unwrap_or_else(|| format!("{}{}", d.source, if d.exact { "" } else { " (search result — confirm)" }));
+                        println!("[{}] {} {} — {} — {}", n.index, d.kind, d.name, how, d.url);
+                    }
+                    ExitCode::SUCCESS
+                }
+                Err(e) => fail(format!("{e:#}")),
+            }
         }
         "check" => {
             let Some(name) = args.get(1).filter(|a| !a.starts_with("--")) else {

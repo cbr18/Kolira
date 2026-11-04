@@ -290,6 +290,40 @@ class CliProfileCore(ProfileCore):
             return Result.err("theme-profile import returned invalid JSON")
         return Result.ok(f"Imported theme: {report.get('name', '')}", data=report)
 
+    def dependencies(self, name: str) -> Result:
+        """`theme-profile deps NAME --json`: what the theme needs that is not installed."""
+        try:
+            name = validate_profile_name(name)
+        except ValueError as exc:
+            return Result.err(str(exc))
+        result = self._run(["deps", name, "--json"], timeout=30)
+        if not result.success:
+            return result
+        try:
+            return Result.ok(data=json.loads(result.message or "[]"))
+        except ValueError:
+            return Result.err("theme-profile deps returned invalid JSON")
+
+    def install_dependencies(self, name: str, indexes: Optional[list[int]] = None) -> Result:
+        """`theme-profile deps NAME --install=… --json` (downloads from the
+        official sources; packages are never installed — see their command)."""
+        try:
+            name = validate_profile_name(name)
+        except ValueError as exc:
+            return Result.err(str(exc))
+        spec = "all" if indexes is None else ",".join(str(int(i)) for i in indexes)
+        if not spec:
+            return Result.err("Nothing selected")
+        result = self._run(["deps", name, f"--install={spec}", "--json"], timeout=900)
+        try:
+            items = json.loads(result.message or "[]")
+        except ValueError:
+            return result if not result.success else Result.err("invalid JSON from theme-profile deps")
+        failed = [i for i in items if not i.get("ok")]
+        lines = [("✓ " if i.get("ok") else "✗ ") + str(i.get("message", "")) for i in items]
+        message = "\n".join(lines) or "Nothing to install"
+        return Result(not failed, message, data=items)
+
     def check(self, name: str) -> Result:
         """What applying ``name`` would miss: data["missing"] = [{field, name, source}]."""
         try:

@@ -152,7 +152,23 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 `missing: [{field, name, source}]`.
 
 Аргументы: `path`, `name` (импортировать под другим именем), `force` (заменить
-существующую тему, старая уходит в `backups/pre-import-*`).
+существующую тему, старая уходит в `backups/pre-import-*`). Отчёт также содержит
+`dependencies` — чего не хватает на этой машине и откуда это взять.
+
+### `list_dependencies`
+
+Чего теме не хватает на этой машине (`theme-profile deps NAME --json`):
+`[{index, kind, name, source, id, title, url, exact, command}]`. `source`:
+`kde-store`, `package`/`aur` (`command` — что выполнить, сами пакеты не
+ставятся), `vscode-marketplace`/`open-vsx`/`zed`, `none`. `exact: false` —
+найдено поиском по имени, нужно подтверждение пользователя.
+
+### `install_dependencies`
+
+Скачивает и ставит зависимости из официальных источников (KDE Store через
+`kpackagetool6` или распаковку, магазины редакторов). Аргументы: `name`,
+`indexes` (из `list_dependencies`; без него — все). Спрашивайте пользователя
+перед вызовом; результаты поиска (`exact: false`) — только с его согласия.
 
 ## Палитра и магазины тем
 

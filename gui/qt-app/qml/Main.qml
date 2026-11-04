@@ -151,6 +151,8 @@ Kirigami.ApplicationWindow {
                 root.operationMessage = qsTr("Exporting theme…")
             else if (op === "import")
                 root.operationMessage = qsTr("Importing theme…")
+            else if (op === "install")
+                root.operationMessage = qsTr("Installing theme parts…")
             else
                 root.operationMessage = qsTr("Working…")
         }
@@ -552,24 +554,44 @@ Kirigami.ApplicationWindow {
         }
     }
 
-    // A theme references assets this machine lacks: list them with where to
-    // get them; app themes with a store id can be installed in one click.
+    // A theme needs things this machine lacks: list them with where they come
+    // from; store items are installed from the official source on request
+    // (search results unticked until the user confirms), packages show the
+    // command to run (no sudo from the GUI).
     Kirigami.Dialog {
         id: missingDialog
-        title: qsTr("Missing Theme Parts")
-        preferredWidth: 520
+        title: qsTr("This Theme Needs")
+        preferredWidth: 600
         property string targetProfile: ""
         property var missing: []
         property bool afterImport: false
-        readonly property bool installable: missing.some(m => /marketplace\.visualstudio\.com|open-vsx\.org|^Zed extension/.test(m.source || ""))
+        property var chosen: ({})
+        readonly property var installable: ["kde-store", "vscode-marketplace", "open-vsx", "zed"]
+        function selection() {
+            var out = []
+            for (var i = 0; i < missing.length; i++) {
+                var d = missing[i]
+                if (d.index >= 0 && installable.indexOf(d.source) >= 0 && chosen[d.index])
+                    out.push(d.index)
+            }
+            return out
+        }
+        onMissingChanged: {
+            var c = {}
+            for (var i = 0; i < missing.length; i++)
+                c[missing[i].index] = missing[i].exact
+            chosen = c
+        }
         standardButtons: Kirigami.Dialog.Close
         customFooterActions: [
             Kirigami.Action {
-                text: qsTr("Install from stores")
+                text: qsTr("Install selected")
                 icon.name: "download"
-                enabled: missingDialog.installable && !profileController.busy
+                enabled: !profileController.busy && missingDialog.selection().length > 0
                 onTriggered: {
-                    profileController.applyProfile(missingDialog.targetProfile, false, true)
+                    profileController.installDependencies(missingDialog.targetProfile,
+                                                          missingDialog.selection(),
+                                                          reapplyBox.checked)
                     missingDialog.close()
                 }
             }
@@ -589,23 +611,61 @@ Kirigami.ApplicationWindow {
                 wrapMode: Text.WordWrap
                 color: ThemeColors.fgColor(root.glassMode)
                 text: missingDialog.afterImport
-                      ? qsTr("Theme \"%1\" was imported. This machine lacks these parts — applying it will skip them until they are installed:").arg(missingDialog.targetProfile)
-                      : qsTr("Theme \"%1\" was applied without these parts — install them and apply again:").arg(missingDialog.targetProfile)
+                      ? qsTr("Theme \"%1\" was imported. It needs these, which are not installed here — install them?").arg(missingDialog.targetProfile)
+                      : qsTr("Theme \"%1\" was applied without these parts — install them?").arg(missingDialog.targetProfile)
             }
             Repeater {
                 model: missingDialog.missing
-                delegate: Label {
+                delegate: RowLayout {
                     required property var modelData
                     Layout.fillWidth: true
-                    wrapMode: Text.WordWrap
-                    textFormat: Text.StyledText
-                    color: ThemeColors.fgColor(root.glassMode)
-                    readonly property string src: modelData.source || ""
-                    text: "• <b>" + modelData.name + "</b> (" + modelData.field + ")"
-                          + (src === "" ? "" : (/^https?:/.test(src)
-                              ? " — <a href=\"" + src + "\">" + src + "</a>" : " — " + src))
-                    onLinkActivated: (link) => Qt.openUrlExternally(link)
+                    readonly property bool canInstall: modelData.index >= 0
+                        && missingDialog.installable.indexOf(modelData.source) >= 0
+                    CheckBox {
+                        enabled: parent.canInstall
+                        checked: parent.canInstall && missingDialog.chosen[modelData.index] === true
+                        onToggled: {
+                            var c = Object.assign({}, missingDialog.chosen)
+                            c[modelData.index] = checked
+                            missingDialog.chosen = c
+                        }
+                    }
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 0
+                        Label {
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                            textFormat: Text.StyledText
+                            color: ThemeColors.fgColor(root.glassMode)
+                            text: "<b>" + (modelData.title || modelData.name) + "</b> · " + modelData.kind
+                                  + (modelData.url ? " — <a href=\"" + modelData.url + "\">" + qsTr("source") + "</a>" : "")
+                            onLinkActivated: (link) => Qt.openUrlExternally(link)
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            visible: !modelData.exact && parent.parent.canInstall
+                            wrapMode: Text.WordWrap
+                            font.pointSize: TypeScale.caption
+                            color: ThemeColors.dimColor(root.glassMode)
+                            text: qsTr("Found by searching for \"%1\" — open the source to check it is the right one").arg(modelData.name)
+                        }
+                        TextField {
+                            Layout.fillWidth: true
+                            visible: !!modelData.command
+                            readOnly: true
+                            selectByMouse: true
+                            text: modelData.command || ""
+                            ToolTip.text: qsTr("A system package: run this in a terminal")
+                            ToolTip.visible: hovered
+                        }
+                    }
                 }
+            }
+            CheckBox {
+                id: reapplyBox
+                checked: true
+                text: qsTr("Apply the theme again after installing")
             }
         }
     }
