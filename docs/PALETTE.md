@@ -73,6 +73,13 @@ theme-profile palette apply [--targets=kde,kitty,alacritty,kvantum] [--kvantum-b
 Перед правкой файлы тем копируются в `backups/palette-apply-<время>/`; права
 файла сохраняются. Если `kitty.conf`/`alacritty.toml` нет — цель пропускается.
 
+**Konsole** (цель `konsole`, по умолчанию включена, пропускается без Konsole):
+генерируется `~/.local/share/konsole/ThemeProfile<Имя>.colorscheme` (те же ANSI-цвета,
+что у kitty; прозрачность/размытие прошлой версии схемы сохраняются) и выбирается
+в профиле по умолчанию (`konsolerc DefaultProfile`); без профиля создаётся
+`Theme Profile.profile` (`Parent=FALLBACK/`) и становится профилем по умолчанию.
+Открытые вкладки сохраняют свою схему, новые получают новую.
+
 **Kvantum** (цель `kvantum`, включается явно — она переключает стиль виджетов на
 `kvantum`). Темы Kvantum — GPL-графика, поэтому в репозитории их нет: при
 применении берётся **установленная** базовая тема (по умолчанию `KvArcDark` для

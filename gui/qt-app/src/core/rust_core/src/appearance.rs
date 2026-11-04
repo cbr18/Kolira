@@ -60,6 +60,8 @@ pub enum Policy {
     Kv(&'static [&'static str]),
     /// Top-level members of a JSON-with-comments object; exact or `prefix*`.
     Jsonc(&'static [&'static str]),
+    /// `user_pref("name", value);` lines (Firefox user.js); exact or `prefix*`.
+    Prefs(&'static [&'static str]),
     KittyHost,
     AlacrittyHost,
     KwinRules,
@@ -105,6 +107,7 @@ const GTK_SETTINGS: &[Rule] = &[r(
 // Sizes (fonts, cursor) are never part of a theme: screens differ. Font
 // *families* travel; a size inside a font string is kept from the live file
 // (see `keep_live_size`).
+const KONSOLE_PROFILE: &[Rule] = &[r("Appearance", Keys::Only(&["ColorScheme", "Font"]))];
 const KCMINPUTRC: &[Rule] = &[r("Mouse", Keys::Only(&["cursorTheme"]))];
 const BTOP: &[&str] = &["color_theme", "theme_background", "truecolor", "rounded_corners", "graph_symbol*"];
 const VSCODE: &[&str] = &[
@@ -117,6 +120,15 @@ const VSCODE: &[&str] = &[
     // Appearance extensions: Custom UI Style, APC, VS Code Animations.
     "apc.*", "animations.*", "custom-ui-style.*", "vscode_custom_css.*",
 ];
+/// Firefox prefs that are look (user.js often also carries dozens of privacy
+/// / behaviour prefs — those stay the user's).
+const FIREFOX_PREFS: &[&str] = &[
+    "toolkit.legacyUserProfileCustomizations.stylesheets", "browser.theme.*",
+    "layout.css.prefers-color-scheme.content-override", "ui.systemUsesDarkTheme",
+    "browser.tabs.allow_transparent_browser", "extensions.activeThemeID",
+    "svg.context-properties.content.enabled", "browser.uidensity", "browser.compactmode.show",
+    "widget.gtk.rounded-bottom-corners.enabled", "widget.transparent-windows",
+];
 const ZED: &[&str] = &[
     "theme", "icon_theme", "ui_font_family", "ui_font_features", "ui_font_weight",
     "buffer_font_family", "buffer_font_features", "buffer_font_weight", "theme_overrides",
@@ -125,6 +137,12 @@ const ZED: &[&str] = &[
 
 /// The policy for a tracked file (`$HOME`-relative path).
 pub fn policy(rel: &str) -> Policy {
+    if rel.starts_with(".mozilla/firefox/") && rel.ends_with("/user.js") {
+        return Policy::Prefs(FIREFOX_PREFS);
+    }
+    if rel.starts_with(".local/share/konsole/") && rel.ends_with(".profile") {
+        return Policy::Ini(KONSOLE_PROFILE);
+    }
     match rel {
         ".config/kdeglobals" => Policy::Ini(KDEGLOBALS),
         ".config/kwinrc" => Policy::Ini(KWINRC),
@@ -265,7 +283,7 @@ pub fn ini_filter(text: &str, rules: &[Rule]) -> String {
 
 /// Font keys whose value holds a size: KDE `family,pointSize,pixelSize,…`
 /// and GTK `family[,] size`.
-const FONT_KEYS: &[&str] = &["font", "fixed", "smallestReadableFont", "toolBarFont", "menuFont", "activeFont", "gtk-font-name"];
+const FONT_KEYS: &[&str] = &["font", "fixed", "smallestReadableFont", "toolBarFont", "menuFont", "activeFont", "Font", "gtk-font-name"];
 
 /// The theme's font with the live size: the family is the look, the size is
 /// the user's (their screen). Without a live value the theme's stays.
@@ -415,6 +433,50 @@ pub fn kv_merge(theme: &str, live: &str, keys: &[&str]) -> String {
             out.push(line.to_string());
         }
     }
+    let mut text = out.join("\n");
+    text.push('\n');
+    text
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// user.js prefs (Firefox)
+// ─────────────────────────────────────────────────────────────────────────────
+
+fn pref_name(line: &str) -> Option<&str> {
+    let rest = line.trim_start().strip_prefix("user_pref(")?.trim_start();
+    let rest = rest.strip_prefix('"')?;
+    Some(&rest[..rest.find('"')?])
+}
+
+fn pref_allowed(keys: &[&str], line: &str) -> bool {
+    pref_name(line).is_some_and(|n| keys.iter().any(|p| pattern_matches(p, n)))
+}
+
+pub fn prefs_filter(text: &str, keys: &[&str]) -> String {
+    let mut out = text.lines().filter(|l| pref_allowed(keys, l)).collect::<Vec<_>>().join("\n");
+    out.push('\n');
+    out
+}
+
+/// Allowed prefs replaced in place, the theme's new ones appended, allowed
+/// ones the theme lacks removed; every other line kept.
+pub fn prefs_merge(theme: &str, live: &str, keys: &[&str]) -> String {
+    let theme_lines: Vec<&str> = theme.lines().filter(|l| pref_allowed(keys, l)).collect();
+    let mut used = vec![false; theme_lines.len()];
+    let mut out: Vec<String> = Vec::new();
+    for line in live.lines() {
+        if !pref_allowed(keys, line) {
+            out.push(line.to_string());
+            continue;
+        }
+        if let Some(i) = theme_lines.iter().position(|t| pref_name(t) == pref_name(line)) {
+            if !used[i] {
+                out.push(theme_lines[i].to_string());
+                used[i] = true;
+            }
+        }
+    }
+    out.extend(theme_lines.iter().zip(&used).filter(|(_, u)| !**u).map(|(l, _)| l.to_string()));
     let mut text = out.join("\n");
     text.push('\n');
     text
@@ -781,6 +843,7 @@ pub fn for_theme(rel: &str, text: &str) -> Option<String> {
         Policy::Ini(rules) => Some(ini_filter(text, rules)),
         Policy::Kv(keys) => Some(kv_filter(text, keys)),
         Policy::Jsonc(keys) => Some(jsonc_filter(text, keys)),
+        Policy::Prefs(keys) => Some(prefs_filter(text, keys)),
         Policy::KittyHost | Policy::AlacrittyHost => None,
     }
 }
@@ -794,6 +857,7 @@ pub fn applied(rel: &str, theme_text: &str, live_text: Option<&str>) -> Result<S
         Policy::KwinRules => kwinrules_merge(theme_text, live),
         Policy::Kv(keys) => kv_merge(theme_text, live, keys),
         Policy::Jsonc(keys) => jsonc_merge(theme_text, live, keys),
+        Policy::Prefs(keys) => prefs_merge(theme_text, live, keys),
         Policy::KittyHost => kitty_host(live),
         Policy::AlacrittyHost => alacritty_host(live)?,
     })
@@ -870,6 +934,19 @@ mod tests {
         assert!(look.contains("font_family") && !look.contains("font_size") && rest.contains("font_size 13"));
         let (look, _) = alacritty_split("[font]\nsize = 13\n[font.normal]\nfamily = \"Inter\"\n").unwrap();
         assert!(look.contains("Inter") && !look.contains("size"));
+    }
+
+    #[test]
+    fn firefox_user_js_keeps_privacy_prefs() {
+        let rel = ".mozilla/firefox/ab.default/user.js";
+        assert!(matches!(policy(rel), Policy::Prefs(_)));
+        let live = "// betterfox\nuser_pref(\"privacy.resistFingerprinting\", true);\nuser_pref(\"browser.theme.toolbar-theme\", 1);\nuser_pref(\"extensions.activeThemeID\", \"old@x\");\n";
+        let theme = "user_pref(\"browser.theme.toolbar-theme\", 0);\nuser_pref(\"toolkit.legacyUserProfileCustomizations.stylesheets\", true);\nuser_pref(\"privacy.resistFingerprinting\", false);\n";
+        let m = applied(rel, theme, Some(live)).unwrap();
+        assert!(m.contains("// betterfox") && m.contains("\"privacy.resistFingerprinting\", true"));
+        assert!(m.contains("\"browser.theme.toolbar-theme\", 0") && m.contains("legacyUserProfileCustomizations"));
+        assert!(!m.contains("old@x"), "a look pref the theme lacks is removed");
+        assert!(!for_theme(rel, live).unwrap().contains("privacy"));
     }
 
     #[test]

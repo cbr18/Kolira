@@ -81,7 +81,7 @@ def test_import_tracked_apps() -> None:
     """Tracked apps registry must import and contain 20 definitions."""
     from core.tracked_apps import TRACKED_APPS, detect_all_apps
 
-    assert len(TRACKED_APPS) == 22, f"Expected 22 tracked apps, got {len(TRACKED_APPS)}"
+    assert len(TRACKED_APPS) == 24, f"Expected 24 tracked apps, got {len(TRACKED_APPS)}"
     detect_all_apps()  # must not raise
 
 

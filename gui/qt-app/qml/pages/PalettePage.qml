@@ -47,6 +47,7 @@ Kirigami.ScrollablePage {
         if (kdeTarget.checked) t.push("kde")
         if (kittyTarget.checked) t.push("kitty")
         if (alacrittyTarget.checked) t.push("alacritty")
+        if (konsoleTarget.checked) t.push("konsole")
         if (kvantumTarget.checked) t.push("kvantum")
         return t
     }
@@ -334,6 +335,7 @@ Kirigami.ScrollablePage {
                     CheckBox { id: kdeTarget; text: qsTr("KDE colour scheme"); checked: true }
                     CheckBox { id: kittyTarget; text: qsTr("kitty"); checked: true }
                     CheckBox { id: alacrittyTarget; text: qsTr("Alacritty"); checked: true }
+                    CheckBox { id: konsoleTarget; text: qsTr("Konsole"); checked: true }
                     CheckBox {
                         id: kvantumTarget
                         text: qsTr("Kvantum (switches the widget style)")

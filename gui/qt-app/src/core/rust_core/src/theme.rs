@@ -426,6 +426,27 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
         }
     }
 
+    // Konsole colour schemes: the profile may name one the receiver lacks.
+    if let Ok(entries) = fs::read_dir(dir.join(".local/share/konsole")) {
+        let mut schemes: Vec<String> = entries
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .filter(|n| n.ends_with(".colorscheme"))
+            .collect();
+        schemes.sort();
+        for file in schemes {
+            let name = file.trim_end_matches(".colorscheme").to_string();
+            let generated = name.starts_with("ThemeProfile");
+            package.assets.push(Asset {
+                kind: "konsole-scheme".into(),
+                name,
+                path: format!(".local/share/konsole/{file}"),
+                origin: if generated { "generated" } else { "user" }.into(),
+                redistributable: generated,
+            });
+        }
+    }
+
     if let Ok(p) = palette::load(&snapshot.resolve(palette::LIVE_PALETTE_REL)) {
         if values.get("color_scheme").map(field::value_str).as_deref() == Some(palette::kde_scheme_id(&p).as_str()) {
             package.palette = Some(p);

@@ -49,6 +49,55 @@ pub fn zen_config_paths() -> Vec<String> {
     ]
 }
 
+/// The default Firefox profile folder inside `~/.mozilla/firefox`:
+/// `installs.ini` (the profile this Firefox install uses), else the
+/// `profiles.ini` entry marked `Default=1`, else the first `*.default*`.
+pub fn firefox_profile_dir() -> Option<String> {
+    let root = crate::paths::home_dir().join(".mozilla/firefox");
+    let value = |text: &str, key: &str| -> Option<String> {
+        text.lines().find_map(|l| l.strip_prefix(key).map(|v| v.trim().to_string())).filter(|v| !v.is_empty())
+    };
+    if let Ok(text) = std::fs::read_to_string(root.join("installs.ini")) {
+        if let Some(dir) = value(&text, "Default=") {
+            return Some(dir);
+        }
+    }
+    if let Ok(text) = std::fs::read_to_string(root.join("profiles.ini")) {
+        let mut path = None;
+        for line in text.lines() {
+            if line.starts_with('[') {
+                path = None;
+            } else if let Some(p) = line.strip_prefix("Path=") {
+                path = Some(p.trim().to_string());
+            } else if line.trim() == "Default=1" {
+                if let Some(p) = path.clone() {
+                    return Some(p);
+                }
+            }
+        }
+    }
+    let mut dirs: Vec<String> = std::fs::read_dir(&root)
+        .ok()?
+        .flatten()
+        .map(|e| e.file_name().to_string_lossy().to_string())
+        .filter(|n| n.contains(".default"))
+        .collect();
+    dirs.sort();
+    dirs.into_iter().next()
+}
+
+/// Theme files of the default Firefox profile (user.js keeps only the
+/// appearance prefs — appearance.rs).
+pub fn firefox_config_paths() -> Vec<String> {
+    let Some(dir) = firefox_profile_dir().filter(|d| !d.contains("..") && !d.starts_with('/')) else {
+        return Vec::new();
+    };
+    ["user.js", "chrome/userChrome.css", "chrome/userContent.css"]
+        .iter()
+        .map(|f| format!(".mozilla/firefox/{dir}/{f}"))
+        .collect()
+}
+
 /// Tracked application definition
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrackedAppDef {
@@ -339,6 +388,31 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             description: "Firefox-based browser with user.js + userChrome.css theming".to_string(),
             icon: "web-browser".to_string(),
             docs_url: "https://zen-browser.app/".to_string(),
+        },
+        TrackedAppDef {
+            id: "konsole".to_string(),
+            name: "Konsole".to_string(),
+            category: "Terminals".to_string(),
+            // The default profile's [Appearance] + its colour scheme (konsole.rs).
+            config_paths: crate::konsole::config_paths(),
+            detect_command: Some("konsole".to_string()),
+            flatpak_id: Some("org.kde.konsole".to_string()),
+            supports_live_reload: false,
+            description: "Colour scheme (opacity, blur) and the profile's scheme/font family".to_string(),
+            icon: "utilities-terminal".to_string(),
+            docs_url: "https://docs.kde.org/stable5/en/konsole/konsole/".to_string(),
+        },
+        TrackedAppDef {
+            id: "firefox".to_string(),
+            name: "Firefox".to_string(),
+            category: "Browser".to_string(),
+            config_paths: firefox_config_paths(),
+            detect_command: Some("firefox".to_string()),
+            flatpak_id: Some("org.mozilla.firefox".to_string()),
+            supports_live_reload: false,
+            description: "userChrome.css / userContent.css and the appearance prefs of user.js".to_string(),
+            icon: "firefox".to_string(),
+            docs_url: "https://www.userchrome.org/".to_string(),
         },
         TrackedAppDef {
             id: "obsidian".to_string(),

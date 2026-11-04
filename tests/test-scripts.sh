@@ -1619,6 +1619,72 @@ else
   case "$out" in *"network is disabled"*) ok "installing respects the offline switch" ;; *) fail "unexpected install output: $out" ;; esac
 fi
 
+# --- 19. Konsole: scheme + profile appearance, user's behaviour kept ----------
+echo "=== Section 19: Konsole ==="
+KO_A="$TMP_ROOT/konsole-a"; KO_B="$TMP_ROOT/konsole-b"
+mkdir -p "$KO_A/.config" "$KO_A/.local/share/konsole" "$KO_B/.config" "$KO_B/.local/share/konsole"
+printf '[Desktop Entry]\nDefaultProfile=Mine.profile\n' >"$KO_A/.config/konsolerc"
+printf '[Appearance]\nColorScheme=Night\nFont=Inter,11,-1,5,50,0,0,0,0,0\n\n[General]\nCommand=/bin/zsh\nName=Mine\n\n[Scrolling]\nHistorySize=9999\n' >"$KO_A/.local/share/konsole/Mine.profile"
+printf '[Background]\nColor=1,2,3\n\n[General]\nDescription=Night\nOpacity=0.8\n' >"$KO_A/.local/share/konsole/Night.colorscheme"
+ko_a() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$KO_A" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+ko_b() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$KO_B" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+ko_a save night >/dev/null 2>&1
+ko_store="$KO_A/.config/theme-profile/profiles/night/.local/share/konsole"
+if grep -q "ColorScheme=Night" "$ko_store/Mine.profile" && ! grep -q "Command\|HistorySize" "$ko_store/Mine.profile" &&
+  grep -q "Opacity=0.8" "$ko_store/Night.colorscheme"; then
+  ok "save stores the Konsole scheme and only the profile's [Appearance]"
+else
+  fail "Konsole save wrong: $(cat "$ko_store/Mine.profile" 2>&1)"
+fi
+ko_a export night --out="$TMP_ROOT/night.zip" >/dev/null 2>&1
+# Receiver: own profile with another name, own command and font size.
+printf '[Desktop Entry]\nDefaultProfile=Work.profile\n' >"$KO_B/.config/konsolerc"
+printf '[Appearance]\nColorScheme=Breeze\nFont=Hack,14,-1,5,50,0,0,0,0,0\n\n[General]\nCommand=/usr/bin/fish\nName=Work\n' >"$KO_B/.local/share/konsole/Work.profile"
+ko_b import "$TMP_ROOT/night.zip" --apply >/dev/null 2>&1
+ko_work="$KO_B/.local/share/konsole/Work.profile"
+if grep -q "ColorScheme=Night" "$ko_work" && grep -q "Font=Inter,14," "$ko_work" && grep -q "Command=/usr/bin/fish" "$ko_work" &&
+  [ -f "$KO_B/.local/share/konsole/Night.colorscheme" ]; then
+  ok "applying puts the scheme into the receiver's own profile, keeping their command and font size"
+else
+  fail "Konsole apply wrong: $(cat "$ko_work") // $(ls "$KO_B/.local/share/konsole")"
+fi
+# A receiver without any profile gets a "Theme Profile" made default.
+KO_C="$TMP_ROOT/konsole-c"; mkdir -p "$KO_C"
+env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$KO_C" KTM_THEME_NO_APPLY=1 PATH="$SAFE_BIN:/usr/bin:/bin" "$CLI_DIR/theme-profile" import "$TMP_ROOT/night.zip" --apply >/dev/null 2>&1
+if command -v konsole >/dev/null 2>&1; then
+  if grep -q "ColorScheme=Night" "$KO_C/.local/share/konsole/Theme Profile.profile" 2>/dev/null &&
+    grep -q "Name=Theme Profile" "$KO_C/.local/share/konsole/Theme Profile.profile" &&
+    grep -q "DefaultProfile=Theme Profile.profile" "$KO_C/.config/konsolerc"; then
+    ok "without a Konsole profile a \"Theme Profile\" is created and made default"
+  else
+    fail "Theme Profile not created: $(ls -R "$KO_C/.local/share/konsole" 2>&1) // $(cat "$KO_C/.config/konsolerc" 2>&1)"
+  fi
+else
+  ok "Konsole not installed here: profile creation skipped"
+fi
+
+# --- 20. Firefox: userChrome + look prefs, profile folder differs ------------
+echo "=== Section 20: Firefox ==="
+FF_A="$TMP_ROOT/ff-a"; FF_B="$TMP_ROOT/ff-b"
+mkdir -p "$FF_A/.mozilla/firefox/aaa.default-release/chrome" "$FF_B/.mozilla/firefox/zzz.default-release"
+printf '[Install1]\nDefault=aaa.default-release\n' >"$FF_A/.mozilla/firefox/installs.ini"
+printf '[Install9]\nDefault=zzz.default-release\n' >"$FF_B/.mozilla/firefox/installs.ini"
+printf 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);\nuser_pref("privacy.resistFingerprinting", true);\n' >"$FF_A/.mozilla/firefox/aaa.default-release/user.js"
+printf '#nav-bar { background: #282a36; }\n' >"$FF_A/.mozilla/firefox/aaa.default-release/chrome/userChrome.css"
+printf 'user_pref("privacy.resistFingerprinting", false);\nuser_pref("browser.startup.page", 3);\n' >"$FF_B/.mozilla/firefox/zzz.default-release/user.js"
+ff() { local h="$1"; shift; env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$h" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+ff "$FF_A" save fox >/dev/null 2>&1
+ff "$FF_A" export fox --out="$TMP_ROOT/fox.zip" >/dev/null 2>&1
+ff "$FF_B" import "$TMP_ROOT/fox.zip" --apply >/dev/null 2>&1
+ffb="$FF_B/.mozilla/firefox/zzz.default-release"
+if grep -q "#282a36" "$ffb/chrome/userChrome.css" 2>/dev/null && grep -q "legacyUserProfileCustomizations.stylesheets\", true" "$ffb/user.js" &&
+  grep -q "resistFingerprinting\", false" "$ffb/user.js" && grep -q "browser.startup.page" "$ffb/user.js" &&
+  [ ! -e "$FF_B/.mozilla/firefox/aaa.default-release" ]; then
+  ok "Firefox look lands in the receiver's own profile; their privacy/startup prefs stay"
+else
+  fail "Firefox apply wrong: $(find "$FF_B/.mozilla/firefox" | head -20) // $(cat "$ffb/user.js" 2>&1)"
+fi
+
 # --- Summary ------------------------------------------------------------------
 echo ""
 echo "═══════════════════════════════════════"

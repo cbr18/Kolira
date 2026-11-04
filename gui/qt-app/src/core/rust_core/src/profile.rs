@@ -894,6 +894,41 @@ fn apply_live_hooks(source: &Path) {
     start_plasma_shell();
 }
 
+/// Directories whose profile folder has a random per-install name.
+const PROFILE_ROOTS: &[&str] = &[".zen", ".mozilla/firefox"];
+
+/// The theme's copy of tracked file `rel` (a path on *this* machine). A
+/// browser profile folder is named randomly per install (`gp0y8wrv.Default
+/// (release)`), so a theme made elsewhere stores the same file under its
+/// author's folder: fall back to the theme's profile folder holding it.
+pub(crate) fn theme_file(theme: &Path, rel: &str) -> PathBuf {
+    let direct = theme.join(rel);
+    if direct.exists() {
+        return direct;
+    }
+    // Konsole: the receiver's default profile ← the theme's profile.
+    if rel.starts_with(".local/share/konsole/") && rel.ends_with(".profile") {
+        if let Ok(entries) = fs::read_dir(theme.join(".local/share/konsole")) {
+            let mut profiles: Vec<PathBuf> = entries.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "profile")).collect();
+            profiles.sort();
+            if let Some(p) = profiles.into_iter().next() {
+                return p;
+            }
+        }
+    }
+    for root in PROFILE_ROOTS {
+        let Some(rest) = rel.strip_prefix(&format!("{root}/")) else { continue };
+        let Some((_, inner)) = rest.split_once('/') else { continue };
+        let Ok(entries) = fs::read_dir(theme.join(root)) else { continue };
+        let mut dirs: Vec<PathBuf> = entries.flatten().map(|e| e.path()).filter(|p| p.join(inner).exists()).collect();
+        dirs.sort();
+        if let Some(dir) = dirs.into_iter().next() {
+            return dir.join(inner);
+        }
+    }
+    direct
+}
+
 /// Desktop-icon state in plasma appletsrc: icon positions per resolution and
 /// which screen each desktop item sits on. Plasma rewrites these itself.
 fn is_desktop_icon_key(group: &str, key: &str) -> bool {
@@ -967,7 +1002,7 @@ fn restore_from_profile(profile: &str, rel_paths: &[String]) -> Result<()> {
     }
 
     for rel in rel_paths {
-        let src = source.join(rel);
+        let src = theme_file(&source, rel);
         let dst = live_path(rel);
         match appearance::policy(rel) {
             appearance::Policy::KittyHost | appearance::Policy::AlacrittyHost => {
@@ -1003,6 +1038,9 @@ fn restore_from_profile(profile: &str, rel_paths: &[String]) -> Result<()> {
                     Some(theme_text) => {
                         let live = fs::read_to_string(&dst).ok();
                         write_text(&dst, &appearance::applied(rel, &theme_text, live.as_deref())?)?;
+                        if rel.starts_with(".local/share/konsole/") && rel.ends_with(".profile") {
+                            crate::konsole::finish_profile(rel)?;
+                        }
                     }
                     None => copy_tree(&src, &dst).with_context(|| {
                         format!("Failed to restore {} -> {}", src.display(), dst.display())
@@ -1462,7 +1500,19 @@ pub fn diff_profiles(profile_a: &str, profile_b: &str) -> Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{keep_desktop_icons, validate_reload_command};
+    use super::{keep_desktop_icons, theme_file, validate_reload_command};
+
+    #[test]
+    fn browser_profiles_map_across_machines() {
+        let t = tempfile::tempdir().unwrap();
+        let theme = t.path();
+        std::fs::create_dir_all(theme.join(".zen/abc.Default (release)/chrome")).unwrap();
+        std::fs::write(theme.join(".zen/abc.Default (release)/user.js"), "x").unwrap();
+        // The receiver's profile folder is named differently.
+        assert_eq!(theme_file(theme, ".zen/xyz.Default (release)/user.js"), theme.join(".zen/abc.Default (release)/user.js"));
+        assert_eq!(theme_file(theme, ".zen/xyz.Default (release)/chrome/none.css"), theme.join(".zen/xyz.Default (release)/chrome/none.css"));
+        assert_eq!(theme_file(theme, ".config/kdeglobals"), theme.join(".config/kdeglobals"));
+    }
 
     #[test]
     fn theme_apply_keeps_live_desktop_icons() {

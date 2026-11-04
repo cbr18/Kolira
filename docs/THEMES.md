@@ -33,8 +33,15 @@ takes the family from the theme and keeps the live size.
 | VS Code / Cursor `settings.json` | `workbench.colorTheme`/`iconTheme`/`productIconTheme`/`colorCustomizations`, `editor.tokenColorCustomizations`, editor/terminal font family, weight, ligatures, line highlight, APC / Animations / Custom UI Style keys | font sizes, line height, everything else (SSH hosts, AI, wrapping, …) |
 | Zed `settings.json` | `theme`, `icon_theme`, `ui_font_family/features/weight`, `buffer_font_family/features/weight`, `theme_overrides` | font sizes, agent/models, panels, keymap, sessions, … |
 | kitty | `kitty/theme-profile.conf` (font faces, colours, cursor, opacity/blur, padding, borders, tab bar) | `kitty.conf` — keeps `font_size`/`modify_font` and gains `include theme-profile.conf` (last line) |
+| Konsole | the default profile's `[Appearance]` (`ColorScheme`, font family — live size kept) + its `.colorscheme` (whole: colours, opacity, blur; travels as an asset) | the profile's command, scrolling, keys…; without a profile a `Theme Profile` (`Parent=FALLBACK/`) is created and made default |
+| Firefox (default profile from `installs.ini`/`profiles.ini`) | `chrome/userChrome.css`, `chrome/userContent.css` (whole); `user.js` only look prefs (`browser.theme.*`, `toolkit.legacyUserProfileCustomizations.stylesheets`, `extensions.activeThemeID`, …) | privacy/behaviour prefs in `user.js` |
 | Alacritty | `alacritty/theme-profile.toml` (`[colors.*]`, `[font]` faces, window opacity/blur/padding/decorations, cursor style) | `[font] size`/offsets; `alacritty.toml` gains `general.import` |
 | everything else (Klassy, Breeze, GTK CSS, wofi CSS, Zen, Obsidian appearance, Trolltech palette, Kvantum, colour schemes, L&F, fastfetch, panels file) | whole file | — |
+
+Browser profile folders have a random name per install (`gp0y8wrv.Default
+(release)`): a theme made elsewhere stores its files under the author's
+folder, and apply maps them to the receiver's default profile (Zen, Firefox);
+the same for Konsole's default profile.
 
 Mixed files are **merged** on apply: the theme's allowed keys are written,
 allowed keys the theme lacks are removed (e.g. a fixed accent the theme does
@@ -158,7 +165,9 @@ and written directly if the tool did not store it
 Detected when a theme is saved (`rust_core/src/deps.rs`) for every asset it
 references but does not carry: icons, cursors, GTK, Kvantum, Plasma style,
 Global Theme, colour scheme, window decoration (plugin or Aurorae), panel
-widgets the user installed, editor themes. KDE's own assets (Breeze, Oxygen,
+widgets the user installed, editor themes, the Firefox theme add-on
+(`amo`: link to addons.mozilla.org — add-ons are installed from inside
+Firefox). KDE's own assets (Breeze, Oxygen,
 `org.kde.*`) are never dependencies. Sources, in order:
 
 1. **KDE Store, exact** — KDE's KNewStuff registries

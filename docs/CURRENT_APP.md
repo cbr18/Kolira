@@ -132,6 +132,8 @@ Obsidian…), плюс `theme.json` (описание, значения для G
 экрана, рабочие столы, тайлинг, клавиши, SSH-хосты и т.п. не трогаются; таблица
 — `docs/THEMES.md`, код — `rust_core/src/appearance.rs`.
 
+- Konsole — `[Appearance]` профиля по умолчанию + его `.colorscheme` (`rust_core/src/konsole.rs`)
+
 ### Launchers/Menu (опционально)
 - `.config/wofi/style.css`, `wallpaper.css`
 

@@ -268,6 +268,31 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         docs_url="https://zen-browser.app/",
     ),
 
+    TrackedAppDef(
+        id="konsole",
+        name="Konsole",
+        category="Terminals",
+        # Fallback; live paths come from konsole_config_paths() (default profile + scheme).
+        config_paths=(".local/share/konsole/Theme Profile.profile",),
+        detect_command="konsole",
+        flatpak_id="org.kde.konsole",
+        description="Colour scheme (opacity, blur) and the profile's scheme/font family",
+        icon="utilities-terminal",
+        docs_url="https://docs.kde.org/stable5/en/konsole/konsole/",
+    ),
+    TrackedAppDef(
+        id="firefox",
+        name="Firefox",
+        category="Browser",
+        # Fallback; live paths come from firefox_config_paths() (default profile).
+        config_paths=(".mozilla/firefox/<default-profile>/chrome/userChrome.css",),
+        detect_command="firefox",
+        flatpak_id="org.mozilla.firefox",
+        description="userChrome.css / userContent.css and the appearance prefs of user.js",
+        icon="firefox",
+        docs_url="https://www.userchrome.org/",
+    ),
+
     # === Notes ===
     TrackedAppDef(
         id="obsidian",
@@ -463,10 +488,82 @@ def zen_config_paths() -> tuple[str, ...]:
     )
 
 
+def firefox_profile_dir() -> str:
+    """Default Firefox profile folder (mirrors Rust ``firefox_profile_dir``):
+    installs.ini → profiles.ini ``Default=1`` → first ``*.default*``."""
+    import os
+
+    root = os.path.join(os.path.expanduser("~"), ".mozilla", "firefox")
+
+    def read(name: str) -> list[str]:
+        try:
+            with open(os.path.join(root, name), encoding="utf-8") as fh:
+                return fh.read().splitlines()
+        except OSError:
+            return []
+
+    for line in read("installs.ini"):
+        if line.startswith("Default=") and line[8:].strip():
+            return line[8:].strip()
+    path = None
+    for line in read("profiles.ini"):
+        if line.startswith("["):
+            path = None
+        elif line.startswith("Path="):
+            path = line[5:].strip()
+        elif line.strip() == "Default=1" and path:
+            return path
+    try:
+        names = sorted(e.name for e in os.scandir(root) if ".default" in e.name)
+    except OSError:
+        names = []
+    return names[0] if names else ""
+
+
+def firefox_config_paths() -> tuple[str, ...]:
+    """Theme files of the default Firefox profile."""
+    profile = firefox_profile_dir()
+    if not profile or ".." in profile or profile.startswith("/"):
+        return ()
+    base = f".mozilla/firefox/{profile}"
+    return (f"{base}/user.js", f"{base}/chrome/userChrome.css", f"{base}/chrome/userContent.css")
+
+
+def konsole_config_paths() -> tuple[str, ...]:
+    """Default Konsole profile (or the "Theme Profile" a theme would create)
+    and its user colour scheme — mirrors Rust ``konsole::config_paths``."""
+    import configparser
+    import os
+
+    home = os.path.expanduser("~")
+    rc = configparser.ConfigParser(interpolation=None, strict=False)
+    try:
+        rc.read(os.path.join(home, ".config", "konsolerc"), encoding="utf-8")
+        profile = rc.get("Desktop Entry", "DefaultProfile", fallback="")
+    except (configparser.Error, OSError):
+        profile = ""
+    if not profile.endswith(".profile") or "/" in profile:
+        profile = "Theme Profile.profile"
+    paths = [f".local/share/konsole/{profile}"]
+    prof = configparser.ConfigParser(interpolation=None, strict=False)
+    try:
+        prof.read(os.path.join(home, ".local/share/konsole", profile), encoding="utf-8")
+        scheme = prof.get("Appearance", "ColorScheme", fallback="")
+    except (configparser.Error, OSError):
+        scheme = ""
+    if scheme and "/" not in scheme and os.path.isfile(os.path.join(home, ".local/share/konsole", f"{scheme}.colorscheme")):
+        paths.append(f".local/share/konsole/{scheme}.colorscheme")
+    return tuple(paths)
+
+
 def config_paths_for(app: TrackedAppDef) -> tuple[str, ...]:
     """Актуальные пути приложения (zen — авто-детект, остальные — static)."""
     if app.id == "zen":
         return zen_config_paths()
+    if app.id == "firefox":
+        return firefox_config_paths()
+    if app.id == "konsole":
+        return konsole_config_paths()
     return app.config_paths
 
 

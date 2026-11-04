@@ -143,6 +143,9 @@ fn decoration_plugin(library: &str) -> Option<PathBuf> {
 pub fn installed(d: &Dependency) -> bool {
     match d.kind.as_str() {
         "decoration" => decoration_plugin(&d.name).is_some(),
+        "firefox-theme" => crate::tracked_apps::firefox_profile_dir().is_some_and(|dir| {
+            home_dir().join(".mozilla/firefox").join(dir).join("extensions").join(format!("{}.xpi", d.name)).exists()
+        }),
         "vscode" | "cursor" | "zed" => {
             let field = match d.kind.as_str() {
                 "vscode" => "vscode_theme",
@@ -393,6 +396,27 @@ pub fn detect(dir: &Path, values: &std::collections::BTreeMap<String, Value>, so
             }
         }
     }
+    // Firefox theme add-on (installed from inside Firefox — link only).
+    for user_js in crate::tracked_apps::firefox_config_paths().iter().filter(|p| p.ends_with("/user.js")) {
+        let theme_copy = crate::profile::theme_file(dir, user_js);
+        let Ok(text) = fs::read_to_string(theme_copy) else { continue };
+        let Some(guid) = text.lines().find_map(|l| {
+            let rest = l.trim().strip_prefix("user_pref(\"extensions.activeThemeID\",")?;
+            Some(rest.trim().trim_end_matches(");").trim().trim_matches('"').to_string())
+        }) else { continue };
+        let builtin = guid.ends_with("@mozilla.org") || guid.is_empty();
+        if !builtin && !guid.contains('/') {
+            add(Dependency {
+                kind: "firefox-theme".into(),
+                url: format!("https://addons.mozilla.org/firefox/addon/{guid}/"),
+                name: guid.clone(),
+                source: "amo".into(),
+                id: guid,
+                exact: true,
+                ..Default::default()
+            });
+        }
+    }
     // Editor themes from their official stores.
     for (field, kind) in [("vscode_theme", "vscode"), ("cursor_ide_theme", "cursor"), ("zed_dark", "zed"), ("zed_light", "zed")] {
         if let (Some(src), Some(name)) = (sources.get(field), values.get(field).map(crate::field::value_str)) {
@@ -638,6 +662,7 @@ pub fn install(d: &Dependency) -> Result<String> {
         "vscode-marketplace" | "open-vsx" => crate::stores::install(if d.kind == "cursor" { "cursor" } else { "vscode" }, &d.id).map(|r| format!("{r:?}")),
         "zed" => crate::stores::install("zed", &d.id).map(|r| format!("{r:?}")),
         "package" | "aur" => bail!("install it with: {}", package_command(d).unwrap_or_default()),
+        "amo" => bail!("install it from inside Firefox: {}", d.url),
         _ => bail!("no known source — look at {}", d.url),
     }?;
     if !installed(d) {

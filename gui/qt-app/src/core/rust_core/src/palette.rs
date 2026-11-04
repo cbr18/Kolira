@@ -548,11 +548,11 @@ pub fn alacritty_with_palette(existing: &str, p: &Palette) -> Result<String> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Targets a palette can be applied to.
-pub const TARGETS: [&str; 4] = ["kde", "kitty", "alacritty", "kvantum"];
+pub const TARGETS: [&str; 5] = ["kde", "kitty", "alacritty", "konsole", "kvantum"];
 
 /// Targets used when none are given. `kvantum` is opt-in: it switches the Qt
 /// widget style, which the user may have chosen deliberately (e.g. Breeze).
-pub const DEFAULT_TARGETS: [&str; 3] = ["kde", "kitty", "alacritty"];
+pub const DEFAULT_TARGETS: [&str; 4] = ["kde", "kitty", "alacritty", "konsole"];
 
 /// Extra knobs for [`apply`].
 #[derive(Debug, Default, Clone)]
@@ -719,6 +719,15 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
             report.push(format!("alacritty: {}", path.display()));
         } else {
             report.push(format!("alacritty: skipped, {} not found", host.display()));
+        }
+    }
+
+    if wants("konsole") {
+        if which::which("konsole").is_ok() || crate::paths::data_home().join("konsole").exists() {
+            let scheme = crate::konsole::apply_palette(p)?;
+            report.push(format!("konsole: {} (new tabs/windows; open ones keep their scheme)", scheme.display()));
+        } else {
+            report.push("konsole: skipped, not installed".to_string());
         }
     }
 
