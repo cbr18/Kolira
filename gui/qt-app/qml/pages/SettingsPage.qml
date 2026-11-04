@@ -157,7 +157,7 @@ Kirigami.ScrollablePage {
                         TextField {
                             Layout.fillWidth: true
                             text: settingsController.wallpaperDirectory
-                            placeholderText: "~/Изображения/Wallpaper"
+                            placeholderText: qsTr("Automatic: XDG Pictures/Wallpaper")
                             onEditingFinished: settingsController.wallpaperDirectory = text
                         }
                         Button {
@@ -271,6 +271,19 @@ Kirigami.ScrollablePage {
                             target: autoApplySwitch
                             property: "checked"
                             value: settingsController.autoApplyOnStartup
+                            restoreMode: Binding.RestoreBindingOrValue
+                        }
+                    }
+
+                    Switch {
+                        id: networkSwitch
+                        Kirigami.FormData.label: qsTr("Online features")
+                        text: qsTr("Palette catalogue and editor theme stores")
+                        onToggled: settingsController.networkEnabled = checked
+                        Binding {
+                            target: networkSwitch
+                            property: "checked"
+                            value: settingsController.networkEnabled
                             restoreMode: Binding.RestoreBindingOrValue
                         }
                     }

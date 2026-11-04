@@ -73,6 +73,10 @@ Kirigami.ApplicationWindow {
         pageStack.layers.push(Qt.resolvedUrl("pages/ThemeApplicationsPage.qml"))
     }
 
+    function openPalettePage() {
+        pageStack.layers.push(Qt.resolvedUrl("pages/PalettePage.qml"))
+    }
+
     // Applying a profile can restart Plasma components, so honour the
     // "Confirm before applying" preference instead of hard-wiring a click to
     // the controller.  The preview dialog already acts as a confirmation.

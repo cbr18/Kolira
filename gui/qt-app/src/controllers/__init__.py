@@ -21,6 +21,7 @@ from core.protocol import (
 from core import CoreFactory
 from core.paths import active_profile_file, validate_profile_name
 from .theme_bundle import ThemeBundleController
+from .palette import PaletteController
 from .theme_inspector import ThemeInspectorController
 
 
@@ -809,6 +810,19 @@ class SettingsController(QObject):
             )
             self.settingsChanged.emit()
 
+    @Property(bool, notify=settingsChanged)
+    def networkEnabled(self) -> bool:
+        """Online features: palette gallery catalogue, editor theme stores."""
+        return self._settings.network_enabled
+
+    @networkEnabled.setter
+    def networkEnabled(self, value: bool) -> None:
+        if self._settings.network_enabled != value:
+            self._settings = AppSettings(
+                **{**self._settings.to_dict(), "network_enabled": bool(value)}
+            )
+            self.settingsChanged.emit()
+
     @Property(str, notify=settingsChanged)
     def coreBackend(self) -> str:
         """Ядро, которое будет использовано при следующем запуске."""
@@ -986,6 +1000,7 @@ class MainController(QObject):
         self._settings = SettingsController(self)
         self._theme = ThemeInspectorController(self)
         self._bundle = ThemeBundleController(self)
+        self._palette = PaletteController(self)
         self._initialized = False
 
         # The settings controller's "available components" cache must read the
@@ -1056,5 +1071,6 @@ def register_controllers(engine) -> None:
     engine.rootContext().setContextProperty("settingsController", main_ctrl._settings)
     engine.rootContext().setContextProperty("themeInspector", main_ctrl._theme)
     engine.rootContext().setContextProperty("themeBundle", main_ctrl._bundle)
+    engine.rootContext().setContextProperty("paletteController", main_ctrl._palette)
     
     return main_ctrl

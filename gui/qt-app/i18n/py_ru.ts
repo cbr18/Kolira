@@ -98,9 +98,16 @@
         <translation>Возвращено файлов: %s</translation>
     </message>
 </context><context>
+    <name>PaletteController</name>
+    <message>
+        <location filename="../src/controllers/palette.py" line="75" />
+        <source>Another operation is still running</source>
+        <translation>Другая операция ещё выполняется</translation>
+    </message>
+</context><context>
     <name>ProfileController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="220" />
+        <location filename="../src/controllers/__init__.py" line="221" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>
@@ -433,7 +440,7 @@
 </context><context>
     <name>WallpaperController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="432" />
+        <location filename="../src/controllers/__init__.py" line="433" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>

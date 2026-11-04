@@ -1,6 +1,6 @@
 # Конструктор тем: палитра, генераторы, магазины, база для новой темы
 
-Status: IN PROGRESS — P0 ✅, обои ✅, P1: палитра + генераторы KDE/kitty/Alacritty/Kvantum + галерея + из обоев + детект/магазины ✅
+Status: IN PROGRESS — P0 ✅, обои ✅, P1: палитра + генераторы KDE/kitty/Alacritty/Kvantum + галерея + из обоев + детект/магазины + страница «Палитра» ✅
 
 Plan: [2026_11_04_09_00_theme-constructor-palette.md](../plans/2026_11_04_09_00_theme-constructor-palette.md)
 
@@ -118,4 +118,10 @@ Kvantum не перекрашивается, тем для редакторов 
   `themes/*.json`), VS Code/Cursor (Open VSX + `--install-extension`), CLI
   `apps store-search|store-install`, GUI «Найти в магазине…». Зависимости
   `flate2`, `tar`.
-- Дальше в P1: GUI-страница «Палитра» (с ImageColors), MCP.
+- 2026-11-04 — **P1, часть 7**: страница «Палитра» в GUI (`PalettePage.qml`,
+  `PaletteController`, `palette_core.py` поверх CLI): образцы и правка цветов,
+  галерея с онлайн-каталогом, «Из обоев» через `Kirigami.ImageColors` (с
+  ожиданием непустой палитры и fallback на Rust), «Из обоев (подробно)»,
+  импорт файла, применение по целям; плитка на обзоре темы; настройка
+  «Сетевые функции»; `palette show --json` отдаёт `warnings` и `kdeScheme`.
+- Дальше в P1: инструменты MCP.

@@ -18,6 +18,9 @@ Native KDE Plasma application for managing theme profiles and wallpapers.
   settings, Kvantum, GTK and app themes; installed themes are picked from
   lists, edits are staged, and profiles store a v2 `theme-bundle.json` beside
   the legacy snapshot
+- **Palette page** — Theme → Palette: base16 + accent, gallery, from wallpaper
+  (`Kirigami.ImageColors`) or k-means, colour editing, apply to KDE /
+  terminals / Kvantum (`controllers/palette.py` → Rust CLI)
 - **Application detection** — by executable/Flatpak, not by a leftover config;
   **Find in store…** for Zed / VS Code / Cursor (search + install via the Rust
   CLI, off the GUI thread: `ThemeBundleController.storeSearch/storeInstall`)
@@ -228,7 +231,7 @@ mypy src/
 # QML syntax/type lint (PySide6 6.12 ships its own qmllint)
 .venv/bin/pyside6-qmllint -I qml -I /usr/lib/qt6/qml qml/Main.qml qml/pages/SettingsPage.qml qml/Components/*.qml
 
-# Tests (Python: 239, from gui/qt-app)
+# Tests (Python: 244, from gui/qt-app)
 .venv/bin/python -m pytest tests/ -q
 
 # CLI + installer tests (118, from the repo root)

@@ -447,6 +447,95 @@ Kirigami.ScrollablePage {
             }
 
             Kirigami.Card {
+                id: paletteCard
+                Layout.fillWidth: true
+                activeFocusOnTab: true
+                Accessible.role: Accessible.Button
+                Accessible.name: qsTr("Palette")
+                Accessible.description: qsTr("One base16 palette for the colour scheme, terminals and Kvantum")
+
+                background: Rectangle {
+                    radius: Platform.Units.smallSpacing
+                    border.width: paletteTile.activeFocus ? 2 : 1
+                    color: paletteHover.hovered || paletteTile.activeFocus
+                        ? ThemeColors.cardHoverBg(page.glassMode)
+                        : ThemeColors.cardBg(page.glassMode)
+                    border.color: paletteTile.activeFocus
+                        ? ThemeColors.accent()
+                        : ThemeColors.cardBorder(page.glassMode)
+                }
+
+                HoverHandler { id: paletteHover }
+                function openPalette() {
+                    pageStack.layers.push(Qt.resolvedUrl("PalettePage.qml"))
+                }
+                TapHandler { onTapped: paletteCard.openPalette() }
+                Keys.onPressed: function(event) {
+                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
+                            || event.key === Qt.Key_Space) {
+                        paletteCard.openPalette()
+                        event.accepted = true
+                    }
+                }
+
+                contentItem: ColumnLayout {
+                    id: paletteTile
+                    anchors.margins: Platform.Units.mediumSpacing
+                    spacing: Platform.Units.smallSpacing
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Platform.Units.smallSpacing
+                        Kirigami.Icon {
+                            source: "color-management"
+                            color: ThemeColors.accent()
+                            Layout.preferredWidth: Platform.Units.iconSizes.small
+                            Layout.preferredHeight: Platform.Units.iconSizes.small
+                        }
+                        Kirigami.Heading {
+                            Layout.fillWidth: true
+                            level: 3
+                            text: qsTr("Palette")
+                            color: ThemeColors.fgColor(page.glassMode)
+                        }
+                    }
+
+                    RowLayout {
+                        spacing: 2
+                        visible: paletteController.hasPalette
+                        Repeater {
+                            model: (paletteController.palette.base || []).concat([paletteController.palette.accent || "#000000"])
+                            delegate: Rectangle {
+                                required property string modelData
+                                implicitWidth: Platform.Units.gridUnit
+                                implicitHeight: Platform.Units.gridUnit
+                                radius: 3
+                                color: modelData
+                                border.width: 1
+                                border.color: ThemeColors.cardBorder(page.glassMode)
+                            }
+                        }
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
+                        text: paletteController.hasPalette
+                            ? qsTr("%1 · %2").arg(paletteController.palette.name).arg(paletteController.palette.source)
+                            : qsTr("No palette yet — gallery or wallpaper")
+                        wrapMode: Text.WordWrap
+                        color: ThemeColors.dimColor(page.glassMode)
+                    }
+
+                    Button {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Open palette")
+                        icon.name: "go-next"
+                        onClicked: paletteCard.openPalette()
+                    }
+                }
+            }
+
+            Kirigami.Card {
                 id: appsCard
                 Layout.fillWidth: true
                 activeFocusOnTab: true

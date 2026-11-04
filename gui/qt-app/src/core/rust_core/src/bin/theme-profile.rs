@@ -175,7 +175,13 @@ fn palette_cmd(args: &[String]) -> ExitCode {
     match args.first().map(String::as_str) {
         Some("show") => match load_live_palette() {
             Ok(p) if args.iter().any(|a| a == "--json") => {
-                println!("{}", serde_json::to_string_pretty(&p).unwrap_or_default());
+                // Palette + what the GUI needs to show it (warnings, scheme id).
+                let mut value = serde_json::to_value(&p).unwrap_or_default();
+                if let Some(map) = value.as_object_mut() {
+                    map.insert("warnings".into(), serde_json::json!(p.contrast_warnings()));
+                    map.insert("kdeScheme".into(), serde_json::json!(palette::kde_scheme_id(&p)));
+                }
+                println!("{}", serde_json::to_string_pretty(&value).unwrap_or_default());
                 ExitCode::SUCCESS
             }
             Ok(p) => {

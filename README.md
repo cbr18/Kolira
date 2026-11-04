@@ -215,7 +215,9 @@ theme-profile palette apply            # KDE scheme + kitty/Alacritty colours (b
 theme-profile palette apply --targets=kvantum   # recolour an installed Kvantum theme (KvArcDark/KvArc)
 ```
 
-The live palette is saved with profiles (component `palette`). Mapping, CLI and
+In the GUI: **Theme → Palette** (gallery, from wallpaper via Plasma's own
+`Kirigami.ImageColors`, colour editing, apply targets). The live palette is
+saved with profiles (component `palette`). Mapping, CLI and
 limits: [`docs/PALETTE.md`](docs/PALETTE.md).
 
 ## Profiles / Профили

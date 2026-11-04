@@ -390,6 +390,7 @@ def main() -> int:
             "overview": "openThemePage",
             "components": "openThemeComponentsPageDefault",
             "apps": "openThemeApplicationsPage",
+            "palette": "openPalettePage",
         }.get(page, "openThemePage")
         QTimer.singleShot(
             0,

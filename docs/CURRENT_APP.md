@@ -166,6 +166,7 @@ wallpaper-prev                   # предыдущие обои
 
 Qt/QML-приложение (`gui/qt-app/`) ставится установщиком рядом с Rust CLI. Страница **Theme** теперь является конструктором комплекта тем:
 
+- **Страница «Палитра»** в GUI (Тема → Палитра): галерея, «Из обоев» (`Kirigami.ImageColors`), «Из обоев (подробно)» (k-means), правка цветов, применение по целям; настройка «Сетевые функции»;
 - **Палитра** (`rust_core/src/palette.rs`, `theme-profile palette …`): base16 + акцент → сгенерированная цветовая схема KDE `ThemeProfile<Имя>.colors`, блок цветов в `kitty.conf` (между маркерами, live-reload по сокетам `/tmp/kitty-theme-profile-<pid>`) и `[colors.*]` в `alacritty.toml`; по запросу — тема Kvantum, перекрашенная из установленной базовой (`KvArcDark`/`KvArc`) в `~/.config/Kvantum/ThemeProfile<Имя>/`; профили сохраняют и восстанавливают активную пользовательскую тему Kvantum целиком; живая палитра `$XDG_CONFIG_HOME/theme-profile/palette.json` сохраняется в профилях (компонент `palette`); подробности — `docs/PALETTE.md`;
 - **ThemeBundleCore** (`src/core/theme_bundle.py`) собирает компоненты из установленных тем: KDE/Plasma (Global theme, Plasma Style, colors, decorations, icons, cursors, fonts), Desktop & Windows (обои, углы, blur, translucency, animations), Qt/Kvantum и GTK;
 - выбор компонента идёт из списков установленных ресурсов; core-поля сначала стейджатся и применяются одним батчом через `AppThemeCore`;

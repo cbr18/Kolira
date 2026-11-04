@@ -4,6 +4,25 @@
 (`gui/qt-app/src/core/rust_core/src/palette.rs`), доступ — через
 `theme-profile palette …`. План работ: `plans/2026_11_04_09_00_theme-constructor-palette.md`.
 
+## Страница «Палитра» (GUI)
+
+«Тема» → плитка «Палитра» (`qml/pages/PalettePage.qml`, контроллер
+`paletteController` = `src/controllers/palette.py` поверх `core/palette_core.py`,
+который только вызывает `theme-profile palette …`):
+
+- 16 образцов `base00…base0F` и акцент; клик → выбор цвета → `palette set`;
+- предупреждения о контрасте (`palette show --json` → `warnings`);
+- **Галерея…** — поиск по встроенным/скачанным схемам, флажок «Онлайн-каталог»;
+- **Из обоев** — `Kirigami.ImageColors` на текущих обоях (алгоритм самой Plasma)
+  → `palette from-colors`; первое `paletteChanged` после `update()` — сброс
+  (пустой список), поэтому ждём непустой, а если за 6 с ответа нет — Rust;
+- **Из обоев (подробно)** — `palette from-wallpaper` (k-means);
+- **Импорт файла…** — base16 YAML/JSON;
+- **Применить к**: схема KDE, kitty, Alacritty (по умолчанию), Kvantum (явно).
+
+Настройка «Сетевые функции» (`network_enabled`) выключает онлайн-каталог и
+магазины тем.
+
 ## Модель
 
 - **base16** (`base00`…`base0F`, формат [tinted-theming](https://github.com/tinted-theming/schemes)):
@@ -160,5 +179,5 @@ OKLab:
 
 ## Дальше (P1)
 
-Связка `Kirigami.ImageColors` в GUI, GUI-страница,
+Предпросмотр (P3),
 инструменты MCP — см. план.
