@@ -33,6 +33,21 @@ fail() { FAIL=$((FAIL + 1)); echo "  ❌ $1"; }
 # Silence all output from a command
 run_silent() { "$@" >/dev/null 2>&1; }
 
+# Safety net: the CLI talks to the live desktop session (plasma-apply-*,
+# kvantummanager, KWin/plasmashell over D-Bus, systemctl --user). A fake HOME
+# does not isolate those, so every such tool is shadowed by a failing stub for
+# the whole run; the theme engine then falls back to writing the keys itself,
+# which is what the assertions check. Sections that need to observe calls put
+# their own recording mocks in front of this directory.
+SAFE_BIN="$(mktemp -d)"
+for tool in plasma-apply-lookandfeel plasma-apply-colorscheme plasma-apply-desktoptheme \
+  plasma-apply-cursortheme plasma-apply-wallpaperimage kvantummanager qdbus6 dbus-send \
+  systemctl kbuildsycoca6 kitty; do
+  printf '#!/usr/bin/env bash\nexit 1\n' >"$SAFE_BIN/$tool"
+  chmod +x "$SAFE_BIN/$tool"
+done
+export PATH="$SAFE_BIN:$PATH"
+
 # --- 0. Precondition: the Rust CLI is built ----------------------------------
 echo "=== Section 0: Rust CLI binaries are built ==="
 
@@ -113,7 +128,7 @@ echo "=== Section 4: Profile name validation ==="
 # Use a temporary HOME so save/apply don't touch the real profile dir
 TMP_ROOT="$(mktemp -d)"
 export TMP_ROOT
-trap 'rm -rf "$TMP_ROOT"' EXIT
+trap 'rm -rf "$TMP_ROOT" "$SAFE_BIN"' EXIT
 
 # Bootstrap a fake ~/.config/theme-profile structure
 FAKE_HOME="$TMP_ROOT/fake-home"
@@ -141,18 +156,21 @@ done
 mkdir -p "$FAKE_HOME/.config"
 printf '[General]\nAccentColor=1,2,3\n' > "$FAKE_HOME/.config/kdeglobals"
 printf '[General]\nBorderSize=1\n' > "$FAKE_HOME/.config/kwinrc"
-HOME="$FAKE_HOME" "$CLI_DIR/theme-profile" save components-test   --components=kwin,kdeglobals >/dev/null 2>&1
+HOME="$FAKE_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" save components-test >/dev/null 2>&1
 profile_root="$FAKE_HOME/.config/theme-profile/profiles/components-test"
-if [ -f "$profile_root/.config/kwinrc" ] && [ -f "$profile_root/.config/kdeglobals" ]; then
-  ok "save with an explicit component set copies those files"
+if grep -q '"accent_color": "1,2,3"' "$profile_root/theme.json" 2>/dev/null &&
+  [ ! -e "$profile_root/.config" ]; then
+  ok "save writes a theme package (values in theme.json, no config copies)"
 else
-  fail "save with an explicit component set is missing files"
+  fail "save did not write a theme package: $(ls -A "$profile_root" 2>&1)"
 fi
-HOME="$FAKE_HOME" "$CLI_DIR/theme-profile" save components-test   --components=kdeglobals >/dev/null 2>&1
-if [ ! -e "$profile_root/.config/kwinrc" ] && [ -f "$profile_root/.config/kdeglobals" ]; then
-  ok "re-saving a profile removes stale component files"
+printf '[General]\nAccentColor=4,5,6\n' > "$FAKE_HOME/.config/kdeglobals"
+HOME="$FAKE_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" save components-test >/dev/null 2>&1
+if grep -q '"accent_color": "4,5,6"' "$profile_root/theme.json" &&
+  [ "$(find "$profile_root" -name '.save-*' | wc -l)" = 0 ]; then
+  ok "re-saving replaces the package atomically"
 else
-  fail "re-saving a profile kept stale component files"
+  fail "re-saving did not replace the package"
 fi
 
 if HOME="$FAKE_HOME" "$CLI_DIR/theme-profile" apply ../x >/dev/null 2>&1; then
@@ -165,11 +183,7 @@ if HOME="$FAKE_HOME" "$CLI_DIR/theme-profile" diff test-profile ../x >/dev/null 
 else
   ok "diff '../x' correctly rejected"
 fi
-if HOME="$FAKE_HOME" "$CLI_DIR/theme-profile" apply components-test --components= >/dev/null 2>&1; then
-  fail "apply with an empty component list should be rejected"
-else
-  ok "apply with an empty component list is rejected"
-fi
+
 
 # XDG_CONFIG_HOME/XDG_DATA_HOME must be honoured for live files while the
 # snapshot keeps the historical .config layout.
@@ -178,9 +192,9 @@ XDG_CONFIG="$XDG_HOME/config"
 XDG_DATA="$XDG_HOME/data"
 mkdir -p "$XDG_CONFIG" "$XDG_DATA"
 printf '[General]\nAccentColor=9,8,7\n' > "$XDG_CONFIG/kdeglobals"
-if HOME="$XDG_HOME" XDG_CONFIG_HOME="$XDG_CONFIG" XDG_DATA_HOME="$XDG_DATA" \
-  "$CLI_DIR/theme-profile" save xdg-profile --components=kdeglobals >/dev/null 2>&1 \
-  && [ -f "$XDG_CONFIG/theme-profile/profiles/xdg-profile/.config/kdeglobals" ]; then
+if HOME="$XDG_HOME" XDG_CONFIG_HOME="$XDG_CONFIG" XDG_DATA_HOME="$XDG_DATA" KTM_THEME_NO_APPLY=1 \
+  "$CLI_DIR/theme-profile" save xdg-profile >/dev/null 2>&1 \
+  && grep -q '"accent_color": "9,8,7"' "$XDG_CONFIG/theme-profile/profiles/xdg-profile/theme.json"; then
   ok "XDG_CONFIG_HOME is used for profiles and live config"
 else
   fail "XDG_CONFIG_HOME was ignored"
@@ -264,11 +278,17 @@ else
 fi
 
 wp_cli save wp-test >/dev/null 2>&1
-saved="$WP_HOME/.config/theme-profile/profiles/wp-test/wallpaper"
-if [ -f "$saved/forest one.jpg" ] && grep -q "forest one.jpg" "$saved/source"; then
-  ok "save copies the wallpaper into the profile"
+saved="$WP_HOME/.config/theme-profile/profiles/wp-test"
+if [ -f "$saved/assets/wallpaper/forest one.jpg" ] && grep -q '"wallpaper": "assets/wallpaper/forest one.jpg"' "$saved/theme.json"; then
+  ok "save copies the wallpaper into the theme package"
 else
   fail "save did not copy the wallpaper"
+fi
+wp_cli save wp-nowall --no-wallpaper >/dev/null 2>&1
+if grep -q '"wallpaper": null' "$WP_HOME/.config/theme-profile/profiles/wp-nowall/theme.json"; then
+  ok "save --no-wallpaper keeps the wallpaper out (applying leaves it untouched)"
+else
+  fail "save --no-wallpaper still stored a wallpaper"
 fi
 
 rm "$WP_HOME/Pictures/Wallpaper/forest one.jpg"
@@ -277,6 +297,44 @@ if [ "$(cat "$WP_HOME/Pictures/Wallpaper/forest one.jpg" 2>/dev/null)" = "jpeg" 
   ok "apply restores a deleted wallpaper from the profile copy"
 else
   fail "apply did not restore the deleted wallpaper"
+fi
+
+# Wallpaper only changes when the theme carries one and the user did not opt out.
+WP_MOCK="$TMP_ROOT/wp-mock"
+mkdir -p "$WP_MOCK"
+printf '#!/usr/bin/env bash\necho "$*" >>"%s/calls"\nexit 0\n' "$WP_MOCK" >"$WP_MOCK/plasma-apply-wallpaperimage"
+chmod +x "$WP_MOCK/plasma-apply-wallpaperimage"
+wp_live() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$WP_HOME" PATH="$WP_MOCK:$PATH" "$CLI_DIR/theme-profile" "$@"; }
+: >"$WP_MOCK/calls"
+wp_live apply wp-nowall >/dev/null 2>&1
+wp_live apply wp-test --keep-wallpaper >/dev/null 2>&1
+if [ ! -s "$WP_MOCK/calls" ]; then
+  ok "no wallpaper in the theme, or --keep-wallpaper → wallpaper untouched"
+else
+  fail "wallpaper was changed: $(cat "$WP_MOCK/calls")"
+fi
+wp_live apply wp-test >/dev/null 2>&1
+if grep -q "forest one.jpg" "$WP_MOCK/calls"; then
+  ok "a theme with a wallpaper applies it"
+else
+  fail "the theme wallpaper was not applied"
+fi
+
+# Legacy snapshot profiles convert to packages; check reports what is missing.
+LEG="$WP_HOME/.config/theme-profile/profiles/legacy"
+mkdir -p "$LEG/.config"
+printf '[General]\nColorScheme=NotInstalledScheme\nAccentColor=1,2,3\n' >"$LEG/.config/kdeglobals"
+printf '{"schema_version":1,"name":"legacy","description":"old one"}\n' >"$LEG/manifest.json"
+if wp_cli migrate legacy | grep -q "^Migrated legacy" && grep -q '"description": "old one"' "$LEG/theme.json" &&
+  [ ! -e "$LEG/.config" ] && compgen -G "$WP_HOME/.config/theme-profile/backups/pre-migrate-legacy-*" >/dev/null; then
+  ok "migrate converts a snapshot profile into a package (old one backed up)"
+else
+  fail "migrate did not convert the legacy profile"
+fi
+if wp_cli check legacy | grep -q "^missing=color_scheme=NotInstalledScheme"; then
+  ok "check lists assets the theme needs but this system lacks"
+else
+  fail "check did not report the missing colour scheme"
 fi
 
 # --- 5c. Palette: import → set → generate → apply → saved with the profile ---
@@ -434,10 +492,10 @@ else
 fi
 printf '[General]\ntheme=ThemeProfileEverforest\n' >"$KV/kvantum.kvconfig"
 pal_cli save kv-test >/dev/null 2>&1
-if [ -f "$PAL_HOME/.config/theme-profile/profiles/kv-test/.config/Kvantum/ThemeProfileEverforest/ThemeProfileEverforest.svg" ]; then
-  ok "profiles snapshot the active user Kvantum theme"
+if [ -f "$PAL_HOME/.config/theme-profile/profiles/kv-test/assets/kvantum/ThemeProfileEverforest/ThemeProfileEverforest.svg" ]; then
+  ok "theme packages bundle the active user Kvantum theme"
 else
-  fail "active Kvantum theme missing from the snapshot"
+  fail "active Kvantum theme missing from the package"
 fi
 rm -rf "$KV/ThemeProfileEverforest"
 pal_cli apply kv-test >/dev/null 2>&1
@@ -447,11 +505,15 @@ else
   fail "apply did not restore the Kvantum theme"
 fi
 
+# (KTM_THEME_NO_APPLY skips plasma-apply-colorscheme: set the scheme as it would.)
+printf '[General]\nColorScheme=ThemeProfileEverforest\n' >"$PAL_HOME/.config/kdeglobals"
 pal_cli save pal-test >/dev/null 2>&1
-if grep -q '"accent": "#a7c080"' "$PAL_HOME/.config/theme-profile/profiles/pal-test/.config/theme-profile/palette.json" 2>/dev/null; then
-  ok "profiles snapshot the live palette"
+pal_pkg="$PAL_HOME/.config/theme-profile/profiles/pal-test"
+if grep -q '"accent": "#a7c080"' "$pal_pkg/theme.json" 2>/dev/null &&
+  [ -f "$pal_pkg/assets/color-scheme/ThemeProfileEverforest.colors" ]; then
+  ok "theme packages carry the palette and its generated colour scheme"
 else
-  fail "palette.json missing from the profile snapshot"
+  fail "palette/scheme missing from the package"
 fi
 
 # --- 6. Wallpaper index wrapping ---------------------------------------------
@@ -884,6 +946,9 @@ if ! command -v kreadconfig6 >/dev/null 2>&1 || ! command -v kwriteconfig6 >/dev
 else
   LF_HOME="$TMP_ROOT/lf-home"
   mkdir -p "$LF_HOME/.config/theme-profile" "$LF_HOME/.config"
+  # Themes only apply installed assets: provide the Look & Feel package.
+  mkdir -p "$LF_HOME/.local/share/plasma/look-and-feel/paper"
+  echo '{}' >"$LF_HOME/.local/share/plasma/look-and-feel/paper/metadata.json"
   cat > "$LF_HOME/.config/kdeglobals" <<'EOF'
 [General]
 ColorScheme=Breeze1
@@ -941,7 +1006,8 @@ else
   ACC_HOME="$TMP_ROOT/accent-home"
   ACC_CALLS="$TMP_ROOT/accent-calls.log"
   export ACC_CALLS
-  mkdir -p "$ACC_HOME/.config/theme-profile" "$ACC_HOME/.config"
+  mkdir -p "$ACC_HOME/.config/theme-profile" "$ACC_HOME/.config" "$ACC_HOME/.local/share/color-schemes"
+  printf '[General]\nName=Breeze1\n' >"$ACC_HOME/.local/share/color-schemes/Breeze1.colors"
   : > "$ACC_CALLS"
 
   cat > "$ACC_HOME/.config/kdeglobals" <<'EOF'
@@ -1036,7 +1102,8 @@ else
   STYLE_HOME="$TMP_ROOT/style-home"
   STYLE_CALLS="$TMP_ROOT/style-calls.log"
   export STYLE_CALLS
-  mkdir -p "$STYLE_HOME/.config/theme-profile" "$STYLE_HOME/.config/Kvantum"
+  mkdir -p "$STYLE_HOME/.config/theme-profile" "$STYLE_HOME/.config/Kvantum/Sandstone"
+  : >"$STYLE_HOME/.config/Kvantum/Sandstone/Sandstone.kvconfig"
   : > "$STYLE_CALLS"
   cat > "$STYLE_HOME/.config/kdeglobals" <<'EOF'
 [General]
@@ -1090,33 +1157,22 @@ MAN_HOME="$TMP_ROOT/man-home"
 mkdir -p "$MAN_HOME/.config"
 printf '[General]\nAccentColor=5,6,7\n' > "$MAN_HOME/.config/kdeglobals"
 
-# save writes the formal manifest.json (schema v1) next to the legacy
-# manifest.txt, which older tools still read.
-if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" save man-profile --components=kdeglobals >/dev/null 2>&1; then
+# save writes the theme package manifest theme.json (schema theme@1).
+if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" save man-profile >/dev/null 2>&1; then
   ok "save man-profile"
 else
   fail "save man-profile"
 fi
 man_root="$MAN_HOME/.config/theme-profile/profiles/man-profile"
-if [ -f "$man_root/manifest.json" ]; then
-  ok "save writes manifest.json"
+if grep -q '"schema": "theme-profile/theme@1"' "$man_root/theme.json" 2>/dev/null \
+  && grep -q '"name": "man-profile"' "$man_root/theme.json" \
+  && grep -q '"accent_color": "5,6,7"' "$man_root/theme.json"; then
+  ok "theme.json carries schema, name and the theme values"
 else
-  fail "save did not write manifest.json"
-fi
-if [ -f "$man_root/manifest.txt" ]; then
-  ok "legacy manifest.txt is still written"
-else
-  fail "legacy manifest.txt missing"
-fi
-if grep -q '"schema_version": 1' "$man_root/manifest.json" \
-  && grep -q '"name": "man-profile"' "$man_root/manifest.json" \
-  && grep -q 'kdeglobals' "$man_root/manifest.json"; then
-  ok "manifest.json carries schema, name and the saved components"
-else
-  fail "manifest.json content is wrong"
+  fail "theme.json content is wrong"
 fi
 
-# describe --set / describe round-trips through manifest.json.
+# describe --set / describe round-trips through theme.json.
 if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" describe man-profile --set="Dark glass" >/dev/null 2>&1; then
   ok "describe --set exits 0"
 else
@@ -1128,10 +1184,10 @@ if [ "$desc" = "Dark glass" ]; then
 else
   fail "describe round-trip broken (got: $desc)"
 fi
-if grep -q '"description": "Dark glass"' "$man_root/manifest.json"; then
-  ok "description lands in manifest.json"
+if grep -q '"description": "Dark glass"' "$man_root/theme.json"; then
+  ok "description lands in theme.json"
 else
-  fail "description missing from manifest.json"
+  fail "description missing from theme.json"
 fi
 if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" describe no-such-profile --set=x >/dev/null 2>&1; then
   fail "describe on a missing profile should fail"
@@ -1141,7 +1197,7 @@ fi
 
 # save --description writes the description in one step.
 if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" save desc-profile \
-    --components=kdeglobals --description="in one step" >/dev/null 2>&1 \
+    --description="in one step" >/dev/null 2>&1 \
   && [ "$(HOME="$MAN_HOME" "$CLI_DIR/theme-profile" describe desc-profile 2>/dev/null)" = "in one step" ]; then
   ok "save --description round-trips"
 else
@@ -1265,13 +1321,13 @@ fi
 
 
 # --- 16. clone: profile duplication -------------------------------------------
-echo "=== Section 16: clone duplicates a profile snapshot ==="
+echo "=== Section 16: clone duplicates a theme package ==="
 
 CLONE_HOME="$TMP_ROOT/clone-home"
 mkdir -p "$CLONE_HOME/.config"
 printf '[General]\nAccentColor=9,8,7\n' > "$CLONE_HOME/.config/kdeglobals"
 
-if HOME="$CLONE_HOME" "$CLI_DIR/theme-profile" save clone-src --components=kdeglobals >/dev/null 2>&1; then
+if HOME="$CLONE_HOME" "$CLI_DIR/theme-profile" save clone-src >/dev/null 2>&1; then
   ok "save clone-src"
 else
   fail "save clone-src"
@@ -1282,7 +1338,7 @@ else
   fail "describe clone-src"
 fi
 
-# Happy path: snapshot copied, manifest renamed, description/created_at kept.
+# Happy path: package copied, theme.json renamed, description/created kept.
 if HOME="$CLONE_HOME" "$CLI_DIR/theme-profile" clone clone-src clone-dst >/dev/null 2>&1; then
   ok "clone exits 0"
 else
@@ -1290,28 +1346,23 @@ else
 fi
 src_root="$CLONE_HOME/.config/theme-profile/profiles/clone-src"
 dst_root="$CLONE_HOME/.config/theme-profile/profiles/clone-dst"
-if [ -f "$dst_root/manifest.json" ] && [ -f "$dst_root/.config/kdeglobals" ]; then
-  ok "clone copied the snapshot files"
+if [ -f "$dst_root/theme.json" ] && grep -q '"accent_color": "9,8,7"' "$dst_root/theme.json"; then
+  ok "clone copied the theme package"
 else
-  fail "clone did not copy the snapshot files"
+  fail "clone did not copy the theme package"
 fi
-if cmp -s "$src_root/.config/kdeglobals" "$dst_root/.config/kdeglobals"; then
-  ok "clone keeps file contents identical"
+if grep -q '"name": "clone-dst"' "$dst_root/theme.json"; then
+  ok "theme.json carries the new name"
 else
-  fail "clone changed file contents"
+  fail "theme.json name not updated"
 fi
-if grep -q '"name": "clone-dst"' "$dst_root/manifest.json"; then
-  ok "manifest.json carries the new name"
-else
-  fail "manifest.json name not updated"
-fi
-if grep -q '"description": "Source theme"' "$dst_root/manifest.json"; then
+if grep -q '"description": "Source theme"' "$dst_root/theme.json"; then
   ok "clone keeps the description"
 else
   fail "clone lost the description"
 fi
-src_created="$(grep -o '"created_at": "[^"]*"' "$src_root/manifest.json")"
-dst_created="$(grep -o '"created_at": "[^"]*"' "$dst_root/manifest.json")"
+src_created="$(grep -o '"created": "[^"]*"' "$src_root/theme.json")"
+dst_created="$(grep -o '"created": "[^"]*"' "$dst_root/theme.json")"
 if [ "$src_created" = "$dst_created" ]; then
   ok "clone keeps the original created_at"
 else
@@ -1319,7 +1370,7 @@ else
 fi
 
 # Source profile and the active marker must stay as they were.
-if [ -f "$src_root/manifest.json" ] \
+if [ -f "$src_root/theme.json" ] \
   && [ "$(cat "$CLONE_HOME/.config/theme-profile/active-profile" 2>/dev/null)" = "clone-src" ]; then
   ok "clone leaves the source and the active marker untouched"
 else

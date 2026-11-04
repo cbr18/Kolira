@@ -113,7 +113,7 @@ pub enum Base {
 }
 
 impl Base {
-    fn resolve(&self, relative: &str) -> PathBuf {
+    pub fn resolve(&self, relative: &str) -> PathBuf {
         match self {
             Base::Live => live_path(relative),
             Base::Snapshot(root) => root.join(relative),
@@ -150,7 +150,7 @@ fn kvantum_file(theme: &str, base: &Base) -> Option<PathBuf> {
     None
 }
 
-fn file_for(f: &FieldDef, base: &Base) -> Option<PathBuf> {
+pub(crate) fn file_for(f: &FieldDef, base: &Base) -> Option<PathBuf> {
     if f.source == "kvantum" {
         let theme = read_raw(field("kvantum_theme")?, base)?;
         return kvantum_file(value_str(&theme).as_str(), base);
@@ -770,17 +770,24 @@ pub fn apply(values: &[(String, Value)]) -> ApplyReport {
             report.errors.push(format!("{id}: invalid value {value}"));
             continue;
         };
-        if let Err(e) = write(f, &raw) {
-            report.errors.push(format!("{id}: {e:#}"));
-            continue;
-        }
-        if f.apply == "cmd_config" && !f.command.is_empty() {
+        // Fields with a live command (plasma-apply-colorscheme, -lookandfeel,
+        // -desktoptheme, -cursortheme, kvantummanager): run it *first* — the
+        // tool writes the key itself. Writing the key beforehand made e.g.
+        // plasma-apply-colorscheme answer "already in use" and skip the live
+        // update. The key is written directly only when the command is not
+        // run (KTM_THEME_NO_APPLY) or fails.
+        let mut done = false;
+        if f.apply == "cmd_config" && !f.command.is_empty() && !no_apply() {
             let args = command_args(f, &raw);
             if let Some((cmd, rest)) = args.split_first() {
                 let rest: Vec<&str> = rest.iter().map(String::as_str).collect();
-                if !run(cmd, &rest) {
-                    report.errors.push(format!("{id}: {cmd} failed"));
-                }
+                done = which::which(cmd).is_ok() && run(cmd, &rest);
+            }
+        }
+        if !done {
+            if let Err(e) = write(f, &raw) {
+                report.errors.push(format!("{id}: {e:#}"));
+                continue;
             }
         }
         if !f.hook.is_empty() && !hooks_seen.contains(&f.hook) {

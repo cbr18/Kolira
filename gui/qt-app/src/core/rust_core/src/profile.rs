@@ -129,6 +129,9 @@ fn read_manifest(profile_dir: &Path) -> ThemeManifest {
 /// Read the description from the manifest json (empty string for old profiles).
 pub fn get_profile_description(profile_name: &str) -> Result<String> {
     let dir = safe_profile_dir(profile_name)?;
+    if crate::theme::is_package(&dir) {
+        return Ok(crate::theme::load(&dir)?.description);
+    }
     Ok(read_manifest(&dir).description)
 }
 
@@ -138,6 +141,9 @@ pub fn set_profile_description(profile_name: &str, description: &str) -> Result<
     let dir = safe_profile_dir(profile_name)?;
     if !dir.is_dir() {
         return Err(anyhow!("Profile not found: {profile_name}"));
+    }
+    if crate::theme::is_package(&dir) {
+        return crate::theme::set_description(profile_name, description);
     }
     let mut manifest = read_manifest(&dir);
     manifest.description = description.to_string();
@@ -322,7 +328,7 @@ fn run_external_capture(cmd: &str, args: &[&str]) -> String {
         .unwrap_or_default()
 }
 
-fn unique_dir(root: &Path, prefix: &str) -> Result<PathBuf> {
+pub(crate) fn unique_dir(root: &Path, prefix: &str) -> Result<PathBuf> {
     use std::time::{SystemTime, UNIX_EPOCH};
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -349,7 +355,7 @@ fn remove_path(path: &Path) -> Result<()> {
 
 /// `cp -a` semantics: symlinks stay symlinks, directories recurse, permissions
 /// and modes are preserved.
-fn copy_tree(src: &Path, dst: &Path) -> Result<()> {
+pub(crate) fn copy_tree(src: &Path, dst: &Path) -> Result<()> {
     let meta = fs::symlink_metadata(src)?;
 
     if meta.file_type().is_symlink() {
@@ -394,7 +400,7 @@ fn copy_tracked_into(target: &Path, rel_paths: &[String]) -> Result<()> {
     Ok(())
 }
 
-fn write_active(name: &str) -> Result<()> {
+pub(crate) fn write_active(name: &str) -> Result<()> {
     let path = active_file();
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
@@ -629,7 +635,7 @@ pub fn validate_reload_command(command: &str) -> Result<Vec<String>> {
 /// Fires after the files are copied and the built-in live hooks ran; an error
 /// is a warning only — the apply itself has already succeeded. Skipped
 /// entirely under `KTM_THEME_NO_APPLY=1`.
-fn run_custom_reload_hooks(rel_paths: &[String]) {
+pub(crate) fn run_custom_reload_hooks(rel_paths: &[String]) {
     if no_apply() {
         return;
     }
@@ -1196,7 +1202,7 @@ pub fn case_duplicate_of(name: &str) -> Option<String> {
         .find(|existing| existing != name && existing.eq_ignore_ascii_case(name))
 }
 
-fn reject_case_duplicate(name: &str) -> Result<()> {
+pub(crate) fn reject_case_duplicate(name: &str) -> Result<()> {
     match case_duplicate_of(name) {
         Some(existing) => Err(anyhow!(
             "Profile \"{existing}\" already exists — names may not differ only by case \
@@ -1219,6 +1225,9 @@ pub fn clone_profile(source: &str, target: &str) -> Result<()> {
     }
     reject_case_duplicate(target)?;
     copy_tree(&src, &dst)?;
+    if crate::theme::is_package(&dst) {
+        return crate::theme::rename_manifest(&dst, target);
+    }
     let mut manifest = read_manifest(&dst);
     manifest.name = target.to_string();
     write_json_manifest(&dst, &manifest)

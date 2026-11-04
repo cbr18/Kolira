@@ -10,7 +10,7 @@ use std::process::ExitCode;
 use kde_theme_core::paths::validate_profile_name;
 use kde_theme_core::profile::{
     apply_profile_cli, clone_profile, delete_profile, diff_profiles, list_profiles,
-    save_profile_cli, set_profile_description, get_profile_description,
+    set_profile_description, get_profile_description,
 };
 use kde_theme_core::status::status;
 use kde_theme_core::wallpaper::{plasma_wallpaper_from, wallpaper_dir};
@@ -19,13 +19,19 @@ use kde_theme_core::gallery;
 use kde_theme_core::extract;
 use kde_theme_core::stores;
 use kde_theme_core::field;
+use kde_theme_core::theme;
 
 const USAGE: &str = "\
 Usage:
   theme-profile status
   theme-profile list
-  theme-profile save NAME [--components=comp1,comp2] [--description=...]
-  theme-profile apply NAME [--components=comp1,comp2]
+  theme-profile save NAME [--description=...] [--no-wallpaper]
+                              (a theme package: theme values + local assets + wallpaper)
+  theme-profile apply NAME [--install-missing] [--keep-wallpaper]
+                              (only what the theme defines; missing assets are reported,
+                               --install-missing installs app themes from their stores)
+  theme-profile check NAME [--json]           (what applying NAME would miss)
+  theme-profile migrate NAME|--all            (convert legacy snapshot profiles to packages)
   theme-profile clone SOURCE TARGET
   theme-profile diff A B
   theme-profile delete NAME
@@ -72,7 +78,9 @@ fn parse_args(args: &[String]) -> (Vec<&str>, Option<String>, Option<String>) {
             components = Some(rest.to_string());
         } else if let Some(rest) = arg.strip_prefix("--description=") {
             description = Some(rest.to_string());
-        } else {
+        } else if !arg.starts_with("--") {
+            // Other --flags (--no-wallpaper, --install-missing, --json) are
+            // read by the subcommands themselves.
             positional.push(arg.as_str());
         }
     }
@@ -586,7 +594,14 @@ fn main() -> ExitCode {
                 Ok(v) => v,
                 Err(e) => return fail(e),
             };
-            match save_profile_cli(name, components) {
+            if components.is_some() {
+                eprintln!("Note: --components is ignored — a theme saves its theme values, not whole files.");
+            }
+            let options = theme::SaveOptions {
+                description: desc.clone(),
+                include_wallpaper: !args.iter().any(|a| a == "--no-wallpaper"),
+            };
+            match theme::save(name, &options).map(|_| ()) {
                 Ok(()) => {
                     println!("Saved profile: {name}{}", component_suffix(raw.as_deref()));
                     if let Some(desc) = desc.as_deref() {
@@ -617,6 +632,33 @@ fn main() -> ExitCode {
                 Ok(v) => v,
                 Err(e) => return fail(e),
             };
+            let dir = kde_theme_core::paths::profiles_dir().join(name);
+            if theme::is_package(&dir) {
+                let options = theme::ApplyOptions {
+                    install_missing: args.iter().any(|a| a == "--install-missing"),
+                    keep_wallpaper: args.iter().any(|a| a == "--keep-wallpaper"),
+                };
+                return match theme::apply(name, &options) {
+                    Ok(report) => {
+                        println!("Applied profile: {name}");
+                        println!("Pre-apply backup: {}", report.backup);
+                        for i in &report.installed {
+                            println!("installed={i}");
+                        }
+                        if !report.skipped.is_empty() {
+                            println!("skipped (app not set up here)={}", report.skipped.join(","));
+                        }
+                        for m in &report.missing {
+                            println!("missing={}={}{}", m.field, m.name, if m.source.is_empty() { String::new() } else { format!(" ({})", m.source) });
+                        }
+                        for e in &report.errors {
+                            eprintln!("error={e}");
+                        }
+                        ExitCode::SUCCESS
+                    }
+                    Err(e) => fail(format!("{e:#}")),
+                };
+            }
             match apply_profile_cli(name, components) {
                 Ok(backup) => {
                     println!("Applied profile: {name}{}", component_suffix(raw.as_deref()));
@@ -678,6 +720,52 @@ fn main() -> ExitCode {
                 }
                 Err(e) => fail(e),
             }
+        }
+        "check" => {
+            let Some(name) = args.get(1).filter(|a| !a.starts_with("--")) else {
+                return fail("Usage error: check NAME");
+            };
+            match theme::check(name) {
+                Ok(missing) if args.iter().any(|a| a == "--json") => {
+                    println!("{}", serde_json::to_string(&missing).unwrap_or_default());
+                    ExitCode::SUCCESS
+                }
+                Ok(missing) => {
+                    if missing.is_empty() {
+                        println!("Everything this theme needs is available.");
+                    }
+                    for m in missing {
+                        println!("missing={}={}{}", m.field, m.name, if m.source.is_empty() { String::new() } else { format!(" ({})", m.source) });
+                    }
+                    ExitCode::SUCCESS
+                }
+                Err(e) => fail(format!("{e:#}")),
+            }
+        }
+        "migrate" => {
+            let names: Vec<String> = if args.iter().any(|a| a == "--all") {
+                match list_profiles() {
+                    Ok(list) => list.into_iter().map(|p| p.name).collect(),
+                    Err(e) => return fail(e),
+                }
+            } else {
+                args.iter().skip(1).filter(|a| !a.starts_with("--")).cloned().collect()
+            };
+            if names.is_empty() {
+                return fail("Usage error: migrate NAME|--all");
+            }
+            let mut failed = false;
+            for name in names {
+                match theme::migrate(&name) {
+                    Ok(p) => println!("Migrated {name}: {} values, {} assets{}", p.values.len(), p.assets.len(),
+                        if p.wallpaper.is_some() { ", wallpaper" } else { "" }),
+                    Err(e) => {
+                        failed = true;
+                        eprintln!("{name}: {e:#}");
+                    }
+                }
+            }
+            if failed { ExitCode::from(1) } else { ExitCode::SUCCESS }
         }
         "describe" => {
             let name = args.get(1).map(String::as_str).unwrap_or("");

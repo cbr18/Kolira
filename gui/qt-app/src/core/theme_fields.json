@@ -47,8 +47,7 @@
    "command": [
     "plasma-apply-colorscheme",
     "--accent-color",
-    "{hex}",
-    "{scheme}"
+    "{hex}"
    ],
    "summary": true,
    "description": "Selection/accent color used by Plasma and Qt applications",
