@@ -711,192 +711,197 @@
         <translation>Коричневый</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="127"/>
+        <location filename="../qml/pages/PalettePage.qml" line="128"/>
         <source>Choose %1</source>
         <translation>Выбрать: %1</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="133"/>
+        <location filename="../qml/pages/PalettePage.qml" line="134"/>
         <source>Import a base16 scheme</source>
         <translation>Импорт схемы base16</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="134"/>
+        <location filename="../qml/pages/PalettePage.qml" line="135"/>
         <source>base16 schemes (*.yaml *.yml *.json)</source>
         <translation>Схемы base16 (*.yaml *.yml *.json)</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="134"/>
+        <location filename="../qml/pages/PalettePage.qml" line="135"/>
         <source>All files (*)</source>
         <translation>Все файлы (*)</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="143"/>
+        <location filename="../qml/pages/PalettePage.qml" line="144"/>
         <source>One palette colours the whole theme: KDE colour scheme, terminals and, on request, Kvantum. Pick a ready scheme, take it from the wallpaper or edit the colours, then apply.</source>
         <translation>Одна палитра раскрашивает всю тему: цветовую схему KDE, терминалы и, по желанию, Kvantum. Выберите готовую схему, возьмите цвета с обоев или поправьте вручную, затем примените.</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="162"/>
+        <location filename="../qml/pages/PalettePage.qml" line="163"/>
         <source>Gallery…</source>
         <translation>Галерея…</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="168"/>
+        <location filename="../qml/pages/PalettePage.qml" line="169"/>
         <source>From wallpaper</source>
         <translation>Из обоев</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="173"/>
+        <location filename="../qml/pages/PalettePage.qml" line="174"/>
         <source>Plasma&apos;s own colour extraction (Kirigami.ImageColors) on the current wallpaper</source>
         <translation>Цвета текущих обоев по алгоритму самой Plasma (Kirigami.ImageColors)</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="176"/>
+        <location filename="../qml/pages/PalettePage.qml" line="177"/>
         <source>From wallpaper (detailed)</source>
         <translation>Из обоев (подробно)</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="181"/>
+        <location filename="../qml/pages/PalettePage.qml" line="182"/>
         <source>Cluster the wallpaper&apos;s pixels (k-means) — more colours to choose from</source>
         <translation>Кластеризация пикселей обоев (k-means) — больше цветов на выбор</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="184"/>
+        <location filename="../qml/pages/PalettePage.qml" line="185"/>
         <source>Import file…</source>
         <translation>Импорт файла…</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="200"/>
+        <location filename="../qml/pages/PalettePage.qml" line="201"/>
         <source>No palette yet</source>
         <translation>Палитры пока нет</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="201"/>
+        <location filename="../qml/pages/PalettePage.qml" line="202"/>
         <source>Choose a scheme in the gallery or build one from the wallpaper.</source>
         <translation>Выберите схему в галерее или соберите её из обоев.</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="228"/>
+        <location filename="../qml/pages/PalettePage.qml" line="229"/>
         <source>Light</source>
         <translation>Светлая</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="228"/>
+        <location filename="../qml/pages/PalettePage.qml" line="229"/>
         <source>Dark</source>
         <translation>Тёмная</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="234"/>
+        <location filename="../qml/pages/PalettePage.qml" line="235"/>
         <source>Source: %1 · KDE scheme: %2</source>
         <translation>Источник: %1 · схема KDE: %2</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="244"/>
+        <location filename="../qml/pages/PalettePage.qml" line="245"/>
         <source>Readability: %1</source>
         <translation>Читаемость: %1</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="270"/>
+        <location filename="../qml/pages/PalettePage.qml" line="271"/>
         <source>%1 (%2): %3</source>
         <translation>%1 (%2): %3</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="277"/>
+        <location filename="../qml/pages/PalettePage.qml" line="278"/>
         <source>%1 — %2. Click to change</source>
         <translation>%1 — %2. Нажмите, чтобы изменить</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="301"/>
+        <location filename="../qml/pages/PalettePage.qml" line="302"/>
         <source>Accent: %1</source>
         <translation>Акцент: %1</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="308"/>
+        <location filename="../qml/pages/PalettePage.qml" line="309"/>
         <source>Accent %1 — selection, focus, active elements</source>
         <translation>Акцент %1 — выделение, фокус, активные элементы</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="329"/>
+        <location filename="../qml/pages/PalettePage.qml" line="330"/>
         <source>Apply to</source>
         <translation>Применить к</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="335"/>
+        <location filename="../qml/pages/PalettePage.qml" line="336"/>
         <source>KDE colour scheme</source>
         <translation>Цветовая схема KDE</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="336"/>
+        <location filename="../qml/pages/PalettePage.qml" line="337"/>
         <source>kitty</source>
         <translation>kitty</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="337"/>
+        <location filename="../qml/pages/PalettePage.qml" line="338"/>
         <source>Alacritty</source>
         <translation>Alacritty</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="338"/>
+        <location filename="../qml/pages/PalettePage.qml" line="339"/>
         <source>Konsole</source>
         <translation>Konsole</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="341"/>
+        <location filename="../qml/pages/PalettePage.qml" line="340"/>
+        <source>Neovim</source>
+        <translation>Neovim</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/PalettePage.qml" line="343"/>
         <source>Kvantum (switches the widget style)</source>
         <translation>Kvantum (переключает стиль виджетов)</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="347"/>
+        <location filename="../qml/pages/PalettePage.qml" line="349"/>
         <source>Terminal configs are backed up first; only their colour block changes. Kvantum recolours an installed base theme (KvArcDark / KvArc).</source>
         <translation>Перед правкой конфиги терминалов копируются в бэкап, меняется только блок цветов. Kvantum перекрашивает установленную базовую тему (KvArcDark / KvArc).</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="354"/>
+        <location filename="../qml/pages/PalettePage.qml" line="356"/>
         <source>Apply palette</source>
         <translation>Применить палитру</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="367"/>
+        <location filename="../qml/pages/PalettePage.qml" line="369"/>
         <source>Palette gallery</source>
         <translation>Галерея палитр</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="384"/>
+        <location filename="../qml/pages/PalettePage.qml" line="386"/>
         <source>Search, e.g. gruvbox</source>
         <translation>Поиск, например gruvbox</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="389"/>
+        <location filename="../qml/pages/PalettePage.qml" line="391"/>
         <source>Online catalogue</source>
         <translation>Онлайн-каталог</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="392"/>
+        <location filename="../qml/pages/PalettePage.qml" line="394"/>
         <source>~360 schemes from tinted-theming; needs network (can be disabled in settings)</source>
         <translation>~360 схем tinted-theming; нужна сеть (можно отключить в настройках)</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="414"/>
+        <location filename="../qml/pages/PalettePage.qml" line="416"/>
         <source>light</source>
         <translation>светлая</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="415"/>
+        <location filename="../qml/pages/PalettePage.qml" line="417"/>
         <source>dark</source>
         <translation>тёмная</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="419"/>
+        <location filename="../qml/pages/PalettePage.qml" line="421"/>
         <source>built-in</source>
         <translation>встроенная</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="420"/>
+        <location filename="../qml/pages/PalettePage.qml" line="422"/>
         <source>downloaded</source>
         <translation>скачана</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="420"/>
+        <location filename="../qml/pages/PalettePage.qml" line="422"/>
         <source>online</source>
         <translation>онлайн</translation>
     </message>

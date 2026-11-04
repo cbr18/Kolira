@@ -1685,6 +1685,32 @@ else
   fail "Firefox apply wrong: $(find "$FF_B/.mozilla/firefox" | head -20) // $(cat "$ffb/user.js" 2>&1)"
 fi
 
+# --- 21. Neovim: generated scheme + theme file, init.lua only gains require --
+echo "=== Section 21: Neovim ==="
+NV_A="$TMP_ROOT/nv-a"; NV_B="$TMP_ROOT/nv-b"
+mkdir -p "$NV_A/.config/nvim" "$NV_B/.config/nvim"
+printf 'vim.opt.number = true\n' >"$NV_A/.config/nvim/init.lua"
+printf 'vim.opt.relativenumber = true\nvim.keymap.set("n", "Q", "<nop>")\n' >"$NV_B/.config/nvim/init.lua"
+nv() { local h="$1"; shift; env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$h" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+nv "$NV_A" palette import "$BASE16" >/dev/null 2>&1
+nv "$NV_A" palette apply --targets=nvim >/dev/null 2>&1
+nv "$NV_A" save nvt >/dev/null 2>&1
+nv_store="$NV_A/.config/theme-profile/profiles/nvt/.config/nvim"
+if [ -f "$nv_store/colors/theme-profile.lua" ] && [ -f "$nv_store/lua/theme-profile.lua" ] && [ ! -e "$nv_store/init.lua" ] &&
+  grep -qx 'pcall(require, "theme-profile")' "$NV_A/.config/nvim/init.lua"; then
+  ok "Neovim: palette writes colors/ + lua/theme-profile.lua; the theme stores them, not init.lua"
+else
+  fail "Neovim save wrong: $(find "$nv_store" 2>&1 | head)"
+fi
+nv "$NV_A" export nvt --out="$TMP_ROOT/nvt.zip" >/dev/null 2>&1
+nv "$NV_B" import "$TMP_ROOT/nvt.zip" --apply >/dev/null 2>&1
+if grep -q 'vim.keymap.set("n", "Q"' "$NV_B/.config/nvim/init.lua" && [ "$(tail -1 "$NV_B/.config/nvim/init.lua")" = 'pcall(require, "theme-profile")' ] &&
+  [ -f "$NV_B/.config/nvim/colors/theme-profile.lua" ]; then
+  ok "Neovim: the receiver keeps their init.lua and gains the require line + scheme"
+else
+  fail "Neovim apply wrong: $(cat "$NV_B/.config/nvim/init.lua")"
+fi
+
 # --- Summary ------------------------------------------------------------------
 echo ""
 echo "═══════════════════════════════════════"

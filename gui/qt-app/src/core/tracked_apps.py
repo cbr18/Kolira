@@ -269,6 +269,18 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
     ),
 
     TrackedAppDef(
+        id="nvim",
+        name="Neovim",
+        category="Editors",
+        # init.lua is only a host (gains one require line).
+        config_paths=(".config/nvim/init.lua", ".config/nvim/lua/theme-profile.lua", ".config/nvim/colors/theme-profile.lua"),
+        detect_command="nvim",
+        flatpak_id="io.neovim.nvim",
+        description="Colour scheme generated from the palette (lua/theme-profile.lua + colors/)",
+        icon="nvim",
+        docs_url="https://neovim.io/doc/user/syntax.html#%3Acolorscheme",
+    ),
+    TrackedAppDef(
         id="konsole",
         name="Konsole",
         category="Terminals",

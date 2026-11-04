@@ -80,6 +80,14 @@ theme-profile palette apply [--targets=kde,kitty,alacritty,kvantum] [--kvantum-b
 `Theme Profile.profile` (`Parent=FALLBACK/`) и становится профилем по умолчанию.
 Открытые вкладки сохраняют свою схему, новые получают новую.
 
+**Neovim** (цель `nvim`, по умолчанию включена, пропускается без Neovim): как в
+дотфайлах (matugen/base16) — `~/.config/nvim/colors/theme-profile.lua` (base16 →
+группы подсветки, диагностика, плавающие окна, `terminal_color_0..15`; без
+плагинов) и `lua/theme-profile.lua` (выбор схемы; прозрачный фон, если у kitty
+темы `background_opacity` < 1); в `init.lua` один раз дописывается последней
+строкой `pcall(require, "theme-profile")`. Новые сессии получают схему,
+в открытой — `:colorscheme theme-profile`.
+
 **Kvantum** (цель `kvantum`, включается явно — она переключает стиль виджетов на
 `kvantum`). Темы Kvantum — GPL-графика, поэтому в репозитории их нет: при
 применении берётся **установленная** базовая тема (по умолчанию `KvArcDark` для

@@ -23,6 +23,7 @@ pub mod share;
 pub mod appearance;
 pub mod deps;
 pub mod konsole;
+pub mod nvim;
 pub mod tracked_apps;
 pub mod custom_components;
 pub mod config_parser;

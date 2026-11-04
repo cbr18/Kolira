@@ -548,11 +548,11 @@ pub fn alacritty_with_palette(existing: &str, p: &Palette) -> Result<String> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Targets a palette can be applied to.
-pub const TARGETS: [&str; 5] = ["kde", "kitty", "alacritty", "konsole", "kvantum"];
+pub const TARGETS: [&str; 6] = ["kde", "kitty", "alacritty", "konsole", "nvim", "kvantum"];
 
 /// Targets used when none are given. `kvantum` is opt-in: it switches the Qt
 /// widget style, which the user may have chosen deliberately (e.g. Breeze).
-pub const DEFAULT_TARGETS: [&str; 4] = ["kde", "kitty", "alacritty", "konsole"];
+pub const DEFAULT_TARGETS: [&str; 5] = ["kde", "kitty", "alacritty", "konsole", "nvim"];
 
 /// Extra knobs for [`apply`].
 #[derive(Debug, Default, Clone)]
@@ -728,6 +728,13 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
             report.push(format!("konsole: {} (new tabs/windows; open ones keep their scheme)", scheme.display()));
         } else {
             report.push("konsole: skipped, not installed".to_string());
+        }
+    }
+
+    if wants("nvim") {
+        match crate::nvim::apply_palette(p)? {
+            Some(path) => report.push(format!("nvim: {} (new Neovim sessions; `:colorscheme theme-profile` reloads)", path.display())),
+            None => report.push("nvim: skipped, not installed".to_string()),
         }
     }
 

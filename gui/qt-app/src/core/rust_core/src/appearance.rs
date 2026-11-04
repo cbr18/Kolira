@@ -64,6 +64,8 @@ pub enum Policy {
     Prefs(&'static [&'static str]),
     KittyHost,
     AlacrittyHost,
+    /// Neovim init.lua: never stored, gains `pcall(require, "theme-profile")`.
+    NvimHost,
     KwinRules,
 }
 
@@ -158,6 +160,7 @@ pub fn policy(rel: &str) -> Policy {
         | ".config/Cursor/User/settings.json" => Policy::Jsonc(VSCODE),
         ".config/zed/settings.json" => Policy::Jsonc(ZED),
         KITTY_HOST => Policy::KittyHost,
+        crate::nvim::HOST => Policy::NvimHost,
         ALACRITTY_HOST => Policy::AlacrittyHost,
         _ => Policy::Whole,
     }
@@ -844,7 +847,7 @@ pub fn for_theme(rel: &str, text: &str) -> Option<String> {
         Policy::Kv(keys) => Some(kv_filter(text, keys)),
         Policy::Jsonc(keys) => Some(jsonc_filter(text, keys)),
         Policy::Prefs(keys) => Some(prefs_filter(text, keys)),
-        Policy::KittyHost | Policy::AlacrittyHost => None,
+        Policy::KittyHost | Policy::AlacrittyHost | Policy::NvimHost => None,
     }
 }
 
@@ -859,6 +862,7 @@ pub fn applied(rel: &str, theme_text: &str, live_text: Option<&str>) -> Result<S
         Policy::Jsonc(keys) => jsonc_merge(theme_text, live, keys),
         Policy::Prefs(keys) => prefs_merge(theme_text, live, keys),
         Policy::KittyHost => kitty_host(live),
+        Policy::NvimHost => crate::nvim::host(live),
         Policy::AlacrittyHost => alacritty_host(live)?,
     })
 }
@@ -886,6 +890,7 @@ pub fn include_from_host(rel: &str, host_text: &str) -> Result<Option<(&'static 
 pub fn normalize(rel: &str, text: &str, has_include: bool) -> Result<Vec<(String, String)>> {
     Ok(match policy(rel) {
         Policy::Whole | Policy::KwinRules => vec![(rel.to_string(), text.to_string())],
+        Policy::NvimHost => Vec::new(),
         Policy::KittyHost | Policy::AlacrittyHost => match include_from_host(rel, text)? {
             Some((inc, look)) if !has_include => vec![(inc.to_string(), look)],
             _ => Vec::new(),

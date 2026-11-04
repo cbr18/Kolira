@@ -390,6 +390,23 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             docs_url: "https://zen-browser.app/".to_string(),
         },
         TrackedAppDef {
+            id: "nvim".to_string(),
+            name: "Neovim".to_string(),
+            category: "Editors".to_string(),
+            // init.lua is only a host (gains one require line, nvim.rs).
+            config_paths: vec![
+                crate::nvim::HOST.to_string(),
+                crate::nvim::THEME.to_string(),
+                crate::nvim::COLORS.to_string(),
+            ],
+            detect_command: Some("nvim".to_string()),
+            flatpak_id: Some("io.neovim.nvim".to_string()),
+            supports_live_reload: false,
+            description: "Colour scheme generated from the palette (lua/theme-profile.lua + colors/)".to_string(),
+            icon: "nvim".to_string(),
+            docs_url: "https://neovim.io/doc/user/syntax.html#%3Acolorscheme".to_string(),
+        },
+        TrackedAppDef {
             id: "konsole".to_string(),
             name: "Konsole".to_string(),
             category: "Terminals".to_string(),
