@@ -220,6 +220,22 @@ else
   fail "apply nonexistent-profile stopped plasma before validation failed!"
 fi
 
+# --- 5a. Names differing only by case are rejected ---------------------------
+CASE_HOME="$TMP_ROOT/case-home"
+mkdir -p "$CASE_HOME/.config/theme-profile"
+case_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$CASE_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+case_cli save Paper >/dev/null 2>&1
+if case_cli save paper >/dev/null 2>&1 || case_cli clone Paper PAPER >/dev/null 2>&1; then
+  fail "save/clone accepted a name differing only by case"
+else
+  ok "save/clone reject names differing only by case"
+fi
+if case_cli save Paper >/dev/null 2>&1; then
+  ok "re-saving the same profile name is still allowed"
+else
+  fail "re-saving Paper was rejected"
+fi
+
 # --- 5b. Wallpaper travels with the profile ----------------------------------
 echo "=== Section 5b: profile wallpaper copy ==="
 

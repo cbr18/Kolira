@@ -1,6 +1,6 @@
 # Запретить имена профилей, отличающиеся только регистром
 
-Status: TODO
+Status: DONE
 
 ## Проблема (2026-11-04)
 
@@ -12,8 +12,8 @@ Status: TODO
 
 ## Что сделать
 
-- [ ] `validate_profile_name` (Rust `paths.rs` и Python `paths.py`) — без изменений;
+- [x] `validate_profile_name` (Rust `paths.rs` и Python `paths.py`) — без изменений;
       при `save`/`clone` отклонять имя, совпадающее с существующим без учёта
       регистра (кроме перезаписи того же профиля), понятной ошибкой.
-- [ ] GUI: подсказка в диалоге сохранения («профиль Paper уже есть»).
-- [ ] Тесты (Rust, bash, Python) и документация (README, CURRENT_APP).
+- [x] GUI: подсказка в диалоге сохранения («профиль Paper уже есть»).
+- [x] Тесты (Rust, bash, Python) и документация (README, CURRENT_APP).

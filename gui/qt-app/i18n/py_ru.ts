@@ -4,96 +4,96 @@
 <context>
     <name>AppThemeCore</name>
     <message>
-        <location filename="../src/core/theme_core.py" line="1442" />
-        <location filename="../src/core/theme_core.py" line="1334" />
+        <location filename="../src/core/theme_core.py" line="1447" />
+        <location filename="../src/core/theme_core.py" line="1339" />
         <source>Unknown field: %s</source>
         <translation>Неизвестное поле: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1338" />
+        <location filename="../src/core/theme_core.py" line="1343" />
         <source>Invalid value for %s: %r</source>
         <translation>Недопустимое значение для %s: %r</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1475" />
-        <location filename="../src/core/theme_core.py" line="1343" />
+        <location filename="../src/core/theme_core.py" line="1480" />
+        <location filename="../src/core/theme_core.py" line="1348" />
         <source>%s staged — press Apply</source>
         <translation>%s в очереди — нажмите «Применить»</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1352" />
+        <location filename="../src/core/theme_core.py" line="1357" />
         <source>Nothing to apply</source>
         <translation>Применять нечего</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1401" />
+        <location filename="../src/core/theme_core.py" line="1406" />
         <source>Applied %s change(s)</source>
         <translation>Применено изменений: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1447" />
+        <location filename="../src/core/theme_core.py" line="1452" />
         <source>No active profile</source>
         <translation>Нет активного профиля</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1454" />
+        <location filename="../src/core/theme_core.py" line="1459" />
         <source>%s is not stored in the profile</source>
         <translation>%s не хранится в профиле</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1457" />
+        <location filename="../src/core/theme_core.py" line="1462" />
         <source>Unknown reset target: %s</source>
         <translation>Неизвестная цель сброса: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1458" />
+        <location filename="../src/core/theme_core.py" line="1463" />
         <source>This field has no portable default; pick a value instead</source>
         <translation>У этого поля нет переносимого значения по умолчанию — выберите значение</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1528" />
+        <location filename="../src/core/theme_core.py" line="1533" />
         <source>Failed to write %s: %s</source>
         <translation>Не удалось записать %s: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1531" />
+        <location filename="../src/core/theme_core.py" line="1536" />
         <source>%s set</source>
         <translation>%s задано</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1546" />
+        <location filename="../src/core/theme_core.py" line="1551" />
         <source>Unstaged: %s</source>
         <translation>Снято с очереди: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1548" />
+        <location filename="../src/core/theme_core.py" line="1553" />
         <source>Nothing to undo</source>
         <translation>Отменять нечего</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1561" />
+        <location filename="../src/core/theme_core.py" line="1566" />
         <source>Undo failed: %s</source>
         <translation>Отмена не удалась: %s</translation>
     </message>
     <message>
+        <location filename="../src/core/theme_core.py" line="1575" />
         <location filename="../src/core/theme_core.py" line="1570" />
-        <location filename="../src/core/theme_core.py" line="1565" />
         <source>Undone: %s</source>
         <translation>Отменено: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1625" />
-        <location filename="../src/core/theme_core.py" line="1581" />
+        <location filename="../src/core/theme_core.py" line="1630" />
+        <location filename="../src/core/theme_core.py" line="1586" />
         <source>Discarded %s staged change(s)</source>
         <translation>Сброшено неприменённых изменений: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1582" />
+        <location filename="../src/core/theme_core.py" line="1587" />
         <source>No changes in this session</source>
         <translation>В этой сессии изменений нет</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_core.py" line="1626" />
+        <location filename="../src/core/theme_core.py" line="1631" />
         <source>Reverted %s file(s)</source>
         <translation>Возвращено файлов: %s</translation>
     </message>

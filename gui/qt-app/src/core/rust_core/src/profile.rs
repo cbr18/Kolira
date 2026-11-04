@@ -1098,6 +1098,7 @@ fn restore_active_kvantum_theme(profile_dir: &Path, rel_paths: &[String]) -> Res
 /// Save the current live state as a profile (atomic swap, pre-save backup).
 pub fn save_profile_impl(profile: &str, components: Option<Vec<String>>) -> Result<()> {
     validate_profile_name(profile)?;
+    reject_case_duplicate(profile)?;
     let rel_paths = resolve_components(components)?;
     if rel_paths.is_empty() {
         return Err(anyhow!("No valid components selected"));
@@ -1108,6 +1109,7 @@ pub fn save_profile_impl(profile: &str, components: Option<Vec<String>>) -> Resu
 /// CLI variant: bash-compatible component selection (warn + skip unknown).
 pub fn save_profile_cli(profile: &str, components: Option<Vec<String>>) -> Result<()> {
     validate_profile_name(profile)?;
+    reject_case_duplicate(profile)?;
     let rel_paths = resolve_cli_paths(components)?;
     if rel_paths.is_empty() {
         return Err(anyhow!("No valid components selected"));
@@ -1182,6 +1184,28 @@ pub fn delete_profile(profile_name: &str) -> Result<()> {
 /// Files are copied with `cp -a` semantics; `manifest.json` is rewritten with
 /// the new name. The snapshot content, description and the original
 /// `created_at` are kept — the clone IS the same theme.
+/// Existing profile whose name equals `name` ignoring case but not exactly
+/// (`paper` vs `Paper`): such pairs look identical in the UI and the app
+/// theme follows names case-insensitively.
+pub fn case_duplicate_of(name: &str) -> Option<String> {
+    let entries = fs::read_dir(theme_profiles_dir()).ok()?;
+    entries
+        .flatten()
+        .filter(|e| e.path().is_dir())
+        .map(|e| e.file_name().to_string_lossy().to_string())
+        .find(|existing| existing != name && existing.eq_ignore_ascii_case(name))
+}
+
+fn reject_case_duplicate(name: &str) -> Result<()> {
+    match case_duplicate_of(name) {
+        Some(existing) => Err(anyhow!(
+            "Profile \"{existing}\" already exists — names may not differ only by case \
+             (save as \"{existing}\" to overwrite it, or choose another name)"
+        )),
+        None => Ok(()),
+    }
+}
+
 pub fn clone_profile(source: &str, target: &str) -> Result<()> {
     validate_profile_name(source)?;
     validate_profile_name(target)?;
@@ -1193,6 +1217,7 @@ pub fn clone_profile(source: &str, target: &str) -> Result<()> {
     if dst.symlink_metadata().is_ok() {
         return Err(anyhow!("Profile already exists: {target}"));
     }
+    reject_case_duplicate(target)?;
     copy_tree(&src, &dst)?;
     let mut manifest = read_manifest(&dst);
     manifest.name = target.to_string();

@@ -340,6 +340,8 @@ See [`docs/ROLLBACK.md`](docs/ROLLBACK.md) for full instructions. Quick summary:
 - **Profile names** are validated (`[A-Za-z0-9][A-Za-z0-9._-]{0,63}`) in Rust
   and Python before touching the filesystem; `..`, separators and shell
   metacharacters are rejected, and `diff` cannot traverse outside `profiles/`.
+  `save`/`clone` also reject a name that differs from an existing profile only
+  by case (`paper` next to `Paper`); the GUI save dialogs warn as you type.
 - **Custom component lists** are validated against the known component set; an
   explicitly empty selection is rejected instead of silently applying everything.
 - **Config writes are atomic and permission-preserving**: an existing file keeps

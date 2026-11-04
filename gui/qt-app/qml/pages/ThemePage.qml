@@ -106,6 +106,14 @@ Kirigami.ScrollablePage {
                 Layout.fillWidth: true
                 placeholderText: qsTr("Profile name")
             }
+            Label {
+                Layout.fillWidth: true
+                readonly property string clash: applicationWindow().caseDuplicateOf(profileNameField.text.trim())
+                visible: clash !== ""
+                wrapMode: Text.WordWrap
+                color: ThemeColors.negative()
+                text: qsTr("Profile \"%1\" already exists — names may not differ only by case.").arg(clash)
+            }
             TextField {
                 id: profileDescriptionField
                 Layout.fillWidth: true
@@ -123,6 +131,10 @@ Kirigami.ScrollablePage {
 
         onAccepted: {
             const name = profileNameField.text.trim()
+            if (applicationWindow().caseDuplicateOf(name) !== "") {
+                saveProfileDialog.open()
+                return
+            }
             if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(name)) {
                 profileNameError.visible = true
                 saveProfileDialog.open()

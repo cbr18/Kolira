@@ -42,6 +42,19 @@ Kirigami.ApplicationWindow {
     property string selectedProfile: ""
 
     // Deep links used by the dev screenshot harness (and available to the tray).
+    // Existing profile equal to `name` ignoring case but not exactly ("paper"
+    // vs "Paper") — the CLI rejects those; say so before the user saves.
+    function caseDuplicateOf(name) {
+        const lower = name.toLowerCase()
+        const list = profileController.profiles
+        for (let i = 0; i < list.length; ++i) {
+            const existing = list[i].name || ""
+            if (existing !== name && existing.toLowerCase() === lower)
+                return existing
+        }
+        return ""
+    }
+
     function openThemePage() {
         pageStack.layers.push(Qt.resolvedUrl("pages/ThemePage.qml"))
     }
@@ -556,6 +569,14 @@ Kirigami.ApplicationWindow {
                 placeholderText: qsTr("Profile name")
                 onTextChanged: saveError.visible = false
             }
+            Label {
+                Layout.fillWidth: true
+                readonly property string clash: root.caseDuplicateOf(nameField.text.trim())
+                visible: clash !== ""
+                wrapMode: Text.WordWrap
+                color: ThemeColors.negative()
+                text: qsTr("Profile \"%1\" already exists — names may not differ only by case.").arg(clash)
+            }
             TextField {
                 id: descriptionField
                 Layout.fillWidth: true
@@ -573,6 +594,10 @@ Kirigami.ApplicationWindow {
 
         onAccepted: {
             var name = nameField.text.trim()
+            if (root.caseDuplicateOf(name) !== "") {
+                saveDialog.open()
+                return
+            }
             if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(name)) {
                 saveError.visible = true
                 saveDialog.open()
