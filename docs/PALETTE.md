@@ -24,6 +24,8 @@ theme-profile palette import gallery:nord  # схема из галереи
 theme-profile palette gallery [ЗАПРОС] [--online] [--refresh] [--json]
 theme-profile palette show [--json]        # слоты, акцент, предупреждения о контрасте
 theme-profile palette set accent=#a7c080 base0F=#9da9a0
+theme-profile palette from-wallpaper [IMAGE] [--variant=dark|light] [--name=…]   # по умолчанию — текущие обои
+theme-profile palette from-colors JSON|-   # цвета от Kirigami.ImageColors (GUI)
 theme-profile palette generate kde|kitty|alacritty   # напечатать сгенерированное
 theme-profile palette apply [--targets=kde,kitty,alacritty,kvantum] [--kvantum-base=THEME]
                                            # по умолчанию kde,kitty,alacritty
@@ -110,6 +112,30 @@ OKLab:
 окне, текста на списках и текста на выделении; предупреждения выводятся строками
 `warning=…`.
 
+## Палитра из обоев
+
+Модуль `extract.rs`. Два входа, одно правило:
+
+- CLI: картинка (jpeg/png/webp/bmp, крейт `image`, без ImageMagick) уменьшается
+  до 96 px, пиксели кластеризуются k-means (k = 8, OKLab, детерминированный
+  посев по квантилям яркости);
+- GUI: цвета `Kirigami.ImageColors.palette` (тот же алгоритм KDE, что и акцент
+  Plasma) передаются в `palette from-colors` как
+  `{"colors":[{"color":"#rrggbb","ratio":0.4},…],"variant":…,"name":…,"source":…}`.
+
+Правило раскладки (`palette_from_swatches`):
+
+| Слот | Как получается |
+|---|---|
+| `variant` | тёмная, если средневзвешенная яркость OKLab < 0.62 (можно задать `--variant`) |
+| `base00…base07` | тон преобладающего цвета, насыщенность ×0.35 (≤ 0.035), фиксированные шаги яркости (тёмная: 0.24 → 0.97, светлая — наоборот) |
+| `base05` (текст) | дотягивается до контраста ≥ 7:1 к `base00` |
+| `accent` | самый заметный насыщенный кластер (вес × насыщенность), не из «семейства фона» (дальше 0.1 OKLab от преобладающего), яркость 0.76/0.55; затем подстраивается, пока текст на выделении не даст ≥ 4.5:1 |
+| `base08…base0F` | канонические тона (красный 25°, оранжевый 55°, жёлтый 95°, зелёный 140°, бирюзовый 195°, синий 255°, пурпурный 330°, коричневый 60° темнее), притянутые к тону картинки в пределах ±25° |
+
+Источник записывается в `source` (`wallpaper:<путь>` / `imagecolors…`). Разные
+входы (k-means и ImageColors) из одних обоев могут дать немного разные палитры.
+
 ## Галерея
 
 `theme-profile palette gallery` (модуль `gallery.rs`) показывает схемы из трёх
@@ -134,5 +160,5 @@ OKLab:
 
 ## Дальше (P1)
 
-Палитра из обоев, GUI-страница,
+Связка `Kirigami.ImageColors` в GUI, GUI-страница,
 инструменты MCP — см. план.

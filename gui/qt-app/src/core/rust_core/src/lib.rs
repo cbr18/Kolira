@@ -11,6 +11,8 @@ pub mod paths;
 pub mod profile;
 pub mod wallpaper;
 pub mod palette;
+pub mod oklab;
+pub mod extract;
 pub mod kvantum;
 pub mod gallery;
 pub mod tracked_apps;

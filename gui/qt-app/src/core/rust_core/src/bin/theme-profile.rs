@@ -16,6 +16,7 @@ use kde_theme_core::status::status;
 use kde_theme_core::wallpaper::{plasma_wallpaper_from, wallpaper_dir};
 use kde_theme_core::palette;
 use kde_theme_core::gallery;
+use kde_theme_core::extract;
 
 const USAGE: &str = "\
 Usage:
@@ -34,6 +35,10 @@ Usage:
   theme-profile palette gallery [QUERY] [--online] [--refresh] [--json]
                               (bundled + cached schemes; --online adds the tinted-theming catalogue)
   theme-profile palette set SLOT=#rrggbb ...  (base00..base0F, accent)
+  theme-profile palette from-wallpaper [IMAGE] [--variant=dark|light] [--name=NAME]
+                              (default IMAGE: the current Plasma wallpaper)
+  theme-profile palette from-colors JSON|-    ({\"colors\":[{\"color\":\"#rrggbb\",\"ratio\":0.4},...]},
+                              the shape of Kirigami.ImageColors.palette; - reads stdin)
   theme-profile palette generate <kde|kitty|alacritty>   (print the generated colours)
   theme-profile palette apply [--targets=kde,kitty,alacritty,kvantum] [--kvantum-base=THEME]
                               (default targets: kde,kitty,alacritty; kvantum switches the widget style)
@@ -190,6 +195,54 @@ fn palette_cmd(args: &[String]) -> ExitCode {
             print_palette(&p);
             ExitCode::SUCCESS
         }
+        Some("from-wallpaper") | Some("from-colors") => {
+            let value = |prefix: &str| args[1..].iter().find_map(|a| a.strip_prefix(prefix));
+            let variant = match value("--variant=") {
+                None => None,
+                Some("dark") => Some(palette::Variant::Dark),
+                Some("light") => Some(palette::Variant::Light),
+                Some(other) => return fail(format!("Unknown variant {other:?} (dark|light)")),
+            };
+            let positional = args[1..].iter().find(|a| !a.starts_with("--")).cloned();
+            let built = if args[0] == "from-wallpaper" {
+                let image = positional.or_else(|| {
+                    plasma_wallpaper_from(&kde_theme_core::paths::live_path(kde_theme_core::wallpaper::APPLETSRC_REL))
+                });
+                let Some(image) = image else {
+                    return fail("No image given and no org.kde.image wallpaper found");
+                };
+                extract::palette_from_image(std::path::Path::new(&image), variant, value("--name="))
+            } else {
+                let json = match positional.as_deref() {
+                    Some("-") | None => {
+                        let mut text = String::new();
+                        if let Err(e) = std::io::Read::read_to_string(&mut std::io::stdin(), &mut text) {
+                            return fail(e);
+                        }
+                        text
+                    }
+                    Some(text) => text.to_string(),
+                };
+                extract::palette_from_colors_json(&json).map(|mut p| {
+                    if let Some(v) = variant {
+                        p.variant = v;
+                    }
+                    if let Some(name) = value("--name=") {
+                        p.name = name.to_string();
+                    }
+                    p
+                })
+            };
+            let p = match built {
+                Ok(p) => p,
+                Err(e) => return fail(format!("{e:#}")),
+            };
+            if let Err(e) = palette::save(&p, &palette::live_palette_path()) {
+                return fail(e);
+            }
+            print_palette(&p);
+            ExitCode::SUCCESS
+        }
         Some("set") => {
             let mut p = match load_live_palette() {
                 Ok(p) => p,
@@ -265,7 +318,7 @@ fn palette_cmd(args: &[String]) -> ExitCode {
         }
         _ => {
             eprint!("{USAGE}");
-            fail("Usage error: palette <show|import|set|generate|apply>")
+            fail("Usage error: palette <show|import|gallery|set|from-wallpaper|from-colors|generate|apply>")
         }
     }
 }

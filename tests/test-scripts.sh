@@ -322,6 +322,30 @@ if gal_cli palette import gallery:not-bundled-x >/dev/null 2>&1 ||
 else
   ok "gallery import rejects unknown ids offline and invalid ids"
 fi
+# Palette from colours (Kirigami.ImageColors shape) and from an image.
+if echo '{"colors":[{"color":"#1f3326","ratio":0.6},{"color":"#8fb573","ratio":0.3}],"name":"Fx"}' |
+  pal_cli palette from-colors - | grep -qx "name=Fx" && pal_cli palette show | grep -qx "variant=dark"; then
+  ok "palette from-colors builds a dark palette from ImageColors-style JSON"
+else
+  fail "palette from-colors failed"
+fi
+if pal_cli palette from-colors '{"colors":[]}' >/dev/null 2>&1; then
+  fail "palette from-colors accepted an empty colour list"
+else
+  ok "palette from-colors rejects an empty colour list"
+fi
+if command -v magick >/dev/null 2>&1; then
+  magick -size 64x64 xc:'#f2efe6' -fill '#8a8a45' -draw 'rectangle 40,0 63,63' "$PAL_HOME/light.png"
+  if pal_cli palette from-wallpaper "$PAL_HOME/light.png" | grep -qx "variant=light" &&
+    ! pal_cli palette show | grep -q "^warning="; then
+    ok "palette from-wallpaper reads an image (light, readable)"
+  else
+    fail "palette from-wallpaper result unexpected"
+  fi
+else
+  ok "palette from-wallpaper image check skipped (no magick to make a test image)"
+fi
+
 pal_cli palette import "$BASE16" >/dev/null
 pal_cli palette set accent=#a7c080 >/dev/null
 

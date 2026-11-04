@@ -1,6 +1,6 @@
 # Конструктор тем: палитра, генераторы, магазины, база для новой темы
 
-Status: IN PROGRESS — P0 ✅, обои ✅, P1: палитра + генераторы KDE/kitty/Alacritty/Kvantum + галерея ✅
+Status: IN PROGRESS — P0 ✅, обои ✅, P1: палитра + генераторы KDE/kitty/Alacritty/Kvantum + галерея + из обоев ✅
 
 Plan: [2026_11_04_09_00_theme-constructor-palette.md](../plans/2026_11_04_09_00_theme-constructor-palette.md)
 
@@ -106,5 +106,10 @@ Kvantum не перекрашивается, тем для редакторов 
   схем, кэш, онлайн-каталог tinted-theming по запросу (индекс на 7 дней),
   `palette gallery`, `palette import gallery:<id>`, отключение сети
   (`network_enabled`, `KTM_OFFLINE`). Зависимость `ureq`.
-- Дальше в P1: палитра из обоев,
+- 2026-11-04 — **P1, часть 5**: палитра из обоев (`extract.rs`, крейт `image`):
+  k-means в OKLab для CLI (`palette from-wallpaper`, ~50–90 мс), вход для
+  ImageColors (`palette from-colors`), общий алгоритм раскладки в base16 с
+  контрастом текста ≥ 7:1 и подстройкой акцента под текст на выделении.
+  OKLab вынесен в `oklab.rs`. Кнопка в GUI (ImageColors) — вместе со страницей «Палитра».
+- Дальше в P1:
   магазины Zed/Cursor, детект по бинарнику, GUI-страница «Палитра», MCP.
