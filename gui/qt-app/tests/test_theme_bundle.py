@@ -721,3 +721,29 @@ def test_store_search_and_install_go_through_the_cli(
     (home / "fake-bin" / "cursor").unlink()
     monkeypatch.setenv("PATH", str(home / "fake-bin"))
     assert "not installed" in core.store_search("cursor", "x").message
+
+
+def test_mcp_export_import_round_trip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cli_bundle_home):
+    monkeypatch.setattr(CoreFactory, "_theme_core", cli_bundle_home["theme"])
+    monkeypatch.setattr(CoreFactory, "_profile_core", cli_bundle_home["profiles"])
+    monkeypatch.setattr(CoreFactory, "_wallpaper_core", cli_bundle_home["wallpapers"])
+    server = ThemeProfileMcpServer()
+    assert cli_bundle_home["core"].save_profile("night").success
+
+    def call(name: str, arguments: dict) -> dict:
+        reply = server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                               "params": {"name": name, "arguments": arguments}})
+        assert reply["result"]["isError"] is False, reply
+        return json.loads(reply["result"]["content"][0]["text"])
+
+    archive = tmp_path / "night.ktmtheme.zip"
+    assert call("export_theme", {"name": "night", "path": str(archive)})["ok"]
+    assert archive.is_file()
+    imported = call("import_theme", {"path": str(archive), "name": "night2"})
+    assert imported["name"] == "night2"
+    assert isinstance(imported["missing"], list)
+    data = json.loads((profile_dir("night2") / "theme.json").read_text(encoding="utf-8"))
+    assert data["name"] == "night2"
+    # The home path travels as $HOME and comes back expanded.
+    kdeglobals = (profile_dir("night2") / ".config/kdeglobals").read_text(encoding="utf-8")
+    assert "$HOME" not in kdeglobals

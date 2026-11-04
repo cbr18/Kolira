@@ -56,6 +56,7 @@ class ThemeProfileMcpServer:
     def __init__(self) -> None:
         profile_core = CoreFactory.profile_core()
         wallpaper_core = CoreFactory.wallpaper_core()
+        self.profiles = profile_core
         self.core = ThemeBundleCore(
             theme_core=CoreFactory.theme_core(),
             profile_core=profile_core,
@@ -72,6 +73,8 @@ class ThemeProfileMcpServer:
             "create_custom_theme": self._create_custom_theme,
             "create_profile": self._create_profile,
             "apply_profile": self._apply_profile,
+            "export_theme": self._export_theme,
+            "import_theme": self._import_theme,
             "palette_show": self._palette_show,
             "palette_gallery": self._palette_gallery,
             "palette_import": self._palette_import,
@@ -240,6 +243,32 @@ class ThemeProfileMcpServer:
                         "installMissing": {"type": "boolean", "description": "Install missing VS Code/Cursor/Zed themes from their official stores."},
                     },
                     "required": ["name"],
+                },
+            },
+            {
+                "name": "export_theme",
+                "description": "Export a saved theme to a portable .zip (home folder written as $HOME, desktop icon positions left out, SHA-256 per file).",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "path": {"type": "string", "description": "Output .zip path."},
+                        "includeWallpaper": {"type": "boolean", "description": "Default true; leave out images you may not share."},
+                    },
+                    "required": ["name", "path"],
+                },
+            },
+            {
+                "name": "import_theme",
+                "description": "Import a theme from a .zip export or an unpacked theme directory (does not apply it). Returns the theme name and what this machine lacks, with where to get it.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string"},
+                        "name": {"type": "string", "description": "Import under this name instead."},
+                        "force": {"type": "boolean", "description": "Replace an existing theme of that name (backed up first)."},
+                    },
+                    "required": ["path"],
                 },
             },
             {
@@ -413,6 +442,26 @@ class ThemeProfileMcpServer:
             "profile": result.data,
             "messages": messages,
         }
+
+    def _export_theme(self, arguments: dict) -> dict:
+        result = self.profiles.export_theme(
+            str(arguments.get("name") or ""),
+            str(arguments.get("path") or ""),
+            bool(arguments.get("includeWallpaper", True)),
+        )
+        if not result.success:
+            raise ValueError(result.message)
+        return {"ok": True, "message": result.message}
+
+    def _import_theme(self, arguments: dict) -> dict:
+        result = self.profiles.import_theme(
+            str(arguments.get("path") or ""),
+            str(arguments.get("name") or ""),
+            bool(arguments.get("force", False)),
+        )
+        if not result.success:
+            raise ValueError(result.message)
+        return {"ok": True, **(result.data or {})}
 
     def _apply_profile(self, arguments: dict) -> dict:
         result = self.core.apply_profile(

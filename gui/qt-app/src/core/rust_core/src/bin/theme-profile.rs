@@ -20,18 +20,22 @@ use kde_theme_core::extract;
 use kde_theme_core::stores;
 use kde_theme_core::field;
 use kde_theme_core::theme;
+use kde_theme_core::share;
 
 const USAGE: &str = "\
 Usage:
   theme-profile status
   theme-profile list
   theme-profile save NAME [--description=...] [--no-wallpaper]
-                              (a theme package: theme values + local assets + wallpaper)
+                              (full snapshot of the appearance files + theme.json)
   theme-profile apply NAME [--install-missing] [--keep-wallpaper] [--json]
-                              (only what the theme defines; missing assets are reported,
+                              (restores the theme; missing assets are reported,
                                --install-missing installs app themes from their stores)
   theme-profile check NAME [--json]           (what applying NAME would miss)
-  theme-profile migrate NAME|--all            (convert legacy snapshot profiles to packages)
+  theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper]
+                              (portable copy: $HOME for the home dir, no desktop icons)
+  theme-profile import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
+  theme-profile migrate NAME|--all            (add theme.json to snapshot profiles)
   theme-profile clone SOURCE TARGET
   theme-profile diff A B
   theme-profile delete NAME
@@ -729,6 +733,62 @@ fn main() -> ExitCode {
                 }
                 Err(e) => fail(e),
             }
+        }
+        "export" => {
+            let Some(name) = args.get(1).filter(|a| !a.starts_with("--")) else {
+                return fail("Usage error: export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper]");
+            };
+            let options = share::ExportOptions { include_wallpaper: !args.iter().any(|a| a == "--no-wallpaper") };
+            let dir = args.iter().find_map(|a| a.strip_prefix("--dir="));
+            let result = match dir {
+                Some(d) => share::export_dir(name, std::path::Path::new(d), &options).map(|n| (n, d.to_string())),
+                None => {
+                    let out = args
+                        .iter()
+                        .find_map(|a| a.strip_prefix("--out="))
+                        .map(str::to_string)
+                        .unwrap_or_else(|| format!("{name}.ktmtheme.zip"));
+                    share::export_zip(name, std::path::Path::new(&out), &options).map(|n| (n, out))
+                }
+            };
+            match result {
+                Ok((n, out)) => {
+                    println!("Exported {name}: {n} files -> {out}");
+                    ExitCode::SUCCESS
+                }
+                Err(e) => fail(format!("{e:#}")),
+            }
+        }
+        "import" => {
+            let Some(src) = args.get(1).filter(|a| !a.starts_with("--")) else {
+                return fail("Usage error: import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]");
+            };
+            let options = share::ImportOptions {
+                name: args.iter().find_map(|a| a.strip_prefix("--name=")).map(str::to_string),
+                force: args.iter().any(|a| a == "--force"),
+            };
+            let report = match share::import(std::path::Path::new(src), &options) {
+                Ok(r) => r,
+                Err(e) => return fail(format!("{e:#}")),
+            };
+            if args.iter().any(|a| a == "--apply") {
+                let apply = theme::ApplyOptions::default();
+                if let Err(e) = theme::apply(&report.name, &apply) {
+                    return fail(format!("imported {}, but apply failed: {e:#}", report.name));
+                }
+            }
+            if args.iter().any(|a| a == "--json") {
+                println!("{}", serde_json::to_string(&report).unwrap_or_default());
+            } else {
+                println!("Imported theme: {} ({} files)", report.name, report.files);
+                if let Some(old) = &report.replaced {
+                    println!("Replaced theme backed up to: {old}");
+                }
+                for m in &report.missing {
+                    println!("missing={}={}{}", m.field, m.name, if m.source.is_empty() { String::new() } else { format!(" ({})", m.source) });
+                }
+            }
+            ExitCode::SUCCESS
         }
         "check" => {
             let Some(name) = args.get(1).filter(|a| !a.starts_with("--")) else {

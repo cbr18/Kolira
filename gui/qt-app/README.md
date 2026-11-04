@@ -22,6 +22,9 @@ Native KDE Plasma application for managing theme profiles and wallpapers.
 - **Themes** — save dialog with *Include the current wallpaper*, apply dialog
   with *Keep the current wallpaper*, and a *Missing Theme Parts* dialog (links +
   *Install from stores*) fed by `theme-profile apply --json`
+- **Export / import** — card menu → *Export…* (`.ktmtheme.zip`, optional
+  wallpaper), *Import theme…* (name conflict → new name or replace); the
+  missing-parts dialog follows an import too (`theme-profile import --json`)
 - **Palette page** — Theme → Palette: base16 + accent, gallery, from wallpaper
   (`Kirigami.ImageColors`) or k-means, colour editing, apply to KDE /
   terminals / Kvantum (`controllers/palette.py` → Rust CLI)

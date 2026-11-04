@@ -130,6 +130,15 @@ class ProfileCore(ABC):
     def get_profile_components(self, profile: str) -> list[str]:
         """Какие компоненты сохранены в профиле."""
 
+    # Export/import are optional for a core: the Rust CLI core implements them.
+    def export_theme(self, name: str, path: str, include_wallpaper: bool = True) -> Result:
+        """Export theme ``name`` to ``path`` (.zip, portable: $HOME, no desktop icons)."""
+        return Result.err("Export is not supported by this core")
+
+    def import_theme(self, path: str, name: str = "", force: bool = False) -> Result:
+        """Import a theme from ``path`` (.zip or unpacked dir); data = report."""
+        return Result.err("Import is not supported by this core")
+
 
 class WallpaperCore(ABC):
     """Управление обоями."""

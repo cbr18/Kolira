@@ -1429,6 +1429,96 @@ else
 fi
 
 
+# --- 17. export / import (.zip and unpacked directory) ------------------------
+echo "=== Section 17: export / import ==="
+
+EX_A="$TMP_ROOT/export-a"   # the author
+EX_B="$TMP_ROOT/export-b"   # the receiver (different home path)
+mkdir -p "$EX_A/.config/kitty" "$EX_A/Pictures/Wallpaper" "$EX_B"
+printf 'jpeg' >"$EX_A/Pictures/Wallpaper/sea.jpg"
+printf 'background #282a36\ninclude %s/.config/kitty/extra.conf\n' "$EX_A" >"$EX_A/.config/kitty/kitty.conf"
+cat >"$EX_A/.config/plasma-org.kde.plasma.desktop-appletsrc" <<APPLETS
+[Containments][1]
+lastScreen=0
+
+[Containments][1][General]
+positions={"1x1":["1","1","desktop:/secret-file.txt","0","0"]}
+sortMode=-1
+
+[Containments][1][Wallpaper][org.kde.image][General]
+Image=file://$EX_A/Pictures/Wallpaper/sea.jpg
+APPLETS
+ex_a() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$EX_A" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+ex_b() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$EX_B" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+ex_a save sea >/dev/null 2>&1
+ZIP="$TMP_ROOT/sea.ktmtheme.zip"
+if ex_a export sea --out="$ZIP" >/dev/null 2>&1 && [ -f "$ZIP" ]; then
+  ok "export writes a .zip"
+else
+  fail "export did not write $ZIP"
+fi
+EX_X="$TMP_ROOT/export-x"
+mkdir -p "$EX_X" && (cd "$EX_X" && python3 -c 'import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall(".")' "$ZIP")
+# shellcheck disable=SC2016  # the literal token $HOME is what the export must contain
+if ! grep -rqF "$EX_A" "$EX_X" && grep -qF '$HOME/.config/kitty/extra.conf' "$EX_X/.config/kitty/kitty.conf" &&
+  ! grep -q "secret-file" "$EX_X/.config/plasma-org.kde.plasma.desktop-appletsrc" &&
+  grep -q "sortMode=-1" "$EX_X/.config/plasma-org.kde.plasma.desktop-appletsrc" && [ -f "$EX_X/export.json" ]; then
+  ok "export is portable: \$HOME instead of the home path, no desktop icons, export.json"
+else
+  fail "export leaks the home path or desktop icons"
+fi
+
+if ex_b import "$ZIP" | grep -q "^Imported theme: sea" &&
+  grep -qF "include $EX_B/.config/kitty/extra.conf" "$EX_B/.config/theme-profile/profiles/sea/.config/kitty/kitty.conf" &&
+  [ -f "$EX_B/.config/theme-profile/profiles/sea/wallpaper/sea.jpg" ]; then
+  ok "import expands \$HOME to the receiver's home and brings the wallpaper"
+else
+  fail "import did not restore the theme for the receiver"
+fi
+ex_b apply sea >/dev/null 2>&1
+if grep -qF "include $EX_B/.config/kitty/extra.conf" "$EX_B/.config/kitty/kitty.conf"; then
+  ok "an imported theme applies on the receiver's machine"
+else
+  fail "applying the imported theme failed"
+fi
+if ex_b import "$ZIP" >/dev/null 2>&1; then
+  fail "import overwrote an existing theme without --force"
+else
+  ok "import refuses an existing name without --force"
+fi
+if ex_b import "$ZIP" --force >/dev/null 2>&1 &&
+  compgen -G "$EX_B/.config/theme-profile/backups/pre-import-sea-*" >/dev/null; then
+  ok "import --force replaces the theme and backs up the old one"
+else
+  fail "import --force did not back up the replaced theme"
+fi
+if ex_b import "$EX_X" --name=sea-dir | grep -q "^Imported theme: sea-dir" &&
+  grep -q '"name": "sea-dir"' "$EX_B/.config/theme-profile/profiles/sea-dir/theme.json"; then
+  ok "import accepts an unpacked theme directory and --name"
+else
+  fail "directory import / --name failed"
+fi
+
+# Hostile or damaged archives.
+EVIL="$TMP_ROOT/evil.zip"
+python3 -c 'import zipfile,sys; z=zipfile.ZipFile(sys.argv[1],"w"); z.writestr("../../evil.txt","x"); z.close()' "$EVIL"
+if ex_b import "$EVIL" >/dev/null 2>&1 || [ -e "$TMP_ROOT/evil.txt" ]; then
+  fail "zip-slip archive was accepted"
+else
+  ok "import refuses paths that escape the theme (zip-slip)"
+fi
+printf 'tampered\n' >>"$EX_X/.config/kitty/kitty.conf"
+if ex_b import "$EX_X" --name=tampered >/dev/null 2>&1; then
+  fail "a modified file passed the checksum check"
+else
+  ok "import refuses files whose SHA-256 does not match export.json"
+fi
+if [ -e "$EX_B/.config/theme-profile/profiles/tampered" ] || compgen -G "$EX_B/.config/theme-profile/profiles/.import-*" >/dev/null; then
+  fail "a refused import left files behind"
+else
+  ok "a refused import leaves nothing behind"
+fi
+
 # --- Summary ------------------------------------------------------------------
 echo ""
 echo "═══════════════════════════════════════"

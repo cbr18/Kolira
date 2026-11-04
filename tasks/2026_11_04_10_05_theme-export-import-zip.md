@@ -1,6 +1,6 @@
 # Экспорт / импорт тем в .zip
 
-Status: TODO
+Status: DONE (2026-11-04; формат и проверки — docs/THEMES.md «Export and import»)
 
 Связано: [publish-repo-with-themes](2026_11_04_10_10_publish-repo-with-themes.md) —
 формат архива = формат темы в репозитории.
@@ -64,3 +64,18 @@ configs/             # ОПЦИОНАЛЬНО (--with-configs): санитизи
 - [ ] Тесты: round-trip export→import на временном HOME, zip-slip, битый архив,
       секрет не попадает в архив.
 - [ ] Документация: README, `docs/CURRENT_APP.md`, `docs/MCP.md`, новый раздел формата.
+
+## Итог (2026-11-04)
+
+- Rust `src/share.rs`: `theme-profile export NAME [--out=FILE.zip|--dir=DIR]
+  [--no-wallpaper]`, `theme-profile import FILE.zip|DIR [--name] [--force]
+  [--apply] [--json]`; crates `zip` (deflate), `sha2`.
+- Санитайзер свёлся к трём правилам: домашняя папка → `$HOME`, без положений
+  значков рабочего стола, без `user=` в manifest.txt. Секретов в отслеживаемых
+  файлах нет; личные нерелевантные файлы (QtProject.conf, obsidian.json,
+  Preferences) больше не отслеживаются вовсе. Из «библиотечных» папок
+  (color-schemes, Kvantum, look-and-feel…) — только ресурсы темы.
+- Импорт: zip-slip, симлинки, SHA-256, лимиты, временная папка + rename,
+  конфликт имён → `--name`/`--force` (бэкап `pre-import-*`), отчёт `missing`.
+- GUI (Экспорт… / Импорт темы… / диалог конфликта / недостающие части), MCP
+  (`export_theme`, `import_theme`), тесты (Rust 4, bash 10, pytest 1).

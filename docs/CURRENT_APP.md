@@ -60,7 +60,9 @@ theme-profile list               # список профилей
 theme-profile apply glass        # применить тему (--keep-wallpaper — не трогать обои)
 theme-profile save my-profile    # сохранить текущее оформление как тему-пакет
 theme-profile check glass        # чего не хватит при применении и где взять
-theme-profile migrate --all      # перевести старые профили-снимки в пакеты
+theme-profile migrate --all      # добавить theme.json старым профилям-снимкам
+theme-profile export glass --out=glass.ktmtheme.zip   # переносимая копия темы
+theme-profile import glass.ktmtheme.zip               # [--name=NEW] [--force] [--apply]
 theme-profile status             # текущее состояние
 theme-profile diff glass paper   # сравнить профили
 

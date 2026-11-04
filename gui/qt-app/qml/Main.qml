@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
+import QtCore
 import org.kde.kirigami 2.20 as Kirigami
 import org.kde.kirigami.platform as Platform
 import Components 1.0
@@ -112,6 +114,7 @@ Kirigami.ApplicationWindow {
 
     // Transient feedback for the last controller operation.
     property string operationMessage: ""
+    property string _lastOperation: ""
     property bool _operationSucceeded: true
 
     Timer {
@@ -137,12 +140,17 @@ Kirigami.ApplicationWindow {
     Connections {
         target: profileController
         function onOperationStarted(op) {
+            root._lastOperation = op
             if (op === "apply")
                 root.operationMessage = qsTr("Applying profile…")
             else if (op === "save")
                 root.operationMessage = qsTr("Saving profile…")
             else if (op === "delete")
                 root.operationMessage = qsTr("Deleting profile…")
+            else if (op === "export")
+                root.operationMessage = qsTr("Exporting theme…")
+            else if (op === "import")
+                root.operationMessage = qsTr("Importing theme…")
             else
                 root.operationMessage = qsTr("Working…")
         }
@@ -150,10 +158,20 @@ Kirigami.ApplicationWindow {
             root._operationSucceeded = success
             root.operationMessage = message
             messageTimer.restart()
+            // Name taken: let the user pick another name or replace it.
+            if (!success && root._lastOperation === "import"
+                    && importConflictDialog.fileUrl !== ""
+                    && message.indexOf("already exists") >= 0) {
+                importConflictDialog.message = message
+                importConflictDialog.open()
+            } else if (root._lastOperation === "import") {
+                importConflictDialog.fileUrl = ""
+            }
         }
         function onDependenciesMissing(profile, missing) {
             missingDialog.targetProfile = profile
             missingDialog.missing = missing
+            missingDialog.afterImport = root._lastOperation === "import"
             missingDialog.open()
         }
     }
@@ -317,6 +335,12 @@ Kirigami.ApplicationWindow {
                         }
                         Item { Layout.fillWidth: true }
                         Button {
+                            text: qsTr("Import theme…")
+                            icon.name: "document-import"
+                            enabled: !root.applying && !profileController.busy
+                            onClicked: importFileDialog.open()
+                        }
+                        Button {
                             text: qsTr("Save current…")
                             icon.name: "list-add"
                             enabled: !root.applying
@@ -360,6 +384,11 @@ Kirigami.ApplicationWindow {
                             onDeleteClicked: function(profileName) {
                                 confirmDialog.targetProfile = profileName
                                 confirmDialog.open()
+                            }
+                            onExportClicked: function(profileName) {
+                                exportFileDialog.profileName = profileName
+                                exportFileDialog.selectedFile = StandardPaths.writableLocation(StandardPaths.HomeLocation) + "/" + profileName + ".ktmtheme.zip"
+                                exportFileDialog.open()
                             }
                             onDuplicateClicked: function(profileName) {
                                 duplicateDialog.sourceProfile = profileName
@@ -531,6 +560,7 @@ Kirigami.ApplicationWindow {
         preferredWidth: 520
         property string targetProfile: ""
         property var missing: []
+        property bool afterImport: false
         readonly property bool installable: missing.some(m => /marketplace\.visualstudio\.com|open-vsx\.org|^Zed extension/.test(m.source || ""))
         standardButtons: Kirigami.Dialog.Close
         customFooterActions: [
@@ -558,7 +588,9 @@ Kirigami.ApplicationWindow {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
                 color: ThemeColors.fgColor(root.glassMode)
-                text: qsTr("Theme \"%1\" was applied without these parts — install them and apply again:").arg(missingDialog.targetProfile)
+                text: missingDialog.afterImport
+                      ? qsTr("Theme \"%1\" was imported. This machine lacks these parts — applying it will skip them until they are installed:").arg(missingDialog.targetProfile)
+                      : qsTr("Theme \"%1\" was applied without these parts — install them and apply again:").arg(missingDialog.targetProfile)
             }
             Repeater {
                 model: missingDialog.missing
@@ -576,6 +608,108 @@ Kirigami.ApplicationWindow {
                 }
             }
         }
+    }
+
+    // ── Export / import (.ktmtheme.zip) ──────────────────────────────────
+    FileDialog {
+        id: exportFileDialog
+        property string profileName: ""
+        title: qsTr("Export theme \"%1\"").arg(profileName)
+        fileMode: FileDialog.SaveFile
+        defaultSuffix: "zip"
+        nameFilters: [qsTr("Theme archives (*.zip)")]
+        onAccepted: exportOptionsDialog.open()
+    }
+
+    Kirigami.Dialog {
+        id: exportOptionsDialog
+        title: qsTr("Export Theme")
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+        preferredWidth: 440
+
+        background: Rectangle {
+            color: ThemeColors.dialogBg(root.glassMode)
+            radius: 8
+            border.width: 1
+            border.color: ThemeColors.cardBorder(root.glassMode)
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                color: ThemeColors.fgColor(root.glassMode)
+                text: qsTr("The archive holds the theme's appearance files; your home folder is written as $HOME and desktop icon positions are left out.")
+            }
+            CheckBox {
+                id: exportWallpaperBox
+                checked: true
+                text: qsTr("Include the wallpaper")
+                ToolTip.text: qsTr("Leave it out if you may not share the image")
+                ToolTip.visible: hovered
+            }
+        }
+
+        onAccepted: profileController.exportProfile(exportFileDialog.profileName,
+                                                    exportFileDialog.selectedFile.toString(),
+                                                    exportWallpaperBox.checked)
+    }
+
+    FileDialog {
+        id: importFileDialog
+        title: qsTr("Import a theme")
+        fileMode: FileDialog.OpenFile
+        nameFilters: [qsTr("Theme archives (*.zip)"), qsTr("All files (*)")]
+        onAccepted: {
+            importConflictDialog.fileUrl = selectedFile.toString()
+            profileController.importTheme(importConflictDialog.fileUrl, "", false)
+        }
+    }
+
+    Kirigami.Dialog {
+        id: importConflictDialog
+        title: qsTr("Theme Already Exists")
+        property string fileUrl: ""
+        property string message: ""
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+        preferredWidth: 440
+
+        background: Rectangle {
+            color: ThemeColors.dialogBg(root.glassMode)
+            radius: 8
+            border.width: 1
+            border.color: ThemeColors.cardBorder(root.glassMode)
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                color: ThemeColors.fgColor(root.glassMode)
+                text: importConflictDialog.message
+            }
+            TextField {
+                id: importNameField
+                Layout.fillWidth: true
+                enabled: !importReplaceBox.checked
+                placeholderText: qsTr("Import under a new name")
+            }
+            CheckBox {
+                id: importReplaceBox
+                text: qsTr("Replace the existing theme (it is backed up first)")
+            }
+        }
+
+        onAccepted: {
+            var replace = importReplaceBox.checked
+            var name = replace ? "" : importNameField.text.trim()
+            importReplaceBox.checked = false
+            importNameField.text = ""
+            profileController.importTheme(fileUrl, name, replace)
+        }
+        onRejected: fileUrl = ""
     }
 
     Kirigami.Dialog {

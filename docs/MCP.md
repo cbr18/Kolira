@@ -136,6 +136,24 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 - `keepWallpaper` — не менять обои, даже если они есть в теме;
 - `installMissing` — доустановить недостающие темы VS Code/Cursor/Zed из официальных магазинов.
 
+### `export_theme`
+
+Экспортирует сохранённую тему в переносимый `.zip` (`theme-profile export`):
+домашняя папка записана как `$HOME`, положения значков рабочего стола не
+попадают, у каждого файла SHA-256 в `export.json` (`docs/THEMES.md`).
+
+Аргументы: `name`, `path` (куда писать `.zip`), `includeWallpaper` (по
+умолчанию `true`; выключите для обоев, которые нельзя распространять).
+
+### `import_theme`
+
+Импортирует тему из `.zip` или распакованной папки (`theme-profile import`), не
+применяя её. Возвращает `name`, `files`, `replaced` (бэкап заменённой темы) и
+`missing: [{field, name, source}]`.
+
+Аргументы: `path`, `name` (импортировать под другим именем), `force` (заменить
+существующую тему, старая уходит в `backups/pre-import-*`).
+
 ## Палитра и магазины тем
 
 Работают через тот же Rust CLI, что и GUI (`theme-profile palette …`,

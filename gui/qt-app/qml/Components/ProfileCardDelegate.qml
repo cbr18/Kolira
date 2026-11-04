@@ -288,6 +288,11 @@ Kirigami.AbstractCard {
                     onTriggered: card.diffClicked(card.profileName)
                 }
                 MenuItem {
+                    text: qsTr("Export…")
+                    icon.name: "document-export"
+                    onTriggered: card.exportClicked(card.profileName)
+                }
+                MenuItem {
                     text: qsTr("Edit description")
                     icon.name: "document-edit"
                     onTriggered: card.editDescriptionClicked(
@@ -324,5 +329,6 @@ Kirigami.AbstractCard {
     signal inspectClicked(string profileName)
     signal deleteClicked(string profileName)
     signal duplicateClicked(string profileName)
+    signal exportClicked(string profileName)
     signal editDescriptionClicked(string profileName, string description)
 }

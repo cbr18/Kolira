@@ -11,7 +11,7 @@ import shutil
 import sys
 
 from PySide6.QtCore import (
-    QObject, Signal, Slot, Property, QTimer, QRunnable, QThreadPool
+    QObject, Signal, Slot, Property, QTimer, QRunnable, QThreadPool, QUrl
 )
 
 from core.protocol import (
@@ -338,6 +338,46 @@ class ProfileController(QObject):
             return result.success, result.message or "Description updated"
 
         self._start_operation("describe", _work)
+
+    @staticmethod
+    def _local_path(url_or_path: str) -> str:
+        """QML FileDialog gives ``file:///…`` URLs; the CLI wants paths."""
+        text = (url_or_path or "").strip()
+        if text.startswith("file:"):
+            return QUrl(text).toLocalFile()
+        return text
+
+    @Slot(str, str, bool)
+    def exportProfile(self, name: str, file_url: str, include_wallpaper: bool) -> None:
+        """Export a theme to a .zip (asynchronously)."""
+        try:
+            name = validate_profile_name(name)
+        except ValueError as exc:
+            self.operationFinished.emit(False, str(exc))
+            return
+        path = self._local_path(file_url)
+
+        def _work() -> tuple[bool, str]:
+            result = self._core.export_theme(name, path, include_wallpaper)
+            return result.success, result.message
+
+        self._start_operation("export", _work)
+
+    @Slot(str, str, bool)
+    def importTheme(self, file_url: str, name: str, force: bool) -> None:
+        """Import a theme (.zip); missing parts go to ``dependenciesMissing``."""
+        path = self._local_path(file_url)
+
+        def _work() -> tuple[bool, str]:
+            result = self._core.import_theme(path, name, force)
+            if result.success:
+                report = result.data or {}
+                self._pending_missing = (
+                    str(report.get("name", "")), list(report.get("missing") or [])
+                )
+            return result.success, result.message
+
+        self._start_operation("import", _work)
 
     @Slot(str)
     def deleteProfile(self, name: str) -> None:

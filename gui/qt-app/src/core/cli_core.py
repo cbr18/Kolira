@@ -253,6 +253,43 @@ class CliProfileCore(ProfileCore):
             args.append("--no-wallpaper")
         return self._run(args, timeout=120)
 
+    def export_theme(self, name: str, path: str, include_wallpaper: bool = True) -> Result:
+        """`theme-profile export NAME --out=PATH [--no-wallpaper]`."""
+        try:
+            name = validate_profile_name(name)
+        except ValueError as exc:
+            return Result.err(str(exc))
+        if not path:
+            return Result.err("No export file chosen")
+        args = ["export", name, f"--out={path}"]
+        if not include_wallpaper:
+            args.append("--no-wallpaper")
+        return self._run(args, timeout=120)
+
+    def import_theme(self, path: str, name: str = "", force: bool = False) -> Result:
+        """`theme-profile import PATH [--name=] [--force] --json`.
+
+        data = {name, files, replaced, missing: [{field, name, source}]}.
+        """
+        if not path:
+            return Result.err("No theme file chosen")
+        args = ["import", path, "--json"]
+        if name.strip():
+            try:
+                args.append(f"--name={validate_profile_name(name.strip())}")
+            except ValueError as exc:
+                return Result.err(str(exc))
+        if force:
+            args.append("--force")
+        result = self._run(args, timeout=120)
+        if not result.success:
+            return result
+        try:
+            report = json.loads(result.message or "{}")
+        except ValueError:
+            return Result.err("theme-profile import returned invalid JSON")
+        return Result.ok(f"Imported theme: {report.get('name', '')}", data=report)
+
     def check(self, name: str) -> Result:
         """What applying ``name`` would miss: data["missing"] = [{field, name, source}]."""
         try:

@@ -143,10 +143,12 @@ removed; the app always starts on the single CLI-backed core.)
 theme-profile list               # list available profiles
 theme-profile apply glass        # apply a theme (creates a pre-apply backup)
 theme-profile apply glass --keep-wallpaper   # …but leave the wallpaper alone
-theme-profile save my-profile    # save the current look as a theme package
+theme-profile save my-profile    # save the current look as a theme
 theme-profile save my-profile --no-wallpaper # a theme that never changes the wallpaper
 theme-profile check glass        # what applying would miss + where to get it
-theme-profile migrate --all      # convert old snapshot profiles to theme packages
+theme-profile migrate --all      # add theme.json to old snapshot profiles
+theme-profile export glass --out=glass.ktmtheme.zip  # portable copy ($HOME, no desktop icons)
+theme-profile import glass.ktmtheme.zip [--name=NEW] [--force] [--apply]
 theme-profile clone glass glass2 # duplicate a theme under a new name
 theme-profile save glass --description="Dark glass"   # with a card description
 theme-profile describe glass --set "New note"         # edit the description

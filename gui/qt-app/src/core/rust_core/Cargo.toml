@@ -56,6 +56,8 @@ ureq = "2.10"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "bmp"] }
 flate2 = "1"
 tar = { version = "0.4", default-features = false }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+sha2 = "0.10"
 
 
 

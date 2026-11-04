@@ -63,6 +63,8 @@ theme-profile save NAME [--description=...] [--no-wallpaper]
 theme-profile apply NAME [--keep-wallpaper] [--install-missing] [--json]
 theme-profile check NAME [--json]          # what the theme references but this machine lacks
 theme-profile migrate NAME|--all           # add theme.json to a snapshot profile (files untouched)
+theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper]
+theme-profile import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
 ```
 
 - **save** snapshots every tracked file (old version of the theme →
@@ -109,11 +111,44 @@ and written directly if the tool did not store it
 `installMissing`, returns `missing`/`installed`), `validate_profile` (returns
 `missing`). See `docs/MCP.md`.
 
-## Sharing and licensing
+## Export and import
 
-Export (planned) replaces the home directory with `$HOME` (import expands it
-back — KDE does not expand `$HOME` in appletsrc) and leaves out desktop icon
-positions. The code is MIT; each bundled asset keeps its own license
+An export (`.ktmtheme.zip`, or an unpacked directory with `--dir`) is a
+portable copy of a theme:
+
+| Part | In the export |
+|---|---|
+| `export.json` | `format: theme-profile/export@1`, theme name, date, generator, `home_token: "$HOME"`, `files`: path → SHA-256 |
+| `theme.json`, `manifest.json`, `manifest.txt` | `manifest.txt` without its `user=` line |
+| tracked appearance files | every file the theme restores (`.config/…`, `.local/share/…`, `.zen/…`, …) |
+| library folders | from `color-schemes`, `Kvantum`, `look-and-feel`, `desktoptheme`, `btop/themes`, `zed/themes` only the entries the theme uses (its `assets`) — not every installed theme |
+| `wallpaper/` | unless `--no-wallpaper` (then `theme.json` has `wallpaper: null`) |
+| left out | `metadata/` (diagnostics), files the theme no longer tracks, symlinks |
+
+Portability: in every text file the home directory becomes the literal `$HOME`
+(only as a whole path prefix: `/home/cbr18` is not `/home/cbr`), and import
+expands it to the receiver's home — KDE does not expand `$HOME` in appletsrc
+and similar files. A literal `$HOME` already in a file (a comment in
+`btop.conf`) is expanded too, which means the same thing. Desktop icon
+positions are removed from appletsrc.
+
+Import (`.zip` or directory) refuses:
+- paths that are absolute, contain `..` (zip-slip) or are symlinks;
+- files missing from `export.json` or whose SHA-256 differs, and incomplete exports;
+- more than 20 000 files or 1 GiB;
+- an existing name (use `--name=NEW`, or `--force`: the old theme goes to
+  `backups/pre-import-<name>-…`) and names differing only by case.
+
+It writes into a temporary `profiles/.import-*` directory and renames it into
+place, so a refused import leaves nothing behind. The result lists what the
+theme references but this machine lacks (`missing`, with where to get it);
+`--apply` applies the theme right away. GUI: card menu → *Export…*,
+*Import theme…* next to *Save current…* (name conflict → new name or replace),
+then the *Missing Theme Parts* dialog. MCP: `export_theme`, `import_theme`.
+
+## Licensing
+
+The code is MIT; each bundled asset keeps its own license
 (`redistributable` flag; a LICENSE/source note beside it in published themes).
 Anything that may not be redistributed is shipped as a reference only and shows
 up in the missing-parts report.
