@@ -548,11 +548,11 @@ pub fn alacritty_with_palette(existing: &str, p: &Palette) -> Result<String> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Targets a palette can be applied to.
-pub const TARGETS: [&str; 8] = ["kde", "kitty", "alacritty", "konsole", "nvim", "discord", "spicetify", "kvantum"];
+pub const TARGETS: [&str; 10] = ["kde", "kitty", "alacritty", "konsole", "ghostty", "nvim", "discord", "spicetify", "cava", "kvantum"];
 
 /// Targets used when none are given. `kvantum` is opt-in: it switches the Qt
 /// widget style, which the user may have chosen deliberately (e.g. Breeze).
-pub const DEFAULT_TARGETS: [&str; 7] = ["kde", "kitty", "alacritty", "konsole", "nvim", "discord", "spicetify"];
+pub const DEFAULT_TARGETS: [&str; 9] = ["kde", "kitty", "alacritty", "konsole", "ghostty", "nvim", "discord", "spicetify", "cava"];
 
 /// Extra knobs for [`apply`].
 #[derive(Debug, Default, Clone)]
@@ -752,6 +752,20 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
         match crate::spicetify::apply_palette(p)? {
             Some(path) => report.push(format!("spicetify: {} (selected; spicetify apply)", path.display())),
             None => report.push("spicetify: skipped, no ~/.config/spicetify/config-xpui.ini".to_string()),
+        }
+    }
+
+    if wants("ghostty") {
+        match crate::extras::ghostty_apply_palette(p)? {
+            Some(path) => report.push(format!("ghostty: {} (included by config; new windows)", path.display())),
+            None => report.push("ghostty: skipped, no ~/.config/ghostty/config".to_string()),
+        }
+    }
+
+    if wants("cava") {
+        match crate::extras::cava_apply_palette(p)? {
+            Some(path) => report.push(format!("cava: {} (gradient; running cava reloaded)", path.display())),
+            None => report.push("cava: skipped, no ~/.config/cava/config".to_string()),
         }
     }
 

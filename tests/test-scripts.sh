@@ -1783,6 +1783,52 @@ else
   fail "Spicetify apply wrong: $(cat "$spb/config-xpui.ini")"
 fi
 
+# --- 24. Shell & small apps: oh-my-posh, fish colours, cava, ghostty, bat ----
+echo "=== Section 24: oh-my-posh, fish, cava, ghostty, bat ==="
+SA="$TMP_ROOT/sh-a"; SB="$TMP_ROOT/sh-b"
+mkdir -p "$SA/.config/fish" "$SA/themes" "$SA/.config/cava" "$SA/.config/ghostty" "$SA/.config/bat" \
+  "$SB/.config/fish" "$SB/.config/cava" "$SB/.config/ghostty" "$SB/.config/bat"
+printf '{"blocks":[],"version":3,"name":"aliens"}\n' >"$SA/themes/aliens.omp.json"
+printf "oh-my-posh init fish --config '%s/themes/aliens.omp.json' | source  # [omp-manager]\nabbr -a g git\n" "$SA" >"$SA/.config/fish/config.fish"
+printf 'SETUVAR __fish_initialized:4300\nSETUVAR fish_color_command:bd93f9\nSETUVAR fish_user_paths:/a\n' >"$SA/.config/fish/fish_variables"
+printf '[general]\nframerate = 60\n\n[color]\ngradient = 1\ngradient_color_1 = %s\n' "'#ff0000'" >"$SA/.config/cava/config"
+printf 'font-size = 12\nbackground = #282a36\nkeybind = ctrl+a=new_tab\n' >"$SA/.config/ghostty/config"
+printf -- '--theme="Dracula"\n--style=numbers\n' >"$SA/.config/bat/config"
+sh_cli() { local h="$1"; shift; env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$h" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+sh_cli "$SA" save shells >/dev/null 2>&1
+st="$SA/.config/theme-profile/profiles/shells"
+if grep -q '"name":"aliens"' "$st/.config/oh-my-posh/theme-profile.omp.json" 2>/dev/null && [ ! -e "$st/.config/fish/config.fish" ] &&
+  grep -q "fish_color_command" "$st/.config/fish/fish_variables" && ! grep -q "fish_user_paths" "$st/.config/fish/fish_variables" &&
+  grep -q "gradient_color_1" "$st/.config/cava/config" && ! grep -q "framerate" "$st/.config/cava/config" &&
+  grep -q "background = #282a36" "$st/.config/ghostty/theme-profile" && [ ! -e "$st/.config/ghostty/config" ] &&
+  grep -q -- '--theme="Dracula"' "$st/.config/bat/config" && ! grep -q -- "--style" "$st/.config/bat/config" &&
+  grep -q "oh-my-posh init fish --config '$SA/themes/aliens.omp.json'" "$SA/.config/fish/config.fish"; then
+  ok "save stores the prompt theme, fish colours, cava [color], ghostty look, bat theme — no personal lines, no live change"
+else
+  fail "small-apps save wrong: $(find "$st/.config" -maxdepth 2 | head -30)"
+fi
+sh_cli "$SA" export shells --out="$TMP_ROOT/shells.zip" >/dev/null 2>&1
+printf "eval (oh-my-posh init fish --config ~/mine.omp.json)\nset -g fish_greeting\n" >"$SB/.config/fish/config.fish"
+printf 'SETUVAR fish_color_command:blue\nSETUVAR fish_user_paths:/b\n' >"$SB/.config/fish/fish_variables"
+printf '[general]\nframerate = 144\n\n[color]\nforeground = %s\n' "'#00ff00'" >"$SB/.config/cava/config"
+printf 'font-size = 15\nkeybind = ctrl+b=close_surface\n' >"$SB/.config/ghostty/config"
+printf -- '--theme="TwoDark"\n--paging=never\n' >"$SB/.config/bat/config"
+sh_cli "$SB" import "$TMP_ROOT/shells.zip" --apply >/dev/null 2>&1
+bad=""
+# shellcheck disable=SC2016  # the literal $HOME is what the shell config must contain
+grep -qF 'oh-my-posh init fish --config "$HOME/.config/oh-my-posh/theme-profile.omp.json")' "$SB/.config/fish/config.fish" || bad="$bad omp-line"
+grep -q "set -g fish_greeting" "$SB/.config/fish/config.fish" || bad="$bad fish-config"
+[ -f "$SB/.config/oh-my-posh/theme-profile.omp.json" ] || bad="$bad omp-file"
+grep -q "fish_color_command:bd93f9" "$SB/.config/fish/fish_variables" && grep -q "fish_user_paths:/b" "$SB/.config/fish/fish_variables" || bad="$bad fish-vars"
+grep -q "framerate = 144" "$SB/.config/cava/config" && grep -q "gradient_color_1" "$SB/.config/cava/config" && ! grep -q "#00ff00" "$SB/.config/cava/config" || bad="$bad cava"
+grep -q "font-size = 15" "$SB/.config/ghostty/config" && [ "$(tail -1 "$SB/.config/ghostty/config")" = "config-file = ?theme-profile" ] && grep -q "background = #282a36" "$SB/.config/ghostty/theme-profile" || bad="$bad ghostty"
+grep -q -- '--theme="Dracula"' "$SB/.config/bat/config" && grep -q -- "--paging=never" "$SB/.config/bat/config" || bad="$bad bat"
+if [ -z "$bad" ]; then
+  ok "applying brings prompt, fish colours, cava, ghostty, bat looks and keeps the receiver's own settings"
+else
+  fail "small-apps apply wrong:$bad"
+fi
+
 # --- Summary ------------------------------------------------------------------
 echo ""
 echo "═══════════════════════════════════════"

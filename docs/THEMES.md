@@ -36,6 +36,12 @@ takes the family from the theme and keeps the live size.
 | Neovim | `lua/theme-profile.lua` (picks the scheme, transparent background when the theme's terminal is translucent) + `colors/theme-profile.lua` (base16 scheme generated from the palette) | `init.lua` — only gains `pcall(require, "theme-profile")` (last line); `init.vim` setups are left alone |
 | Discord (Vencord / Vesktop) | `themes/` (CSS themes) + `settings/settings.json` `enabledThemes`/`themeLinks`; Vesktop ↔ Vencord themes map to whichever client the receiver has | every other client setting; stock Discord has no themes → `discord-client` dependency |
 | Spotify (Spicetify) | `Themes/` + `config-xpui.ini` `[Setting]` `current_theme`, `color_scheme`, `inject_css`, `replace_colors`, `overwrite_assets`, `inject_theme_js`; apply runs `spicetify apply` | `spotify_path`, `prefs_path`, extensions, custom apps; Spicetify itself is a dependency (`spicetify-cli`) |
+| oh-my-posh | the prompt theme the shell's `oh-my-posh init … --config` line uses, stored as `oh-my-posh/theme-profile.omp.json` | `config.fish` / `.zshrc` / `.bashrc` — only the `--config` path of an existing init line is changed (never added); oh-my-posh is a dependency |
+| fish | `fish_variables` lines `SETUVAR fish_color_*` / `fish_pager_color_*` | other universal variables (`fish_user_paths`, …) |
+| Ghostty | `ghostty/theme-profile` (colours, palette, opacity/blur, font families, padding) | `config` — keeps the rest and gains `config-file = ?theme-profile` (last) |
+| cava | `[color]` (running cava reloaded with SIGUSR1) | every other section |
+| yazi | `theme.toml`, `flavors/` (whole) | `yazi.toml`, `keymap.toml` |
+| bat | `config` lines `--theme…` / `--italic-text…`, `themes/` (then `bat cache --build`) | other `config` lines |
 | Konsole | the default profile's `[Appearance]` (`ColorScheme`, font family — live size kept) + its `.colorscheme` (whole: colours, opacity, blur; travels as an asset) | the profile's command, scrolling, keys…; without a profile a `Theme Profile` (`Parent=FALLBACK/`) is created and made default |
 | Firefox (default profile from `installs.ini`/`profiles.ini`) | `chrome/userChrome.css`, `chrome/userContent.css` (whole); `user.js` only look prefs (`browser.theme.*`, `toolkit.legacyUserProfileCustomizations.stylesheets`, `extensions.activeThemeID`, …) | privacy/behaviour prefs in `user.js` |
 | Alacritty | `alacritty/theme-profile.toml` (`[colors.*]`, `[font]` faces, window opacity/blur/padding/decorations, cursor style) | `[font] size`/offsets; `alacritty.toml` gains `general.import` |
@@ -171,7 +177,7 @@ Global Theme, colour scheme, window decoration (plugin or Aurorae), panel
 widgets the user installed, editor themes, the Firefox theme add-on
 (`amo`: link to addons.mozilla.org — add-ons are installed from inside
 Firefox), a Discord theming client (`discord-client`: Vesktop from the AUR or
-Vencord), the login screen (`sddm`: SDDM's `[Theme] Current` lives in `/etc`
+Vencord), oh-my-posh for a prompt theme, the login screen (`sddm`: SDDM's `[Theme] Current` lives in `/etc`
 and needs root — the dependency carries the commands to install the theme
 package and select it, e.g. `sudo kwriteconfig6 --file
 /etc/sddm.conf.d/kde_settings.conf --group Theme --key Current <theme>`; the

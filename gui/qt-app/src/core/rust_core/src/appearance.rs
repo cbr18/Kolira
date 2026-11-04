@@ -66,6 +66,13 @@ pub enum Policy {
     AlacrittyHost,
     /// Neovim init.lua: never stored, gains `pcall(require, "theme-profile")`.
     NvimHost,
+    /// Shell config with an `oh-my-posh init` line: never stored, only the
+    /// `--config` path is pointed at the theme's prompt file.
+    OmpHost,
+    /// ghostty config: never stored, gains `config-file = ?theme-profile`.
+    GhosttyHost,
+    /// Lines selected by a predicate, merged by name (fish colours, bat theme).
+    Lines(fn(&str) -> bool),
     KwinRules,
 }
 
@@ -114,6 +121,7 @@ const SPICETIFY: &[Rule] = &[r(
     "Setting",
     Keys::Only(&["current_theme", "color_scheme", "inject_css", "replace_colors", "overwrite_assets", "inject_theme_js"]),
 )];
+const CAVA_RULES: &[Rule] = &[r("color", Keys::All)];
 const KCMINPUTRC: &[Rule] = &[r("Mouse", Keys::Only(&["cursorTheme"]))];
 const BTOP: &[&str] = &["color_theme", "theme_background", "truecolor", "rounded_corners", "graph_symbol*"];
 const VSCODE: &[&str] = &[
@@ -159,6 +167,11 @@ pub fn policy(rel: &str) -> Policy {
         ".config/plasmarc" => Policy::Ini(PLASMARC),
         ".config/kcminputrc" => Policy::Ini(KCMINPUTRC),
         crate::spicetify::CONFIG => Policy::Ini(SPICETIFY),
+        crate::extras::CAVA => Policy::Ini(CAVA_RULES),
+        crate::extras::FISH_VARS => Policy::Lines(crate::extras::fish_colour_line),
+        crate::extras::BAT_CONFIG => Policy::Lines(crate::extras::bat_theme_line),
+        crate::extras::GHOSTTY_HOST => Policy::GhosttyHost,
+        rel if crate::extras::SHELL_HOSTS.contains(&rel) => Policy::OmpHost,
         ".config/plasmashellrc" => Policy::Ini(PLASMASHELLRC),
         ".config/gtk-3.0/settings.ini" | ".config/gtk-4.0/settings.ini" => Policy::Ini(GTK_SETTINGS),
         ".config/btop/btop.conf" => Policy::Kv(BTOP),
@@ -855,7 +868,8 @@ pub fn for_theme(rel: &str, text: &str) -> Option<String> {
         Policy::Kv(keys) => Some(kv_filter(text, keys)),
         Policy::Jsonc(keys) => Some(jsonc_filter(text, keys)),
         Policy::Prefs(keys) => Some(prefs_filter(text, keys)),
-        Policy::KittyHost | Policy::AlacrittyHost | Policy::NvimHost => None,
+        Policy::Lines(keep) => Some(crate::extras::lines_filter(text, keep)),
+        Policy::KittyHost | Policy::AlacrittyHost | Policy::NvimHost | Policy::OmpHost | Policy::GhosttyHost => None,
     }
 }
 
@@ -871,6 +885,9 @@ pub fn applied(rel: &str, theme_text: &str, live_text: Option<&str>) -> Result<S
         Policy::Prefs(keys) => prefs_merge(theme_text, live, keys),
         Policy::KittyHost => kitty_host(live),
         Policy::NvimHost => crate::nvim::host(live),
+        Policy::OmpHost => crate::extras::omp_host(live),
+        Policy::GhosttyHost => crate::extras::ghostty_host(live),
+        Policy::Lines(keep) => crate::extras::lines_merge(theme_text, live, keep),
         Policy::AlacrittyHost => alacritty_host(live)?,
     })
 }
@@ -891,6 +908,16 @@ pub fn include_from_host(rel: &str, host_text: &str) -> Result<Option<(&'static 
     })
 }
 
+/// The theme file a host config includes (kitty, Alacritty, ghostty).
+pub fn include_of(host: &str) -> Option<&'static str> {
+    match host {
+        KITTY_HOST => Some(KITTY_THEME),
+        ALACRITTY_HOST => Some(ALACRITTY_THEME),
+        crate::extras::GHOSTTY_HOST => Some(crate::extras::GHOSTTY_THEME),
+        _ => None,
+    }
+}
+
 /// A stored theme file as it should be: the look only, include hosts turned
 /// into their include file. Returns the entries to keep (`rel`, text) — empty
 /// when nothing of the file belongs in a theme. `has_include` tells whether
@@ -898,7 +925,16 @@ pub fn include_from_host(rel: &str, host_text: &str) -> Result<Option<(&'static 
 pub fn normalize(rel: &str, text: &str, has_include: bool) -> Result<Vec<(String, String)>> {
     Ok(match policy(rel) {
         Policy::Whole | Policy::KwinRules => vec![(rel.to_string(), text.to_string())],
-        Policy::NvimHost => Vec::new(),
+        Policy::NvimHost | Policy::OmpHost => Vec::new(),
+        Policy::GhosttyHost => {
+            let (look, _) = crate::extras::ghostty_split(text);
+            if look.trim().is_empty() || has_include {
+                Vec::new()
+            } else {
+                vec![(crate::extras::GHOSTTY_THEME.to_string(), look)]
+            }
+        }
+        Policy::Lines(keep) => vec![(rel.to_string(), crate::extras::lines_filter(text, keep))],
         Policy::KittyHost | Policy::AlacrittyHost => match include_from_host(rel, text)? {
             Some((inc, look)) if !has_include => vec![(inc.to_string(), look)],
             _ => Vec::new(),

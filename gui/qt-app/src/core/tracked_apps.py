@@ -303,6 +303,67 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         docs_url="https://spicetify.app/docs/customization/themes",
     ),
     TrackedAppDef(
+        id="oh-my-posh",
+        name="oh-my-posh (prompt)",
+        category="Shell",
+        # Fallback; live paths come from omp_config_paths() (shell configs with an init line).
+        config_paths=(".config/oh-my-posh/theme-profile.omp.json",),
+        detect_command="oh-my-posh",
+        description="Prompt theme (.omp.json) used by the shell's oh-my-posh init line",
+        icon="utilities-terminal",
+        docs_url="https://ohmyposh.dev/docs/themes",
+    ),
+    TrackedAppDef(
+        id="fish",
+        name="fish colours",
+        category="Shell",
+        config_paths=(".config/fish/fish_variables",),
+        detect_command="fish",
+        description="fish_color_* / fish_pager_color_* universal variables only",
+        icon="utilities-terminal",
+        docs_url="https://fishshell.com/docs/current/interactive.html#syntax-highlighting",
+    ),
+    TrackedAppDef(
+        id="ghostty",
+        name="Ghostty",
+        category="Terminals",
+        config_paths=(".config/ghostty/config", ".config/ghostty/theme-profile"),
+        detect_command="ghostty",
+        description="Look in ghostty/theme-profile, included by the config",
+        icon="utilities-terminal",
+        docs_url="https://ghostty.org/docs/config",
+    ),
+    TrackedAppDef(
+        id="cava",
+        name="cava",
+        category="Media",
+        config_paths=(".config/cava/config",),
+        detect_command="cava",
+        description="[color] section (palette → gradient)",
+        icon="audio-x-generic",
+        docs_url="https://github.com/karlstav/cava",
+    ),
+    TrackedAppDef(
+        id="yazi",
+        name="yazi",
+        category="Shell",
+        config_paths=(".config/yazi/theme.toml", ".config/yazi/flavors"),
+        detect_command="yazi",
+        description="theme.toml and flavors",
+        icon="system-file-manager",
+        docs_url="https://yazi-rs.github.io/docs/flavors/overview",
+    ),
+    TrackedAppDef(
+        id="bat",
+        name="bat",
+        category="Shell",
+        config_paths=(".config/bat/config", ".config/bat/themes"),
+        detect_command="bat",
+        description="--theme line and custom themes (bat cache --build after apply)",
+        icon="text-x-generic",
+        docs_url="https://github.com/sharkdp/bat#adding-new-themes",
+    ),
+    TrackedAppDef(
         id="konsole",
         name="Konsole",
         category="Terminals",
@@ -602,6 +663,27 @@ def discord_config_paths() -> tuple[str, ...]:
     return tuple(out)
 
 
+def omp_config_paths() -> tuple[str, ...]:
+    """Shell configs with an `oh-my-posh init` line + the theme's prompt file
+    (mirrors Rust ``extras::omp_config_paths``)."""
+    import os
+
+    home = os.path.expanduser("~")
+    hosts = []
+    for rel in (".config/fish/config.fish", ".zshrc", ".bashrc"):
+        try:
+            with open(os.path.join(home, rel), encoding="utf-8") as fh:
+                text = fh.read()
+        except OSError:
+            continue
+        if any("oh-my-posh" in l and " init " in l and "--config" in l and not l.lstrip().startswith("#") for l in text.splitlines()):
+            hosts.append(rel)
+    theme = ".config/oh-my-posh/theme-profile.omp.json"
+    if hosts or os.path.exists(os.path.join(home, theme)):
+        hosts.append(theme)
+    return tuple(hosts)
+
+
 def config_paths_for(app: TrackedAppDef) -> tuple[str, ...]:
     """Актуальные пути приложения (zen — авто-детект, остальные — static)."""
     if app.id == "zen":
@@ -612,6 +694,8 @@ def config_paths_for(app: TrackedAppDef) -> tuple[str, ...]:
         return konsole_config_paths()
     if app.id == "discord":
         return discord_config_paths()
+    if app.id == "oh-my-posh":
+        return omp_config_paths()
     return app.config_paths
 
 

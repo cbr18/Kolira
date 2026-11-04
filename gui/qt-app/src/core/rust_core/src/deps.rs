@@ -163,6 +163,7 @@ pub fn installed(d: &Dependency) -> bool {
         "sddm" => locate("sddm", &d.name).is_some() && sddm_current().as_deref() == Some(d.name.as_str()),
         "decoration" => decoration_plugin(&d.name).is_some(),
         "spicetify" => which::which("spicetify").is_ok(),
+        "oh-my-posh" => which::which("oh-my-posh").is_ok() || home_dir().join(".local/bin/oh-my-posh").is_file(),
         "discord-client" => crate::discord::CLIENTS.iter().any(|(_, rel)| home_dir().join(rel).exists()),
         "firefox-theme" => crate::tracked_apps::firefox_profile_dir().is_some_and(|dir| {
             home_dir().join(".mozilla/firefox").join(dir).join("extensions").join(format!("{}.xpi", d.name)).exists()
@@ -435,6 +436,18 @@ pub fn detect(dir: &Path, values: &std::collections::BTreeMap<String, Value>, so
     if let Some(name) = sddm_current().filter(|n| safe_name(n) && n != "breeze") {
         let paths = locate_all("sddm", &name);
         add(describe("sddm", &name, &paths));
+    }
+    // A prompt theme needs oh-my-posh.
+    if dir.join(crate::extras::OMP_THEME).is_file() {
+        add(Dependency {
+            kind: "oh-my-posh".into(),
+            name: "oh-my-posh".into(),
+            source: "aur".into(),
+            id: "oh-my-posh-bin".into(),
+            title: "oh-my-posh (prompts usually need a Nerd Font)".into(),
+            url: "https://ohmyposh.dev/docs/installation/linux".into(),
+            exact: true,
+        });
     }
     // Spicetify themes need Spicetify (and Spotify).
     if dir.join(crate::spicetify::CONFIG).is_file() {

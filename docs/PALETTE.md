@@ -101,6 +101,17 @@ theme-profile palette apply [--targets=kde,kitty,alacritty,kvantum] [--kvantum-b
 `user.css`; в `config-xpui.ini` выставляются `current_theme`/`color_scheme`
 `ThemeProfile`, `inject_css`/`replace_colors` `1`, затем `spicetify apply -n`.
 
+**Ghostty** (цель `ghostty`, по умолчанию; пропускается без
+`~/.config/ghostty/config`): блок цветов (`background`, `foreground`,
+`palette = N=…`, курсор, выделение) в `~/.config/ghostty/theme-profile`; `config`
+получает последней строкой `config-file = ?theme-profile` (прежнее оформление из
+`config` один раз переносится в файл темы).
+
+**cava** (цель `cava`, по умолчанию; пропускается без `~/.config/cava/config`):
+`[color]` — градиент снизу вверх по палитре (`gradient = 1`,
+`gradient_color_1..4`), `foreground` — акцент; запущенный cava перечитывает
+конфиг по SIGUSR1.
+
 **Kvantum** (цель `kvantum`, включается явно — она переключает стиль виджетов на
 `kvantum`). Темы Kvantum — GPL-графика, поэтому в репозитории их нет: при
 применении берётся **установленная** базовая тема (по умолчанию `KvArcDark` для

@@ -490,12 +490,8 @@ fn normalize_dir(name: &str, dir: &Path) -> Result<()> {
             continue;
         }
         let Ok(text) = fs::read_to_string(&path) else { continue };
-        let include = if rel == crate::appearance::KITTY_HOST {
-            crate::appearance::KITTY_THEME
-        } else {
-            crate::appearance::ALACRITTY_THEME
-        };
-        let entries = crate::appearance::normalize(&rel, &text, dir.join(include).is_file())?;
+        let has_include = crate::appearance::include_of(&rel).is_some_and(|inc| dir.join(inc).is_file());
+        let entries = crate::appearance::normalize(&rel, &text, has_include)?;
         fs::remove_file(&path)?;
         for (k, t) in entries {
             let dst = dir.join(k);
@@ -645,6 +641,12 @@ pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
     let backup = crate::profile::apply_profile_cli(name, None)?;
     if dir.join(crate::spicetify::CONFIG).is_file() {
         crate::spicetify::refresh();
+    }
+    if dir.join(crate::extras::CAVA).is_file() {
+        crate::extras::reload_cava();
+    }
+    if dir.join(".config/bat/themes").is_dir() && std::env::var("KTM_THEME_NO_APPLY").as_deref() != Ok("1") && which::which("bat").is_ok() {
+        let _ = std::process::Command::new("bat").args(["cache", "--build"]).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).status();
     }
     report.backup = backup.display().to_string();
     report.applied = crate::profile::get_profile_components(name).unwrap_or_default();

@@ -419,6 +419,9 @@ fn copy_tracked_appearance(target: &Path, rel_paths: &[String]) -> Result<()> {
             remove_path(&dst)?;
         }
         let text = (src.is_file()).then(|| fs::read_to_string(&src).ok()).flatten();
+        if rel == crate::extras::OMP_THEME {
+            continue; // written below from the prompt the shell really uses
+        }
         match text {
             Some(text) if !matches!(appearance::policy(rel), appearance::Policy::Whole) => {
                 if let Some(look) = appearance::for_theme(rel, &text) {
@@ -426,6 +429,31 @@ fn copy_tracked_appearance(target: &Path, rel_paths: &[String]) -> Result<()> {
                 }
             }
             _ => copy_tree(&src, &dst).with_context(|| format!("Failed to copy {} -> {}", src.display(), dst.display()))?,
+        }
+    }
+    Ok(())
+}
+
+/// Theme files that come from elsewhere on save (no live change): the prompt
+/// theme the shell's oh-my-posh line points to, and ghostty's look when the
+/// user's config still holds it.
+fn capture_derived(target: &Path, rel_paths: &[String]) -> Result<()> {
+    if rel_paths.iter().any(|r| r == crate::extras::OMP_THEME) {
+        let src = crate::extras::omp_current().unwrap_or_else(|| live_path(crate::extras::OMP_THEME));
+        if src.is_file() {
+            let dst = target.join(crate::extras::OMP_THEME);
+            if let Some(p) = dst.parent() {
+                fs::create_dir_all(p)?;
+            }
+            fs::copy(&src, &dst)?;
+        }
+    }
+    if rel_paths.iter().any(|r| r == crate::extras::GHOSTTY_HOST) && !live_path(crate::extras::GHOSTTY_THEME).exists() {
+        if let Ok(host) = fs::read_to_string(live_path(crate::extras::GHOSTTY_HOST)) {
+            let (look, _) = crate::extras::ghostty_split(&host);
+            if !look.trim().is_empty() {
+                write_text(&target.join(crate::extras::GHOSTTY_THEME), &look)?;
+            }
         }
     }
     Ok(())
@@ -1014,6 +1042,22 @@ fn restore_from_profile(profile: &str, rel_paths: &[String]) -> Result<()> {
         let src = theme_file(&source, rel);
         let dst = live_path(rel);
         match appearance::policy(rel) {
+            appearance::Policy::OmpHost => {
+                // Only point existing oh-my-posh lines at the theme's prompt.
+                if source.join(crate::extras::OMP_THEME).is_file() && dst.is_file() {
+                    let live = fs::read_to_string(&dst)?;
+                    let updated = appearance::applied(rel, "", Some(&live))?;
+                    if updated != live {
+                        write_text(&dst, &updated)?;
+                    }
+                }
+            }
+            appearance::Policy::GhosttyHost => {
+                if source.join(crate::extras::GHOSTTY_THEME).is_file() && (dst.is_file() || which::which("ghostty").is_ok()) {
+                    let live = fs::read_to_string(&dst).ok();
+                    write_text(&dst, &appearance::applied(rel, "", live.as_deref())?)?;
+                }
+            }
             appearance::Policy::NvimHost => {
                 // Load the theme's Neovim file when the theme has one and
                 // Neovim is set up here (init.vim users: left alone).
@@ -1380,6 +1424,7 @@ fn save_with_paths(profile: &str, rel_paths: &[String]) -> Result<()> {
     let tmp = unique_dir(&profiles, &format!(".save-{profile}"))?;
     let built = split_live_hosts(rel_paths)
         .and(copy_tracked_appearance(&tmp, rel_paths))
+        .and(capture_derived(&tmp, rel_paths))
         .and(capture_wallpaper(&tmp, rel_paths))
         .and(capture_active_kvantum_theme(&tmp, rel_paths))
         .and(capture_kde_effects_state(&tmp))
