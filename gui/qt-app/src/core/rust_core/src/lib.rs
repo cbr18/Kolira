@@ -17,6 +17,7 @@ pub mod kvantum;
 pub mod gallery;
 pub mod net;
 pub mod stores;
+pub mod field;
 pub mod tracked_apps;
 pub mod custom_components;
 pub mod config_parser;

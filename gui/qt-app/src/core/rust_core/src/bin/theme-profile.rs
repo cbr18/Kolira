@@ -18,6 +18,7 @@ use kde_theme_core::palette;
 use kde_theme_core::gallery;
 use kde_theme_core::extract;
 use kde_theme_core::stores;
+use kde_theme_core::field;
 
 const USAGE: &str = "\
 Usage:
@@ -31,6 +32,9 @@ Usage:
   theme-profile describe NAME [--set=...]
   theme-profile components <list|add|edit|remove> [json_or_id]
   theme-profile wallpaper <dir|current>
+  theme-profile field list
+  theme-profile field get [ID...] [--profile=NAME] [--json]
+  theme-profile field set ID=VALUE ...        (write keys + live command/hook)
   theme-profile apps store-search APP QUERY [--json]   (APP: zed, vscode, cursor)
   theme-profile apps store-install APP ID [--json]     (Zed extension id / publisher.name)
   theme-profile palette show [--json]
@@ -131,6 +135,72 @@ fn load_live_palette() -> Result<palette::Palette, ExitCode> {
     palette::load(&path).map_err(|e| {
         fail(format!("No palette yet ({}): {e}. Use `theme-profile palette import FILE`.", path.display()))
     })
+}
+
+fn field_cmd(args: &[String]) -> ExitCode {
+    let json = args.iter().any(|a| a == "--json");
+    let profile = args.iter().find_map(|a| a.strip_prefix("--profile="));
+    let rest: Vec<&str> = args.iter().skip(1).map(String::as_str).filter(|a| !a.starts_with("--")).collect();
+    match args.first().map(String::as_str) {
+        Some("list") => {
+            for f in field::registry() {
+                println!("{}\t{}\t{}\t{}", f.id, f.kind, f.source, f.label);
+            }
+            ExitCode::SUCCESS
+        }
+        Some("get") => {
+            let base = match profile {
+                Some(name) => {
+                    if validate_profile_name(name).is_err() {
+                        return fail(format!("Invalid profile name: {name}"));
+                    }
+                    field::Base::Snapshot(kde_theme_core::paths::profiles_dir().join(name))
+                }
+                None => field::Base::Live,
+            };
+            let ids: Vec<&str> = if rest.is_empty() {
+                field::registry().iter().map(|f| f.id.as_str()).collect()
+            } else {
+                rest
+            };
+            let mut map = serde_json::Map::new();
+            for id in ids {
+                let Some(f) = field::field(id) else { return fail(format!("Unknown field: {id}")) };
+                let value = field::read(f, &base).unwrap_or(serde_json::Value::Null);
+                if json {
+                    map.insert(id.to_string(), value);
+                } else {
+                    println!("{id}={}", field::value_str(&value));
+                }
+            }
+            if json {
+                println!("{}", serde_json::Value::Object(map));
+            }
+            ExitCode::SUCCESS
+        }
+        Some("set") => {
+            let mut values = Vec::new();
+            for pair in rest {
+                let Some((id, value)) = pair.split_once('=') else {
+                    return fail(format!("Expected ID=VALUE, got {pair:?}"));
+                };
+                let parsed = serde_json::from_str(value).unwrap_or(serde_json::Value::String(value.to_string()));
+                values.push((id.to_string(), parsed));
+            }
+            if values.is_empty() {
+                return fail("Usage error: field set ID=VALUE ...");
+            }
+            let report = field::apply(&values);
+            for id in &report.applied {
+                println!("applied={id}");
+            }
+            for e in &report.errors {
+                eprintln!("error={e}");
+            }
+            if report.errors.is_empty() { ExitCode::SUCCESS } else { ExitCode::from(1) }
+        }
+        _ => fail("Usage error: field <list|get|set>"),
+    }
 }
 
 fn apps_cmd(args: &[String]) -> ExitCode {
@@ -472,6 +542,7 @@ fn main() -> ExitCode {
         }
         "palette" => palette_cmd(&args[1..]),
         "apps" => apps_cmd(&args[1..]),
+        "field" => field_cmd(&args[1..]),
         "wallpaper" => match args.get(1).map(String::as_str) {
             // Single source of truth for the GUI and scripts.
             Some("dir") => {
