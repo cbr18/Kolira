@@ -236,6 +236,15 @@ Import (`.zip` or directory) refuses:
 - an existing name (use `--name=NEW`, or `--force`: the old theme goes to
   `backups/pre-import-<name>-…`) and names differing only by case.
 
+Editing an export by hand (e.g. adding a dependency with its official link to
+`theme.json`) means re-computing the edited files' SHA-256 in `export.json`;
+otherwise import refuses them. Usually it is simpler to change the theme, save
+and export again. Verified 2026-11-04: dracula exported, `theme.json` given a
+`cursor` dependency (`open-vsx`, `dracula-theme.theme-dracula`) and Cursor's
+`workbench.colorTheme`, re-sealed, imported — the report listed the theme with
+its Open VSX link, `deps --install` installed it into Cursor, and applying set
+Cursor to Dracula while keeping the user's other Cursor settings.
+
 It writes into a temporary `profiles/.import-*` directory and renames it into
 place, so a refused import leaves nothing behind. The result lists what the
 theme references but this machine lacks (`missing`, with where to get it);

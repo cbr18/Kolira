@@ -729,14 +729,19 @@ fn install_from_store(d: &Dependency) -> Result<String> {
     Ok(format!("installed {} into {}: {}", d.title, root.display(), placed.join(", ")))
 }
 
+fn store_message(r: &crate::stores::InstallReport) -> String {
+    let themes = if r.themes.is_empty() { String::new() } else { format!(" — themes: {}", r.themes.join(", ")) };
+    format!("installed {} for {}{themes}", r.id, r.app)
+}
+
 /// Install dependency `d` from its source. Packages are not installed (no
 /// sudo): the error carries the command to run.
 pub fn install(d: &Dependency) -> Result<String> {
     let result = match d.source.as_str() {
         _ if d.kind == "sddm" => bail!("SDDM themes need root — run: {} (or System Settings → Login Screen)", package_command(d).unwrap_or_default()),
         "kde-store" => install_from_store(d),
-        "vscode-marketplace" | "open-vsx" => crate::stores::install(if d.kind == "cursor" { "cursor" } else { "vscode" }, &d.id).map(|r| format!("{r:?}")),
-        "zed" => crate::stores::install("zed", &d.id).map(|r| format!("{r:?}")),
+        "vscode-marketplace" | "open-vsx" => crate::stores::install(if d.kind == "cursor" { "cursor" } else { "vscode" }, &d.id).map(|r| store_message(&r)),
+        "zed" => crate::stores::install("zed", &d.id).map(|r| store_message(&r)),
         "package" | "aur" => bail!("install it with: {}", package_command(d).unwrap_or_default()),
         "amo" => bail!("install it from inside Firefox: {}", d.url),
         _ => bail!("no known source — look at {}", d.url),
