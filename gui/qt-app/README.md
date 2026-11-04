@@ -75,7 +75,7 @@ The tray icon offers, without opening the window:
   operation runs, and clicking the active profile is a no-op.
 - **Wallpaper ▸** — Next / Previous / Pick (the current file name is shown
   below them).
-- **Show** — raise the window (double-clicking the icon toggles it).
+- **Show** — raise the window (a click on the icon does the same).
 - **Quit** — really quits. Needed because *Settings → Minimize to system tray*
   makes the window's close button hide the app instead; hiding is only done
   when the tray icon actually exists, so the window can never become

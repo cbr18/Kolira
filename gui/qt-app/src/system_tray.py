@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import os
 from PySide6.QtCore import QObject, Signal, Slot, Property, QCoreApplication
-from PySide6.QtGui import QAction, QActionGroup
+from PySide6.QtGui import QAction, QActionGroup, QWindow
 
 from app_icon import app_icon
 
@@ -185,7 +185,7 @@ class SystemTrayController(QObject):
 
         self._tray_icon.setContextMenu(self._tray_menu)
 
-        # Двойной клик — показать/скрыть
+        # Клик — показать/скрыть (см. _on_tray_activated)
         self._tray_icon.activated.connect(self._on_tray_activated)
 
         self._tray_icon.show()
@@ -363,14 +363,23 @@ class SystemTrayController(QObject):
         QCoreApplication.quit()
 
     def _on_tray_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
-        """Обработка кликов по иконке трея."""
-        if reason == QSystemTrayIcon.DoubleClick:
-            self._toggle_window_visibility()
+        """Обработка кликов по иконке трея.
+
+        Plasma's system tray (StatusNotifierItem) sends *Activate* on a single
+        left click — Qt reports it as ``Trigger``; a double click hardly ever
+        arrives. Reacting only to ``DoubleClick`` made the icon look dead.
+        Any click does what the menu's *Show* does: show and raise the window.
+        """
+        if reason in (QSystemTrayIcon.Trigger, QSystemTrayIcon.DoubleClick, QSystemTrayIcon.MiddleClick):
+            self._show_window()
 
     def _show_window(self) -> None:
-        """Показать главное окно."""
+        """Показать главное окно (в том числе свёрнутое)."""
         if self._main_window:
-            self._main_window.show()
+            if self._main_window.visibility() == QWindow.Visibility.Minimized:
+                self._main_window.showNormal()
+            else:
+                self._main_window.show()
             self._main_window.raise_()
             self._main_window.requestActivate()
 
@@ -380,14 +389,14 @@ class SystemTrayController(QObject):
             self._main_window.hide()
 
     def _toggle_window_visibility(self) -> None:
-        """Переключить видимость окна."""
+        """Переключить видимость окна: видимое и активное — скрыть, иначе
+        показать поверх (окно, перекрытое другими или свёрнутое, поднимается,
+        а не прячется)."""
         if self._main_window:
-            if self._main_window.isVisible():
+            if self._main_window.isVisible() and self._main_window.isActive():
                 self._main_window.hide()
             else:
-                self._main_window.show()
-                self._main_window.raise_()
-                self._main_window.requestActivate()
+                self._show_window()
 
     def set_notify_on_success(self, value: bool) -> None:
         self._notify_on_success = bool(value)

@@ -2844,3 +2844,21 @@ def test_single_instance_unusable_socket_is_not_already_running(tmp_path, monkey
         assert "108-byte" in message and str(long_tmp) in message
     finally:
         server.close()
+
+
+def test_tray_click_shows_the_window() -> None:
+    """Plasma sends a single click as Trigger; it must show the window
+    (it used to react to DoubleClick only, so the icon looked dead)."""
+    from system_tray import SystemTrayController, _import_widgets
+    import system_tray
+
+    _import_widgets()
+    shown: list[str] = []
+    controller = SystemTrayController.__new__(SystemTrayController)
+    controller._show_window = lambda: shown.append("show")  # type: ignore[method-assign]
+    for reason in (system_tray.QSystemTrayIcon.Trigger, system_tray.QSystemTrayIcon.DoubleClick,
+                   system_tray.QSystemTrayIcon.MiddleClick):
+        controller._on_tray_activated(reason)
+    assert shown == ["show", "show", "show"]
+    controller._on_tray_activated(system_tray.QSystemTrayIcon.Context)
+    assert shown == ["show", "show", "show"], "right click is the menu, not show"
