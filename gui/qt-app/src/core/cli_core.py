@@ -117,7 +117,24 @@ class CliProfileCore(ProfileCore):
         components = ()
         wallpaper_path = ""
 
-        # Читаем manifest.json (новый формат) — предпочтительнее manifest.txt
+        # Theme package (theme.json): the current format.
+        package = directory / "theme.json"
+        if package.is_file():
+            try:
+                data = json.loads(package.read_text(encoding="utf-8"))
+                values = dict(data.get("values") or {})
+                return ProfileInfo(
+                    name=name,
+                    is_active=is_active,
+                    components=tuple(sorted(values)),
+                    created_at=str(data.get("created") or ""),
+                    description=str(data.get("description") or ""),
+                    wallpaper_path=str(data.get("wallpaper") or ""),
+                )
+            except (OSError, ValueError):
+                pass
+
+        # Legacy snapshot: manifest.json — предпочтительнее manifest.txt
         manifest_json = directory / "manifest.json"
         if manifest_json.exists():
             try:
@@ -186,11 +203,33 @@ class CliProfileCore(ProfileCore):
             raise ValueError("Select at least one component")
         return ",".join(cleaned)
 
-    def apply(self, profile: str, components: Optional[list[str]] = None) -> Result:
+    def apply(self, profile: str, components: Optional[list[str]] = None,
+              keep_wallpaper: bool = False, install_missing: bool = False) -> Result:
+        """Apply a theme.
+
+        Theme packages (``theme.json``) apply everything they define;
+        ``components`` must be None for them. ``data`` then holds the report:
+        applied / skipped / installed / missing [{field, name, source}] /
+        errors / backup.
+        """
         try:
             profile = validate_profile_name(profile)
         except ValueError as exc:
             return Result.err(str(exc))
+        if components is None and (profile_dir(profile) / "theme.json").is_file():
+            args = ["apply", profile, "--json"]
+            if keep_wallpaper:
+                args.append("--keep-wallpaper")
+            if install_missing:
+                args.append("--install-missing")
+            result = self._run(args, timeout=300 if install_missing else 60)
+            if not result.success:
+                return result
+            try:
+                report = json.loads(result.message or "{}")
+            except ValueError:
+                return Result.err("theme-profile apply returned invalid JSON")
+            return Result.ok(_apply_summary(profile, report), data=report)
         try:
             selected = self._component_arg(components)
         except ValueError as exc:
@@ -200,19 +239,38 @@ class CliProfileCore(ProfileCore):
             args.append(f"--components={selected}")
         return self._run(args, timeout=60)
 
-    def save(self, name: str, components: Optional[list[str]] = None) -> Result:
+    def save(self, name: str, components: Optional[list[str]] = None,
+             description: str = "", include_wallpaper: bool = True) -> Result:
+        """Save the live theme as a theme package (``theme.json`` + assets).
+
+        ``components`` is accepted for compatibility and ignored: a theme
+        stores its theme values, not whole config files.
+        """
         try:
             name = validate_profile_name(name)
         except ValueError as exc:
             return Result.err(str(exc))
+        args = ["save", name]
+        if description.strip():
+            args.append(f"--description={description.strip()}")
+        if not include_wallpaper:
+            args.append("--no-wallpaper")
+        return self._run(args, timeout=120)
+
+    def check(self, name: str) -> Result:
+        """What applying ``name`` would miss: data["missing"] = [{field, name, source}]."""
         try:
-            selected = self._component_arg(components)
+            name = validate_profile_name(name)
         except ValueError as exc:
             return Result.err(str(exc))
-        args = ["save", name]
-        if selected is not None:
-            args.append(f"--components={selected}")
-        return self._run(args, timeout=60)
+        result = self._run(["check", name, "--json"], timeout=30)
+        if not result.success:
+            return result
+        try:
+            missing = json.loads(result.message or "[]")
+        except ValueError:
+            return Result.err("theme-profile check returned invalid JSON")
+        return Result.ok(data={"missing": missing})
 
     def delete(self, name: str) -> Result:
         # Нет в CLI — делаем локально (как в Rust-ядре)
@@ -270,6 +328,22 @@ class CliProfileCore(ProfileCore):
             return []
         info = self._get_profile_info(profile, False)
         return list(info.components)
+
+
+def _apply_summary(profile: str, report: dict) -> str:
+    lines = [f"Applied profile: {profile}"]
+    if report.get("backup"):
+        lines.append(f"Pre-apply backup: {report['backup']}")
+    for item in report.get("installed") or []:
+        lines.append(f"Installed: {item}")
+    if report.get("skipped"):
+        lines.append("Skipped (app not set up here): " + ", ".join(report["skipped"]))
+    for item in report.get("missing") or []:
+        source = f" ({item.get('source')})" if item.get("source") else ""
+        lines.append(f"Missing: {item.get('name')}{source}")
+    for item in report.get("errors") or []:
+        lines.append(f"Error: {item}")
+    return "\n".join(lines)
 
 
 # ──────────────────────────────────────────────────────────────

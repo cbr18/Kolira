@@ -134,6 +134,30 @@ def _snapshot_relative(path: Path) -> Path:
         return Path("_external") / Path(*path.parts[1:])
 
 
+_PACKAGE_CACHE: dict[Path, tuple[float, dict]] = {}
+
+
+def _package_values(profile: Path) -> Optional[dict]:
+    """``values`` of a theme package (``<profile>/theme.json``), else None.
+
+    Cached by mtime: profile cards read a dozen fields per profile.
+    """
+    manifest = profile / "theme.json"
+    try:
+        mtime = manifest.stat().st_mtime
+    except OSError:
+        return None
+    cached = _PACKAGE_CACHE.get(manifest)
+    if cached and cached[0] == mtime:
+        return cached[1]
+    try:
+        values = dict(json.loads(manifest.read_text(encoding="utf-8")).get("values") or {})
+    except (OSError, ValueError):
+        return None
+    _PACKAGE_CACHE[manifest] = (mtime, values)
+    return values
+
+
 def _dedupe(items: Iterable[str]) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []
@@ -743,6 +767,12 @@ class AppThemeCore(ThemeCore):
         return self._file_for(field, _home())
 
     def _read_raw(self, field: FieldDef, base: Path) -> Any:
+        # A profile that is a theme package (theme.json) stores its values
+        # directly; the Rust core wrote them with the same registry.
+        if base != _home():
+            package = _package_values(base)
+            if package is not None:
+                return package.get(field.id)
         path = self._file_for(field, base)
         if path is None:
             return None

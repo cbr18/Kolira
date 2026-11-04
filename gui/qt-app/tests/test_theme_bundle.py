@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -236,6 +237,22 @@ def bundle_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     }
 
 
+@pytest.fixture()
+def cli_bundle_home(bundle_home):
+    """bundle_home with the real Rust CLI as the profile core (theme packages)."""
+    from core.cli_core import CliProfileCore
+
+    cli = os.environ.get("KTM_THEME_PROFILE_BIN", "")
+    if not cli or not Path(cli).is_file():
+        pytest.skip("Rust CLI not built")
+    profiles = CliProfileCore()
+    bundle_home["profiles"] = profiles
+    bundle_home["core"] = ThemeBundleCore(
+        bundle_home["theme"], profiles, bundle_home["wallpapers"]
+    )
+    return bundle_home
+
+
 def component(groups: list[dict], component_id: str) -> dict:
     for group in groups:
         for item in group["components"]:
@@ -436,25 +453,28 @@ def test_theme_bundle_core_tracks_adapter_changes(bundle_home):
     assert core.session_changes() == 0
 
 
-def test_save_profile_writes_v2_bundle_metadata(bundle_home):
-    core = bundle_home["core"]
+def test_save_profile_writes_theme_package(cli_bundle_home):
+    core = cli_bundle_home["core"]
     core.set_component("color_scheme", "Mine")
     core.apply()
     core.set_component("zed", "Ayu Dark")
-    core.set_component("wallpaper", "/wallpapers/custom.jpg")
 
     result = core.save_profile("night", "Dark test bundle")
     assert result.success, result.message
-    path = profile_dir("night") / "theme-bundle.json"
-    assert path.is_file()
-    data = json.loads(path.read_text(encoding="utf-8"))
-    assert data["schema"] == "theme-bundle/1"
+    directory = profile_dir("night")
+    assert not (directory / "theme-bundle.json").exists()
+    data = json.loads((directory / "theme.json").read_text(encoding="utf-8"))
+    assert data["schema"] == "theme-profile/theme@1"
     assert data["name"] == "night"
-    assert data["components"]["color_scheme"] == "Mine"
-    assert data["components"]["kvantum_theme"] == "OrchisDark"
-    assert data["applications"]["zed"] == "Ayu Dark"
-    assert data["wallpaper"] == "/wallpapers/custom.jpg"
-    assert bundle_home["profiles"].descriptions["night"] == "Dark test bundle"
+    assert data["description"] == "Dark test bundle"
+    assert data["values"]["color_scheme"] == "Mine"
+    assert data["values"]["kvantum_theme"] == "OrchisDark"
+    assert data["values"]["zed_dark"] == "Ayu Dark"
+    # Local assets travel with the theme.
+    assert (directory / "assets/color-scheme/Mine.colors").is_file()
+    # The returned view is what the Theme page shows for the profile scope.
+    assert result.data["components"]["color_scheme"] == "Mine"
+    assert result.data["legacy"] is False
 
 
 def test_profile_bundle_falls_back_to_legacy_profile_values(bundle_home):
@@ -467,38 +487,47 @@ def test_profile_bundle_falls_back_to_legacy_profile_values(bundle_home):
     assert result.data["components"]["plasma_style"] == "Breeze"
 
 
-def test_apply_profile_uses_legacy_core_and_bundle_references(bundle_home):
-    core = bundle_home["core"]
-    core.save_profile("night")
+def test_apply_profile_package_is_one_rust_pass(cli_bundle_home):
+    core = cli_bundle_home["core"]
+    core.set_component("color_scheme", "Mine")
+    core.apply()
+    core.set_component("zed", "Ayu Dark")  # the fixture's Zed theme is not installed
+    assert core.save_profile("night").success
+    core.set_component("color_scheme", "Breeze1")
+    core.apply()
+
     result = core.apply_profile("night")
     assert result.success, result.message
-    assert bundle_home["profiles"].applied == ["night"]
-    # The wallpaper is restored by `theme-profile apply` (Rust), not by a
-    # second Python call that the CLI/theme-menu path would never make.
-    assert not bundle_home["wallpapers"].applied
     assert "Applied profile: night" in result.message
-    assert "Applied 12 change(s)" in result.message
+    assert result.data["missing"] == []
+    kdeglobals = (cli_bundle_home["home"] / ".config/kdeglobals").read_text(encoding="utf-8")
+    assert "ColorScheme=Mine" in kdeglobals
+    # No second Python pass (the CLI/theme-menu path would never make one).
+    assert not cli_bundle_home["wallpapers"].applied
 
 
-def test_validate_profile_reports_missing_references(bundle_home):
-    core = bundle_home["core"]
-    core.save_profile("night")
-    data = json.loads((profile_dir("night") / "theme-bundle.json").read_text(encoding="utf-8"))
-    data["components"]["color_scheme"] = "RemovedTheme"
-    data["applications"]["zed"] = "Removed Zed Theme"
-    (profile_dir("night") / "theme-bundle.json").write_text(
-        json.dumps(data, ensure_ascii=False), encoding="utf-8"
-    )
+def test_validate_profile_reports_missing_references(cli_bundle_home):
+    core = cli_bundle_home["core"]
+    # The fixture's live Zed theme is not installed in the test home.
+    assert core.save_profile("night").success
+    result = core.validate_profile_bundle("night")
+    assert not result.success
+    assert "Transparent New Darcula Darker" in result.message
+    core.set_component("zed", "Ayu Dark")  # a Zed built-in
+    assert core.save_profile("night").success
+    assert core.validate_profile_bundle("night").success
+
+    path = profile_dir("night") / "theme.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["values"]["color_scheme"] = "RemovedTheme"
+    data["values"]["icon_theme"] = "Removed Icons"
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     result = core.validate_profile_bundle("night")
     assert not result.success
     assert "RemovedTheme" in result.message
-    assert "Removed Zed Theme" in result.message
-    assert "night.jpg" not in result.message  # the wallpaper exists
-
-    # Wallpaper file gone and no saved copy → reported.
-    (bundle_home["home"] / "Pictures/Wallpaper/night.jpg").unlink()
-    result = core.validate_profile_bundle("night")
-    assert "Pictures/Wallpaper/night.jpg" in result.message
+    assert "Removed Icons" in result.message
+    assert "store.kde.org" in result.message  # where to get it
+    assert {m["field"] for m in result.data["missing"]} >= {"color_scheme", "icon_theme"}
 
 
 def test_validate_profile_accepts_saved_wallpaper_copy(bundle_home):
@@ -561,7 +590,8 @@ def test_groups_for_profile_scope_are_read_only_values(bundle_home):
     assert component(groups, "color_scheme")["choices"], "profile view still lists installed live choices"
 
 
-def test_mcp_server_tools_list_and_call(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, bundle_home):
+def test_mcp_server_tools_list_and_call(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cli_bundle_home):
+    bundle_home = cli_bundle_home
     monkeypatch.setattr(CoreFactory, "_theme_core", bundle_home["theme"])
     monkeypatch.setattr(CoreFactory, "_profile_core", bundle_home["profiles"])
     monkeypatch.setattr(CoreFactory, "_wallpaper_core", bundle_home["wallpapers"])
@@ -604,7 +634,7 @@ def test_mcp_server_tools_list_and_call(tmp_path: Path, monkeypatch: pytest.Monk
     payload = json.loads(created["result"]["content"][0]["text"])
     assert payload["ok"] is True
     assert payload["profile"]["components"]["color_scheme"] == "Mine"
-    assert (profile_dir("mcpnight") / "theme-bundle.json").is_file()
+    assert (profile_dir("mcpnight") / "theme.json").is_file()
 
     validate = server.handle({
         "jsonrpc": "2.0", "id": 5, "method": "tools/call",

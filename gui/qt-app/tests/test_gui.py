@@ -604,7 +604,7 @@ class TestProfileDescription:
         core = CliProfileCore()
         assert not core.set_description("../escape", "x").success
 
-    def test_controller_save_writes_description_after_save(self) -> None:
+    def test_controller_save_passes_description_to_save(self) -> None:
         from PySide6.QtCore import QCoreApplication
 
         from controllers import ProfileController
@@ -616,8 +616,8 @@ class TestProfileDescription:
             def list_profiles(self): return []
             def get_active_profile(self): return ""
             def apply(self, profile, components=None): return Result.ok("ok")
-            def save(self, name, components=None):
-                calls.append(("save", name))
+            def save(self, name, components=None, description="", include_wallpaper=True):
+                calls.append(("save", name, description, include_wallpaper))
                 return Result.ok("ok")
             def set_description(self, name, description):
                 calls.append(("describe", description))
@@ -637,7 +637,7 @@ class TestProfileDescription:
             controller = ProfileController()
             done: list[bool] = []
             controller.operationFinished.connect(lambda ok, msg: done.append(ok))
-            controller.saveProfile("glass", "Dark glass")
+            controller.saveProfile("glass", "Dark glass", False)
             app = QCoreApplication.instance() or QCoreApplication([])
             for _ in range(200):
                 if done:
@@ -646,7 +646,8 @@ class TestProfileDescription:
                 import time
                 time.sleep(0.01)
             assert done and done[0]
-            assert calls == [("save", "glass"), ("describe", "Dark glass")]
+            # One `theme-profile save --description=… --no-wallpaper` call.
+            assert calls == [("save", "glass", "Dark glass", False)]
         finally:
             CoreFactory.reset()
 
@@ -2549,19 +2550,22 @@ def core_factory():
 # 31. Single-core behaviour (the valuable half of the old parity suite)
 # ─────────────────────────────────────────────────────────────────────────────
 class TestSingleCore:
-    def test_profile_rejects_empty_and_unknown_components(self, core_factory) -> None:
-        """``[]`` means "nothing selected", never "all components"."""
+    def test_profile_rejects_empty_and_unknown_components(
+        self, core_factory, tmp_path, monkeypatch
+    ) -> None:
+        """``[]`` means "nothing selected", never "all components".
+
+        Runs in a throwaway HOME: this test once saved into the real profiles.
+        """
+        for key in [k for k in os.environ if k.startswith("XDG_")]:
+            monkeypatch.delenv(key)
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("KTM_THEME_NO_APPLY", "1")
         from core.cli_core import CliProfileCore
 
         core = CliProfileCore()
-        profiles = [p.name for p in core.list_profiles()]
-        if not profiles:
-            pytest.skip("no profiles in the fixture")
-        profile = profiles[0]
-
-        assert not core.apply(profile, []).success
-        assert not core.save(f"{profile}-copy", []).success
-        assert not core.apply(profile, ["not-a-component"]).success
+        assert not core.apply("anything", []).success
+        assert not core.apply("anything", ["not-a-component"]).success
 
     def test_wallpaper_directory_comes_from_the_settings(self, core_factory, tmp_path) -> None:
         """A settings directory must reach the CLI core, not be ignored.

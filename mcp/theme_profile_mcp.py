@@ -178,7 +178,7 @@ class ThemeProfileMcpServer:
             },
             {
                 "name": "validate_profile",
-                "description": "Check whether all theme references in a profile are installed.",
+                "description": "Check whether everything a theme references is installed here; lists what is missing and where to get it.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {"name": {"type": "string"}},
@@ -213,7 +213,7 @@ class ThemeProfileMcpServer:
             },
             {
                 "name": "create_profile",
-                "description": "Save the current theme state as a profile, optionally after applying supplied component values.",
+                "description": "Save the current appearance as a theme package (theme.json + local assets), optionally after applying supplied component values.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -221,17 +221,24 @@ class ThemeProfileMcpServer:
                         "description": {"type": "string"},
                         "components": {"type": "object"},
                         "applications": {"type": "object"},
-                        "wallpaper": {"type": "string"},
+                        "includeWallpaper": {
+                            "type": "boolean",
+                            "description": "Store the current wallpaper in the theme (default true). Without it, applying the theme leaves the wallpaper unchanged.",
+                        },
                     },
                     "required": ["name"],
                 },
             },
             {
                 "name": "apply_profile",
-                "description": "Explicitly apply a saved profile through the profile core and v2 bundle references.",
+                "description": "Apply a saved theme: only what it defines changes (pre-apply backup first). Reports missing assets with where to get them.",
                 "inputSchema": {
                     "type": "object",
-                    "properties": {"name": {"type": "string"}},
+                    "properties": {
+                        "name": {"type": "string"},
+                        "keepWallpaper": {"type": "boolean", "description": "Do not change the wallpaper even if the theme has one."},
+                        "installMissing": {"type": "boolean", "description": "Install missing VS Code/Cursor/Zed themes from their official stores."},
+                    },
                     "required": ["name"],
                 },
             },
@@ -352,7 +359,11 @@ class ThemeProfileMcpServer:
 
     def _validate_profile(self, arguments: dict) -> dict:
         result = self.core.validate_profile_bundle(str(arguments.get("name") or ""))
-        return {"valid": result.success, "message": result.message}
+        return {
+            "valid": result.success,
+            "message": result.message,
+            "missing": (result.data or {}).get("missing", []),
+        }
 
     def _set_component(self, arguments: dict) -> dict:
         component_id = str(arguments.get("componentId") or "")
@@ -392,7 +403,7 @@ class ThemeProfileMcpServer:
         result = self.core.save_profile(
             name,
             description=str(arguments.get("description") or ""),
-            wallpaper=str(arguments.get("wallpaper") or ""),
+            include_wallpaper=bool(arguments.get("includeWallpaper", True)),
         )
         if not result.success:
             raise ValueError(result.message)
@@ -404,8 +415,18 @@ class ThemeProfileMcpServer:
         }
 
     def _apply_profile(self, arguments: dict) -> dict:
-        result = self.core.apply_profile(str(arguments.get("name") or ""))
-        return {"ok": result.success, "message": result.message}
+        result = self.core.apply_profile(
+            str(arguments.get("name") or ""),
+            keep_wallpaper=bool(arguments.get("keepWallpaper", False)),
+            install_missing=bool(arguments.get("installMissing", False)),
+        )
+        report = result.data or {}
+        return {
+            "ok": result.success,
+            "message": result.message,
+            "missing": report.get("missing", []),
+            "installed": report.get("installed", []),
+        }
 
 
     # ── palette (Rust CLI via PaletteCore) ─────────────────────────────

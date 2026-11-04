@@ -13,11 +13,15 @@ Native KDE Plasma application for managing theme profiles and wallpapers.
 - **Preview & Diff** — see exactly which components a profile carries and how it
   differs from the active one *before* applying
 - **Granular Control** — Choose which components to apply per profile
-  (*Settings* page in the global drawer)
+  (*Settings* page; legacy snapshot profiles only — theme packages always
+  apply exactly what they define)
 - **Theme bundles** — Theme page assembles KDE/Plasma assets, desktop/window
   settings, Kvantum, GTK and app themes; installed themes are picked from
-  lists, edits are staged, and profiles store a v2 `theme-bundle.json` beside
-  the legacy snapshot
+  lists, edits are staged; saving writes a theme package (`theme.json` +
+  assets, `docs/THEMES.md`) through the Rust CLI
+- **Themes** — save dialog with *Include the current wallpaper*, apply dialog
+  with *Keep the current wallpaper*, and a *Missing Theme Parts* dialog (links +
+  *Install from stores*) fed by `theme-profile apply --json`
 - **Palette page** — Theme → Palette: base16 + accent, gallery, from wallpaper
   (`Kirigami.ImageColors`) or k-means, colour editing, apply to KDE /
   terminals / Kvantum (`controllers/palette.py` → Rust CLI)

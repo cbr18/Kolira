@@ -57,8 +57,10 @@
 
 ```bash
 theme-profile list               # список профилей
-theme-profile apply glass        # применить профиль
-theme-profile save my-profile    # сохранить текущее состояние
+theme-profile apply glass        # применить тему (--keep-wallpaper — не трогать обои)
+theme-profile save my-profile    # сохранить текущее оформление как тему-пакет
+theme-profile check glass        # чего не хватит при применении и где взять
+theme-profile migrate --all      # перевести старые профили-снимки в пакеты
 theme-profile status             # текущее состояние
 theme-profile diff glass paper   # сравнить профили
 
@@ -78,6 +80,14 @@ wallpaper-prev                   # предыдущие обои
 Профили хранятся в `$XDG_CONFIG_HOME/theme-profile/profiles/` (по умолчанию
 `~/.config/theme-profile/profiles/`).
 Активный профиль — маркер `theme-profile/active-profile` в том же корне.
+
+**Профиль = тема-пакет** (`theme.json` + `assets/`, формат и поведение —
+`docs/THEMES.md`): только значения оформления из общего реестра полей и свои
+ресурсы; применение меняет лишь то, что задано в теме («нет компонента — не
+трогать»: нет обоев → обои не меняются), недостающее пропускается и попадает в
+отчёт с источником. Описанное ниже (восстановление файлов целиком, TRACKED_PATHS,
+компоненты) относится к **старым профилям-снимкам**, которые ещё не переведены
+командой `theme-profile migrate`.
 
 При apply Rust-ядро после восстановления файлов заново применяет цветовую схему через `plasma-apply-colorscheme`. Если в профиле есть явный `AccentColor` и `accentColorFromWallpaper=false`, он передаётся через `--accent-color`; если `accentColorFromWallpaper=true`, схема применяется без `--accent-color`, а акцент пересчитывает сама Plasma из восстановленных обоев при перезапуске plasmashell (проверено 2026-11-04; ImageMagick для акцента больше не используется). Так как `kdeglobals` восстанавливается копированием файла, `apply` дополнительно: (1) переписывает `accentColorFromWallpaper` через `kwriteconfig6 --notify` (сначала противоположным значением, затем настоящим) — иначе kded-сервис `plasma_accentcolor_service` не узнаёт о смене флага и отбрасывает акцент из обоев; (2) шлёт `org.kde.KGlobalSettings.notifyChange(0,0)` (PaletteChanged) — `plasma-apply-colorscheme` на уже записанную схему ничего не делает («уже используется»), и без сигнала открытые приложения оставались с палитрой прошлого профиля (оливковый paper после glass). На монохромных обоях (например, чёрно-белые обои glass) Plasma не может извлечь цвет — акцент становится схемным/серым, это поведение самой Plasma. Отдельно переприменяется Qt widget style: для `widgetStyle=kvantum` вызывается `kvantummanager --set <theme>`, чтобы уже запущенные Qt-приложения получили тему Kvantum, а не только обновлённый файл. Обои профиля: при `save` копия текущих обоев кладётся в `<профиль>/wallpaper/` (+ `source` с исходным путём), при `apply` используется оригинал, а если его нет — копия возвращается на место (или в каталог обоев) и применяется; это работает одинаково для CLI, `theme-menu`, GUI и MCP. Каталог обоев: `$WALLPAPER_DIR` → настройка `wallpaper_directory` → `$(xdg-user-dir PICTURES)/Wallpaper` → `~/Pictures/Wallpaper` (`theme-profile wallpaper dir`). Профиль `glass` имеет `accentColorFromWallpaper=true` (акцент из обоев), профиль `paper` — `accentColorFromWallpaper=false` с явным `AccentColor=155,150,77`. Поэтому акцент переключается между профилями: `glass` берёт акцент из обоев, `paper` — оливковый из явного `AccentColor`.
 
@@ -173,9 +183,9 @@ Qt/QML-приложение (`gui/qt-app/`) ставится установщи�
 - выбор компонента идёт из списков установленных ресурсов; core-поля сначала стейджатся и применяются одним батчом через `AppThemeCore`;
 - установленность приложения определяется по исполняемому файлу или Flatpak (`binaries`/`flatpak_ids` адаптера: Zed — `zeditor`/`zed`/`dev.zed.Zed`, VS Code — `code`/`code-oss`/`codium`/`vscodium`, …); только конфиг без программы — статус «не установлено — найден только старый конфиг»; компоненты профиля (`tracked_apps`) принимают альтернативы `a|b` в `detect_command`;
 - магазины тем редакторов (`rust_core/src/stores.rs`, `theme-profile apps store-search|store-install`, GUI «Найти в магазине…»): Zed — индекс `api.zed.dev` (`provides=themes`), установка = `themes/*.json` из архива расширения в `~/.config/zed/themes/<id>--<файл>.json`; VS Code/Cursor — поиск Open VSX, установка CLI редактора `--install-extension <id>` (расширения VSCodium/OSS — `~/.vscode-oss/extensions`); сеть — через общий `net.rs` (отключаемо);
-- адаптеры приложений (`src/core/app_theme_adapters.py`) имеют уровень интеграции: Zed, VS Code, Cursor, Obsidian и btop умеют показывать/применять темы (Zed перечисляет имена из `themes[]` каждого файла-семейства в `~/.config/zed/themes` и в установленных расширениях); в `theme-bundle.json` попадают только приложения, чью тему можно применить (`apply_theme`), а `description` берётся из сохранения профиля; Discord читает текущий light/dark fallback и открывает нативные настройки; Telegram перечисляет `.tdesktop-theme`, но не пишет `tdata` — поэтому в UI для него нет выпадающего списка, только подпись «Тема выбирается в самом приложении»; VS Code/Cursor хранят в `workbench.colorTheme` поле `id` темы из `package.json` расширения (у Doki это UUID), а в UI показывается её `label`; Kitty и Alacritty — `integration=config`, без списка тем и авто-применения, с кнопкой **Open config**, которая открывает конфиг в системном редакторе через `xdg-open`;
+- адаптеры приложений (`src/core/app_theme_adapters.py`) имеют уровень интеграции: Zed, VS Code, Cursor, Obsidian и btop умеют показывать/применять темы (Zed перечисляет имена из `themes[]` каждого файла-семейства в `~/.config/zed/themes` и в установленных расширениях); Discord читает текущий light/dark fallback и открывает нативные настройки; Telegram перечисляет `.tdesktop-theme`, но не пишет `tdata` — поэтому в UI для него нет выпадающего списка, только подпись «Тема выбирается в самом приложении»; VS Code/Cursor хранят в `workbench.colorTheme` поле `id` темы из `package.json` расширения (у Doki это UUID), а в UI показывается её `label`; Kitty и Alacritty — `integration=config`, без списка тем и авто-применения, с кнопкой **Open config**, которая открывает конфиг в системном редакторе через `xdg-open`;
 - адаптеры перед записью копируют старый конфиг в `theme-profile/backups/app-theme-<timestamp>/`;
-- профили v2 сохраняют `theme-bundle.json` с компонентными/приложенными ссылками поверх старого снимка; профили v1 открываются как legacy и по возможности синтезируют bundle из снимка;
+- сохранение профиля пишет тему-пакет через Rust CLI (`theme-profile save`, без отдельного `theme-bundle.json`); область профиля на странице Theme читает значения из `theme.json`; старые профили с `theme-bundle.json`/снимком открываются как legacy; диалог сохранения — флажок «Include the current wallpaper», диалог применения — «Keep the current wallpaper», после применения — диалог «Missing Theme Parts» со ссылками и кнопкой «Install from stores» (`apply --install-missing`);
 - есть создание пользовательских производных тем (`create_custom_theme`): копия базовой color scheme в `$XDG_DATA_HOME/color-schemes` с перенесёнными живыми группами `[Colors:*]`/`[WM]` из `kdeglobals` (правки цветов из Theme Inspector не теряются) и Kvantum-темы в `$XDG_DATA_HOME/Kvantum`; системные базовые темы не изменяются;
 - старый field-based Theme Inspector остаётся для Advanced/Customize (`SectionPage.qml`, `ThemeFieldRow.qml`), но не является главным экраном;
 - для AI-агентов добавлен stdio MCP-сервер `mcp/theme_profile_mcp.py` (см. `docs/MCP.md`): перечисление тем, сборка/валидация/явное применение профилей, создание производных тем; удаление профилей не экспонируется;
@@ -254,14 +264,15 @@ Zen-автодетект профиля, выбор ядра через `--core`
 $XDG_CONFIG_HOME/theme-profile/        # по умолчанию ~/.config/theme-profile/
 ├── active-profile          # имя активного профиля
 ├── profiles/
-│   ├── glass/              # профиль glass
-│   │   ├── .config/kwinrc
-│   │   ├── .config/kdeglobals
-│   │   └── ...
-│   ├── paper/              # профиль paper
-│   └── custom/             # пользовательские профили
-├── backups/                # авто-бэкапы перед apply
-│   └── pre-apply-glass-20260115-120000/
+│   ├── glass/              # тема-пакет (docs/THEMES.md)
+│   │   ├── theme.json
+│   │   └── assets/         # color-scheme/, kvantum/, wallpaper/, …
+│   ├── Paper/
+│   └── custom/             # пользовательские темы
+├── backups/                # авто-бэкапы
+│   ├── pre-apply-glass-20260115-120000/    # файлы, которые apply изменит
+│   ├── pre-save-glass-…/                   # прежняя версия перезаписанной темы
+│   └── pre-migrate-glass-…/                # старый снимок после migrate
 ├── manifests/              # манифесты сохранения (опционально)
 └── app-preferences.json    # настройки GUI
 ```

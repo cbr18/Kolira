@@ -539,7 +539,8 @@ class ThemeBundleCore:
                 "active": profile.is_active,
                 "description": profile.description,
                 "createdAt": profile.created_at,
-                "hasBundle": self._bundle_path(profile.name).is_file(),
+                "hasBundle": (profile_dir(profile.name) / "theme.json").is_file()
+                or self._bundle_path(profile.name).is_file(),
             }
             for profile in profiles
         ]
@@ -552,15 +553,23 @@ class ThemeBundleCore:
             name = validate_profile_name(name)
         except ValueError as exc:
             return Result.err(str(exc))
+        package_path = profile_dir(name) / "theme.json"
+        package: dict[str, Any] | None = None
+        if package_path.is_file():
+            try:
+                package = json.loads(package_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                return Result.err(f"Invalid theme.json: {exc}")
         path = self._bundle_path(name)
-        if path.is_file():
+        if package is None and path.is_file():
             try:
                 data = json.loads(path.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError) as exc:
                 return Result.err(f"Invalid bundle metadata: {exc}")
             return Result.ok(data=data)
 
-        # Legacy profile: synthesize a v2 view from the stored configs.
+        # Theme package or legacy snapshot: the profile scope reads the
+        # package values (or the stored configs) through the field engine.
         scope = f"profile:{name}"
         components: dict[str, Any] = {}
         for group in GROUPS:
@@ -570,6 +579,20 @@ class ThemeBundleCore:
                 item = self._component_to_dict(component, scope)
                 if item["currentDisplay"]:
                     components[component.id] = item["currentValue"]
+        if package is not None:
+            return Result.ok(data={
+                "schema": str(package.get("schema") or ""),
+                "name": name,
+                "legacy": False,
+                "description": str(package.get("description") or ""),
+                "createdAt": str(package.get("created") or ""),
+                "components": components,
+                "values": dict(package.get("values") or {}),
+                "applications": {},
+                "wallpaper": str(package.get("wallpaper") or ""),
+                "assets": list(package.get("assets") or []),
+                "sources": dict(package.get("sources") or {}),
+            })
         return Result.ok(data={
             "schema": BUNDLE_SCHEMA,
             "name": name,
@@ -579,7 +602,8 @@ class ThemeBundleCore:
             "wallpaper": "",
         })
 
-    def save_profile(self, name: str, description: str = "", wallpaper: str = "") -> Result:
+    def save_profile(self, name: str, description: str = "", wallpaper: str = "",
+                     include_wallpaper: bool = True) -> Result:
         if self._profiles is None:
             return Result.err("Profile core is not available")
         try:
@@ -587,23 +611,19 @@ class ThemeBundleCore:
         except ValueError as exc:
             return Result.err(str(exc))
 
-        saved = self._profiles.save(name)
+        # The Rust CLI writes the theme package (theme.json + assets); the
+        # former Python-side theme-bundle.json is no longer needed.
+        try:
+            saved = self._profiles.save(
+                name, description=description.strip(), include_wallpaper=include_wallpaper
+            )
+        except TypeError:  # profile cores without the package-aware signature
+            saved = self._profiles.save(name)
         if not saved.success:
             return saved
-        if description.strip():
-            described = self._profiles.set_description(name, description.strip())
-            if not described.success:
-                return described
-
-        bundle = self._bundle_data(name, wallpaper=wallpaper, description=description.strip())
-        target = self._bundle_path(name)
-        backup_file(target)
-        try:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            atomic_write_text(target, _json_safe_dump(bundle))
-        except OSError as exc:
-            return Result.err(f"Failed to write theme bundle: {exc}")
-        return Result.ok(f"Saved profile and theme bundle: {name}", data=bundle)
+        view = self.profile_bundle(name)
+        return Result.ok(saved.message or f"Saved profile: {name}",
+                         data=view.data if view.success else None)
 
     def _bundle_data(self, name: str, wallpaper: str = "", description: str = "") -> dict:
         components: dict[str, Any] = {}
@@ -628,13 +648,20 @@ class ThemeBundleCore:
             "wallpaper": wallpaper or self._current_wallpaper(),
         }
 
-    def apply_profile(self, name: str) -> Result:
+    def apply_profile(self, name: str, keep_wallpaper: bool = False,
+                      install_missing: bool = False) -> Result:
         if self._profiles is None:
             return Result.err("Profile core is not available")
         try:
             name = validate_profile_name(name)
         except ValueError as exc:
             return Result.err(str(exc))
+        # Theme packages are applied completely by `theme-profile apply`
+        # (values, assets, wallpaper, missing report) — no second pass here.
+        if (profile_dir(name) / "theme.json").is_file():
+            return self._profiles.apply(
+                name, keep_wallpaper=keep_wallpaper, install_missing=install_missing
+            )
         applied = self._profiles.apply(name)
         if not applied.success:
             return applied
@@ -661,6 +688,21 @@ class ThemeBundleCore:
         return applied
 
     def validate_profile_bundle(self, name: str) -> Result:
+        try:
+            package = (profile_dir(name) / "theme.json").is_file()
+        except ValueError as exc:
+            return Result.err(str(exc))
+        if package and hasattr(self._profiles, "check"):
+            checked = self._profiles.check(name)
+            if not checked.success:
+                return checked
+            missing = (checked.data or {}).get("missing") or []
+            if missing:
+                return Result.err("Missing theme references: " + "; ".join(
+                    f"{m.get('name')}" + (f" ({m.get('source')})" if m.get("source") else "")
+                    for m in missing
+                ), data={"missing": missing})
+            return Result.ok("Theme bundle is complete")
         result = self.profile_bundle(name)
         if not result.success:
             return result

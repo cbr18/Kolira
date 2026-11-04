@@ -27,7 +27,7 @@ Usage:
   theme-profile list
   theme-profile save NAME [--description=...] [--no-wallpaper]
                               (a theme package: theme values + local assets + wallpaper)
-  theme-profile apply NAME [--install-missing] [--keep-wallpaper]
+  theme-profile apply NAME [--install-missing] [--keep-wallpaper] [--json]
                               (only what the theme defines; missing assets are reported,
                                --install-missing installs app themes from their stores)
   theme-profile check NAME [--json]           (what applying NAME would miss)
@@ -639,6 +639,15 @@ fn main() -> ExitCode {
                     keep_wallpaper: args.iter().any(|a| a == "--keep-wallpaper"),
                 };
                 return match theme::apply(name, &options) {
+                    Ok(report) if args.iter().any(|a| a == "--json") => {
+                        match serde_json::to_string(&report) {
+                            Ok(json) => {
+                                println!("{json}");
+                                ExitCode::SUCCESS
+                            }
+                            Err(e) => fail(e),
+                        }
+                    }
                     Ok(report) => {
                         println!("Applied profile: {name}");
                         println!("Pre-apply backup: {}", report.backup);

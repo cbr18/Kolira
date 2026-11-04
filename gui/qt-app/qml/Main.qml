@@ -103,7 +103,7 @@ Kirigami.ApplicationWindow {
             applyDialog.open()
             return
         }
-        profileController.applyProfile(profileName)
+        profileController.applyProfile(profileName, false, false)
     }
 
     // Last active profile we observed. Used to distinguish "the user changed
@@ -150,6 +150,11 @@ Kirigami.ApplicationWindow {
             root._operationSucceeded = success
             root.operationMessage = message
             messageTimer.restart()
+        }
+        function onDependenciesMissing(profile, missing) {
+            missingDialog.targetProfile = profile
+            missingDialog.missing = missing
+            missingDialog.open()
         }
     }
 
@@ -503,13 +508,73 @@ Kirigami.ApplicationWindow {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
                 color: ThemeColors.fgColor(root.glassMode)
-                text: qsTr("Apply profile \"%1\"? This can restart Plasma components and change the current desktop appearance.").arg(applyDialog.targetProfile)
+                text: qsTr("Apply theme \"%1\"? Only what the theme defines changes; a backup of the touched files is made first.").arg(applyDialog.targetProfile)
+            }
+            CheckBox {
+                id: keepWallpaperBox
+                text: qsTr("Keep the current wallpaper")
             }
         }
 
         onAccepted: {
             if (applyDialog.targetProfile !== "")
-                profileController.applyProfile(applyDialog.targetProfile)
+                profileController.applyProfile(applyDialog.targetProfile, keepWallpaperBox.checked, false)
+            keepWallpaperBox.checked = false
+        }
+    }
+
+    // A theme references assets this machine lacks: list them with where to
+    // get them; app themes with a store id can be installed in one click.
+    Kirigami.Dialog {
+        id: missingDialog
+        title: qsTr("Missing Theme Parts")
+        preferredWidth: 520
+        property string targetProfile: ""
+        property var missing: []
+        readonly property bool installable: missing.some(m => /marketplace\.visualstudio\.com|open-vsx\.org|^Zed extension/.test(m.source || ""))
+        standardButtons: Kirigami.Dialog.Close
+        customFooterActions: [
+            Kirigami.Action {
+                text: qsTr("Install from stores")
+                icon.name: "download"
+                enabled: missingDialog.installable && !profileController.busy
+                onTriggered: {
+                    profileController.applyProfile(missingDialog.targetProfile, false, true)
+                    missingDialog.close()
+                }
+            }
+        ]
+
+        background: Rectangle {
+            color: ThemeColors.dialogBg(root.glassMode)
+            radius: 8
+            border.width: 1
+            border.color: ThemeColors.cardBorder(root.glassMode)
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                color: ThemeColors.fgColor(root.glassMode)
+                text: qsTr("Theme \"%1\" was applied without these parts — install them and apply again:").arg(missingDialog.targetProfile)
+            }
+            Repeater {
+                model: missingDialog.missing
+                delegate: Label {
+                    required property var modelData
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    textFormat: Text.StyledText
+                    color: ThemeColors.fgColor(root.glassMode)
+                    readonly property string src: modelData.source || ""
+                    text: "• <b>" + modelData.name + "</b> (" + modelData.field + ")"
+                          + (src === "" ? "" : (/^https?:/.test(src)
+                              ? " — <a href=\"" + src + "\">" + src + "</a>" : " — " + src))
+                    onLinkActivated: (link) => Qt.openUrlExternally(link)
+                }
+            }
         }
     }
 
@@ -582,6 +647,13 @@ Kirigami.ApplicationWindow {
                 Layout.fillWidth: true
                 placeholderText: qsTr("Description (optional)")
             }
+            CheckBox {
+                id: includeWallpaperBox
+                checked: true
+                text: qsTr("Include the current wallpaper")
+                ToolTip.text: qsTr("Without a wallpaper, applying this theme leaves the wallpaper unchanged")
+                ToolTip.visible: hovered
+            }
             Label {
                 id: saveError
                 Layout.fillWidth: true
@@ -603,9 +675,10 @@ Kirigami.ApplicationWindow {
                 saveDialog.open()
                 return
             }
-            profileController.saveProfile(name, descriptionField.text.trim())
+            profileController.saveProfile(name, descriptionField.text.trim(), includeWallpaperBox.checked)
             nameField.text = ""
             descriptionField.text = ""
+            includeWallpaperBox.checked = true
         }
     }
 

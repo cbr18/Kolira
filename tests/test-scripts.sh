@@ -291,6 +291,13 @@ else
   fail "save --no-wallpaper still stored a wallpaper"
 fi
 
+report=$(wp_cli apply wp-nowall --json 2>/dev/null || true)
+if printf '%s' "$report" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert {"applied","skipped","installed","missing","errors","backup"} <= set(d)' 2>/dev/null; then
+  ok "apply --json prints the apply report (GUI/MCP read missing parts from it)"
+else
+  fail "apply --json did not print a JSON report: $report"
+fi
+
 rm "$WP_HOME/Pictures/Wallpaper/forest one.jpg"
 wp_cli apply wp-test >/dev/null 2>&1
 if [ "$(cat "$WP_HOME/Pictures/Wallpaper/forest one.jpg" 2>/dev/null)" = "jpeg" ]; then

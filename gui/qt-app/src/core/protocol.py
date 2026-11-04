@@ -95,16 +95,20 @@ class ProfileCore(ABC):
         """Имя активного профиля."""
 
     @abstractmethod
-    def apply(self, profile: str, components: Optional[list[str]] = None) -> Result:
+    def apply(self, profile: str, components: Optional[list[str]] = None,
+              keep_wallpaper: bool = False, install_missing: bool = False) -> Result:
         """
-        Применить профиль.
-        components=None → всё (по умолчанию).
+        Применить тему.
+        Theme package (theme.json): everything it defines; ``components`` must
+        be None; ``data`` is the report (applied/skipped/installed/missing/
+        errors/backup). Legacy snapshot: components=None → всё,
         components=['kwin', 'gtk3'] → только указанные.
         """
 
     @abstractmethod
-    def save(self, name: str, components: Optional[list[str]] = None) -> Result:
-        """Сохранить текущее состояние как профиль."""
+    def save(self, name: str, components: Optional[list[str]] = None,
+             description: str = "", include_wallpaper: bool = True) -> Result:
+        """Сохранить текущее оформление как тему-пакет (``components`` игнорируется)."""
 
     @abstractmethod
     def delete(self, name: str) -> Result:

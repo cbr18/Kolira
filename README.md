@@ -141,9 +141,13 @@ removed; the app always starts on the single CLI-backed core.)
 
 ```bash
 theme-profile list               # list available profiles
-theme-profile apply glass        # apply a profile (creates a pre-apply backup)
-theme-profile save my-profile    # save current state as a new profile
-theme-profile clone glass glass2 # duplicate a profile snapshot under a new name
+theme-profile apply glass        # apply a theme (creates a pre-apply backup)
+theme-profile apply glass --keep-wallpaper   # …but leave the wallpaper alone
+theme-profile save my-profile    # save the current look as a theme package
+theme-profile save my-profile --no-wallpaper # a theme that never changes the wallpaper
+theme-profile check glass        # what applying would miss + where to get it
+theme-profile migrate --all      # convert old snapshot profiles to theme packages
+theme-profile clone glass glass2 # duplicate a theme under a new name
 theme-profile save glass --description="Dark glass"   # with a card description
 theme-profile describe glass --set "New note"         # edit the description
 theme-profile diff glass paper   # show config differences
@@ -181,14 +185,13 @@ default stays `~/Изображения/Wallpaper`; nothing is hard-coded to one
 primary screen (`lastScreen=0`, `org.kde.image` only — slideshow/POTD report
 nothing). One wallpaper is applied to all screens (`plasma-apply-wallpaperimage`).
 
-**Wallpaper in profiles.** `theme-profile save` copies the current wallpaper into
-`<profile>/wallpaper/` (plus `source` — its original path) whenever the desktop
-layout (`plasma_shell`) is saved. `theme-profile apply` — CLI, `theme-menu`, GUI,
-MCP alike — uses the original if it still exists, otherwise puts the saved copy
-back (old path, else the wallpaper directory; existing files are never
-overwritten) and applies it. Profiles saved before this fall back to the
-`wallpaper` path in `theme-bundle.json`. `validate_profile` reports a wallpaper
-that is neither on disk nor saved.
+**Wallpaper in themes.** `theme-profile save` copies the current wallpaper into
+the theme (`assets/wallpaper/<file>`) unless `--no-wallpaper` is given.
+`theme-profile apply` — CLI, `theme-menu`, GUI, MCP alike — sets the theme's
+wallpaper (putting the file back into the wallpaper directory if it is gone;
+existing files are never overwritten). A theme without a wallpaper leaves the
+wallpaper untouched, and `--keep-wallpaper` keeps it even when the theme has
+one. See `docs/THEMES.md`.
 
 Environment overrides (also used by the GUI and the tests): `WALLPAPER_DIR`,
 `WALLPAPER_STATE`, `WALLPAPER_THUMB_DIR`, `PLASMA_APPLETSRC`,
@@ -222,10 +225,18 @@ limits: [`docs/PALETTE.md`](docs/PALETTE.md).
 
 ## Profiles / Профили
 
-- **`glass`** — полупрозрачные окна с размытием, KWin glass enabled
-- **`paper`** — светлая/solid тема, без прозрачностей
+A profile **is a theme**: a theme package (`theme.json` + its own assets) that
+holds appearance values only — no panels, window rules or personal configs.
+Applying changes only what the theme defines, after a pre-apply backup; missing
+assets are skipped and reported with where to get them. Format, CLI and GUI
+behaviour: **`docs/THEMES.md`**.
 
-Profiles live in `~/.config/theme-profile/profiles/`.
+- **`glass`** — полупрозрачные окна с размытием, KWin glass enabled
+- **`Paper`** — светлая/solid тема, без прозрачностей
+- **`everforest`** — тёплая тёмная тема из палитры Everforest
+
+Profiles live in `~/.config/theme-profile/profiles/`. Old snapshot profiles keep
+working until converted with `theme-profile migrate --all`.
 
 ## Theme bundles / Комплекты тем
 
@@ -242,9 +253,8 @@ Installed themes are selected from lists wherever possible. Core KDE values are
 staged and applied as one batch; **Undo/Revert** remain available after Apply.
 Application adapters apply their own config updates immediately and copy the
 previous file to `~/.config/theme-profile/backups/app-theme-<timestamp>/`.
-Profiles keep the existing snapshot layout and additionally receive
-`theme-bundle.json` with the v2 component/application references, so old
-profiles remain usable as legacy snapshots.
+Saving from the Theme page writes a theme package (`docs/THEMES.md`); old
+profiles with a `theme-bundle.json` beside a snapshot are still read as legacy.
 
 Supported application adapters currently include Zed, VS Code, Cursor,
 Obsidian and btop. Discord reads its current light/dark background preference

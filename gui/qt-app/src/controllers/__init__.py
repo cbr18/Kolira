@@ -19,7 +19,7 @@ from core.protocol import (
     ProfileInfo, Component, AppStatus, Result, AppSettings, CustomComponent
 )
 from core import CoreFactory
-from core.paths import active_profile_file, validate_profile_name
+from core.paths import active_profile_file, profile_dir, validate_profile_name
 from .theme_bundle import ThemeBundleController
 from .palette import PaletteController
 from .theme_inspector import ThemeInspectorController
@@ -123,10 +123,14 @@ class ProfileController(QObject):
     componentsForProfileChanged = Signal(list)  # list of component IDs
     diffReady = Signal(str, str, str)   # profile_a, profile_b, diff text
     busyChanged = Signal()
+    # A theme was applied but references assets this machine lacks:
+    # profile name, [{field, name, source}].
+    dependenciesMissing = Signal(str, list)
 
     def __init__(self, parent: Optional[QObject] = None):
         super().__init__(parent)
         self._core: ProfileCore = CoreFactory.profile_core()
+        self._pending_missing: tuple[str, list] | None = None
         self._profiles: list[ProfileInfo] = []
         self._profiles_model: list[dict] = []   # QML-ready cache (built once per refresh)
         self._active_profile: str = ""
@@ -229,8 +233,20 @@ class ProfileController(QObject):
         """Слот, вызываемый в главном потоке по завершении воркера."""
         self._set_busy(False)
         self.operationFinished.emit(success, message)
+        if self._pending_missing is not None:
+            profile, missing = self._pending_missing
+            self._pending_missing = None
+            if missing:
+                self.dependenciesMissing.emit(profile, missing)
         if success:
             self._refresh_timer.start(500)  # небольшая задержка для применения
+
+    @staticmethod
+    def _is_package(profile: str) -> bool:
+        try:
+            return (profile_dir(profile) / "theme.json").is_file()
+        except ValueError:
+            return False
 
     def _settings_components(self) -> tuple[Optional[list[str]], str]:
         settings_core = CoreFactory.settings_core()
@@ -249,13 +265,29 @@ class ProfileController(QObject):
             return None, "Select at least one component in Settings"
         return components, ""
 
-    @Slot(str)
-    def applyProfile(self, profile: str) -> None:
-        """Применить профиль (асинхронно)."""
+    @Slot(str, bool, bool)
+    def applyProfile(self, profile: str, keep_wallpaper: bool = False,
+                     install_missing: bool = False) -> None:
+        """Применить тему (асинхронно).
+
+        Theme packages apply everything they define (component settings do
+        not apply to them); missing assets are reported through
+        ``dependenciesMissing``. Legacy snapshots keep the component filter.
+        """
         try:
             profile = validate_profile_name(profile)
         except ValueError as exc:
             self.operationFinished.emit(False, str(exc))
+            return
+        if self._is_package(profile):
+            def _work() -> tuple[bool, str]:
+                result = self._core.apply(
+                    profile, keep_wallpaper=keep_wallpaper, install_missing=install_missing
+                )
+                self._pending_missing = (profile, list((result.data or {}).get("missing") or []))
+                return result.success, result.message
+
+            self._start_operation("apply", _work)
             return
         components, error = self._settings_components()
         if error:
@@ -268,31 +300,26 @@ class ProfileController(QObject):
 
         self._start_operation("apply", _work)
 
-    @Slot(str, str)
-    def saveProfile(self, name: str, description: str = "") -> None:
-        """Сохранить текущее состояние как профиль (асинхронно).
+    @Slot(str, str, bool)
+    def saveProfile(self, name: str, description: str = "",
+                    include_wallpaper: bool = True) -> None:
+        """Сохранить текущее оформление как тему-пакет (асинхронно).
 
-        Описание (необязательное) пишется сразу после сохранения через
-        ``describe --set`` — в один проход до рефреша модели.
+        A theme stores theme values + local assets (+ the wallpaper unless
+        ``include_wallpaper`` is false); the component settings do not apply.
         """
         try:
             name = validate_profile_name(name)
         except ValueError as exc:
             self.operationFinished.emit(False, str(exc))
             return
-        components, error = self._settings_components()
-        if error:
-            self.operationFinished.emit(False, error)
-            return
 
         def _work() -> tuple[bool, str]:
-            result = self._core.save(name, components)
+            result = self._core.save(
+                name, description=description.strip(), include_wallpaper=include_wallpaper
+            )
             if not result.success:
                 return result.success, result.message
-            if description.strip():
-                described = self._core.set_description(name, description.strip())
-                if not described.success:
-                    return False, described.message
             return True, f"Saved profile: {name}"
 
         self._start_operation("save", _work)

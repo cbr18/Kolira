@@ -20,12 +20,21 @@ This document covers all rollback and recovery scenarios for `theme-profile-kit`
 
 ## 1. Pre-apply backups
 
-Every `theme-profile apply <name>` creates a timestamped backup of all
-tracked config files **before** modifying anything:
+Every `theme-profile apply <name>` creates a timestamped backup **before**
+modifying anything:
 
 ```text
 ~/.config/theme-profile/backups/pre-apply-<name>-<YYYYMMDD-HHMMSS>/
 ```
+
+For a **theme package** (`theme.json`, see `docs/THEMES.md`) the backup holds
+exactly the files the theme's values touch, at their `$HOME`-relative paths
+(e.g. `.config/kdeglobals`, `.config/kwinrc`); copy them back to undo. Saving
+over an existing theme moves the old one to `backups/pre-save-<name>-…`, and
+`theme-profile migrate` moves the old snapshot to `backups/pre-migrate-<name>-…`
+(move it back into `profiles/` to undo a migration).
+
+For a legacy snapshot profile the backup is the full tracked set:
 
 This contains:
 - `manifest.txt` — list of tracked paths and generation metadata

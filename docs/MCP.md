@@ -66,11 +66,11 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 
 ### `list_profiles`
 
-Возвращает профили и признак наличия v2-метаданных `theme-bundle.json`.
+Возвращает профили; `hasBundle` — у профиля есть метаданные темы (`theme.json` пакета или старый `theme-bundle.json`).
 
 ### `get_profile_bundle`
 
-Читает компонентные ссылки профиля.
+Читает компонентные значения профиля; для темы-пакета дополнительно `values`, `assets`, `sources`, `wallpaper`, `legacy: false`.
 
 Аргументы:
 
@@ -78,7 +78,7 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 
 ### `validate_profile`
 
-Проверяет, что все ссылки на темы в профиле существуют в текущей системе.
+Проверяет, что всё, на что ссылается тема, есть в текущей системе (`theme-profile check`). Возвращает `valid`, `message` и `missing: [{field, name, source}]` — `source` подсказывает, где взять (ссылка KDE Store, магазин, id расширения Zed).
 
 Аргументы:
 
@@ -114,7 +114,7 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 
 ### `create_profile`
 
-Сохраняет текущее состояние как профиль. Можно сначала передать компоненты, которые нужно выбрать и применить.
+Сохраняет текущее оформление как тему-пакет (`theme.json` + локальные ресурсы, `docs/THEMES.md`). Можно сначала передать компоненты, которые нужно выбрать и применить.
 
 Аргументы:
 
@@ -122,17 +122,19 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 - `description` — необязательное описание;
 - `components` — необязательный объект вида `{"color_scheme":"Breeze1","kvantum_theme":"OrchisDark"}`;
 - `applications` — необязательный объект вида `{"zed":"Ayu Dark","vscode":"Default Dark Modern"}`;
-- `wallpaper` — необязательный путь к обоям.
+- `includeWallpaper` — класть ли текущие обои в тему (по умолчанию `true`); без обоев применение темы обои не меняет.
 
 Важно: если `components` переданы, они будут применены перед сохранением профиля.
 
 ### `apply_profile`
 
-Явно применяет профиль через core профилей и v2 bundle-ссылки.
+Явно применяет тему: меняется только заданное в теме, перед этим — pre-apply бэкап. Возвращает `ok`, `message`, `missing` и `installed`.
 
 Аргументы:
 
-- `name` — имя профиля.
+- `name` — имя профиля;
+- `keepWallpaper` — не менять обои, даже если они есть в теме;
+- `installMissing` — доустановить недостающие темы VS Code/Cursor/Zed из официальных магазинов.
 
 ## Палитра и магазины тем
 
@@ -179,6 +181,6 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 
 - Удаление профилей через MCP не экспонируется.
 - Системные установленные темы не перезаписываются.
-- Старые снимки профилей v1 продолжают работать; v2 `theme-bundle.json` добавляется поверх них.
+- Старые профили-снимки продолжают работать до `theme-profile migrate`; новые профили — темы-пакеты.
 - Адаптеры приложений с неполной поддержкой возвращают `capabilities`; GUI и MCP должны показывать fallback вместо притворяться, что приложение управляется полностью.
 - `KTM_THEME_NO_APPLY=1` отключает внешние команды/hook-и ядра тем, но не отменяет явное применение значений адаптерами приложений.
