@@ -22,6 +22,7 @@ class ThemeBundleController(QObject):
     profilesChanged = Signal()
     scopeChanged = Signal()
     busyChanged = Signal()
+    storeChanged = Signal()
     toast = Signal(str, bool)
 
     def __init__(self, parent: Optional[QObject] = None) -> None:
@@ -37,6 +38,9 @@ class ThemeBundleController(QObject):
         self._profiles: list[dict] = []
         self._profile_bundle: dict = {}
         self._busy = False
+        self._store_items: list = []
+        self._store_app = ""
+        self._store_busy = False
         self.refresh()
 
     # ── properties ───────────────────────────────────────────────────────
@@ -83,6 +87,67 @@ class ThemeBundleController(QObject):
     @Property(bool, notify=busyChanged)
     def busy(self) -> bool:
         return self._busy
+
+    @Property(list, notify=storeChanged)
+    def storeItems(self) -> list:
+        """Last store search results: {id, name, description, version, downloads}."""
+        return self._store_items
+
+    @Property(str, notify=storeChanged)
+    def storeApp(self) -> str:
+        return self._store_app
+
+    @Property(bool, notify=storeChanged)
+    def storeBusy(self) -> bool:
+        return self._store_busy
+
+    def _set_store(self, *, items: Optional[list] = None, app: Optional[str] = None,
+                   busy: Optional[bool] = None) -> None:
+        if items is not None:
+            self._store_items = items
+        if app is not None:
+            self._store_app = app
+        if busy is not None:
+            self._store_busy = busy
+        self.storeChanged.emit()
+
+    @Slot(str, str)
+    def storeSearch(self, app_id: str, query: str) -> None:
+        """Search the editor's theme store off the GUI thread."""
+        if self._store_busy:
+            return
+        holder: dict = {}
+
+        def work() -> tuple[bool, str]:
+            result = self._core.store_search(app_id, query)
+            holder["items"] = (result.data or {}).get("items", [])
+            return result.success, result.message
+
+        def done(success: bool, message: str) -> None:
+            self._set_store(items=holder.get("items", []) if success else [], busy=False)
+            if not success:
+                self.toast.emit(message, False)
+
+        self._set_store(app=app_id, items=[], busy=True)
+        _run(self, work, done)
+
+    @Slot(str, str)
+    def storeInstall(self, app_id: str, extension_id: str) -> None:
+        """Install a store theme; the app's theme list refreshes afterwards."""
+        if self._store_busy:
+            return
+
+        def work() -> tuple[bool, str]:
+            result = self._core.store_install(app_id, extension_id)
+            return result.success, result.message
+
+        def done(success: bool, message: str) -> None:
+            self._set_store(busy=False)
+            self.toast.emit(message, success)
+            self.refresh()
+
+        self._set_store(busy=True)
+        _run(self, work, done)
 
     # ── refresh ──────────────────────────────────────────────────────────
 

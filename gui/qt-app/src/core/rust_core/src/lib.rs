@@ -15,6 +15,8 @@ pub mod oklab;
 pub mod extract;
 pub mod kvantum;
 pub mod gallery;
+pub mod net;
+pub mod stores;
 pub mod tracked_apps;
 pub mod custom_components;
 pub mod config_parser;

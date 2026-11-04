@@ -136,6 +136,16 @@ Kirigami.ScrollablePage {
                         }
 
                         Button {
+                            text: qsTr("Find in store…")
+                            icon.name: "edit-find"
+                            visible: modelData.capabilities.theme_store === true
+                            enabled: modelData.installed && !themeBundle.busy
+                            onClicked: storeDialog.openFor(modelData.id, modelData.name)
+                            ToolTip.visible: hovered
+                            ToolTip.text: qsTr("Search the editor's theme store and install a theme")
+                        }
+
+                        Button {
                             text: qsTr("Launch")
                             icon.name: "media-playback-start"
                             visible: modelData.capabilities.launch === true
@@ -172,6 +182,102 @@ Kirigami.ScrollablePage {
                         wrapMode: Text.WordWrap
                         color: ThemeColors.dimColorSoft(page.glassMode)
                         font.pointSize: TypeScale.caption
+                    }
+                }
+            }
+        }
+    }
+
+    // Theme store of an editor (Zed: api.zed.dev, VS Code/Cursor: Open VSX).
+    // Searching and installing run off the GUI thread in the Rust CLI.
+    Kirigami.Dialog {
+        id: storeDialog
+
+        property string appId: ""
+        property string appName: ""
+
+        title: qsTr("%1 themes").arg(appName)
+        preferredWidth: Platform.Units.gridUnit * 30
+        standardButtons: Kirigami.Dialog.Close
+
+        function openFor(id, name) {
+            appId = id
+            appName = name
+            open()
+            queryField.forceActiveFocus()
+        }
+
+        function search() {
+            if (queryField.text.trim() !== "")
+                themeBundle.storeSearch(appId, queryField.text)
+        }
+
+        ColumnLayout {
+            spacing: Platform.Units.smallSpacing
+
+            RowLayout {
+                Layout.fillWidth: true
+                TextField {
+                    id: queryField
+                    Layout.fillWidth: true
+                    placeholderText: qsTr("Theme name, e.g. everforest")
+                    onAccepted: storeDialog.search()
+                }
+                Button {
+                    text: qsTr("Search")
+                    icon.name: "edit-find"
+                    enabled: !themeBundle.storeBusy && queryField.text.trim() !== ""
+                    onClicked: storeDialog.search()
+                }
+            }
+
+            BusyIndicator {
+                Layout.alignment: Qt.AlignHCenter
+                visible: themeBundle.storeBusy
+                running: visible
+            }
+
+            Label {
+                Layout.fillWidth: true
+                visible: !themeBundle.storeBusy && themeBundle.storeApp === storeDialog.appId
+                         && themeBundle.storeItems.length === 0 && queryField.text !== ""
+                text: qsTr("Nothing found yet — press Search.")
+                color: ThemeColors.dimColor(page.glassMode)
+                wrapMode: Text.WordWrap
+            }
+
+            Repeater {
+                model: themeBundle.storeApp === storeDialog.appId ? themeBundle.storeItems : []
+
+                delegate: RowLayout {
+                    required property var modelData
+                    Layout.fillWidth: true
+                    spacing: Platform.Units.smallSpacing
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 0
+                        Label {
+                            Layout.fillWidth: true
+                            text: modelData.name
+                            font.bold: true
+                            elide: Text.ElideRight
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            text: qsTr("%1 · %2 downloads").arg(modelData.id).arg(modelData.downloads)
+                            color: ThemeColors.dimColor(page.glassMode)
+                            font.pointSize: TypeScale.caption
+                            elide: Text.ElideRight
+                        }
+                    }
+                    Button {
+                        text: qsTr("Install")
+                        icon.name: "download"
+                        enabled: !themeBundle.storeBusy
+                        onClicked: themeBundle.storeInstall(storeDialog.appId, modelData.id)
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Installs the extension with %1's own tools; then pick the theme in the list").arg(storeDialog.appName)
                     }
                 }
             }

@@ -156,6 +156,15 @@ def bundle_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("XDG_DATA_DIRS", str(tmp_path / "system-share"))
     monkeypatch.setenv("KTM_THEME_NO_APPLY", "1")
     monkeypatch.chdir(tmp_path)
+    # Apps count as installed only with an executable: fake them on PATH.
+    fake_bin = tmp_path / "fake-bin"
+    fake_bin.mkdir()
+    for name in ("zeditor", "code", "cursor", "obsidian", "btop", "kitty",
+                 "alacritty", "discord", "telegram-desktop", "xdg-open"):
+        tool = fake_bin / name
+        tool.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+        tool.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{fake_bin}:/usr/bin:/bin")
 
     def put(relative: str, text: str) -> Path:
         path = tmp_path / relative
@@ -609,3 +618,74 @@ def test_mcp_server_tools_list_and_call(tmp_path: Path, monkeypatch: pytest.Monk
         "params": {"name": "unknown_tool", "arguments": {}},
     })
     assert bad["result"]["isError"] is True
+
+
+def test_detection_needs_an_executable_not_just_a_config(
+    bundle_home, monkeypatch: pytest.MonkeyPatch
+):
+    home = bundle_home["home"]
+    monkeypatch.setenv("PATH", str(home / "fake-bin"))  # no real /usr/bin apps
+    (home / "fake-bin" / "code").unlink()  # VS Code gone, ~/.config/Code stays
+    vscode = VSCodeAdapter()
+    assert vscode.has_config()
+    assert not vscode.detect()
+    apps = {app["id"]: app for app in bundle_home["core"].applications()}
+    assert apps["vscode"]["installed"] is False
+    assert "old config" in apps["vscode"]["statusText"]
+
+    # Zed on Arch/CachyOS is `zeditor`; launching uses the binary found.
+    zed = ADAPTERS["zed"]
+    assert zed.executable() == [str(home / "fake-bin" / "zeditor")]
+    launched: list[list[str]] = []
+    monkeypatch.setattr(
+        "core.app_theme_adapters.subprocess.Popen", lambda argv, **_: launched.append(argv)
+    )
+    assert zed.launch()["ok"]
+    assert launched == [[str(home / "fake-bin" / "zeditor")]]
+
+    # A Flatpak install counts (detected from the install dir, no `flatpak` call).
+    (home / "fake-bin" / "obsidian").unlink()
+    obsidian = ADAPTERS["obsidian"]
+    assert not obsidian.detect()
+    (home / ".local/share/flatpak/app/md.obsidian.Obsidian/current").mkdir(parents=True)
+    assert obsidian.executable() == ["flatpak", "run", "md.obsidian.Obsidian"]
+
+
+def test_store_search_and_install_go_through_the_cli(
+    bundle_home, monkeypatch: pytest.MonkeyPatch
+):
+    """Store access is Rust (`theme-profile apps …`); Python only parses JSON."""
+    home = bundle_home["home"]
+    fake = home / "fake-bin" / "theme-profile-fake"
+    fake.write_text(
+        "#!/bin/sh\n"
+        'echo "$@" >> "$HOME/cli-calls"\n'
+        'case "$2" in\n'
+        '  store-search) echo \'[{"id":"everforest","name":"Everforest","description":"",'
+        '"version":"0.2.0","downloads":5}]\' ;;\n'
+        '  store-install) echo \'{"app":"zed","id":"everforest","themes":["Everforest Dark"],'
+        '"location":"x"}\' ;;\n'
+        "  *) echo boom >&2; exit 1 ;;\n"
+        "esac\n",
+        encoding="utf-8",
+    )
+    fake.chmod(0o755)
+    monkeypatch.setenv("KTM_THEME_PROFILE_BIN", str(fake))
+    core = bundle_home["core"]
+
+    found = core.store_search("zed", "everforest")
+    assert found.success, found.message
+    assert found.data["items"][0]["id"] == "everforest"
+
+    installed = core.store_install("zed", "everforest")
+    assert installed.success and installed.data["themes"] == ["Everforest Dark"]
+    calls = (home / "cli-calls").read_text().splitlines()
+    assert calls == [
+        "apps store-search zed everforest --json",
+        "apps store-install zed everforest --json",
+    ]
+
+    assert not core.store_search("btop", "x").success  # no store for btop
+    (home / "fake-bin" / "cursor").unlink()
+    monkeypatch.setenv("PATH", str(home / "fake-bin"))
+    assert "not installed" in core.store_search("cursor", "x").message

@@ -277,7 +277,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
                 ".config/zed/settings.json".to_string(),
                 ".config/zed/themes".to_string(),
             ],
-            detect_command: Some("zed".to_string()),
+            detect_command: Some("zeditor|zed".to_string()),
             flatpak_id: None,
             supports_live_reload: false,
             description: "Code editor with native themes".to_string(),
@@ -289,7 +289,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             name: "VS Code".to_string(),
             category: "Editors".to_string(),
             config_paths: vec![".config/Code/User/settings.json".to_string()],
-            detect_command: Some("code".to_string()),
+            detect_command: Some("code|code-oss|codium|vscodium".to_string()),
             flatpak_id: None,
             supports_live_reload: false,
             description: "VS Code settings (theme, font, etc.)".to_string(),
@@ -386,7 +386,12 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
 /// "not_installed" even though their configs are right there.
 fn detect_app_status(app: &TrackedAppDef) -> crate::types::AppStatus {
     if let Some(cmd) = &app.detect_command {
-        if which::which(cmd.split_whitespace().next().unwrap_or(cmd)).is_err() {
+        // `a|b`: any alternative counts (Zed ships as `zeditor` on Arch).
+        let found = cmd
+            .split('|')
+            .filter_map(|alt| alt.split_whitespace().next())
+            .any(|bin| which::which(bin).is_ok());
+        if !found {
             let via_flatpak = app
                 .flatpak_id
                 .as_ref()

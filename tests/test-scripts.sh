@@ -349,6 +349,19 @@ fi
 pal_cli palette import "$BASE16" >/dev/null
 pal_cli palette set accent=#a7c080 >/dev/null
 
+# Editor theme stores: offline/invalid input never reaches the network.
+out="$(gal_cli apps store-search zed everforest 2>&1 || true)" # exits 1 by design
+case "$out" in
+  *"network is disabled"*) ok "apps store-search respects the offline switch" ;;
+  *) fail "apps store-search did not report the disabled network: $out" ;;
+esac
+if gal_cli apps store-search btop x >/dev/null 2>&1 || gal_cli apps store-install zed ../x >/dev/null 2>&1 ||
+  gal_cli apps store-install cursor not-an-id >/dev/null 2>&1; then
+  fail "apps store accepted an unknown app or an invalid id"
+else
+  ok "apps store rejects unknown apps and invalid ids"
+fi
+
 # Terminals: only colour lines/keys change, re-apply is idempotent, backups made.
 mkdir -p "$PAL_HOME/.config/kitty" "$PAL_HOME/.config/alacritty"
 printf 'font_size 11\nbackground_opacity 0.9\n' >"$PAL_HOME/.config/kitty/kitty.conf"

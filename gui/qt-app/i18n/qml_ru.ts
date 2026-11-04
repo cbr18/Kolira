@@ -752,33 +752,78 @@
     </message>
     <message>
         <location filename="../qml/pages/ThemeApplicationsPage.qml" line="139"/>
+        <source>Find in store…</source>
+        <translation>Найти в магазине…</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="145"/>
+        <source>Search the editor&apos;s theme store and install a theme</source>
+        <translation>Найти тему в магазине редактора и установить</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="149"/>
         <source>Launch</source>
         <translation>Запустить</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="147"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="157"/>
         <source>App theme settings</source>
         <translation>Настройки темы приложения</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="158"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="168"/>
         <source>Config: %1</source>
         <translation>Конфиг: %1</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="168"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="178"/>
         <source>This application is styled through its config file. Open it in the default editor; profile snapshots still include the file.</source>
         <translation>Оформление этого приложения задаётся конфигом. Откройте его в редакторе по умолчанию; снапшоты профилей по-прежнему сохраняют файл.</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="170"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="180"/>
         <source>This application can list themes, but automatic applying is not supported yet.</source>
         <translation>Приложение умеет показывать список тем, но автоматическое применение пока не поддерживается.</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="171"/>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="181"/>
         <source>No installed themes were detected for this application.</source>
         <translation>Для этого приложения не найдено установленных тем.</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="199"/>
+        <source>%1 themes</source>
+        <translation>Темы %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="223"/>
+        <source>Theme name, e.g. everforest</source>
+        <translation>Название темы, например everforest</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="227"/>
+        <source>Search</source>
+        <translation>Искать</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="244"/>
+        <source>Nothing found yet — press Search.</source>
+        <translation>Пока ничего не найдено — нажмите «Искать».</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="268"/>
+        <source>%1 · %2 downloads</source>
+        <translation>%1 · загрузок: %2</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="275"/>
+        <source>Install</source>
+        <translation>Установить</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemeApplicationsPage.qml" line="280"/>
+        <source>Installs the extension with %1&apos;s own tools; then pick the theme in the list</source>
+        <translation>Расширение ставится средствами самого %1; затем выберите тему в списке</translation>
     </message>
 </context>
 <context>

@@ -432,7 +432,11 @@ class ThemeBundleCore:
 
             if not installed:
                 status = "not_installed"
-                status_text = _tr(QT_TRANSLATE_NOOP("ThemeBundle", "Application not detected"))
+                status_text = (
+                    _tr(QT_TRANSLATE_NOOP("ThemeBundle", "Not installed — only an old config was found"))
+                    if adapter.has_config()
+                    else _tr(QT_TRANSLATE_NOOP("ThemeBundle", "Application not detected"))
+                )
             elif capabilities.get("current_theme"):
                 current_result = adapter.current_theme()
                 if current_result.get("ok"):
@@ -779,6 +783,57 @@ class ThemeBundleCore:
         except OSError as exc:
             return Result.err(f"Failed to create Kvantum theme: {exc}")
         return Result.ok(data={"assets": [str(target)]})
+
+    # ── editor theme stores (Rust CLI: `theme-profile apps …`) ───────────
+
+    def _cli_json(self, args: list[str], timeout: int = 180) -> Result:
+        from .cli_core import resolve_cli_bin
+
+        try:
+            proc = subprocess.run(
+                [resolve_cli_bin(), *args, "--json"],
+                capture_output=True, text=True, timeout=timeout,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return Result.err(str(exc))
+        if proc.returncode != 0:
+            return Result.err(proc.stderr.strip() or proc.stdout.strip() or "theme-profile failed")
+        try:
+            data = json.loads(proc.stdout)
+        except ValueError:
+            return Result.err("theme-profile returned invalid JSON")
+        return Result.ok(data={"value": data})
+
+    def _store_adapter(self, app_id: str) -> Result:
+        adapter = adapter_for(app_id)
+        if adapter is None or not adapter.capabilities.get("theme_store"):
+            return Result.err(f"No theme store for {app_id}")
+        if not adapter.detect():
+            return Result.err(f"{adapter.name} is not installed")
+        return Result.ok()
+
+    def store_search(self, app_id: str, query: str) -> Result:
+        checked = self._store_adapter(app_id)
+        if not checked.success:
+            return checked
+        result = self._cli_json(["apps", "store-search", app_id, query.strip()])
+        if not result.success:
+            return result
+        items = list((result.data or {}).get("value") or [])
+        return Result.ok(f"{len(items)} theme(s) found", data={"items": items})
+
+    def store_install(self, app_id: str, extension_id: str) -> Result:
+        checked = self._store_adapter(app_id)
+        if not checked.success:
+            return checked
+        result = self._cli_json(["apps", "store-install", app_id, extension_id])
+        if not result.success:
+            return result
+        report = dict((result.data or {}).get("value") or {})
+        themes = list(report.get("themes") or [])
+        return Result.ok(
+            f"Installed {extension_id}: {len(themes)} theme(s)", data=report
+        )
 
     # ── external actions ─────────────────────────────────────────────────
 

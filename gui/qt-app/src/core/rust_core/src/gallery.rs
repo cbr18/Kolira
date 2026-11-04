@@ -15,6 +15,7 @@ use std::time::{Duration, SystemTime};
 
 use anyhow::{anyhow, Context, Result};
 
+use crate::net::{http_get, network_enabled};
 use crate::palette::{parse_base16, Palette, Variant};
 
 const BRANCH: &str = "spec-0.11";
@@ -87,18 +88,6 @@ pub fn cache_dir() -> PathBuf {
     crate::paths::cache_home().join("theme-profile").join("base16")
 }
 
-/// Network allowed? Off via `KTM_OFFLINE=1` or `network_enabled: false`.
-pub fn network_enabled() -> bool {
-    if std::env::var("KTM_OFFLINE").as_deref() == Ok("1") {
-        return false;
-    }
-    std::fs::read_to_string(crate::paths::settings_file())
-        .ok()
-        .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
-        .and_then(|v| v.get("network_enabled").and_then(serde_json::Value::as_bool))
-        .unwrap_or(true)
-}
-
 fn source_label(id: &str) -> String {
     format!("gallery:{id}")
 }
@@ -120,25 +109,6 @@ pub fn parse_index(json: &str) -> Result<Vec<String>> {
     ids.sort();
     ids.dedup();
     Ok(ids)
-}
-
-fn http_get(url: &str, limit: u64) -> Result<String> {
-    use std::io::Read;
-    let response = ureq::get(url)
-        .set("User-Agent", "theme-profile-kit")
-        .timeout(Duration::from_secs(20))
-        .call()
-        .with_context(|| format!("GET {url}"))?;
-    let mut body = String::new();
-    response
-        .into_reader()
-        .take(limit + 1)
-        .read_to_string(&mut body)
-        .context("reading response")?;
-    if body.len() as u64 > limit {
-        return Err(anyhow!("response from {url} is larger than {limit} bytes"));
-    }
-    Ok(body)
 }
 
 fn fresh(path: &Path) -> bool {

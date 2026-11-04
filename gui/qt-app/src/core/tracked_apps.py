@@ -217,7 +217,7 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
             ".config/zed/settings.json",
             ".config/zed/themes",
         ),
-        detect_command="zed",
+        detect_command="zeditor|zed",
         description="Code editor with native themes",
         icon="text-editor",
         docs_url="https://zed.dev/",
@@ -227,7 +227,7 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         name="VS Code",
         category="Editors",
         config_paths=(".config/Code/User/settings.json",),
-        detect_command="code",
+        detect_command="code|code-oss|codium|vscodium",
         description="VS Code settings (theme, font, etc.)",
         icon="visual-studio-code",
         docs_url="https://code.visualstudio.com/",
@@ -393,8 +393,13 @@ def all_app_defs() -> list[TrackedAppDef]:
 # ──────────────────────────────────────────────────────────────
 
 def _check_command(cmd: str) -> bool:
-    """Проверить наличие команды в PATH."""
-    return shutil.which(cmd.split()[0]) is not None
+    """Проверить наличие команды в PATH; `a|b` — любая из альтернатив
+    (Zed — `zeditor` на Arch/CachyOS, VS Code — `code`/`codium`…)."""
+    return any(
+        shutil.which(alt.split()[0]) is not None
+        for alt in cmd.split("|")
+        if alt.strip()
+    )
 
 
 def _check_flatpak(flatpak_id: str) -> bool:

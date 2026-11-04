@@ -1,6 +1,6 @@
 # Конструктор тем: палитра, генераторы, магазины, база для новой темы
 
-Status: IN PROGRESS — P0 ✅, обои ✅, P1: палитра + генераторы KDE/kitty/Alacritty/Kvantum + галерея + из обоев ✅
+Status: IN PROGRESS — P0 ✅, обои ✅, P1: палитра + генераторы KDE/kitty/Alacritty/Kvantum + галерея + из обоев + детект/магазины ✅
 
 Plan: [2026_11_04_09_00_theme-constructor-palette.md](../plans/2026_11_04_09_00_theme-constructor-palette.md)
 
@@ -111,5 +111,11 @@ Kvantum не перекрашивается, тем для редакторов 
   ImageColors (`palette from-colors`), общий алгоритм раскладки в base16 с
   контрастом текста ≥ 7:1 и подстройкой акцента под текст на выделении.
   OKLab вынесен в `oklab.rs`. Кнопка в GUI (ImageColors) — вместе со страницей «Палитра».
-- Дальше в P1:
-  магазины Zed/Cursor, детект по бинарнику, GUI-страница «Палитра», MCP.
+- 2026-11-04 — **P1, часть 6**: детект по бинарнику/Flatpak (`binaries`,
+  `flatpak_ids`; Zed = `zeditor`, исправлен «Запустить»; VS Code без бинарника —
+  «не установлено — найден только старый конфиг»; `a|b` в tracked apps),
+  магазины тем (`stores.rs`, `net.rs`): Zed (`api.zed.dev`, распаковка
+  `themes/*.json`), VS Code/Cursor (Open VSX + `--install-extension`), CLI
+  `apps store-search|store-install`, GUI «Найти в магазине…». Зависимости
+  `flate2`, `tar`.
+- Дальше в P1: GUI-страница «Палитра» (с ImageColors), MCP.

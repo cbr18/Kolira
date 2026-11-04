@@ -38,6 +38,12 @@ def _ok(data: Optional[dict] = None, message: str = "") -> dict:
     return item
 
 
+def _flatpak_installed(app_id: str) -> bool:
+    """Installed Flatpak app (user or system), without spawning `flatpak`."""
+    roots = (data_home() / "flatpak/app", Path("/var/lib/flatpak/app"))
+    return any((root / app_id / "current").exists() for root in roots)
+
+
 def _err(message: str, status: str = "unsupported") -> dict:
     return {"ok": False, "status": status, "message": message}
 
@@ -74,6 +80,11 @@ class AppThemeAdapter:
     name = ""
     icon = "application-x-executable"
     launch_command: tuple[str, ...] = ()
+    # Executable names to look for (first found wins; default: launch_command[0])
+    # and Flatpak app ids. An app is "installed" only when one of them exists —
+    # a leftover config alone (e.g. ~/.config/Code without VS Code) is not enough.
+    binaries: tuple[str, ...] = ()
+    flatpak_ids: tuple[str, ...] = ()
     config_paths: tuple[str, ...] = ()
     integration = "generic"
     capabilities = {
@@ -86,9 +97,22 @@ class AppThemeAdapter:
         "open_config": False,
     }
 
+    def executable(self) -> Optional[list[str]]:
+        """argv prefix that starts the app: a binary from PATH, else
+        `flatpak run <id>`; None when the app is not installed."""
+        for name in self.binaries or self.launch_command[:1]:
+            found = shutil.which(name)
+            if found:
+                return [found]
+        for app_id in self.flatpak_ids:
+            if _flatpak_installed(app_id):
+                return ["flatpak", "run", app_id]
+        return None
+
     def detect(self) -> bool:
-        if self.launch_command and shutil.which(self.launch_command[0]):
-            return True
+        return self.executable() is not None
+
+    def has_config(self) -> bool:
         return any(live_path(path).exists() for path in self.config_paths)
 
     def config_file(self) -> Optional[Path]:
@@ -107,11 +131,14 @@ class AppThemeAdapter:
     def apply_theme(self, theme_id: str) -> dict:
         return _err(f"{self.name} themes cannot be applied automatically")
 
-    def launch(self) -> dict:
-        if not self.launch_command:
+    def launch(self, *args: str) -> dict:
+        if not self.launch_command and not self.binaries:
             return _err(f"{self.name} has no launch command")
+        argv = self.executable()
+        if argv is None:
+            return _err(f"{self.name} is not installed", "launch_failed")
         try:
-            subprocess.Popen(list(self.launch_command))
+            subprocess.Popen(argv + list(self.launch_command[1:]) + list(args))
         except OSError as exc:
             return _err(str(exc), "launch_failed")
         return _ok(message=f"Launched {self.name}")
@@ -184,10 +211,15 @@ class VSCodeAdapter(JsonSettingsAdapter):
     settings_rel = ".config/Code/User/settings.json"
     extensions_rel = ".vscode/extensions"
 
+    binaries = ("code", "code-oss", "codium", "vscodium")
+    flatpak_ids = ("com.visualstudio.code", "com.vscodium.codium")
+
     def __init__(self, name: str = "VS Code", icon: str = "vscode",
                  settings_rel: Optional[str] = None,
                  extensions_rel: Optional[str] = None,
-                 launch_command: Optional[tuple[str, ...]] = None) -> None:
+                 launch_command: Optional[tuple[str, ...]] = None,
+                 binaries: Optional[tuple[str, ...]] = None,
+                 flatpak_ids: Optional[tuple[str, ...]] = None) -> None:
         if name:
             self.name = name
             self.id = "cursor" if name.casefold() == "cursor" else "vscode"
@@ -200,6 +232,10 @@ class VSCodeAdapter(JsonSettingsAdapter):
             self.extensions_rel = extensions_rel
         if launch_command:
             self.launch_command = launch_command
+        if binaries is not None:
+            self.binaries = binaries
+        if flatpak_ids is not None:
+            self.flatpak_ids = flatpak_ids
         self.capabilities = dict(self.capabilities)
         self.capabilities.update({
             "current_theme": True,
@@ -207,6 +243,8 @@ class VSCodeAdapter(JsonSettingsAdapter):
             "apply_theme": True,
             "launch": bool(self.launch_command),
             "open_theme_settings": bool(self.launch_command),
+            # Open VSX search + `<cli> --install-extension` (Rust: stores.rs).
+            "theme_store": True,
         })
 
     def theme_path(self) -> tuple[str, ...]:
@@ -225,6 +263,14 @@ class VSCodeAdapter(JsonSettingsAdapter):
     def extensions_root(self) -> Path:
         return home_dir() / self.extensions_rel
 
+    def extensions_roots(self) -> list[Path]:
+        """Where extensions live: `.vscode/extensions`, plus `.vscode-oss`
+        for Code - OSS / VSCodium builds."""
+        roots = [self.extensions_root()]
+        if self.id == "vscode":
+            roots.append(home_dir() / ".vscode-oss/extensions")
+        return roots
+
     def installed_themes(self) -> dict:
         root = self.extensions_root()
         builtins = (
@@ -237,10 +283,12 @@ class VSCodeAdapter(JsonSettingsAdapter):
             )
         )
         themes = [AdapterTheme(name, name, "built-in") for name in builtins]
-        try:
-            packages = sorted(root.glob("*/package.json"))
-        except OSError:
-            packages = []
+        packages: list[Path] = []
+        for extensions in self.extensions_roots():
+            try:
+                packages.extend(sorted(extensions.glob("*/package.json")))
+            except OSError:
+                continue
         for package in packages:
             try:
                 data = json.loads(package.read_text(encoding="utf-8", errors="replace"))
@@ -258,10 +306,11 @@ class VSCodeAdapter(JsonSettingsAdapter):
         return _ok({"themes": [theme.to_dict() for theme in unique.values()]})
 
     def open_theme_settings(self) -> dict:
-        if not shutil.which(self.launch_command[0]):
+        argv = self.executable()
+        if argv is None:
             return _err("VS Code command not found", "launch_failed")
         try:
-            subprocess.Popen([self.launch_command[0], "workbench.action.selectTheme"])
+            subprocess.Popen(argv + ["workbench.action.selectTheme"])
         except OSError as exc:
             return _err(str(exc), "launch_failed")
         return _ok(message="Opened the theme picker")
@@ -275,6 +324,8 @@ class CursorAdapter(VSCodeAdapter):
             settings_rel=".config/Cursor/User/settings.json",
             extensions_rel=".cursor/extensions",
             launch_command=("cursor",),
+            binaries=("cursor",),
+            flatpak_ids=(),
         )
 
 
@@ -283,6 +334,8 @@ class ZedAdapter(JsonSettingsAdapter):
     name = "Zed"
     icon = "zed"
     launch_command = ("zed",)
+    binaries = ("zeditor", "zed", "zedit")  # Arch/CachyOS ship `zeditor`
+    flatpak_ids = ("dev.zed.Zed",)
     config_paths = (".config/zed/settings.json",)
     settings_rel = ".config/zed/settings.json"
     built_in_themes = (
@@ -296,6 +349,7 @@ class ZedAdapter(JsonSettingsAdapter):
         "apply_theme": True,
         "launch": True,
         "open_theme_settings": True,
+        "theme_store": True,  # api.zed.dev extensions (Rust: stores.rs)
     }
 
     def theme_path(self) -> tuple[str, ...]:
@@ -367,10 +421,11 @@ class ZedAdapter(JsonSettingsAdapter):
         return _ok(message=f"Zed dark theme set to {theme_id}")
 
     def open_theme_settings(self) -> dict:
-        if not shutil.which(self.launch_command[0]):
+        argv = self.executable()
+        if argv is None:
             return _err("Zed command not found", "launch_failed")
         try:
-            subprocess.Popen([self.launch_command[0], "--new"])
+            subprocess.Popen(argv + ["--new"])
         except OSError as exc:
             return _err(str(exc), "launch_failed")
         return _ok(message="Opened Zed")
@@ -381,6 +436,7 @@ class ObsidianAdapter(AppThemeAdapter):
     name = "Obsidian"
     icon = "obsidian"
     launch_command = ("obsidian",)
+    flatpak_ids = ("md.obsidian.Obsidian",)
     capabilities = {
         **AppThemeAdapter.capabilities,
         "current_theme": True,
@@ -406,7 +462,8 @@ class ObsidianAdapter(AppThemeAdapter):
     def settings_path(self, vault: Path) -> Path:
         return vault / ".obsidian" / "appearance.json"
 
-    def detect(self) -> bool:
+    def has_config(self) -> bool:
+        # Obsidian's theme lives per vault; no vault = nothing to theme yet.
         return bool(self.vaults())
 
     def current_theme(self) -> dict:
@@ -461,10 +518,11 @@ class ObsidianAdapter(AppThemeAdapter):
         return _ok(message=f"Obsidian theme set to {theme_id}")
 
     def open_theme_settings(self) -> dict:
-        if not shutil.which(self.launch_command[0]):
+        argv = self.executable()
+        if argv is None:
             return _err("Obsidian command not found", "launch_failed")
         try:
-            subprocess.Popen([self.launch_command[0], "obsidian://appearance"])
+            subprocess.Popen(argv + ["obsidian://appearance"])
         except OSError as exc:
             return _err(str(exc), "launch_failed")
         return _ok(message="Opened Obsidian appearance settings")
@@ -554,6 +612,8 @@ class DiscordAdapter(AppThemeAdapter):
     name = "Discord"
     icon = "discord"
     launch_command = ("discord",)
+    binaries = ("discord", "Discord", "vesktop")
+    flatpak_ids = ("com.discordapp.Discord", "dev.vencord.Vesktop")
     config_paths = (".config/discord/settings.json",)
     integration = "config"
     capabilities = {
@@ -593,6 +653,8 @@ class TelegramAdapter(AppThemeAdapter):
     name = "Telegram Desktop"
     icon = "telegram"
     launch_command = ("telegram-desktop",)
+    binaries = ("telegram-desktop", "Telegram", "telegram")
+    flatpak_ids = ("org.telegram.desktop",)
     config_paths = (".config/telegram-desktop/themes",)
     integration = "config"
     capabilities = {

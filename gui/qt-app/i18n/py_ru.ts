@@ -255,7 +255,7 @@
         <translation>Обои, скругления, размытие, прозрачность и эффекты окон</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="684" />
+        <location filename="../src/core/theme_bundle.py" line="688" />
         <location filename="../src/core/theme_bundle.py" line="140" />
         <source>Wallpaper</source>
         <translation>Обои</translation>
@@ -386,19 +386,24 @@
         <translation>Выбранная тема не установлена</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="435" />
+        <location filename="../src/core/theme_bundle.py" line="436" />
+        <source>Not installed — only an old config was found</source>
+        <translation>Не установлено — найден только старый конфиг</translation>
+    </message>
+    <message>
+        <location filename="../src/core/theme_bundle.py" line="438" />
         <source>Application not detected</source>
         <translation>Приложение не найдено</translation>
     </message>
 </context><context>
     <name>ThemeBundleController</name>
     <message>
-        <location filename="../src/controllers/theme_bundle.py" line="231" />
-        <location filename="../src/controllers/theme_bundle.py" line="213" />
-        <location filename="../src/controllers/theme_bundle.py" line="189" />
-        <location filename="../src/controllers/theme_bundle.py" line="180" />
-        <location filename="../src/controllers/theme_bundle.py" line="159" />
-        <location filename="../src/controllers/theme_bundle.py" line="136" />
+        <location filename="../src/controllers/theme_bundle.py" line="296" />
+        <location filename="../src/controllers/theme_bundle.py" line="278" />
+        <location filename="../src/controllers/theme_bundle.py" line="254" />
+        <location filename="../src/controllers/theme_bundle.py" line="245" />
+        <location filename="../src/controllers/theme_bundle.py" line="224" />
+        <location filename="../src/controllers/theme_bundle.py" line="201" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>

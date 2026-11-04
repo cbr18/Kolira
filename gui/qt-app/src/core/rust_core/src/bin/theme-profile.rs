@@ -17,6 +17,7 @@ use kde_theme_core::wallpaper::{plasma_wallpaper_from, wallpaper_dir};
 use kde_theme_core::palette;
 use kde_theme_core::gallery;
 use kde_theme_core::extract;
+use kde_theme_core::stores;
 
 const USAGE: &str = "\
 Usage:
@@ -30,6 +31,8 @@ Usage:
   theme-profile describe NAME [--set=...]
   theme-profile components <list|add|edit|remove> [json_or_id]
   theme-profile wallpaper <dir|current>
+  theme-profile apps store-search APP QUERY [--json]   (APP: zed, vscode, cursor)
+  theme-profile apps store-install APP ID [--json]     (Zed extension id / publisher.name)
   theme-profile palette show [--json]
   theme-profile palette import FILE|gallery:ID   (base16 YAML, palette JSON or a gallery scheme)
   theme-profile palette gallery [QUERY] [--online] [--refresh] [--json]
@@ -130,6 +133,44 @@ fn load_live_palette() -> Result<palette::Palette, ExitCode> {
     })
 }
 
+fn apps_cmd(args: &[String]) -> ExitCode {
+    let json = args.iter().any(|a| a == "--json");
+    let positional: Vec<&str> = args.iter().map(String::as_str).filter(|a| !a.starts_with("--")).collect();
+    match positional.as_slice() {
+        ["store-search", app, query @ ..] => match stores::search(app, &query.join(" ")) {
+            Ok(items) if json => {
+                println!("{}", serde_json::to_string(&items).unwrap_or_default());
+                ExitCode::SUCCESS
+            }
+            Ok(items) => {
+                for i in items {
+                    println!("{}\t{}\t{}\t{}", i.id, i.downloads, i.version, i.name);
+                }
+                ExitCode::SUCCESS
+            }
+            Err(e) => fail(format!("{e:#}")),
+        },
+        ["store-install", app, id] => match stores::install(app, id) {
+            Ok(report) if json => {
+                println!("{}", serde_json::to_string(&report).unwrap_or_default());
+                ExitCode::SUCCESS
+            }
+            Ok(report) => {
+                println!("Installed {} for {} → {}", report.id, report.app, report.location);
+                for theme in report.themes {
+                    println!("theme={theme}");
+                }
+                ExitCode::SUCCESS
+            }
+            Err(e) => fail(format!("{e:#}")),
+        },
+        _ => {
+            eprint!("{USAGE}");
+            fail("Usage error: apps <store-search APP QUERY|store-install APP ID>")
+        }
+    }
+}
+
 fn palette_cmd(args: &[String]) -> ExitCode {
     match args.first().map(String::as_str) {
         Some("show") => match load_live_palette() {
@@ -172,7 +213,7 @@ fn palette_cmd(args: &[String]) -> ExitCode {
                     println!("{}\t{}\t{}\t{}", e.id, e.origin.as_str(), variant(e.variant), e.name.as_deref().unwrap_or(""));
                 }
             }
-            if online && !gallery::network_enabled() {
+            if online && !kde_theme_core::net::network_enabled() {
                 eprintln!("Network is disabled (network_enabled=false or KTM_OFFLINE=1): cached catalogue only.");
             }
             ExitCode::SUCCESS
@@ -424,6 +465,7 @@ fn main() -> ExitCode {
             }
         }
         "palette" => palette_cmd(&args[1..]),
+        "apps" => apps_cmd(&args[1..]),
         "wallpaper" => match args.get(1).map(String::as_str) {
             // Single source of truth for the GUI and scripts.
             Some("dir") => {

@@ -18,6 +18,9 @@ Native KDE Plasma application for managing theme profiles and wallpapers.
   settings, Kvantum, GTK and app themes; installed themes are picked from
   lists, edits are staged, and profiles store a v2 `theme-bundle.json` beside
   the legacy snapshot
+- **Application detection** — by executable/Flatpak, not by a leftover config;
+  **Find in store…** for Zed / VS Code / Cursor (search + install via the Rust
+  CLI, off the GUI thread: `ThemeBundleController.storeSearch/storeInstall`)
 - **Application theme adapters** — Zed, VS Code, Cursor, Obsidian and btop can
   expose current/installed themes (VS Code/Cursor map a theme `id` such as a
   Doki UUID back to its label); Discord/Telegram provide safe partial
@@ -225,7 +228,7 @@ mypy src/
 # QML syntax/type lint (PySide6 6.12 ships its own qmllint)
 .venv/bin/pyside6-qmllint -I qml -I /usr/lib/qt6/qml qml/Main.qml qml/pages/SettingsPage.qml qml/Components/*.qml
 
-# Tests (Python: 237, from gui/qt-app)
+# Tests (Python: 239, from gui/qt-app)
 .venv/bin/python -m pytest tests/ -q
 
 # CLI + installer tests (118, from the repo root)

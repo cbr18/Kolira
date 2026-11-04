@@ -252,7 +252,15 @@ Cursor themes that declare an `id` in their extension manifest (e.g. Doki uses
 UUIDs) are stored by that id in `workbench.colorTheme` and shown by their label. Kitty and
 Alacritty use a config-only integration: the UI
 does not pretend they have familiar theme entities, but exposes their config
-file and opens it in the system's default editor via `xdg-open`. Profile
+file and opens it in the system's default editor via `xdg-open`.
+
+An application counts as installed only when its executable (or Flatpak) is
+found — `zeditor`/`zed`, `code`/`code-oss`/`codium`, `cursor`, … — a leftover
+config alone shows "not installed — only an old config was found". **Zed, VS
+Code and Cursor** have *Find in store…*: search the editor's theme store (Zed:
+`api.zed.dev`; VS Code/Cursor: Open VSX) and install a theme (Zed themes are
+copied to `~/.config/zed/themes/`, VS Code/Cursor use their own
+`--install-extension`). CLI: `theme-profile apps store-search|store-install`. Profile
 snapshots still include those config files when the apps are enabled in the
 tracked component list. Unsupported capabilities are shown as fallbacks with a
 button to open the app's native theme settings.
