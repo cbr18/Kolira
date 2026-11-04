@@ -82,6 +82,10 @@ pub struct Package {
     /// field id → where to get what it references.
     #[serde(default)]
     pub sources: BTreeMap<String, Source>,
+    /// The stored files hold only the look (appearance.rs). Themes saved
+    /// before 2026-11-04 evening are converted by `migrate`.
+    #[serde(default)]
+    pub appearance_only: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -396,8 +400,41 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
     }
 
     package.values = values;
+    package.appearance_only = true;
     write_manifest(dir, &package)?;
     Ok(package)
+}
+
+/// Keep only the look in a stored theme (appearance.rs): mixed files are
+/// filtered, kitty.conf / alacritty.toml become their include files. The
+/// theme is copied to `backups/pre-normalize-<name>-…` first.
+fn normalize_dir(name: &str, dir: &Path) -> Result<()> {
+    let backups = crate::paths::backups_dir();
+    fs::create_dir_all(&backups)?;
+    let backup = crate::profile::unique_dir(&backups, &format!("pre-normalize-{name}"))?;
+    copy_tree(dir, &backup).with_context(|| format!("back up {} to {}", dir.display(), backup.display()))?;
+    for rel in crate::profile::resolve_cli_paths(None)? {
+        let path = dir.join(&rel);
+        if !path.is_file() || matches!(crate::appearance::policy(&rel), crate::appearance::Policy::Whole) {
+            continue;
+        }
+        let Ok(text) = fs::read_to_string(&path) else { continue };
+        let include = if rel == crate::appearance::KITTY_HOST {
+            crate::appearance::KITTY_THEME
+        } else {
+            crate::appearance::ALACRITTY_THEME
+        };
+        let entries = crate::appearance::normalize(&rel, &text, dir.join(include).is_file())?;
+        fs::remove_file(&path)?;
+        for (k, t) in entries {
+            let dst = dir.join(k);
+            if let Some(parent) = dst.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::write(dst, t)?;
+        }
+    }
+    Ok(())
 }
 
 /// Save the live look as theme `name`: a full snapshot of every tracked file
@@ -424,8 +461,15 @@ pub fn migrate(name: &str) -> Result<Package> {
         return Err(anyhow!("Profile not found: {name}"));
     }
     if target.join(MANIFEST).is_file() {
-        return load(&target).map_err(|e| anyhow!("{name}: {e:#} (values-only theme@1 packages must be re-saved)"));
+        let mut package = load(&target).map_err(|e| anyhow!("{name}: {e:#} (values-only theme@1 packages must be re-saved)"))?;
+        if !package.appearance_only {
+            normalize_dir(name, &target)?;
+            package.appearance_only = true;
+            write_manifest(&target, &package)?;
+        }
+        return Ok(package);
     }
+    normalize_dir(name, &target).context("keep only the look")?;
     let options = SaveOptions {
         description: Some(crate::profile::get_profile_description(name).unwrap_or_default()),
         include_wallpaper: true,

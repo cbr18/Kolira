@@ -472,7 +472,9 @@ def test_save_profile_writes_theme_package(cli_bundle_home):
     assert data["values"]["zed_dark"] == "Ayu Dark"
     # A theme is a full snapshot: whole config files plus its local assets.
     assert (directory / ".config/kdeglobals").is_file()
-    assert (directory / ".config/kitty/kitty.conf").is_file()
+    # kitty.conf is personal (keys…): only its look, as theme-profile.conf.
+    assert (directory / ".config/kitty/theme-profile.conf").is_file()
+    assert not (directory / ".config/kitty/kitty.conf").exists()
     assert (directory / ".local/share/color-schemes/Mine.colors").is_file()
     # The returned view is what the Theme page shows for the profile scope.
     assert result.data["components"]["color_scheme"] == "Mine"

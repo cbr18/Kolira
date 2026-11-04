@@ -123,8 +123,14 @@ Obsidian…), плюс `theme.json` (описание, значения для G
 - `.config/Kvantum/kvantum.kvconfig`, `Sandstone/`
 
 ### Terminals (опционально)
-- `.config/alacritty/alacritty.toml`, `themes/noctalia.toml`
-- `.config/kitty/kitty.conf` — с live reload через `kitty @`
+- `.config/alacritty/theme-profile.toml` (оформление; `alacritty.toml` только импортирует его), `themes/noctalia.toml`
+- `.config/kitty/theme-profile.conf` (оформление; `kitty.conf` только подключает его через `include`) — с live reload через `kitty @`
+
+Смешанные файлы (`kdeglobals`, `kwinrc`, `plasmarc`, `plasmashellrc`, GTK
+`settings.ini`, `btop.conf`, `settings.json` редакторов) сохраняются и
+применяются **только ключами оформления** со слиянием в живой файл — масштаб
+экрана, рабочие столы, тайлинг, клавиши, SSH-хосты и т.п. не трогаются; таблица
+— `docs/THEMES.md`, код — `rust_core/src/appearance.rs`.
 
 ### Launchers/Menu (опционально)
 - `.config/wofi/style.css`, `wallpaper.css`

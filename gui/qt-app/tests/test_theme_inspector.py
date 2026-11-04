@@ -118,8 +118,8 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     put(".config/Kvantum/kvantum.kvconfig", "[General]\ntheme=OrchisDark\n")
     put(".config/Kvantum/Orchis/OrchisDark.kvconfig",
         "[%General]\ntranslucent_windows=true\nblurring=false\npopup_blurring=true\n")
-    put(".config/kitty/kitty.conf", KITTY)
-    put(".config/alacritty/alacritty.toml", ALACRITTY)
+    put(".config/kitty/theme-profile.conf", KITTY)
+    put(".config/alacritty/theme-profile.toml", ALACRITTY)
     put(".config/btop/btop.conf", 'color_theme = "noctalia"\nrounded_corners = true\n')
     put(".config/zed/settings.json", ZED)
     put(".config/Code/User/settings.json",
@@ -263,7 +263,7 @@ def test_write_toml_section(home: Path) -> None:
     core = AppThemeCore()
     assert core.set_value("alacritty_opacity", 0.65).success
     assert core.apply().success
-    text = (home / ".config/alacritty/alacritty.toml").read_text()
+    text = (home / ".config/alacritty/theme-profile.toml").read_text()
     assert "opacity = 0.65" in text
     assert "[window]" in text
     # The colors table and keybindings are untouched.
@@ -284,7 +284,7 @@ def test_write_kitty_and_font(home: Path) -> None:
     core = AppThemeCore()
     assert core.set_value("kitty_opacity", 0.7).success
     assert core.apply().success
-    assert "background_opacity 0.7" in (home / ".config/kitty/kitty.conf").read_text()
+    assert "background_opacity 0.7" in (home / ".config/kitty/theme-profile.conf").read_text()
     assert core.get("kitty_opacity")["value"] == pytest.approx(0.7)
 
     assert core.set_value("ui_font", {"family": "DejaVu Sans", "size": 9}).success
@@ -376,7 +376,7 @@ def test_search_uses_labels_keys_and_russian_keywords(home: Path) -> None:
 
 def test_revert_removes_a_file_created_in_the_session(home: Path) -> None:
     core = AppThemeCore()
-    kitty = home / ".config/kitty/kitty.conf"
+    kitty = home / ".config/kitty/theme-profile.conf"
     kitty.unlink()
     assert core.set_value("kitty_opacity", 0.9).success
     assert core.apply().success

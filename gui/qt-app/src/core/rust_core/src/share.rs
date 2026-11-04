@@ -190,11 +190,31 @@ fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(
     let asset_paths: Vec<PathBuf> = package.assets.iter().map(|a| PathBuf::from(&a.path)).collect();
     rels.retain(|rel| exported(rel, &asset_paths));
 
+    // Only the look leaves the machine, even from themes saved before the
+    // appearance filters existed (appearance.rs).
+    let mut entries: Vec<(String, Vec<u8>)> = Vec::new();
+    for rel in &rels {
+        let key = rel.to_string_lossy().to_string();
+        let bytes = fs::read(dir.join(rel)).with_context(|| format!("read {key}"))?;
+        match String::from_utf8(bytes.clone()) {
+            Ok(text) if !matches!(crate::appearance::policy(&key), crate::appearance::Policy::Whole) => {
+                let include = if key == crate::appearance::KITTY_HOST {
+                    crate::appearance::KITTY_THEME
+                } else {
+                    crate::appearance::ALACRITTY_THEME
+                };
+                let has_include = rels.iter().any(|r| r == Path::new(include));
+                for (k, t) in crate::appearance::normalize(&key, &text, has_include)? {
+                    entries.push((k, t.into_bytes()));
+                }
+            }
+            _ => entries.push((key, bytes)),
+        }
+    }
+
     let home = home_dir().to_string_lossy().to_string();
     let mut files = Vec::new();
-    for rel in rels {
-        let key = rel.to_string_lossy().to_string();
-        let mut bytes = fs::read(dir.join(&rel)).with_context(|| format!("read {key}"))?;
+    for (key, mut bytes) in entries {
         if is_text(&bytes) {
             let mut text = String::from_utf8(bytes).unwrap_or_default();
             if key == APPLETSRC_REL {

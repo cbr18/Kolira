@@ -33,7 +33,12 @@ Saving over an existing theme moves the old one to
 `pre-migrate-<name>-…` / `package-<name>-…` directories from 2026-11-04 hold
 the snapshots and the abandoned values-only packages of that day.)
 
-The pre-apply backup is the full tracked set:
+Converting the look of `kitty.conf`/`alacritty.toml` into their include files
+backs the originals up to `backups/pre-split-<app>-…`; `theme-profile migrate`
+reducing a stored theme to its look keeps the full theme in
+`backups/pre-normalize-<name>-…`.
+
+The pre-apply backup is the full tracked set (whole files, personal keys included):
 
 This contains:
 - `manifest.txt` — list of tracked paths and generation metadata

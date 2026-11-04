@@ -146,7 +146,8 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         id="kitty",
         name="Kitty",
         category="Terminals",
-        config_paths=(".config/kitty/kitty.conf",),
+        # kitty.conf is an include host; the look lives in theme-profile.conf.
+        config_paths=(".config/kitty/kitty.conf", ".config/kitty/theme-profile.conf"),
         detect_command="kitty",
         supports_live_reload=True,
         description="GPU-accelerated terminal with live config reload",
@@ -159,6 +160,7 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         category="Terminals",
         config_paths=(
             ".config/alacritty/alacritty.toml",
+            ".config/alacritty/theme-profile.toml",
             ".config/alacritty/themes/noctalia.toml",
         ),
         detect_command="alacritty",

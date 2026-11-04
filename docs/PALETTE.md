@@ -55,16 +55,23 @@ theme-profile palette apply [--targets=kde,kitty,alacritty,kvantum] [--kvantum-b
 перезаписываются), выключает `accentColorFromWallpaper` и применяет схему и
 акцент. `KTM_THEME_NO_APPLY=1` отключает внешние команды.
 
-**Терминалы.** kitty: в `~/.config/kitty/kitty.conf` заменяется (или дописывается
-в конец — у kitty побеждает последнее значение) блок между
-`# BEGIN theme-profile palette …` и `# END theme-profile palette`; всё вне
-маркеров не трогается, повторное применение идемпотентно. Запущенные kitty
+**Терминалы.** Как у райсеров: оформление терминала живёт в отдельном файле,
+который личный конфиг подключает (`docs/THEMES.md`). kitty: в
+`~/.config/kitty/theme-profile.conf` заменяется (или дописывается) блок между
+`# BEGIN theme-profile palette …` и `# END theme-profile palette`; в
+`kitty.conf` остаются клавиши и прочее личное, а последней строкой —
+`include theme-profile.conf` (у kitty побеждает последнее значение). Если в
+`kitty.conf` ещё было оформление, оно один раз переносится в
+`theme-profile.conf` (оригинал — в `backups/pre-split-kitty-*`). Повторное
+применение идемпотентно. Запущенные kitty
 перезагружают цвета через `kitty @ set-colors` по всем сокетам
 `/tmp/kitty-theme-profile[-<pid>]` (kitty дописывает PID к `listen_on`). Alacritty:
-в `alacritty.toml` через `toml_edit` выставляются только ключи `[colors.*]`,
-комментарии и остальные настройки сохраняются; Alacritty перечитывает файл сам.
-Перед правкой оба конфига копируются в `backups/palette-apply-<время>/`; права
-файла сохраняются. Если конфига нет — цель пропускается, файл не создаётся.
+цвета `[colors.*]` пишутся через `toml_edit` в `~/.config/alacritty/theme-profile.toml`
+(комментарии сохраняются), `alacritty.toml` получает
+`[general] import = ["~/.config/alacritty/theme-profile.toml"]` (или старый
+верхнеуровневый `import`, если он уже есть); Alacritty перечитывает файлы сам.
+Перед правкой файлы тем копируются в `backups/palette-apply-<время>/`; права
+файла сохраняются. Если `kitty.conf`/`alacritty.toml` нет — цель пропускается.
 
 **Kvantum** (цель `kvantum`, включается явно — она переключает стиль виджетов на
 `kvantum`). Темы Kvantum — GPL-графика, поэтому в репозитории их нет: при

@@ -44,7 +44,7 @@
 | `kvantum` | `Kvantum/kvantum.kvconfig`, `Kvantum/<Theme>/` | активная тема + десятки флагов (blurring, translucent_windows, отступы) |
 | `gtk3` / `gtk4` | `gtk-3.0/settings.ini`, `gtk.css`, `colors.css` | тема, иконки, курсор, шрифт, CSS-переопределения |
 | `qt5ct` | `Trolltech.conf` | палитра Qt-приложений (`QtProject.conf` — состояние диалога файлов, не отслеживается) |
-| `kitty` / `alacritty` | `kitty.conf`, `alacritty.toml` + themes | прозрачность, blur, цвета, шрифт |
+| `kitty` / `alacritty` | `kitty/theme-profile.conf`, `alacritty/theme-profile.toml` (подключаются из `kitty.conf` / `alacritty.toml`) + themes | прозрачность, blur, цвета, шрифт |
 | `wofi` | `wofi/style.css`, `wallpaper.css` | цвета меню через `@define-color` |
 | `btop` | `btop.conf`, `themes/*.theme` | тема, скругления |
 | `zed` / `vscode` / `cursor` | `settings.json` | active theme (light/dark/mode) |

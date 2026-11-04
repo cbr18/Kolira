@@ -670,14 +670,22 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
     }
 
     if wants("kitty") {
-        let path = crate::paths::live_path(".config/kitty/kitty.conf");
-        if path.is_file() {
-            let existing = std::fs::read_to_string(&path)?;
-            backup(&path, &stamp)?;
+        let host = crate::paths::live_path(crate::appearance::KITTY_HOST);
+        if host.is_file() {
+            // The palette goes into the include file (theme-profile.conf), not
+            // into the user's kitty.conf (which only gains the include line).
+            crate::profile::split_live_hosts(&[crate::appearance::KITTY_HOST.to_string()])?;
+            let host_text = std::fs::read_to_string(&host)?;
+            write_atomic(&host, &crate::appearance::kitty_host(&host_text))?;
+            let path = crate::paths::live_path(crate::appearance::KITTY_THEME);
+            let existing = std::fs::read_to_string(&path).unwrap_or_default();
+            if path.is_file() {
+                backup(&path, &stamp)?;
+            }
             write_atomic(&path, &kitty_conf_with_palette(&existing, p))?;
             // Live reload needs a kitty started with allow_remote_control and
             // listen_on unix:/tmp/kitty-theme-profile (see AGENTS.md).
-            let config = path.to_string_lossy().to_string();
+            let config = host.to_string_lossy().to_string();
             let sockets = if which::which("kitty").is_ok() { kitty_sockets() } else { Vec::new() };
             let mut live = false;
             for socket in &sockets {
@@ -689,21 +697,28 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
                 if live { "" } else { " (no running kitty to reload)" }
             ));
         } else {
-            report.push(format!("kitty: skipped, {} not found", path.display()));
+            report.push(format!("kitty: skipped, {} not found", host.display()));
         }
     }
 
     if wants("alacritty") {
-        let path = crate::paths::live_path(".config/alacritty/alacritty.toml");
-        if path.is_file() {
-            let existing = std::fs::read_to_string(&path)?;
+        let host = crate::paths::live_path(crate::appearance::ALACRITTY_HOST);
+        if host.is_file() {
+            // Colours go into the imported theme-profile.toml; alacritty.toml
+            // only gains the import (Alacritty reloads both by itself).
+            crate::profile::split_live_hosts(&[crate::appearance::ALACRITTY_HOST.to_string()])?;
+            let host_text = std::fs::read_to_string(&host)?;
+            write_atomic(&host, &crate::appearance::alacritty_host(&host_text)?)?;
+            let path = crate::paths::live_path(crate::appearance::ALACRITTY_THEME);
+            let existing = std::fs::read_to_string(&path).unwrap_or_default();
             let updated = alacritty_with_palette(&existing, p)?;
-            backup(&path, &stamp)?;
-            // Alacritty watches its config and reloads by itself.
+            if path.is_file() {
+                backup(&path, &stamp)?;
+            }
             write_atomic(&path, &updated)?;
             report.push(format!("alacritty: {}", path.display()));
         } else {
-            report.push(format!("alacritty: skipped, {} not found", path.display()));
+            report.push(format!("alacritty: skipped, {} not found", host.display()));
         }
     }
 

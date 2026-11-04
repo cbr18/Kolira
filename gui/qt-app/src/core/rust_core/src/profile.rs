@@ -13,6 +13,7 @@ use std::process::Command;
 use anyhow::{anyhow, Context, Result};
 use serde::{Serialize, Deserialize};
 
+use crate::appearance;
 use crate::config_parser::{ini_group_key, ini_group_lines};
 use crate::paths::{
     active_file, backups_dir, config_home, live_path, profile_dir as safe_profile_dir,
@@ -398,6 +399,94 @@ fn copy_tracked_into(target: &Path, rel_paths: &[String]) -> Result<()> {
         copy_tree(&src, &dst).with_context(|| format!("Failed to copy {} -> {}", src.display(), dst.display()))?;
     }
     Ok(())
+}
+
+/// Save variant of [`copy_tracked_into`]: every file goes through
+/// [`appearance::for_theme`] — only the look is stored (personal keys such as
+/// screen scaling, key bindings or an SSH host never enter a theme).
+fn copy_tracked_appearance(target: &Path, rel_paths: &[String]) -> Result<()> {
+    fs::create_dir_all(target)?;
+    for rel in rel_paths {
+        let src = live_path(rel);
+        if !src.exists() {
+            continue;
+        }
+        let dst = target.join(rel);
+        if let Some(parent) = dst.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        if fs::symlink_metadata(&dst).is_ok() {
+            remove_path(&dst)?;
+        }
+        let text = (src.is_file()).then(|| fs::read_to_string(&src).ok()).flatten();
+        match text {
+            Some(text) if !matches!(appearance::policy(rel), appearance::Policy::Whole) => {
+                if let Some(look) = appearance::for_theme(rel, &text) {
+                    fs::write(&dst, look)?;
+                }
+            }
+            _ => copy_tree(&src, &dst).with_context(|| format!("Failed to copy {} -> {}", src.display(), dst.display()))?,
+        }
+    }
+    Ok(())
+}
+
+/// One-time move of the look out of the user's kitty.conf / alacritty.toml
+/// into the include files (the way ricers keep themes apart from config).
+/// The host is backed up to `backups/pre-split-<app>-…` first.
+pub(crate) fn split_live_hosts(rel_paths: &[String]) -> Result<()> {
+    for (host, include) in [
+        (appearance::KITTY_HOST, appearance::KITTY_THEME),
+        (appearance::ALACRITTY_HOST, appearance::ALACRITTY_THEME),
+    ] {
+        if !rel_paths.iter().any(|r| r == host) {
+            continue;
+        }
+        let host_path = live_path(host);
+        let Ok(text) = fs::read_to_string(&host_path) else { continue };
+        let Some((_, look)) = appearance::include_from_host(host, &text)? else { continue };
+        let backups = backups_dir();
+        fs::create_dir_all(&backups)?;
+        let app = if host == appearance::KITTY_HOST { "kitty" } else { "alacritty" };
+        let backup = unique_dir(&backups, &format!("pre-split-{app}"))?;
+        copy_tracked_into(&backup, &[host.to_string(), include.to_string()])?;
+        let include_path = live_path(include);
+        let existing = fs::read_to_string(&include_path).unwrap_or_default();
+        // Lines from the host come last: they are what the user saw.
+        let merged = if host == appearance::KITTY_HOST {
+            format!("{}{}{}", existing, if existing.is_empty() || existing.ends_with('\n') { "" } else { "\n" }, look)
+        } else {
+            merge_toml(&existing, &look)?
+        };
+        write_text(&include_path, &merged)?;
+        write_text(&host_path, &appearance::applied(host, "", Some(&text))?)?;
+    }
+    Ok(())
+}
+
+/// `base` with every value of `over` set on top (tables merged key by key).
+fn merge_toml(base: &str, over: &str) -> Result<String> {
+    let mut doc: toml_edit::DocumentMut = base.parse().unwrap_or_default();
+    let over: toml_edit::DocumentMut = over.parse()?;
+    fn merge(into: &mut toml_edit::Table, from: &toml_edit::Table) {
+        for (k, v) in from.iter() {
+            match (into.get_mut(k).and_then(toml_edit::Item::as_table_mut), v.as_table()) {
+                (Some(dst), Some(src)) => merge(dst, src),
+                _ => {
+                    into.insert(k, v.clone());
+                }
+            }
+        }
+    }
+    merge(doc.as_table_mut(), over.as_table());
+    Ok(doc.to_string())
+}
+
+fn write_text(path: &Path, text: &str) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, text).with_context(|| format!("write {}", path.display()))
 }
 
 pub(crate) fn write_active(name: &str) -> Result<()> {
@@ -879,16 +968,48 @@ fn restore_from_profile(profile: &str, rel_paths: &[String]) -> Result<()> {
 
     for rel in rel_paths {
         let src = source.join(rel);
-        if !src.exists() {
-            continue;
-        }
         let dst = live_path(rel);
-        if let Some(parent) = dst.parent() {
-            fs::create_dir_all(parent)?;
+        match appearance::policy(rel) {
+            appearance::Policy::KittyHost | appearance::Policy::AlacrittyHost => {
+                let include = if rel == appearance::KITTY_HOST { appearance::KITTY_THEME } else { appearance::ALACRITTY_THEME };
+                let has_include = source.join(include).is_file();
+                // Old themes keep the look inside the host config: derive the
+                // include file from it (a new theme's include is restored as a
+                // whole file by its own entry).
+                if !has_include {
+                    if let Ok(theme_host) = fs::read_to_string(&src) {
+                        if let Some((inc, look)) = appearance::include_from_host(rel, &theme_host)? {
+                            write_text(&live_path(inc), &look)?;
+                        }
+                    }
+                }
+                let app = if rel == appearance::KITTY_HOST { "kitty" } else { "alacritty" };
+                if (has_include || src.is_file()) && (dst.is_file() || which::which(app).is_ok()) {
+                    let live = fs::read_to_string(&dst).ok();
+                    write_text(&dst, &appearance::applied(rel, "", live.as_deref())?)?;
+                }
+            }
+            policy => {
+                if !src.exists() {
+                    continue;
+                }
+                if let Some(parent) = dst.parent() {
+                    fs::create_dir_all(parent)?;
+                }
+                let theme_text = (!matches!(policy, appearance::Policy::Whole) && src.is_file())
+                    .then(|| fs::read_to_string(&src).ok())
+                    .flatten();
+                match theme_text {
+                    Some(theme_text) => {
+                        let live = fs::read_to_string(&dst).ok();
+                        write_text(&dst, &appearance::applied(rel, &theme_text, live.as_deref())?)?;
+                    }
+                    None => copy_tree(&src, &dst).with_context(|| {
+                        format!("Failed to restore {} -> {}", src.display(), dst.display())
+                    })?,
+                }
+            }
         }
-        copy_tree(&src, &dst).with_context(|| {
-            format!("Failed to restore {} -> {}", src.display(), dst.display())
-        })?;
     }
     write_active(profile)?;
     Ok(())
@@ -1200,7 +1321,8 @@ fn save_with_paths(profile: &str, rel_paths: &[String]) -> Result<()> {
     let profiles = theme_profiles_dir();
     fs::create_dir_all(&profiles)?;
     let tmp = unique_dir(&profiles, &format!(".save-{profile}"))?;
-    let built = copy_tracked_into(&tmp, rel_paths)
+    let built = split_live_hosts(rel_paths)
+        .and(copy_tracked_appearance(&tmp, rel_paths))
         .and(capture_wallpaper(&tmp, rel_paths))
         .and(capture_active_kvantum_theme(&tmp, rel_paths))
         .and(capture_kde_effects_state(&tmp))

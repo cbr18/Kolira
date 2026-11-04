@@ -922,7 +922,7 @@ mod tests {
         let root = tmp.path();
         std::fs::create_dir_all(root.join(".config/kitty")).unwrap();
         std::fs::write(root.join(".config/kdeglobals"), "[General]\nColorScheme=Nord\nAccentColor=1,2,3\n").unwrap();
-        std::fs::write(root.join(".config/kitty/kitty.conf"), "background_opacity 0.8\n").unwrap();
+        std::fs::write(root.join(".config/kitty/theme-profile.conf"), "background_opacity 0.8\n").unwrap();
         let values = capture(&Base::Snapshot(root.to_path_buf()));
         let get = |id: &str| values.iter().find(|(k, _)| k == id).map(|(_, v)| v.clone());
         assert_eq!(get("color_scheme"), Some(json!("Nord")));

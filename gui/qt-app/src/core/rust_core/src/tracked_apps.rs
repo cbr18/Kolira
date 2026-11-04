@@ -211,7 +211,13 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             id: "kitty".to_string(),
             name: "Kitty".to_string(),
             category: "Terminals".to_string(),
-            config_paths: vec![".config/kitty/kitty.conf".to_string()],
+            // kitty.conf is only an include host (never stored); the look lives
+            // in theme-profile.conf (appearance.rs). Host first: apply derives
+            // the include from old themes before the include entry runs.
+            config_paths: vec![
+                ".config/kitty/kitty.conf".to_string(),
+                ".config/kitty/theme-profile.conf".to_string(),
+            ],
             detect_command: Some("kitty".to_string()),
             flatpak_id: None,
             supports_live_reload: true,
@@ -225,6 +231,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             category: "Terminals".to_string(),
             config_paths: vec![
                 ".config/alacritty/alacritty.toml".to_string(),
+                ".config/alacritty/theme-profile.toml".to_string(),
                 ".config/alacritty/themes/noctalia.toml".to_string(),
             ],
             detect_command: Some("alacritty".to_string()),

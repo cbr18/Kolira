@@ -174,23 +174,61 @@ else
 fi
 
 # Regression (2026-11-04): a values-only format lost terminal colours, wofi,
-# GTK4 and Zen settings. A theme must restore every appearance file whole.
+# GTK4 and Zen settings; then whole-file restore overwrote personal settings.
+# A theme must bring back the whole look and leave everything personal alone.
 RT_HOME="$TMP_ROOT/roundtrip-home"
-rt_files=(".config/kitty/kitty.conf" ".config/wofi/style.css" ".config/gtk-4.0/settings.ini"
-  ".config/kwinrulesrc" ".zen/abc.Default (release)/user.js")
-for f in "${rt_files[@]}"; do mkdir -p "$(dirname "$RT_HOME/$f")"; printf 'theme %s\nbackground #fffbf4\n' "$f" >"$RT_HOME/$f"; done
-rt_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$RT_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+rt_put() { mkdir -p "$(dirname "$RT_HOME/$1")"; printf '%b' "$2" >"$RT_HOME/$1"; }
+rt_put ".config/kitty/kitty.conf" 'background #fffbf4\nfont_size 11\nmap ctrl+a new_tab\n'
+rt_put ".config/wofi/style.css" 'window { background: #fffbf4; }\n'
+rt_put ".config/gtk-4.0/settings.ini" '[Settings]\ngtk-theme-name=Light\ngtk-cursor-blink=true\n'
+rt_put ".config/kdeglobals" '[General]\nColorScheme=Paper\nTerminalApplication=kitty\n\n[KScreen]\nScreenScaleFactors=eDP=1;\n'
+rt_put ".config/kwinrulesrc" '[General]\ncount=1\nrules=r1\n\n[r1]\nDescription=theme rule\nopacityactive=90\n'
+rt_put ".zen/abc.Default (release)/user.js" 'user_pref("zen.view.window.scheme", 1);\n'
+rt_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$RT_HOME" KTM_THEME_NO_APPLY=1 PATH="/usr/bin:/bin" "$CLI_DIR/theme-profile" "$@"; }
 rt_cli save rt >/dev/null 2>&1
-for f in "${rt_files[@]}"; do printf 'other look\nbackground #282a36\n' >"$RT_HOME/$f"; done
+# Someone else's look + their own personal settings.
+rt_put ".config/kitty/kitty.conf" 'background #282a36\nmap ctrl+b close_tab\n'
+rt_put ".config/wofi/style.css" 'window { background: #282a36; }\n'
+rt_put ".config/gtk-4.0/settings.ini" '[Settings]\ngtk-theme-name=Dark\ngtk-cursor-blink=false\n'
+rt_put ".config/kdeglobals" '[General]\nColorScheme=Dracula\nTerminalApplication=konsole\n\n[KScreen]\nScreenScaleFactors=eDP=2;\n'
+rt_put ".config/kwinrulesrc" '[General]\ncount=1\nrules=mine\n\n[mine]\nDescription=my rule\n'
+rt_put ".zen/abc.Default (release)/user.js" 'user_pref("zen.view.window.scheme", 0);\n'
 rt_cli apply rt >/dev/null 2>&1
+rt_has() { grep -qF -- "$2" "$RT_HOME/$1" || rt_bad="$rt_bad [$1: no '$2']"; }
+rt_not() { ! grep -qF -- "$2" "$RT_HOME/$1" || rt_bad="$rt_bad [$1: still '$2']"; }
 rt_bad=""
-for f in "${rt_files[@]}"; do
-  [ "$(cat "$RT_HOME/$f")" = "$(printf 'theme %s\nbackground #fffbf4' "$f")" ] || rt_bad="$rt_bad $f"
-done
+rt_has .config/kitty/theme-profile.conf "background #fffbf4"
+rt_has .config/kitty/theme-profile.conf "font_size 11"
+rt_has .config/kitty/kitty.conf "include theme-profile.conf"
+rt_not .config/kitty/kitty.conf "background #282a36"
+rt_has .config/wofi/style.css "#fffbf4"
+rt_has .config/gtk-4.0/settings.ini "gtk-theme-name=Light"
+rt_has .config/kdeglobals "ColorScheme=Paper"
+rt_has .config/kwinrulesrc "opacityactive=90"
+rt_has ".zen/abc.Default (release)/user.js" '"zen.view.window.scheme", 1'
 if [ -z "$rt_bad" ]; then
-  ok "apply restores every appearance file whole (terminal colours, wofi, GTK4, window rules, Zen)"
+  ok "apply brings back the whole look (terminal colours, wofi, GTK4, KDE, window rules, Zen)"
 else
-  fail "apply lost appearance files:$rt_bad"
+  fail "apply lost appearance:$rt_bad"
+fi
+rt_bad=""
+rt_has .config/kitty/kitty.conf "map ctrl+b close_tab"
+rt_not .config/kitty/kitty.conf "map ctrl+a new_tab"
+rt_has .config/gtk-4.0/settings.ini "gtk-cursor-blink=false"
+rt_has .config/kdeglobals "TerminalApplication=konsole"
+rt_has .config/kdeglobals "ScreenScaleFactors=eDP=2;"
+rt_has .config/kwinrulesrc "Description=my rule"
+if [ -z "$rt_bad" ]; then
+  ok "apply keeps personal settings (key bindings, screen scale, terminal, own window rules)"
+else
+  fail "apply overwrote personal settings:$rt_bad"
+fi
+if ! grep -q "TerminalApplication\|KScreen" "$RT_HOME/.config/theme-profile/profiles/rt/.config/kdeglobals" &&
+  [ ! -e "$RT_HOME/.config/theme-profile/profiles/rt/.config/kitty/kitty.conf" ] &&
+  ! grep -q "map ctrl" "$RT_HOME/.config/theme-profile/profiles/rt/.config/kitty/theme-profile.conf"; then
+  ok "save stores only the look (no terminal choice, screen scale or key bindings)"
+else
+  fail "save stored personal settings in the theme"
 fi
 
 if HOME="$FAKE_HOME" "$CLI_DIR/theme-profile" apply ../x >/dev/null 2>&1; then
@@ -470,19 +508,23 @@ else
   ok "apps store rejects unknown apps and invalid ids"
 fi
 
-# Terminals: only colour lines/keys change, re-apply is idempotent, backups made.
+# Terminals: the palette goes into the include files; the user's kitty.conf /
+# alacritty.toml only lose their look (moved, backed up) and gain the include.
 mkdir -p "$PAL_HOME/.config/kitty" "$PAL_HOME/.config/alacritty"
-printf 'font_size 11\nbackground_opacity 0.9\n' >"$PAL_HOME/.config/kitty/kitty.conf"
-printf '[window]\nopacity = 0.5 # mine\n' >"$PAL_HOME/.config/alacritty/alacritty.toml"
+printf 'font_size 11\nbackground_opacity 0.9\nmap ctrl+a new_tab\n' >"$PAL_HOME/.config/kitty/kitty.conf"
+printf '[window]\nopacity = 0.5 # mine\nstartup_mode = "Maximized"\n' >"$PAL_HOME/.config/alacritty/alacritty.toml"
 chmod 600 "$PAL_HOME/.config/kitty/kitty.conf"
 pal_cli palette apply >/dev/null 2>&1
 pal_cli palette apply >/dev/null 2>&1
 kitty_conf="$PAL_HOME/.config/kitty/kitty.conf"
-if [ "$(grep -c '^# BEGIN theme-profile palette' "$kitty_conf")" = 1 ] &&
-  grep -qx "background #2d353b" "$kitty_conf" && grep -qx "font_size 11" "$kitty_conf"; then
-  ok "palette apply writes one kitty colour block and keeps user lines"
+kitty_theme="$PAL_HOME/.config/kitty/theme-profile.conf"
+if [ "$(grep -c '^# BEGIN theme-profile palette' "$kitty_theme")" = 1 ] &&
+  grep -qx "background #2d353b" "$kitty_theme" && grep -qx "font_size 11" "$kitty_theme" &&
+  [ "$(grep -c '^include theme-profile.conf' "$kitty_conf")" = 1 ] && grep -qx "map ctrl+a new_tab" "$kitty_conf" &&
+  ! grep -q "font_size\|background" "$kitty_conf"; then
+  ok "palette apply writes kitty colours to theme-profile.conf; kitty.conf keeps keys + one include"
 else
-  fail "kitty.conf palette block wrong: $(cat "$kitty_conf")"
+  fail "kitty theme/include wrong: $(cat "$kitty_conf") // $(cat "$kitty_theme" 2>&1)"
 fi
 if [ "$(stat -c %a "$kitty_conf")" = 600 ]; then
   ok "palette apply keeps kitty.conf permissions"
@@ -490,15 +532,19 @@ else
   fail "kitty.conf permissions changed to $(stat -c %a "$kitty_conf")"
 fi
 alacritty_toml="$PAL_HOME/.config/alacritty/alacritty.toml"
-if grep -q '^opacity = 0.5 # mine$' "$alacritty_toml" && grep -q 'background = "#2d353b"' "$alacritty_toml"; then
-  ok "palette apply sets Alacritty colours and keeps comments"
+alacritty_theme="$PAL_HOME/.config/alacritty/theme-profile.toml"
+if grep -q 'opacity = 0.5 # mine' "$alacritty_theme" && grep -q 'background = "#2d353b"' "$alacritty_theme" &&
+  grep -q 'startup_mode' "$alacritty_toml" && grep -qF 'theme-profile.toml"' "$alacritty_toml" &&
+  ! grep -q 'opacity' "$alacritty_toml"; then
+  ok "palette apply sets Alacritty colours in theme-profile.toml (imported), keeps comments"
 else
-  fail "alacritty.toml unexpected: $(cat "$alacritty_toml")"
+  fail "alacritty unexpected: $(cat "$alacritty_toml") // $(cat "$alacritty_theme" 2>&1)"
 fi
-if compgen -G "$PAL_HOME/.config/theme-profile/backups/palette-apply-*/kitty.conf" >/dev/null; then
-  ok "palette apply backs up terminal configs"
+if compgen -G "$PAL_HOME/.config/theme-profile/backups/pre-split-kitty-*/.config/kitty/kitty.conf" >/dev/null &&
+  compgen -G "$PAL_HOME/.config/theme-profile/backups/palette-apply-*/theme-profile.conf" >/dev/null; then
+  ok "the original kitty.conf and the previous theme file are backed up"
 else
-  fail "no palette-apply backup"
+  fail "no pre-split / palette-apply backup"
 fi
 rm "$alacritty_toml"
 if pal_cli palette apply --targets=alacritty | grep -q "skipped"; then
@@ -1434,9 +1480,10 @@ echo "=== Section 17: export / import ==="
 
 EX_A="$TMP_ROOT/export-a"   # the author
 EX_B="$TMP_ROOT/export-b"   # the receiver (different home path)
-mkdir -p "$EX_A/.config/kitty" "$EX_A/Pictures/Wallpaper" "$EX_B"
+mkdir -p "$EX_A/.config/kitty" "$EX_A/.config/wofi" "$EX_A/Pictures/Wallpaper" "$EX_B"
 printf 'jpeg' >"$EX_A/Pictures/Wallpaper/sea.jpg"
-printf 'background #282a36\ninclude %s/.config/kitty/extra.conf\n' "$EX_A" >"$EX_A/.config/kitty/kitty.conf"
+printf 'background #282a36\nmap ctrl+a new_tab\n' >"$EX_A/.config/kitty/kitty.conf"
+printf '@import "%s/.config/wofi/colors.css";\n' "$EX_A" >"$EX_A/.config/wofi/style.css"
 cat >"$EX_A/.config/plasma-org.kde.plasma.desktop-appletsrc" <<APPLETS
 [Containments][1]
 lastScreen=0
@@ -1460,24 +1507,29 @@ fi
 EX_X="$TMP_ROOT/export-x"
 mkdir -p "$EX_X" && (cd "$EX_X" && python3 -c 'import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall(".")' "$ZIP")
 # shellcheck disable=SC2016  # the literal token $HOME is what the export must contain
-if ! grep -rqF "$EX_A" "$EX_X" && grep -qF '$HOME/.config/kitty/extra.conf' "$EX_X/.config/kitty/kitty.conf" &&
+if ! grep -rqF "$EX_A" "$EX_X" && grep -qF '$HOME/.config/wofi/colors.css' "$EX_X/.config/wofi/style.css" &&
+  grep -qx "background #282a36" "$EX_X/.config/kitty/theme-profile.conf" && [ ! -e "$EX_X/.config/kitty/kitty.conf" ] &&
   ! grep -q "secret-file" "$EX_X/.config/plasma-org.kde.plasma.desktop-appletsrc" &&
   grep -q "sortMode=-1" "$EX_X/.config/plasma-org.kde.plasma.desktop-appletsrc" && [ -f "$EX_X/export.json" ]; then
-  ok "export is portable: \$HOME instead of the home path, no desktop icons, export.json"
+  ok "export is portable: \$HOME for the home path, only the look (no kitty.conf keys), no desktop icons"
 else
   fail "export leaks the home path or desktop icons"
 fi
 
 if ex_b import "$ZIP" | grep -q "^Imported theme: sea" &&
-  grep -qF "include $EX_B/.config/kitty/extra.conf" "$EX_B/.config/theme-profile/profiles/sea/.config/kitty/kitty.conf" &&
+  grep -qF "@import \"$EX_B/.config/wofi/colors.css\"" "$EX_B/.config/theme-profile/profiles/sea/.config/wofi/style.css" &&
   [ -f "$EX_B/.config/theme-profile/profiles/sea/wallpaper/sea.jpg" ]; then
   ok "import expands \$HOME to the receiver's home and brings the wallpaper"
 else
   fail "import did not restore the theme for the receiver"
 fi
+mkdir -p "$EX_B/.config/kitty"
+printf 'map ctrl+b close_tab\n' >"$EX_B/.config/kitty/kitty.conf"
 ex_b apply sea >/dev/null 2>&1
-if grep -qF "include $EX_B/.config/kitty/extra.conf" "$EX_B/.config/kitty/kitty.conf"; then
-  ok "an imported theme applies on the receiver's machine"
+if grep -qx "background #282a36" "$EX_B/.config/kitty/theme-profile.conf" &&
+  grep -qx "map ctrl+b close_tab" "$EX_B/.config/kitty/kitty.conf" && grep -qx "include theme-profile.conf" "$EX_B/.config/kitty/kitty.conf" &&
+  grep -qF "$EX_B/.config/wofi/colors.css" "$EX_B/.config/wofi/style.css"; then
+  ok "an imported theme applies on the receiver's machine and keeps their kitty keys"
 else
   fail "applying the imported theme failed"
 fi
@@ -1507,7 +1559,7 @@ if ex_b import "$EVIL" >/dev/null 2>&1 || [ -e "$TMP_ROOT/evil.txt" ]; then
 else
   ok "import refuses paths that escape the theme (zip-slip)"
 fi
-printf 'tampered\n' >>"$EX_X/.config/kitty/kitty.conf"
+printf 'tampered\n' >>"$EX_X/.config/kitty/theme-profile.conf"
 if ex_b import "$EX_X" --name=tampered >/dev/null 2>&1; then
   fail "a modified file passed the checksum check"
 else

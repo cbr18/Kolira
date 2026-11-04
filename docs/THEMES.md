@@ -5,12 +5,39 @@ to after a mistake: apply it again and the look returns. There is no separate
 "system snapshot" entity. Saving, applying, the themes shipped in the repository
 and (planned) `.zip` export/import all use one format: the **theme package**.
 
-A theme stores **everything that affects how the desktop looks**, as whole
-files: KDE colours and fonts, KWin effects and window rules, panels and widgets
-(`plasma-org.kde.plasma.desktop-appletsrc`), GTK 3/4 (settings and CSS),
-Kvantum, terminal configs with their colours, launchers (wofi), btop,
-fastfetch, editor settings (Zed, VS Code, Cursor), Zen (`user.js` and chrome
-CSS), Obsidian, plus user-defined components and the wallpaper.
+A theme stores **everything that affects how the desktop looks — and nothing
+else**: KDE colours and fonts, KWin effects and decoration, window rules,
+panels and widgets (`plasma-org.kde.plasma.desktop-appletsrc`), GTK 3/4,
+Kvantum, terminal colours/fonts/opacity, launchers (wofi), btop, fastfetch,
+editor themes (Zed, VS Code, Cursor), Zen (`user.js` and chrome CSS), Obsidian,
+plus user-defined components and the wallpaper. Applying someone's theme (or
+switching your own) never resets screen scaling, virtual desktops, tiling
+layouts, key bindings, editor behaviour or an SSH host.
+
+### What is stored per file (`rust_core/src/appearance.rs`)
+
+| File | Stored and applied | Left alone |
+|---|---|---|
+| `kdeglobals` | `[Colors:*]`, `[ColorEffects:*]`, `[WM]`, `[Icons]`, fonts, `General` ColorScheme/Accent*, `KDE` LookAndFeelPackage/widgetStyle/contrast/AnimationDurationFactor | `[KScreen]` scaling, `TerminalApplication`, `[KFileDialog Settings]`, `[PreviewSettings]`, other `[KDE]` behaviour |
+| `kwinrc` | `[Effect-*]`, `[org.kde.kdecoration2]`, effect switches in `[Plugins]` | `[Desktops]`, `[Tiling]`, `[Windows]`, `[Wayland]`, KWin *scripts* in `[Plugins]` (krohnkite, snapping…) |
+| `kwinrulesrc` | the theme's rules (by id) | the user's other rules |
+| `plasmarc`, `plasmashellrc` | `[Theme]`; `[PlasmaViews…]` (panel opacity, floating, thickness) | `[Wallpapers]` list, `[Updates]` |
+| GTK `settings.ini` | theme, icons, cursor, font, dark preference, title-bar buttons, animations, font rendering | cursor blinking, sounds, `gtk-modules`, … |
+| `btop.conf` | `color_theme`, `theme_background`, `truecolor`, `rounded_corners`, `graph_symbol*` | ~70 behaviour keys |
+| VS Code / Cursor `settings.json` | `workbench.colorTheme`/`iconTheme`/`productIconTheme`/`colorCustomizations`, `editor.tokenColorCustomizations`, editor/terminal fonts, line highlight, APC / Animations / Custom UI Style keys | everything else (SSH hosts, AI, wrapping, …) |
+| Zed `settings.json` | `theme`, `icon_theme`, `ui_font_*`, `buffer_font_*`, `theme_overrides` | agent/models, panels, keymap, sessions, … |
+| kitty | `kitty/theme-profile.conf` (fonts, colours, cursor, opacity/blur, padding, borders, tab bar) | `kitty.conf` — only gains `include theme-profile.conf` (last line) |
+| Alacritty | `alacritty/theme-profile.toml` (`[colors.*]`, `[font]`, window opacity/blur/padding/decorations, cursor style) | `alacritty.toml` — only gains `general.import` |
+| everything else (Klassy, Breeze, GTK CSS, wofi CSS, Zen, Obsidian appearance, Trolltech palette, Kvantum, colour schemes, L&F, fastfetch, panels file) | whole file | — |
+
+Mixed files are **merged** on apply: the theme's allowed keys are written,
+allowed keys the theme lacks are removed (e.g. a fixed accent the theme does
+not have), every other key keeps the user's value. JSON-with-comments files are
+patched by position (comments, order and other keys stay). kitty/Alacritty use
+the ricers' approach: the look lives in its own file the user's config
+includes; the first save, palette apply or theme apply moves the look out of
+`kitty.conf`/`alacritty.toml` into those files (the original goes to
+`backups/pre-split-<app>-…` or the pre-apply backup).
 
 Not stored, because they are not appearance: `QtProject.conf` (file-dialog
 state), `obsidian.json` (vault list) and Obsidian `Preferences` (spellcheck,
@@ -67,17 +94,19 @@ theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper]
 theme-profile import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
 ```
 
-- **save** snapshots every tracked file (old version of the theme →
-  `backups/pre-save-<name>-…`), copies in local assets that are not tracked
-  files, and writes `theme.json`. `--no-wallpaper` drops `wallpaper/`.
+- **save** snapshots the look of every tracked file (filtered as above; old
+  version of the theme → `backups/pre-save-<name>-…`), copies in local assets
+  that are not tracked files, and writes `theme.json` (`appearance_only: true`).
+  `--no-wallpaper` drops `wallpaper/`.
 - **apply**:
   1. `--install-missing`: installs missing VS Code / Cursor / Zed themes from
      their official stores;
   2. puts back local assets that live outside the tracked files (only if absent);
-  3. the snapshot restore: pre-apply backup of every tracked file
-     (`backups/pre-apply-<name>-…`), plasmashell stopped, files restored, the
-     colour scheme / accent / widget style / KWin effects / kitty re-applied,
-     plasmashell restarted (this is what repaints panels and running apps);
+  3. the restore: pre-apply backup of every tracked file (whole, as they were)
+     in `backups/pre-apply-<name>-…`, plasmashell stopped, whole files copied
+     and mixed files merged (above), the colour scheme / accent / widget style
+     / KWin effects / kitty re-applied, plasmashell restarted (this is what
+     repaints panels and running apps);
   4. wallpaper: the theme's wallpaper comes with its restored desktop layout;
      a theme without a wallpaper, or `--keep-wallpaper`, re-applies the
      wallpaper that was on screen before;
@@ -85,9 +114,11 @@ theme-profile import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
      store URL or Zed extension id); `--json` prints `{applied, skipped,
      installed, missing, errors, backup}` (used by the GUI and MCP).
 - **check** lists what the theme references but this machine lacks; exit code 0.
-- **migrate** only adds `theme.json` (plus local assets the snapshot lacked) —
-  the snapshot files are not changed. A values-only `theme@1` package cannot be
-  migrated: apply its look and save it again.
+- **migrate** adds `theme.json` to snapshot profiles and reduces stored files
+  to the look (kitty.conf/alacritty.toml → their theme files); the theme is
+  copied to `backups/pre-normalize-<name>-…` first. Runs once per theme
+  (`appearance_only`). A values-only `theme@1` package cannot be migrated:
+  apply its look and save it again.
 
 `theme-profile field set` (interactive edits from the GUI's Theme page) applies
 single values: command first (`plasma-apply-colorscheme`,
