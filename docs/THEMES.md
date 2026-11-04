@@ -12,6 +12,14 @@ Kvantum, terminal configs with their colours, launchers (wofi), btop,
 fastfetch, editor settings (Zed, VS Code, Cursor), Zen (`user.js` and chrome
 CSS), Obsidian, plus user-defined components and the wallpaper.
 
+Not stored, because they are not appearance: `QtProject.conf` (file-dialog
+state), `obsidian.json` (vault list) and Obsidian `Preferences` (spellcheck,
+zoom). Desktop icon positions inside `appletsrc` are saved with the file but
+never restored: apply keeps the current ones (`positions`, `changedPositions`,
+`lastResolution`, `[ScreenMapping]`), so switching themes does not move icons.
+Themes saved before 2026-11-04 evening may still contain those files; apply
+ignores them.
+
 > 2026-11-04: a short-lived values-only format (`theme@1`: only the 71 registry
 > fields) lost terminal colours, GTK4, wofi, Zen, KWin effect toggles and more.
 > Do not reintroduce it. Every change to theme storage must be verified by
@@ -103,9 +111,9 @@ and written directly if the tool did not store it
 
 ## Sharing and licensing
 
-A theme holds personal files (panels with their widgets, window rules, editor
-settings, `$HOME` paths). Export (planned) must sanitise them before a theme
-leaves the machine. The code is MIT; each bundled asset keeps its own license
+Export (planned) replaces the home directory with `$HOME` (import expands it
+back — KDE does not expand `$HOME` in appletsrc) and leaves out desktop icon
+positions. The code is MIT; each bundled asset keeps its own license
 (`redistributable` flag; a LICENSE/source note beside it in published themes).
 Anything that may not be redistributed is shipped as a reference only and shows
 up in the missing-parts report.

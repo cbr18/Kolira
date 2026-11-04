@@ -805,6 +805,72 @@ fn apply_live_hooks(source: &Path) {
     start_plasma_shell();
 }
 
+/// Desktop-icon state in plasma appletsrc: icon positions per resolution and
+/// which screen each desktop item sits on. Plasma rewrites these itself.
+fn is_desktop_icon_key(group: &str, key: &str) -> bool {
+    group == "[ScreenMapping]"
+        || (group.ends_with("[General]") && matches!(key, "positions" | "changedPositions" | "lastResolution"))
+}
+
+/// `restored` (a theme's appletsrc) with every desktop-icon key taken from
+/// `live` instead: switching themes must not move the user's desktop icons.
+pub(crate) fn keep_desktop_icons(restored: &str, live: &str) -> String {
+    let mut keep: Vec<(String, Vec<String>)> = Vec::new();
+    let mut group = String::new();
+    for line in live.lines() {
+        if line.starts_with('[') {
+            group = line.to_string();
+            continue;
+        }
+        let Some((key, _)) = line.split_once('=') else { continue };
+        if is_desktop_icon_key(&group, key.trim()) {
+            match keep.iter_mut().find(|(g, _)| *g == group) {
+                Some((_, lines)) => lines.push(line.to_string()),
+                None => keep.push((group.clone(), vec![line.to_string()])),
+            }
+        }
+    }
+
+    let mut out: Vec<String> = Vec::new();
+    let mut seen: Vec<String> = Vec::new();
+    let mut group = String::new();
+    let flush = |out: &mut Vec<String>, group: &str, seen: &mut Vec<String>| {
+        if let Some((_, lines)) = keep.iter().find(|(g, _)| g == group) {
+            // Before the blank separator line, if the group ends with one.
+            let at = if out.last().is_some_and(|l| l.is_empty()) { out.len() - 1 } else { out.len() };
+            for (i, l) in lines.iter().enumerate() {
+                out.insert(at + i, l.clone());
+            }
+            seen.push(group.to_string());
+        }
+    };
+    for line in restored.lines() {
+        if line.starts_with('[') {
+            flush(&mut out, &group, &mut seen);
+            group = line.to_string();
+            out.push(line.to_string());
+            continue;
+        }
+        if line.split_once('=').is_some_and(|(k, _)| is_desktop_icon_key(&group, k.trim())) {
+            continue;
+        }
+        out.push(line.to_string());
+    }
+    flush(&mut out, &group, &mut seen);
+    for (g, lines) in &keep {
+        if !seen.contains(g) {
+            if out.last().is_some_and(|l| !l.is_empty()) {
+                out.push(String::new());
+            }
+            out.push(g.clone());
+            out.extend(lines.iter().cloned());
+        }
+    }
+    let mut text = out.join("\n");
+    text.push('\n');
+    text
+}
+
 fn restore_from_profile(profile: &str, rel_paths: &[String]) -> Result<()> {
     let source = safe_profile_dir(profile)?;
     if !source.is_dir() {
@@ -905,8 +971,15 @@ fn apply_with_paths(profile: &str, rel_paths: &[String]) -> Result<PathBuf> {
         stop_plasma_shell_for_restore();
     }
 
+    // Desktop icons are not part of the look: keep where they are now. Read
+    // after plasmashell stopped — it writes its latest icon state on quit.
+    let appletsrc = live_path(APPLETSRC_REL);
+    let live_appletsrc = fs::read_to_string(&appletsrc).ok();
     match restore_from_profile(profile, rel_paths) {
         Ok(()) => {
+            if let (Some(live), Ok(restored)) = (live_appletsrc.as_deref(), fs::read_to_string(&appletsrc)) {
+                let _ = fs::write(&appletsrc, keep_desktop_icons(&restored, live));
+            }
             // Resolve (and if needed restore) the profile wallpaper while
             // plasmashell is stopped, so the restored appletsrc finds its file.
             let wallpaper = if tracks_desktop_layout(rel_paths) {
@@ -1267,7 +1340,24 @@ pub fn diff_profiles(profile_a: &str, profile_b: &str) -> Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::validate_reload_command;
+    use super::{keep_desktop_icons, validate_reload_command};
+
+    #[test]
+    fn theme_apply_keeps_live_desktop_icons() {
+        let theme = "[Containments][1][General]\npositions=OLD\nlastResolution=1x1\nsortMode=-1\n\n[Containments][2]\nplugin=org.kde.panel\nthickness=40\n\n[ScreenMapping]\nscreenMapping=OLD\n";
+        let live = "[Containments][1][General]\npositions=NEW\nlastResolution=2x2\nsortMode=5\n\n[Containments][2]\nthickness=99\n\n[ScreenMapping]\nitemsOnDisabledScreens=NEW\nscreenMapping=NEW\n";
+        let out = keep_desktop_icons(theme, live);
+        // Icons from the live file …
+        assert!(out.contains("positions=NEW") && out.contains("lastResolution=2x2"));
+        assert!(out.contains("screenMapping=NEW") && out.contains("itemsOnDisabledScreens=NEW"));
+        assert!(!out.contains("OLD"));
+        // … everything else (panel, sorting) from the theme.
+        assert!(out.contains("thickness=40") && out.contains("sortMode=-1"));
+        assert!(!out.contains("thickness=99") && !out.contains("sortMode=5"));
+        // A live icon group the theme lacks is added.
+        let out = keep_desktop_icons("[Containments][2]\nthickness=40\n", live);
+        assert!(out.contains("[Containments][1][General]\npositions=NEW"));
+    }
 
     #[test]
     fn reload_command_accepts_binary_with_args() {

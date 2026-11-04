@@ -154,10 +154,10 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             id: "qt5ct".to_string(),
             name: "Qt5/Qt6 Style".to_string(),
             category: "GTK / Qt".to_string(),
-            config_paths: vec![
-                ".config/QtProject.conf".to_string(),
-                ".config/Trolltech.conf".to_string(),
-            ],
+            // Only Trolltech.conf (the Qt palette KDE derives from the colour
+            // scheme). QtProject.conf is file-dialog state (last folder, view
+            // mode) — not appearance; restoring it rolled the dialog back.
+            config_paths: vec![".config/Trolltech.conf".to_string()],
             detect_command: None,
             flatpak_id: None,
             supports_live_reload: false,
@@ -336,11 +336,9 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             id: "obsidian".to_string(),
             name: "Obsidian".to_string(),
             category: "Notes".to_string(),
-            config_paths: vec![
-                ".config/obsidian/obsidian.json".to_string(),
-                ".config/obsidian/Preferences".to_string(),
-                "obsidian/vault/.obsidian/appearance.json".to_string(),
-            ],
+            // The look lives in the vault's appearance.json; obsidian.json (vault
+            // list) and Preferences (spellcheck, zoom) are not appearance.
+            config_paths: vec!["obsidian/vault/.obsidian/appearance.json".to_string()],
             detect_command: Some("obsidian".to_string()),
             flatpak_id: Some("md.obsidian.Obsidian".to_string()),
             supports_live_reload: false,

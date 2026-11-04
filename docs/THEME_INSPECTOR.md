@@ -43,7 +43,7 @@
 | `klassy` | `klassy/klassyrc`, `windecopresetsrc` | прозрачность заголовка, радиус углов, тени, кнопки |
 | `kvantum` | `Kvantum/kvantum.kvconfig`, `Kvantum/<Theme>/` | активная тема + десятки флагов (blurring, translucent_windows, отступы) |
 | `gtk3` / `gtk4` | `gtk-3.0/settings.ini`, `gtk.css`, `colors.css` | тема, иконки, курсор, шрифт, CSS-переопределения |
-| `qt5ct` | `QtProject.conf`, `Trolltech.conf` | стиль, палитра, шрифт Qt-приложений |
+| `qt5ct` | `Trolltech.conf` | палитра Qt-приложений (`QtProject.conf` — состояние диалога файлов, не отслеживается) |
 | `kitty` / `alacritty` | `kitty.conf`, `alacritty.toml` + themes | прозрачность, blur, цвета, шрифт |
 | `wofi` | `wofi/style.css`, `wallpaper.css` | цвета меню через `@define-color` |
 | `btop` | `btop.conf`, `themes/*.theme` | тема, скругления |

@@ -110,8 +110,10 @@ Obsidian…), плюс `theme.json` (описание, значения для G
 - `.config/gtk-4.0/settings.ini`, `gtk.css`, `colors.css`
 
 ### Qt
-- `.config/QtProject.conf`
-- `.config/Trolltech.conf`
+- `.config/Trolltech.conf` (палитра Qt, которую KDE выводит из цветовой схемы)
+
+`QtProject.conf` не сохраняется: это состояние диалога файлов (последняя
+папка, вид), а не оформление — восстановление откатывало диалог.
 
 ### Window Decorations (опционально)
 - `.config/breezerc` — стиль Breeze (компонент `breeze`; прозрачность меню `[Style] MenuOpacity`, поле инспектора «Breeze menu opacity»)
@@ -143,8 +145,16 @@ Obsidian…), плюс `theme.json` (описание, значения для G
 - `.zen/<профиль>/chrome/zen-themes.css`
 
 ### Notes (опционально)
-- `.config/obsidian/obsidian.json`, `Preferences`
 - `obsidian/vault/.obsidian/appearance.json`
+
+`obsidian.json` (список хранилищ) и `Preferences` (проверка орфографии,
+масштаб) не сохраняются — это не оформление.
+
+**Значки рабочего стола.** `plasma-org.kde.plasma.desktop-appletsrc` (панели,
+виджеты, рабочий стол) восстанавливается целиком, кроме положения значков:
+ключи `positions`, `changedPositions`, `lastResolution` и группа
+`[ScreenMapping]` берутся из текущего файла (прочитанного после остановки
+plasmashell), так что смена темы не двигает значки.
 
 ### System Profiles
 - `.local/share/color-schemes/` — весь каталог пользовательских схем (раньше только `ThemeProfilePaper.colors`), чтобы профиль со своей схемой (например, `Everforest.colors`) был самодостаточным; восстановление сливает файлы и не удаляет схемы, созданные позже

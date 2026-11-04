@@ -99,10 +99,8 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         id="qt5ct",
         name="Qt5/Qt6 Style",
         category="GTK / Qt",
-        config_paths=(
-            ".config/QtProject.conf",
-            ".config/Trolltech.conf",
-        ),
+        # QtProject.conf is file-dialog state, not appearance (see the Rust registry).
+        config_paths=(".config/Trolltech.conf",),
         description="Qt5/Qt6 widget style, font, icon theme",
         icon="qtlogo",
     ),
@@ -272,11 +270,8 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         id="obsidian",
         name="Obsidian",
         category="Notes",
-        config_paths=(
-            ".config/obsidian/obsidian.json",
-            ".config/obsidian/Preferences",
-            "obsidian/vault/.obsidian/appearance.json",
-        ),
+        # obsidian.json (vault list) / Preferences (spellcheck) are not appearance.
+        config_paths=("obsidian/vault/.obsidian/appearance.json",),
         detect_command="obsidian",
         flatpak_id="md.obsidian.Obsidian",
         description="Markdown notes with theme/appearance settings",
