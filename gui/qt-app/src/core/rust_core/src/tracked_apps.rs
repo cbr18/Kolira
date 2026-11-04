@@ -166,6 +166,18 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             docs_url: "".to_string(),
         },
         TrackedAppDef {
+            id: "breeze".to_string(),
+            name: "Breeze style".to_string(),
+            category: "Window Decorations".to_string(),
+            config_paths: vec![".config/breezerc".to_string()],
+            detect_command: None,
+            flatpak_id: None,
+            supports_live_reload: false,
+            description: "Breeze widget style: menu transparency and other style options".to_string(),
+            icon: "preferences-desktop-theme".to_string(),
+            docs_url: "".to_string(),
+        },
+        TrackedAppDef {
             id: "klassy".to_string(),
             name: "Klassy".to_string(),
             category: "Window Decorations".to_string(),

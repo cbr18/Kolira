@@ -109,6 +109,14 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
 
     # === Window Decorations ===
     TrackedAppDef(
+        id="breeze",
+        name="Breeze style",
+        category="Window Decorations",
+        config_paths=(".config/breezerc",),
+        description="Breeze widget style: menu transparency and other style options",
+        icon="preferences-desktop-theme",
+    ),
+    TrackedAppDef(
         id="klassy",
         name="Klassy",
         category="Window Decorations",

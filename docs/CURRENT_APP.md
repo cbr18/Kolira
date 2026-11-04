@@ -102,6 +102,7 @@ wallpaper-prev                   # предыдущие обои
 - `.config/Trolltech.conf`
 
 ### Window Decorations (опционально)
+- `.config/breezerc` — стиль Breeze (компонент `breeze`; прозрачность меню `[Style] MenuOpacity`, поле инспектора «Breeze menu opacity»)
 - `.config/klassy/klassyrc`, `windecopresetsrc`
 - `.config/Kvantum/kvantum.kvconfig`, `Sandstone/`
 

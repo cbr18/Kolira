@@ -581,3 +581,19 @@ def test_controller_export_accepts_file_url(home: Path) -> None:
     target = home / "snapshot-url.json"
     controller.exportJson("file://" + str(target))
     assert target.is_file()
+
+
+def test_breeze_menu_opacity_field(tmp_path, monkeypatch):
+    """Breeze menu transparency (breezerc [Style] MenuOpacity) is editable."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
+    monkeypatch.setenv("KTM_THEME_NO_APPLY", "1")
+    (tmp_path / ".config").mkdir()
+    (tmp_path / ".config/breezerc").write_text("[Style]\nMenuOpacity=50\n", encoding="utf-8")
+    from core.theme_core import AppThemeCore
+
+    core = AppThemeCore()
+    assert core.get("breeze_menu_opacity", "live")["value"] == 50
+    assert core.set_value("breeze_menu_opacity", 100).success
+    assert core.apply().success
+    assert "MenuOpacity=100" in (tmp_path / ".config/breezerc").read_text(encoding="utf-8")

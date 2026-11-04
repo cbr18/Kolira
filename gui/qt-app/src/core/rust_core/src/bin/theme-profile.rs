@@ -47,7 +47,7 @@ Usage:
                               (default targets: kde,kitty,alacritty; kvantum switches the widget style)
 
 Components: kwin, plasma_shell, kdeglobals, gtk3, gtk4, qt5ct,
-            klassy, kvantum, alacritty, kitty, wofi, btop,
+            breeze, klassy, kvantum, alacritty, kitty, wofi, btop,
             fastfetch, zed, vscode, cursor, zen, obsidian,
             color_schemes, palette, look_and_feel
 

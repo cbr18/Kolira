@@ -237,6 +237,13 @@ FIELDS: tuple[FieldDef, ...] = (
       "ini", ".config/kwinrc", "Effect-better-blur-dx", "BlurMenus",
       hook="effect:better_blur_dx", description="Blur menus and popups",
       keywords=("blur", "меню")),
+    F("breeze_menu_opacity", "windows", "Breeze menu opacity", "int",
+      "ini", ".config/breezerc", "Style", "MenuOpacity",
+      min=0, max=100, step=5, suffix=" %",
+      description="Opacity of menus with the Breeze widget style (100 = opaque); "
+                  "translucent menus are blurred only with Blur menus on. "
+                  "Applies to newly started applications",
+      keywords=("menu", "меню", "прозрачность", "breeze", "opacity")),
     F("legacy_blur", "windows", "Legacy blur effect", "bool",
       "ini", ".config/kwinrc", "Plugins", "blurEnabled",
       hook="effect:blur", advanced=True,

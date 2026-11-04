@@ -1,6 +1,6 @@
 # breezerc в профилях и единая политика размытия
 
-Status: TODO
+Status: DONE
 
 ## Проблема (2026-11-04)
 
@@ -15,9 +15,9 @@ Status: TODO
 
 ## Что сделать
 
-- [ ] Компонент `breeze` (`.config/breezerc`) в Rust `tracked_apps.rs` и Python-зеркале;
+- [x] Компонент `breeze` (`.config/breezerc`) в Rust `tracked_apps.rs` и Python-зеркале;
       поле `breeze_menu_opacity` в Theme Inspector.
 - [x] Убрать из документации (repo docs, `~/AGENTS.md`, `~/docs/theme-system-analysis.md`)
       упоминания «window-only blur policy»; зафиксировать «размытие для всего».
-- [ ] Поля Theme Inspector для `BlurMenus`/`BlurDocks` Better Blur DX (status уже показывает).
-- [ ] Тесты и документация.
+- [x] Поля Theme Inspector для `BlurMenus`/`BlurDocks` Better Blur DX — уже были (`blur_menus`, `blur_docks`).
+- [x] Тесты и документация.
