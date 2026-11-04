@@ -878,7 +878,7 @@ EOF
 
   MOCK_BIN_LF="$TMP_ROOT/mock-bin-lf"
   mkdir -p "$MOCK_BIN_LF"
-  for cmd in systemctl qdbus6 kbuildsycoca6 plasma-apply-wallpaperimage; do
+  for cmd in systemctl qdbus6 kbuildsycoca6 plasma-apply-wallpaperimage dbus-send; do
     cat > "$MOCK_BIN_LF/$cmd" <<'MOCK'
 #!/usr/bin/env bash
 exit 0
@@ -942,7 +942,7 @@ EOF
 
   MOCK_BIN_ACC="$TMP_ROOT/mock-bin-accent"
   mkdir -p "$MOCK_BIN_ACC"
-  for cmd in systemctl qdbus6 kbuildsycoca6 plasma-apply-wallpaperimage; do
+  for cmd in systemctl qdbus6 kbuildsycoca6 plasma-apply-wallpaperimage dbus-send; do
     cat > "$MOCK_BIN_ACC/$cmd" <<'MOCK'
 #!/usr/bin/env bash
 exit 0
@@ -954,6 +954,14 @@ MOCK
 echo "plasma-apply-colorscheme $*" >> "$ACC_CALLS"
 exit 0
 MOCK
+  for cmd in dbus-send kwriteconfig6; do
+    cat > "$MOCK_BIN_ACC/$cmd" <<MOCK
+#!/usr/bin/env bash
+echo "$cmd \$*" >> "\$ACC_CALLS"
+exit 0
+MOCK
+    chmod +x "$MOCK_BIN_ACC/$cmd"
+  done
   cat > "$MOCK_BIN_ACC/magick" <<'MOCK'
 #!/usr/bin/env bash
 echo "magick $*" >> "$ACC_CALLS"
@@ -990,6 +998,15 @@ EOF
     # Plasma's accent service recomputes it from the wallpaper when
     # plasmashell restarts — no ImageMagick approximation of our own.
     ok "apply leaves a wallpaper accent to Plasma (no magick, no forced accent)"
+    # The accent service learns the flag only from KConfig notifications, and the
+    # copied kdeglobals makes plasma-apply-colorscheme a no-op → notify + broadcast.
+    if grep -q -- "kwriteconfig6 --notify --file kdeglobals --group General --key accentColorFromWallpaper false" "$ACC_CALLS" &&
+      tail -n +1 "$ACC_CALLS" | grep -- "accentColorFromWallpaper" | tail -1 | grep -q "true$" &&
+      grep -q "dbus-send --session --type=signal /KGlobalSettings org.kde.KGlobalSettings.notifyChange int32:0 int32:0" "$ACC_CALLS"; then
+      ok "apply notifies the accent flag and broadcasts the palette change"
+    else
+      fail "apply did not notify the flag / broadcast the palette: $(cat "$ACC_CALLS")"
+    fi
   else
     fail "apply forced/derived the wallpaper accent itself: $(cat "$ACC_CALLS")"
   fi
@@ -1020,7 +1037,7 @@ EOF
 
   MOCK_BIN_STYLE="$TMP_ROOT/mock-bin-style"
   mkdir -p "$MOCK_BIN_STYLE"
-  for cmd in systemctl qdbus6 kbuildsycoca6 plasma-apply-wallpaperimage; do
+  for cmd in systemctl qdbus6 kbuildsycoca6 plasma-apply-wallpaperimage dbus-send; do
     cat > "$MOCK_BIN_STYLE/$cmd" <<'MOCK'
 #!/usr/bin/env bash
 exit 0
@@ -1169,7 +1186,7 @@ printf 'theme=dark\n' > "$APP_HOME/.config/mockapp/settings.conf"
 # the mock app's reload command, which records its invocations.
 MOCK_BIN_APP="$TMP_ROOT/mock-bin-app"
 mkdir -p "$MOCK_BIN_APP"
-for cmd in systemctl qdbus6 kbuildsycoca6 plasma-apply-wallpaperimage; do
+for cmd in systemctl qdbus6 kbuildsycoca6 plasma-apply-wallpaperimage dbus-send; do
   cat > "$MOCK_BIN_APP/$cmd" <<'MOCK'
 #!/usr/bin/env bash
 exit 0

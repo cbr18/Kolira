@@ -17,7 +17,7 @@ Status: TODO
 
 - [ ] Компонент `breeze` (`.config/breezerc`) в Rust `tracked_apps.rs` и Python-зеркале;
       поле `breeze_menu_opacity` в Theme Inspector.
-- [ ] Убрать из документации (repo docs, `~/AGENTS.md`, `~/docs/theme-system-analysis.md`)
+- [x] Убрать из документации (repo docs, `~/AGENTS.md`, `~/docs/theme-system-analysis.md`)
       упоминания «window-only blur policy»; зафиксировать «размытие для всего».
 - [ ] Поля Theme Inspector для `BlurMenus`/`BlurDocks` Better Blur DX (status уже показывает).
 - [ ] Тесты и документация.

@@ -709,6 +709,20 @@ fn reapply_color_scheme(source: &Path) {
     let explicit = ini_group_key(&kdeglobals, "General", "AccentColor")
         .and_then(|value| rgb_string_to_hex(&value));
 
+    // The kded accent service (plasma_accentcolor_service) and plasmashell
+    // learn about kdeglobals changes from KConfig D-Bus notifications, not from
+    // the file restore_from_profile just copied — after paper → glass the
+    // service still believed "accent from wallpaper = off" and dropped the
+    // wallpaper accent. Re-write the flag with --notify; flip first, because
+    // writing an unchanged value emits nothing.
+    let (flag, flipped) = if from_wallpaper { ("true", "false") } else { ("false", "true") };
+    for value in [flipped, flag] {
+        run_external(
+            "kwriteconfig6",
+            &["--notify", "--file", "kdeglobals", "--group", "General", "--key", "accentColorFromWallpaper", value],
+        );
+    }
+
     // Scheme first, accent in a separate call: given `--accent-color`,
     // plasma-apply-colorscheme sets only the accent and silently ignores the
     // scheme argument (verified 2026-11-04, Plasma 6).
@@ -716,6 +730,16 @@ fn reapply_color_scheme(source: &Path) {
     if let Some(accent) = explicit.filter(|_| !from_wallpaper) {
         run_external("plasma-apply-colorscheme", &["--accent-color", &accent]);
     }
+
+    // The copied kdeglobals already names this scheme, so the call above is a
+    // no-op ("already in use") and running apps keep the previous profile's
+    // palette (paper's olive after switching to glass). Broadcast the palette
+    // change ourselves — KGlobalSettings::PaletteChanged (0), the signal
+    // plasma-apply-colorscheme emits when it does apply.
+    run_external(
+        "dbus-send",
+        &["--session", "--type=signal", "/KGlobalSettings", "org.kde.KGlobalSettings.notifyChange", "int32:0", "int32:0"],
+    );
 }
 
 fn reapply_widget_style(source: &Path) {
