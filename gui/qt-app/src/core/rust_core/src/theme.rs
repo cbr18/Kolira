@@ -1,20 +1,23 @@
-//! Theme package — what a profile *is*: `<profiles>/<name>/theme.json` plus
-//! `assets/`.
+//! Theme package — what a profile *is*: a full snapshot of every file that
+//! shapes the look (KDE, KWin incl. window rules, panels, GTK, Kvantum,
+//! terminals, launchers, editors, browser, notes… at their `$HOME`-relative
+//! paths, plus `wallpaper/`) described by `<profiles>/<name>/theme.json`.
 //!
-//! * `values` — theme field values (field.rs / theme_fields.json): scheme,
-//!   accent, styles, blur, terminal opacity, app themes… Only theme keys:
-//!   personal settings (fonts and key bindings in kitty, Zed settings, panels,
-//!   window rules) are never part of a theme.
-//! * `assets/` — only what the receiver may not have: user / generated colour
-//!   schemes, Kvantum, Look & Feel and Plasma styles, btop and Zed theme
-//!   files, the wallpaper. System assets are referenced by name; icon and GTK
-//!   themes are references too (often tens of MB).
+//! * `values` — the theme field values read from the snapshot (field.rs /
+//!   theme_fields.json): what the GUI shows and what `check` verifies.
+//! * `assets` — local assets the theme uses (generated/user colour schemes,
+//!   Kvantum, Look & Feel, Plasma styles, btop and Zed theme files, the
+//!   wallpaper) with origin and redistributability; system assets are
+//!   references by name.
 //! * `sources` — official origin of app themes (VS Code Marketplace / Open VSX
 //!   id, Zed extension id) so a missing one can be installed automatically.
 //!
-//! Applying changes only what the package lists ("absent = untouched"),
-//! installs bundled assets without overwriting, skips fields whose asset is
-//! missing (reported with where to get it) and backs up touched files first.
+//! Applying restores the snapshot (the same path legacy profiles always used,
+//! verified against the old snapshots key by key), installs assets kept
+//! outside the tracked files, reports missing references with where to get
+//! them, and keeps the current wallpaper when the theme has none.
+//! (2026-11-04: a values-only `theme@1` format lost terminal colours, GTK4,
+//! wofi, Zen, KWin effect toggles… — never store only registry values.)
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -26,19 +29,19 @@ use serde_json::Value;
 
 use crate::field::{self, Base};
 use crate::palette::{self, Palette};
-use crate::paths::{backups_dir, config_home, data_home, home_dir, live_path, profile_dir, validate_profile_name};
-use crate::profile::{copy_tree, reject_case_duplicate, unique_dir, write_active};
-use crate::wallpaper::{plasma_wallpaper_from, wallpaper_dir, APPLETSRC_REL};
+use crate::paths::{data_home, home_dir, live_path, profile_dir, validate_profile_name};
+use crate::profile::copy_tree;
+use crate::wallpaper::{plasma_wallpaper_from, APPLETSRC_REL};
 
 pub const MANIFEST: &str = "theme.json";
-pub const SCHEMA: &str = "theme-profile/theme@1";
+pub const SCHEMA: &str = "theme-profile/theme@2";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Asset {
     /// color-scheme | kvantum | look-and-feel | desktoptheme | btop | zed | wallpaper
     pub kind: String,
     pub name: String,
-    /// Path inside the package.
+    /// Path inside the package (`$HOME`-relative for snapshot files).
     pub path: String,
     /// "generated" (from a palette — ours) or "user" (third-party/local copy).
     pub origin: String,
@@ -70,7 +73,8 @@ pub struct Package {
     pub values: BTreeMap<String, Value>,
     #[serde(default)]
     pub palette: Option<Palette>,
-    /// Package path of the wallpaper file (`assets/wallpaper/<file>`).
+    /// Package path of the wallpaper file (`wallpaper/<file>`); none → applying
+    /// leaves the wallpaper alone.
     #[serde(default)]
     pub wallpaper: Option<String>,
     #[serde(default)]
@@ -78,11 +82,6 @@ pub struct Package {
     /// field id → where to get what it references.
     #[serde(default)]
     pub sources: BTreeMap<String, Source>,
-    /// Whole config files of user-defined components (`theme-profile
-    /// components add`): the user chose these files explicitly, so they are
-    /// stored and restored whole (`assets/files/<home-relative path>`).
-    #[serde(default)]
-    pub files: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -158,10 +157,6 @@ const BUNDLED_KINDS: &[AssetKind] = &[
     AssetKind { field: "plasma_theme", kind: "desktoptheme", user_rel: ".local/share/plasma/desktoptheme", system: &["/usr/share/plasma/desktoptheme"], suffix: "" },
     AssetKind { field: "btop_theme", kind: "btop", user_rel: ".config/btop/themes", system: &["/usr/share/btop/themes", "/usr/local/share/btop/themes"], suffix: ".theme" },
 ];
-
-fn kind_dir(kind: &str) -> Option<PathBuf> {
-    BUNDLED_KINDS.iter().find(|k| k.kind == kind).map(|k| live_path(k.user_rel))
-}
 
 fn safe_name(name: &str) -> bool {
     !name.is_empty() && !name.contains('/') && !name.starts_with('.') && name != ".."
@@ -313,10 +308,13 @@ fn copy_into(src: &Path, dst: &Path) -> Result<()> {
     copy_tree(src, dst)
 }
 
-/// Build a package into `dir` from the live system (`Base::Live`) or from a
-/// legacy snapshot directory (`Base::Snapshot`, used by [`migrate`]).
-pub fn build(name: &str, dir: &Path, options: &SaveOptions, base: &Base) -> Result<Package> {
-    let values: BTreeMap<String, Value> = field::capture(base).into_iter().collect();
+/// Describe the snapshot in `dir` (already holding every tracked file at its
+/// `$HOME`-relative path) with a `theme.json`. Local assets a value names but
+/// the snapshot lacks (e.g. a user Plasma style) are copied in at their
+/// `$HOME`-relative path, so apply can put them back.
+pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
+    let snapshot = Base::Snapshot(dir.to_path_buf());
+    let values: BTreeMap<String, Value> = field::capture(&snapshot).into_iter().collect();
     let mut package = Package {
         schema: SCHEMA.into(),
         name: name.into(),
@@ -325,27 +323,26 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions, base: &Base) -> Resu
         generator: format!("theme-profile {}", env!("CARGO_PKG_VERSION")),
         ..Default::default()
     };
-    fs::create_dir_all(dir)?;
 
-    // Local assets the receiver may not have.
+    let home = home_dir();
     for k in BUNDLED_KINDS {
         let Some(value) = values.get(k.field) else { continue };
         let asset = field::value_str(value);
         if !safe_name(&asset) {
             continue;
         }
-        // A legacy snapshot may lack the asset: take it from this machine.
-        let src = asset_in(k, &base.resolve(k.user_rel), &asset)
-            .or_else(|| asset_in(k, &live_path(k.user_rel), &asset));
-        let Some(src) = src else {
-            continue; // system asset (or not installed) → reference only
+        let in_snapshot = asset_in(k, &dir.join(k.user_rel), &asset);
+        let path = match in_snapshot {
+            Some(p) => p,
+            None => {
+                // Not tracked: copy the live user asset in (system ones stay references).
+                let Some(live) = asset_in(k, &live_path(k.user_rel), &asset) else { continue };
+                let rel = live.strip_prefix(&home).map(Path::to_path_buf).unwrap_or_else(|_| Path::new(k.user_rel).join(live.file_name().unwrap_or_default()));
+                copy_into(&live, &dir.join(&rel))?;
+                dir.join(rel)
+            }
         };
-        let file_name = src.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-        let rel = format!("assets/{}/{file_name}", k.kind);
-        if dir.join(&rel).exists() {
-            continue;
-        }
-        copy_into(&src, &dir.join(&rel))?;
+        let rel = path.strip_prefix(dir).unwrap_or(&path).to_string_lossy().to_string();
         let generated = asset.starts_with("ThemeProfile");
         package.assets.push(Asset {
             kind: k.kind.into(),
@@ -356,15 +353,12 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions, base: &Base) -> Resu
         });
     }
 
-    // Zed theme files (user/store themes) and VS Code/Cursor extension ids.
     for id in ["zed_dark", "zed_light"] {
         let Some(theme) = values.get(id).map(field::value_str) else { continue };
-        if let Some(file) = zed_theme_file(&theme, base) {
+        if let Some(file) = zed_theme_file(&theme, &snapshot).or_else(|| zed_theme_file(&theme, &Base::Live)) {
             let file_name = file.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-            let rel = format!("assets/zed/{file_name}");
-            if !dir.join(&rel).exists() {
-                copy_into(&file, &dir.join(&rel))?;
-                package.assets.push(Asset { kind: "zed".into(), name: theme.clone(), path: rel, origin: "user".into(), redistributable: false });
+            if let Ok(rel) = file.strip_prefix(dir) {
+                package.assets.push(Asset { kind: "zed".into(), name: theme.clone(), path: rel.to_string_lossy().into(), origin: "user".into(), redistributable: false });
             }
             if let Some(ext) = file_name.split_once("--").map(|(e, _)| e.to_string()) {
                 package.sources.insert(id.into(), Source { store: "zed".into(), id: ext, url: String::new() });
@@ -379,47 +373,26 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions, base: &Base) -> Resu
         }
     }
 
-    // Palette, when the colour scheme is the one generated from it.
-    if let Ok(p) = palette::load(&base.resolve(palette::LIVE_PALETTE_REL)) {
+    if let Ok(p) = palette::load(&snapshot.resolve(palette::LIVE_PALETTE_REL)) {
         if values.get("color_scheme").map(field::value_str).as_deref() == Some(palette::kde_scheme_id(&p).as_str()) {
             package.palette = Some(p);
         }
     }
 
-    // Wallpaper (opt-out): the one Plasma shows, or a legacy profile's copy.
+    // Wallpaper: `<theme>/wallpaper/` (copy + source) written by the snapshot
+    // save; without it applying leaves the wallpaper alone.
+    let wallpaper_dir = dir.join(WALLPAPER_DIR);
     if options.include_wallpaper {
-        let current = match base {
-            Base::Live => plasma_wallpaper_from(&live_path(APPLETSRC_REL)).map(PathBuf::from),
-            Base::Snapshot(root) => crate::profile::profile_wallpaper(root),
-        };
-        if let Some(src) = current {
-            if let Some(file_name) = src.file_name().filter(|_| src.is_file()) {
-                let rel = format!("assets/wallpaper/{}", file_name.to_string_lossy());
-                copy_into(&src, &dir.join(&rel))?;
-                package.wallpaper = Some(rel.clone());
-                package.assets.push(Asset {
-                    kind: "wallpaper".into(),
-                    name: file_name.to_string_lossy().into(),
-                    path: rel,
-                    origin: "user".into(),
-                    redistributable: false,
-                });
-            }
+        if let Some(file) = fs::read_dir(&wallpaper_dir).ok().and_then(|it| {
+            it.flatten().map(|e| e.path()).find(|p| p.is_file() && p.file_name().is_some_and(|n| n != "source"))
+        }) {
+            let file_name = file.file_name().unwrap_or_default().to_string_lossy().to_string();
+            let rel = format!("{WALLPAPER_DIR}/{file_name}");
+            package.wallpaper = Some(rel.clone());
+            package.assets.push(Asset { kind: "wallpaper".into(), name: file_name, path: rel, origin: "user".into(), redistributable: false });
         }
-    }
-
-    // User-defined components: whole files, by explicit choice.
-    if let Ok(custom) = crate::custom_components::load_custom_components() {
-        for rel in custom.iter().flat_map(|c| c.config_paths.iter()) {
-            if rel.contains("..") || rel.starts_with('/') {
-                continue;
-            }
-            let src = base.resolve(rel);
-            if src.exists() && !package.files.contains(rel) {
-                copy_into(&src, &dir.join("assets/files").join(rel))?;
-                package.files.push(rel.clone());
-            }
-        }
+    } else if wallpaper_dir.exists() {
+        fs::remove_dir_all(&wallpaper_dir)?;
     }
 
     package.values = values;
@@ -427,67 +400,37 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions, base: &Base) -> Resu
     Ok(package)
 }
 
-/// Save the live theme as profile `name` (atomic swap, old one backed up).
+/// Save the live look as theme `name`: a full snapshot of every tracked file
+/// (KDE, KWin incl. window rules, panels, GTK, Kvantum, terminals, launchers,
+/// editors, browser, notes…) plus `theme.json`.
 pub fn save(name: &str, options: &SaveOptions) -> Result<Package> {
     validate_profile_name(name)?;
-    reject_case_duplicate(name)?;
     let target = profile_dir(name)?;
-    let profiles = target.parent().ok_or_else(|| anyhow!("bad profiles dir"))?.to_path_buf();
-    fs::create_dir_all(&profiles)?;
-    let tmp = unique_dir(&profiles, &format!(".save-{name}"))?;
     let mut options = options.clone();
     if options.description.is_none() && target.is_dir() {
-        options.description = load(&target).ok().map(|p| p.description);
+        options.description = Some(crate::profile::get_profile_description(name).unwrap_or_default());
     }
-    let package = match build(name, &tmp, &options, &Base::Live) {
-        Ok(p) => p,
-        Err(e) => {
-            let _ = fs::remove_dir_all(&tmp);
-            return Err(e);
-        }
-    };
-    if target.exists() {
-        let backups = backups_dir();
-        fs::create_dir_all(&backups)?;
-        let old = unique_dir(&backups, &format!("pre-save-{name}"))?;
-        fs::rename(&target, &old)?;
-    }
-    fs::rename(&tmp, &target)?;
-    write_active(name)?;
-    Ok(package)
+    crate::profile::save_profile_cli(name, None)?;
+    build(name, &target, &options)
 }
 
-/// Convert a legacy snapshot profile into a package in place: values and
-/// assets are read from the snapshot (the same readers as the inspector's
-/// profile view); the old snapshot goes to `backups/pre-migrate-<name>-…`.
+/// Add `theme.json` to a legacy snapshot profile. The snapshot itself is not
+/// changed (lossless). Packages of the old values-only format (`theme@1`)
+/// cannot be upgraded — re-save them from the live session.
 pub fn migrate(name: &str) -> Result<Package> {
     validate_profile_name(name)?;
     let target = profile_dir(name)?;
     if !target.is_dir() {
         return Err(anyhow!("Profile not found: {name}"));
     }
-    if is_package(&target) {
-        return load(&target);
+    if target.join(MANIFEST).is_file() {
+        return load(&target).map_err(|e| anyhow!("{name}: {e:#} (values-only theme@1 packages must be re-saved)"));
     }
-    let profiles = target.parent().ok_or_else(|| anyhow!("bad profiles dir"))?.to_path_buf();
-    let tmp = unique_dir(&profiles, &format!(".migrate-{name}"))?;
     let options = SaveOptions {
         description: Some(crate::profile::get_profile_description(name).unwrap_or_default()),
         include_wallpaper: true,
     };
-    let package = match build(name, &tmp, &options, &Base::Snapshot(target.clone())) {
-        Ok(p) => p,
-        Err(e) => {
-            let _ = fs::remove_dir_all(&tmp);
-            return Err(e);
-        }
-    };
-    let backups = backups_dir();
-    fs::create_dir_all(&backups)?;
-    let old = unique_dir(&backups, &format!("pre-migrate-{name}"))?;
-    fs::rename(&target, &old)?;
-    fs::rename(&tmp, &target)?;
-    Ok(package)
+    build(name, &target, &options)
 }
 
 /// Point a copied package at its new profile name (`clone`).
@@ -508,29 +451,7 @@ pub fn set_description(name: &str, description: &str) -> Result<()> {
 // Apply
 // ─────────────────────────────────────────────────────────────────────────────
 
-fn install_asset(dir: &Path, asset: &Asset) -> Result<bool> {
-    let src = dir.join(&asset.path);
-    if !src.exists() || !safe_name(&asset.name) {
-        return Ok(false);
-    }
-    let dst = match asset.kind.as_str() {
-        "zed" => config_home().join("zed/themes").join(src.file_name().unwrap_or_default()),
-        // Same file/dir name as inside the package (Kvantum: the family dir).
-        kind => match kind_dir(kind) {
-            Some(root) => root.join(src.file_name().unwrap_or_default()),
-            None => return Ok(false),
-        },
-    };
-    // Never overwrite the user's own files; our generated ones may be refreshed.
-    if dst.exists() && asset.origin != "generated" {
-        return Ok(false);
-    }
-    if dst.is_dir() {
-        fs::remove_dir_all(&dst)?;
-    }
-    copy_into(&src, &dst)?;
-    Ok(true)
-}
+const WALLPAPER_DIR: &str = "wallpaper";
 
 fn source_hint(package: &Package, field_id: &str, name: &str) -> String {
     if let Some(s) = package.sources.get(field_id) {
@@ -558,162 +479,62 @@ fn store_app(field_id: &str, store: &str) -> Option<&'static str> {
     }
 }
 
-/// Copy the files the values will touch into `backups/pre-apply-<name>-…`.
-fn backup_targets(name: &str, values: &[(String, Value)]) -> Result<PathBuf> {
-    let backups = backups_dir();
-    fs::create_dir_all(&backups)?;
-    let dir = unique_dir(&backups, &format!("pre-apply-{name}"))?;
-    let home = home_dir();
-    for (id, _) in values {
-        let Some(f) = field::field(id) else { continue };
-        let Some(path) = field::file_for(f, &Base::Live) else { continue };
-        if !path.is_file() {
-            continue;
-        }
-        let rel = path.strip_prefix(&home).map(Path::to_path_buf).unwrap_or_else(|_| PathBuf::from("_external").join(path.file_name().unwrap_or_default()));
-        let dst = dir.join(rel);
-        if !dst.exists() {
-            if let Some(parent) = dst.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            fs::copy(&path, &dst)?;
-        }
-    }
-    Ok(dir)
-}
-
-fn run(cmd: &str, args: &[&str]) -> bool {
-    if std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1") {
-        return true;
-    }
-    std::process::Command::new(cmd)
-        .args(args)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
-}
-
-/// Apply profile `name` (a theme package).
+/// Apply theme `name`: the snapshot restore (pre-apply backup, plasmashell
+/// stopped, every file put back, colour scheme / widget style / KWin effects /
+/// kitty re-applied, plasmashell restarted) plus the package extras: assets
+/// outside the tracked files, store installs, the missing-parts report and the
+/// wallpaper rule (no wallpaper in the theme, or `keep_wallpaper` → the
+/// current wallpaper stays).
 pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
     validate_profile_name(name)?;
     let dir = profile_dir(name)?;
     let package = load(&dir)?;
     let mut report = ApplyReport::default();
 
+    if options.install_missing {
+        for (id, value) in &package.values {
+            if available(id, value) {
+                continue;
+            }
+            let Some(src) = package.sources.get(id) else { continue };
+            let Some(app) = store_app(id, &src.store) else { continue };
+            match crate::stores::install(app, &src.id) {
+                Ok(_) => report.installed.push(format!("{app} {}", src.id)),
+                Err(e) => report.errors.push(format!("{id}: install {}: {e:#}", src.id)),
+            }
+        }
+    }
+    report.missing = check(name)?;
+
+    // Assets that live outside the tracked files (e.g. a user Plasma style).
+    let home = home_dir();
     for asset in &package.assets {
-        if asset.kind != "wallpaper" && install_asset(&dir, asset)? {
+        if asset.kind == "wallpaper" || asset.path.contains("..") || asset.path.starts_with('/') {
+            continue;
+        }
+        let src = dir.join(&asset.path);
+        let dst = home.join(&asset.path);
+        if src.exists() && !dst.exists() {
+            copy_into(&src, &dst)?;
             report.installed.push(format!("{} {}", asset.kind, asset.name));
         }
     }
 
-    let mut values: Vec<(String, Value)> = Vec::new();
-    for (id, value) in &package.values {
-        if !available(id, value) && options.install_missing {
-            if let Some(src) = package.sources.get(id) {
-                if let Some(app) = store_app(id, &src.store) {
-                    match crate::stores::install(app, &src.id) {
-                        Ok(_) => report.installed.push(format!("{app} {}", src.id)),
-                        Err(e) => report.errors.push(format!("{id}: install {}: {e:#}", src.id)),
-                    }
-                }
-            }
-        }
-        // App configs (JSON/user.js/kv/TOML) are edited, never created: no
-        // file means the app is not set up here — skip, don't fail.
-        let app_absent = field::field(id).is_some_and(|f| {
-            matches!(f.source.as_str(), "json" | "userjs" | "kv" | "toml")
-                && field::file_for(f, &Base::Live).is_none_or(|p| !p.is_file())
-        });
-        if app_absent {
-            report.skipped.push(id.clone());
-            continue;
-        }
-        if available(id, value) {
-            values.push((id.clone(), value.clone()));
-        } else {
-            let name = field::value_str(value);
-            report.missing.push(Missing { field: id.clone(), source: source_hint(&package, id, &name), name });
-        }
-    }
+    let keep = (package.wallpaper.is_none() || options.keep_wallpaper)
+        .then(|| plasma_wallpaper_from(&live_path(APPLETSRC_REL)))
+        .flatten()
+        .map(PathBuf::from)
+        .filter(|p| p.is_file());
 
-    let backup = backup_targets(name, &values)?;
+    let backup = crate::profile::apply_profile_cli(name, None)?;
     report.backup = backup.display().to_string();
+    report.applied = crate::profile::get_profile_components(name).unwrap_or_default();
 
-    // A fixed (not wallpaper) accent that the theme leaves unset means "the
-    // colour scheme's own accent": drop the previous theme's AccentColor
-    // before the scheme is applied, or it tints the new scheme.
-    let from_wallpaper = package.values.get("accent_from_wallpaper").map(field::value_str);
-    if from_wallpaper.as_deref() == Some("false") && !package.values.contains_key("accent_color") {
-        run("kwriteconfig6", &["--file", "kdeglobals", "--group", "General", "--key", "AccentColor", "--delete"]);
-    }
-
-    // The theme carries every value a Global Theme would set, so its key is
-    // only recorded: `plasma-apply-lookandfeel -a` resets icons, colours and
-    // the widget style asynchronously, after the theme's own values.
-    let applied = field::apply_with(&values, &["look_and_feel"]);
-
-    // Whole files of user-defined components, then their reload commands.
-    let home = home_dir();
-    for rel in &package.files {
-        if rel.contains("..") || rel.starts_with('/') {
-            continue;
-        }
-        let src = dir.join("assets/files").join(rel);
-        let dst = live_path(rel);
-        if !src.exists() {
-            continue;
-        }
-        if dst.is_file() {
-            let keep = backup.join(dst.strip_prefix(&home).unwrap_or(Path::new(rel)));
-            if let Some(parent) = keep.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            let _ = fs::copy(&dst, keep);
-        }
-        if dst.is_dir() {
-            let _ = fs::remove_dir_all(&dst);
-        }
-        copy_into(&src, &dst)?;
-        report.applied.push(format!("file:{rel}"));
-    }
-    if !package.files.is_empty() {
-        crate::profile::run_custom_reload_hooks(&package.files);
-    }
-    report.applied = applied.applied;
-    report.errors.extend(applied.errors);
-
-    // Accent from the wallpaper: wake the kded accent service (flip the flag
-    // with --notify; an unchanged write notifies nothing). Never flip a fixed
-    // accent through `true`: the service would derive an accent from the
-    // wallpaper and re-tint the theme's selection colours.
-    if from_wallpaper.as_deref() == Some("true") {
-        for v in ["false", "true"] {
-            run("kwriteconfig6", &["--notify", "--file", "kdeglobals", "--group", "General", "--key", "accentColorFromWallpaper", v]);
+    if let Some(path) = keep {
+        if plasma_wallpaper_from(&live_path(APPLETSRC_REL)).as_deref() != Some(path.to_string_lossy().as_ref()) {
+            crate::profile::apply_wallpaper_live(&path);
         }
     }
-    // Tell running apps that the palette changed.
-    run("dbus-send", &["--session", "--type=signal", "/KGlobalSettings", "org.kde.KGlobalSettings.notifyChange", "int32:0", "int32:0"]);
-
-    if let Some(p) = &package.palette {
-        palette::save(p, &palette::live_palette_path())?;
-    }
-
-    if let Some(rel) = package.wallpaper.as_ref().filter(|_| !options.keep_wallpaper) {
-        let src = dir.join(rel);
-        if let Some(file_name) = src.file_name() {
-            let target = wallpaper_dir().join(file_name);
-            if !target.exists() && src.is_file() {
-                copy_into(&src, &target)?;
-            }
-            if target.is_file() && !run("plasma-apply-wallpaperimage", &[&target.to_string_lossy()]) {
-                report.errors.push("wallpaper: plasma-apply-wallpaperimage failed".into());
-            }
-        }
-    }
-
-    write_active(name)?;
     Ok(report)
 }
 
@@ -768,12 +589,11 @@ mod tests {
     }
 
     #[test]
-    fn unsafe_asset_names_are_never_available_or_installed() {
+    fn unsafe_asset_names_are_never_available() {
         let k = &BUNDLED_KINDS[0];
         assert!(!kind_available(k, "../x"));
-        let tmp = tempfile::tempdir().unwrap();
-        let asset = Asset { kind: "color-scheme".into(), name: "../evil".into(), path: "assets/x".into(), origin: "user".into(), redistributable: false };
-        assert!(!install_asset(tmp.path(), &asset).unwrap());
+        assert!(!safe_name(".."));
+        assert!(!safe_name("a/b"));
     }
 
     #[test]

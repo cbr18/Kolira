@@ -159,8 +159,8 @@ printf '[General]\nBorderSize=1\n' > "$FAKE_HOME/.config/kwinrc"
 HOME="$FAKE_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" save components-test >/dev/null 2>&1
 profile_root="$FAKE_HOME/.config/theme-profile/profiles/components-test"
 if grep -q '"accent_color": "1,2,3"' "$profile_root/theme.json" 2>/dev/null &&
-  [ ! -e "$profile_root/.config" ]; then
-  ok "save writes a theme package (values in theme.json, no config copies)"
+  [ -f "$profile_root/.config/kdeglobals" ] && [ -f "$profile_root/.config/kwinrc" ]; then
+  ok "save writes a full theme (whole config files + theme.json with the values)"
 else
   fail "save did not write a theme package: $(ls -A "$profile_root" 2>&1)"
 fi
@@ -171,6 +171,26 @@ if grep -q '"accent_color": "4,5,6"' "$profile_root/theme.json" &&
   ok "re-saving replaces the package atomically"
 else
   fail "re-saving did not replace the package"
+fi
+
+# Regression (2026-11-04): a values-only format lost terminal colours, wofi,
+# GTK4 and Zen settings. A theme must restore every appearance file whole.
+RT_HOME="$TMP_ROOT/roundtrip-home"
+rt_files=(".config/kitty/kitty.conf" ".config/wofi/style.css" ".config/gtk-4.0/settings.ini"
+  ".config/kwinrulesrc" ".zen/abc.Default (release)/user.js")
+for f in "${rt_files[@]}"; do mkdir -p "$(dirname "$RT_HOME/$f")"; printf 'theme %s\nbackground #fffbf4\n' "$f" >"$RT_HOME/$f"; done
+rt_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$RT_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+rt_cli save rt >/dev/null 2>&1
+for f in "${rt_files[@]}"; do printf 'other look\nbackground #282a36\n' >"$RT_HOME/$f"; done
+rt_cli apply rt >/dev/null 2>&1
+rt_bad=""
+for f in "${rt_files[@]}"; do
+  [ "$(cat "$RT_HOME/$f")" = "$(printf 'theme %s\nbackground #fffbf4' "$f")" ] || rt_bad="$rt_bad $f"
+done
+if [ -z "$rt_bad" ]; then
+  ok "apply restores every appearance file whole (terminal colours, wofi, GTK4, window rules, Zen)"
+else
+  fail "apply lost appearance files:$rt_bad"
 fi
 
 if HOME="$FAKE_HOME" "$CLI_DIR/theme-profile" apply ../x >/dev/null 2>&1; then
@@ -279,13 +299,14 @@ fi
 
 wp_cli save wp-test >/dev/null 2>&1
 saved="$WP_HOME/.config/theme-profile/profiles/wp-test"
-if [ -f "$saved/assets/wallpaper/forest one.jpg" ] && grep -q '"wallpaper": "assets/wallpaper/forest one.jpg"' "$saved/theme.json"; then
+if [ -f "$saved/wallpaper/forest one.jpg" ] && grep -q '"wallpaper": "wallpaper/forest one.jpg"' "$saved/theme.json"; then
   ok "save copies the wallpaper into the theme package"
 else
   fail "save did not copy the wallpaper"
 fi
 wp_cli save wp-nowall --no-wallpaper >/dev/null 2>&1
-if grep -q '"wallpaper": null' "$WP_HOME/.config/theme-profile/profiles/wp-nowall/theme.json"; then
+if grep -q '"wallpaper": null' "$WP_HOME/.config/theme-profile/profiles/wp-nowall/theme.json" &&
+  [ ! -e "$WP_HOME/.config/theme-profile/profiles/wp-nowall/wallpaper" ]; then
   ok "save --no-wallpaper keeps the wallpaper out (applying leaves it untouched)"
 else
   fail "save --no-wallpaper still stored a wallpaper"
@@ -312,17 +333,23 @@ mkdir -p "$WP_MOCK"
 printf '#!/usr/bin/env bash\necho "$*" >>"%s/calls"\nexit 0\n' "$WP_MOCK" >"$WP_MOCK/plasma-apply-wallpaperimage"
 chmod +x "$WP_MOCK/plasma-apply-wallpaperimage"
 wp_live() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$WP_HOME" PATH="$WP_MOCK:$PATH" "$CLI_DIR/theme-profile" "$@"; }
+# The theme's appletsrc names "forest one.jpg"; the desktop now shows another.
+printf 'jpeg2' >"$WP_HOME/Pictures/Wallpaper/other.jpg"
+set_live_wallpaper() { sed -i "s|^Image=.*|Image=file://$WP_HOME/Pictures/Wallpaper/$1|" "$WP_HOME/.config/plasma-org.kde.plasma.desktop-appletsrc"; }
+set_live_wallpaper other.jpg
 : >"$WP_MOCK/calls"
 wp_live apply wp-nowall >/dev/null 2>&1
+set_live_wallpaper other.jpg
 wp_live apply wp-test --keep-wallpaper >/dev/null 2>&1
-if [ ! -s "$WP_MOCK/calls" ]; then
-  ok "no wallpaper in the theme, or --keep-wallpaper → wallpaper untouched"
+if [ "$(grep -c "other.jpg" "$WP_MOCK/calls")" = 2 ] && ! grep -q "forest" "$WP_MOCK/calls"; then
+  ok "no wallpaper in the theme, or --keep-wallpaper → the current wallpaper stays"
 else
-  fail "wallpaper was changed: $(cat "$WP_MOCK/calls")"
+  fail "wallpaper rule broken: $(cat "$WP_MOCK/calls")"
 fi
+set_live_wallpaper other.jpg
 wp_live apply wp-test >/dev/null 2>&1
-if grep -q "forest one.jpg" "$WP_MOCK/calls"; then
-  ok "a theme with a wallpaper applies it"
+if grep -q "forest%20one.jpg" "$WP_HOME/.config/plasma-org.kde.plasma.desktop-appletsrc"; then
+  ok "a theme with a wallpaper applies it (restored desktop layout)"
 else
   fail "the theme wallpaper was not applied"
 fi
@@ -333,8 +360,8 @@ mkdir -p "$LEG/.config"
 printf '[General]\nColorScheme=NotInstalledScheme\nAccentColor=1,2,3\n' >"$LEG/.config/kdeglobals"
 printf '{"schema_version":1,"name":"legacy","description":"old one"}\n' >"$LEG/manifest.json"
 if wp_cli migrate legacy | grep -q "^Migrated legacy" && grep -q '"description": "old one"' "$LEG/theme.json" &&
-  [ ! -e "$LEG/.config" ] && compgen -G "$WP_HOME/.config/theme-profile/backups/pre-migrate-legacy-*" >/dev/null; then
-  ok "migrate converts a snapshot profile into a package (old one backed up)"
+  [ "$(cat "$LEG/.config/kdeglobals")" = "$(printf '[General]\nColorScheme=NotInstalledScheme\nAccentColor=1,2,3')" ]; then
+  ok "migrate adds theme.json to a snapshot profile without changing its files"
 else
   fail "migrate did not convert the legacy profile"
 fi
@@ -499,7 +526,7 @@ else
 fi
 printf '[General]\ntheme=ThemeProfileEverforest\n' >"$KV/kvantum.kvconfig"
 pal_cli save kv-test >/dev/null 2>&1
-if [ -f "$PAL_HOME/.config/theme-profile/profiles/kv-test/assets/kvantum/ThemeProfileEverforest/ThemeProfileEverforest.svg" ]; then
+if [ -f "$PAL_HOME/.config/theme-profile/profiles/kv-test/.config/Kvantum/ThemeProfileEverforest/ThemeProfileEverforest.svg" ]; then
   ok "theme packages bundle the active user Kvantum theme"
 else
   fail "active Kvantum theme missing from the package"
@@ -517,7 +544,7 @@ printf '[General]\nColorScheme=ThemeProfileEverforest\n' >"$PAL_HOME/.config/kde
 pal_cli save pal-test >/dev/null 2>&1
 pal_pkg="$PAL_HOME/.config/theme-profile/profiles/pal-test"
 if grep -q '"accent": "#a7c080"' "$pal_pkg/theme.json" 2>/dev/null &&
-  [ -f "$pal_pkg/assets/color-scheme/ThemeProfileEverforest.colors" ]; then
+  [ -f "$pal_pkg/.local/share/color-schemes/ThemeProfileEverforest.colors" ]; then
   ok "theme packages carry the palette and its generated colour scheme"
 else
   fail "palette/scheme missing from the package"
@@ -1164,14 +1191,14 @@ MAN_HOME="$TMP_ROOT/man-home"
 mkdir -p "$MAN_HOME/.config"
 printf '[General]\nAccentColor=5,6,7\n' > "$MAN_HOME/.config/kdeglobals"
 
-# save writes the theme package manifest theme.json (schema theme@1).
+# save writes the theme package manifest theme.json (schema theme@2).
 if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" save man-profile >/dev/null 2>&1; then
   ok "save man-profile"
 else
   fail "save man-profile"
 fi
 man_root="$MAN_HOME/.config/theme-profile/profiles/man-profile"
-if grep -q '"schema": "theme-profile/theme@1"' "$man_root/theme.json" 2>/dev/null \
+if grep -q '"schema": "theme-profile/theme@2"' "$man_root/theme.json" 2>/dev/null \
   && grep -q '"name": "man-profile"' "$man_root/theme.json" \
   && grep -q '"accent_color": "5,6,7"' "$man_root/theme.json"; then
   ok "theme.json carries schema, name and the theme values"

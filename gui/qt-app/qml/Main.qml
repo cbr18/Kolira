@@ -508,7 +508,7 @@ Kirigami.ApplicationWindow {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
                 color: ThemeColors.fgColor(root.glassMode)
-                text: qsTr("Apply theme \"%1\"? Only what the theme defines changes; a backup of the touched files is made first.").arg(applyDialog.targetProfile)
+                text: qsTr("Apply theme \"%1\"? All its appearance files are restored (a backup is made first) and Plasma restarts.").arg(applyDialog.targetProfile)
             }
             CheckBox {
                 id: keepWallpaperBox

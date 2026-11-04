@@ -464,14 +464,16 @@ def test_save_profile_writes_theme_package(cli_bundle_home):
     directory = profile_dir("night")
     assert not (directory / "theme-bundle.json").exists()
     data = json.loads((directory / "theme.json").read_text(encoding="utf-8"))
-    assert data["schema"] == "theme-profile/theme@1"
+    assert data["schema"] == "theme-profile/theme@2"
     assert data["name"] == "night"
     assert data["description"] == "Dark test bundle"
     assert data["values"]["color_scheme"] == "Mine"
     assert data["values"]["kvantum_theme"] == "OrchisDark"
     assert data["values"]["zed_dark"] == "Ayu Dark"
-    # Local assets travel with the theme.
-    assert (directory / "assets/color-scheme/Mine.colors").is_file()
+    # A theme is a full snapshot: whole config files plus its local assets.
+    assert (directory / ".config/kdeglobals").is_file()
+    assert (directory / ".config/kitty/kitty.conf").is_file()
+    assert (directory / ".local/share/color-schemes/Mine.colors").is_file()
     # The returned view is what the Theme page shows for the profile scope.
     assert result.data["components"]["color_scheme"] == "Mine"
     assert result.data["legacy"] is False

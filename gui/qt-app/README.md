@@ -17,8 +17,8 @@ Native KDE Plasma application for managing theme profiles and wallpapers.
   apply exactly what they define)
 - **Theme bundles** — Theme page assembles KDE/Plasma assets, desktop/window
   settings, Kvantum, GTK and app themes; installed themes are picked from
-  lists, edits are staged; saving writes a theme package (`theme.json` +
-  assets, `docs/THEMES.md`) through the Rust CLI
+  lists, edits are staged; saving writes a theme (full snapshot of the
+  appearance files + `theme.json`, `docs/THEMES.md`) through the Rust CLI
 - **Themes** — save dialog with *Include the current wallpaper*, apply dialog
   with *Keep the current wallpaper*, and a *Missing Theme Parts* dialog (links +
   *Install from stores*) fed by `theme-profile apply --json`

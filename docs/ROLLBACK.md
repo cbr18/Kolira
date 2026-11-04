@@ -27,14 +27,13 @@ modifying anything:
 ~/.config/theme-profile/backups/pre-apply-<name>-<YYYYMMDD-HHMMSS>/
 ```
 
-For a **theme package** (`theme.json`, see `docs/THEMES.md`) the backup holds
-exactly the files the theme's values touch, at their `$HOME`-relative paths
-(e.g. `.config/kdeglobals`, `.config/kwinrc`); copy them back to undo. Saving
-over an existing theme moves the old one to `backups/pre-save-<name>-…`, and
-`theme-profile migrate` moves the old snapshot to `backups/pre-migrate-<name>-…`
-(move it back into `profiles/` to undo a migration).
+Saving over an existing theme moves the old one to
+`backups/pre-save-<name>-…` (move it back into `profiles/` to undo).
+`theme-profile migrate` only adds `theme.json`; it changes no files. (Early
+`pre-migrate-<name>-…` / `package-<name>-…` directories from 2026-11-04 hold
+the snapshots and the abandoned values-only packages of that day.)
 
-For a legacy snapshot profile the backup is the full tracked set:
+The pre-apply backup is the full tracked set:
 
 This contains:
 - `manifest.txt` — list of tracked paths and generation metadata

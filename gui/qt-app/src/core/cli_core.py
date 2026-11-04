@@ -117,31 +117,27 @@ class CliProfileCore(ProfileCore):
         components = ()
         wallpaper_path = ""
 
-        # Theme package (theme.json): the current format.
+        # Theme package: theme.json describes the snapshot (description,
+        # created, wallpaper); components still come from the snapshot files.
         package = directory / "theme.json"
         if package.is_file():
             try:
                 data = json.loads(package.read_text(encoding="utf-8"))
-                values = dict(data.get("values") or {})
-                return ProfileInfo(
-                    name=name,
-                    is_active=is_active,
-                    components=tuple(sorted(values)),
-                    created_at=str(data.get("created") or ""),
-                    description=str(data.get("description") or ""),
-                    wallpaper_path=str(data.get("wallpaper") or ""),
-                )
+                created_at = str(data.get("created") or "")
+                description = str(data.get("description") or "")
+                wallpaper_path = str(data.get("wallpaper") or "")
             except (OSError, ValueError):
                 pass
 
-        # Legacy snapshot: manifest.json — предпочтительнее manifest.txt
+        # Snapshot manifest.json — предпочтительнее manifest.txt
         manifest_json = directory / "manifest.json"
         if manifest_json.exists():
             try:
                 content = manifest_json.read_text(encoding="utf-8")
                 data = json.loads(content)
-                created_at = data.get("created_at", "") or created_at
-                description = data.get("description", "") or description
+                # theme.json (when present) is authoritative.
+                created_at = created_at or data.get("created_at", "")
+                description = description or data.get("description", "")
             except Exception:
                 pass
 

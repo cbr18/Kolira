@@ -75,7 +75,7 @@ A change is not done until the docs agree with the code. At minimum:
 | `docs/TZ-THEME-REBUILD.md` | Target product/design spec for the theme-bundle rebuild |
 | `docs/MCP.md` | Local MCP server usage, tool contract and safety notes |
 | `docs/PALETTE.md` | base16 palette model, `theme-profile palette` CLI, base16 → KDE role mapping |
-| `docs/THEMES.md` | Theme package format (`theme.json` + assets), save/apply/check/migrate semantics |
+| `docs/THEMES.md` | Theme format (full appearance snapshot + `theme.json`), save/apply/check/migrate semantics |
 | `gui/qt-app/README.md` | GUI details: cores, tray, theming, wallpapers, architecture, dev commands |
 
 ## Contracts that must not drift
@@ -110,10 +110,10 @@ A change is not done until the docs agree with the code. At minimum:
 # Build the Rust CLI first
 cd gui/qt-app/src/core/rust_core && cargo build --release && cargo test && cargo clippy --all-targets -- -D warnings
 
-# Python tests (offscreen Qt; 248 tests)
+# Python tests (offscreen Qt; 249 tests)
 cd gui/qt-app && QT_QPA_PLATFORM=offscreen uv run --project . --extra dev pytest tests -q
 
-# Bash + installer tests (~154 assertions) — from the repo root
+# Bash + installer tests (~155 assertions) — from the repo root
 bash tests/test-scripts.sh
 
 # Shell static analysis (installer scripts)

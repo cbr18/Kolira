@@ -186,12 +186,12 @@ primary screen (`lastScreen=0`, `org.kde.image` only — slideshow/POTD report
 nothing). One wallpaper is applied to all screens (`plasma-apply-wallpaperimage`).
 
 **Wallpaper in themes.** `theme-profile save` copies the current wallpaper into
-the theme (`assets/wallpaper/<file>`) unless `--no-wallpaper` is given.
+the theme (`wallpaper/<file>` + `source`) unless `--no-wallpaper` is given.
 `theme-profile apply` — CLI, `theme-menu`, GUI, MCP alike — sets the theme's
-wallpaper (putting the file back into the wallpaper directory if it is gone;
-existing files are never overwritten). A theme without a wallpaper leaves the
-wallpaper untouched, and `--keep-wallpaper` keeps it even when the theme has
-one. See `docs/THEMES.md`.
+wallpaper (putting the file back if it is gone; existing files are never
+overwritten). A theme without a wallpaper leaves the current wallpaper on
+screen, and `--keep-wallpaper` keeps it even when the theme has one. See
+`docs/THEMES.md`.
 
 Environment overrides (also used by the GUI and the tests): `WALLPAPER_DIR`,
 `WALLPAPER_STATE`, `WALLPAPER_THUMB_DIR`, `PLASMA_APPLETSRC`,
@@ -225,11 +225,13 @@ limits: [`docs/PALETTE.md`](docs/PALETTE.md).
 
 ## Profiles / Профили
 
-A profile **is a theme**: a theme package (`theme.json` + its own assets) that
-holds appearance values only — no panels, window rules or personal configs.
-Applying changes only what the theme defines, after a pre-apply backup; missing
-assets are skipped and reported with where to get them. Format, CLI and GUI
-behaviour: **`docs/THEMES.md`**.
+A profile **is a theme**: a full snapshot of every file that shapes the look
+(KDE, KWin incl. window rules, panels, GTK, Kvantum, terminals with their
+colours, launchers, editors, Zen, Obsidian, wallpaper) described by
+`theme.json` (description, values, local assets, editor-theme sources).
+Applying restores it after a pre-apply backup and reports what this machine
+lacks, with where to get it. Format, CLI and GUI behaviour:
+**`docs/THEMES.md`**.
 
 - **`glass`** — полупрозрачные окна с размытием, KWin glass enabled
 - **`Paper`** — светлая/solid тема, без прозрачностей

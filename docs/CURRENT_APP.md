@@ -81,13 +81,15 @@ wallpaper-prev                   # предыдущие обои
 `~/.config/theme-profile/profiles/`).
 Активный профиль — маркер `theme-profile/active-profile` в том же корне.
 
-**Профиль = тема-пакет** (`theme.json` + `assets/`, формат и поведение —
-`docs/THEMES.md`): только значения оформления из общего реестра полей и свои
-ресурсы; применение меняет лишь то, что задано в теме («нет компонента — не
-трогать»: нет обоев → обои не меняются), недостающее пропускается и попадает в
-отчёт с источником. Описанное ниже (восстановление файлов целиком, TRACKED_PATHS,
-компоненты) относится к **старым профилям-снимкам**, которые ещё не переведены
-командой `theme-profile migrate`.
+**Профиль = тема** (формат и поведение — `docs/THEMES.md`): полный снимок всех
+файлов, влияющих на внешний вид (TRACKED_PATHS ниже: KDE, KWin вместе с
+правилами окон, панели, GTK, Kvantum, терминалы, wofi, редакторы, Zen,
+Obsidian…), плюс `theme.json` (описание, значения для GUI, ресурсы, источники
+тем редакторов, обои). Применение — восстановление снимка (описано ниже) плюс
+доустановка ресурсов, отчёт о недостающем со ссылками и правило обоев: тема без
+обоев или `--keep-wallpaper` оставляет текущие обои. Формат «только значения»
+(`theme@1`, 2026-11-04) терял цвета терминала, GTK4, wofi, Zen и эффекты KWin —
+от него отказались.
 
 При apply Rust-ядро после восстановления файлов заново применяет цветовую схему через `plasma-apply-colorscheme`. Если в профиле есть явный `AccentColor` и `accentColorFromWallpaper=false`, он передаётся через `--accent-color`; если `accentColorFromWallpaper=true`, схема применяется без `--accent-color`, а акцент пересчитывает сама Plasma из восстановленных обоев при перезапуске plasmashell (проверено 2026-11-04; ImageMagick для акцента больше не используется). Так как `kdeglobals` восстанавливается копированием файла, `apply` дополнительно: (1) переписывает `accentColorFromWallpaper` через `kwriteconfig6 --notify` (сначала противоположным значением, затем настоящим) — иначе kded-сервис `plasma_accentcolor_service` не узнаёт о смене флага и отбрасывает акцент из обоев; (2) шлёт `org.kde.KGlobalSettings.notifyChange(0,0)` (PaletteChanged) — `plasma-apply-colorscheme` на уже записанную схему ничего не делает («уже используется»), и без сигнала открытые приложения оставались с палитрой прошлого профиля (оливковый paper после glass). На монохромных обоях (например, чёрно-белые обои glass) Plasma не может извлечь цвет — акцент становится схемным/серым, это поведение самой Plasma. Отдельно переприменяется Qt widget style: для `widgetStyle=kvantum` вызывается `kvantummanager --set <theme>`, чтобы уже запущенные Qt-приложения получили тему Kvantum, а не только обновлённый файл. Обои профиля: при `save` копия текущих обоев кладётся в `<профиль>/wallpaper/` (+ `source` с исходным путём), при `apply` используется оригинал, а если его нет — копия возвращается на место (или в каталог обоев) и применяется; это работает одинаково для CLI, `theme-menu`, GUI и MCP. Каталог обоев: `$WALLPAPER_DIR` → настройка `wallpaper_directory` → `$(xdg-user-dir PICTURES)/Wallpaper` → `~/Pictures/Wallpaper` (`theme-profile wallpaper dir`). Профиль `glass` имеет `accentColorFromWallpaper=true` (акцент из обоев), профиль `paper` — `accentColorFromWallpaper=false` с явным `AccentColor=155,150,77`. Поэтому акцент переключается между профилями: `glass` берёт акцент из обоев, `paper` — оливковый из явного `AccentColor`.
 
@@ -264,15 +266,17 @@ Zen-автодетект профиля, выбор ядра через `--core`
 $XDG_CONFIG_HOME/theme-profile/        # по умолчанию ~/.config/theme-profile/
 ├── active-profile          # имя активного профиля
 ├── profiles/
-│   ├── glass/              # тема-пакет (docs/THEMES.md)
+│   ├── glass/              # тема (docs/THEMES.md)
 │   │   ├── theme.json
-│   │   └── assets/         # color-scheme/, kvantum/, wallpaper/, …
+│   │   ├── manifest.json
+│   │   ├── wallpaper/
+│   │   ├── .config/kwinrc, .config/kdeglobals, …
+│   │   └── .local/share/…  # свои цветовые схемы, Look & Feel
 │   ├── Paper/
 │   └── custom/             # пользовательские темы
 ├── backups/                # авто-бэкапы
-│   ├── pre-apply-glass-20260115-120000/    # файлы, которые apply изменит
-│   ├── pre-save-glass-…/                   # прежняя версия перезаписанной темы
-│   └── pre-migrate-glass-…/                # старый снимок после migrate
+│   ├── pre-apply-glass-20260115-120000/    # все отслеживаемые файлы до apply
+│   └── pre-save-glass-…/                   # прежняя версия перезаписанной темы
 ├── manifests/              # манифесты сохранения (опционально)
 └── app-preferences.json    # настройки GUI
 ```

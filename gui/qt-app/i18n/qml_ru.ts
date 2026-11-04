@@ -353,9 +353,13 @@
         <translation type="vanished">Применить профиль «%1»? Это может перезапустить компоненты Plasma и изменить текущий вид рабочего стола.</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="511"/>
         <source>Apply theme &quot;%1&quot;? Only what the theme defines changes; a backup of the touched files is made first.</source>
-        <translation>Применить тему «%1»? Изменится только то, что задано в теме; затронутые файлы сначала сохраняются в резервную копию.</translation>
+        <translation type="vanished">Применить тему «%1»? Изменится только то, что задано в теме; затронутые файлы сначала сохраняются в резервную копию.</translation>
+    </message>
+    <message>
+        <location filename="../qml/Main.qml" line="511"/>
+        <source>Apply theme &quot;%1&quot;? All its appearance files are restored (a backup is made first) and Plasma restarts.</source>
+        <translation>Применить тему «%1»? Все её файлы оформления будут восстановлены (сначала делается резервная копия), Plasma перезапустится.</translation>
     </message>
     <message>
         <location filename="../qml/Main.qml" line="515"/>

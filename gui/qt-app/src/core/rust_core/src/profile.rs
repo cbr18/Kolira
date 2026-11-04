@@ -1018,7 +1018,7 @@ fn bundle_wallpaper(profile_dir: &Path) -> Option<PathBuf> {
 
 /// `plasma-apply-wallpaperimage` needs plasmashell's D-Bus API, which can lag
 /// a moment behind a restart — retry briefly instead of failing silently.
-fn apply_wallpaper_live(path: &Path) {
+pub(crate) fn apply_wallpaper_live(path: &Path) {
     if no_apply() {
         return;
     }
