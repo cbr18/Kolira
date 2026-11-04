@@ -34,10 +34,15 @@ from .fileutil import atomic_write_bytes, atomic_write_text, copy_preserving_mod
 
 
 def tr(text: str) -> str:
-    """Перевод пользовательских сообщений ядра (lupdate извлекает tr(...))."""
+    """Перевод пользовательских сообщений ядра.
+
+    pylupdate6 извлекает вызовы ``tr(...)`` под контекстом *класса*, в котором
+    они стоят (все — в ``AppThemeCore``), поэтому и искать перевод нужно под
+    ним; с контекстом "ThemeCore" сообщения ядра никогда не переводились.
+    """
     from PySide6.QtCore import QCoreApplication
 
-    return QCoreApplication.translate("ThemeCore", text)
+    return QCoreApplication.translate("AppThemeCore", text)
 
 from .paths import (
     active_profile_file,

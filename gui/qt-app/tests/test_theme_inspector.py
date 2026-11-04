@@ -597,3 +597,22 @@ def test_breeze_menu_opacity_field(tmp_path, monkeypatch):
     assert core.set_value("breeze_menu_opacity", 100).success
     assert core.apply().success
     assert "MenuOpacity=100" in (tmp_path / ".config/breezerc").read_text(encoding="utf-8")
+
+
+def test_core_messages_are_translated() -> None:
+    """tr() in theme_core must use the context pylupdate6 extracts (AppThemeCore)."""
+    from pathlib import Path
+
+    from PySide6.QtCore import QCoreApplication, QTranslator
+
+    app = QCoreApplication.instance() or QCoreApplication([])
+    qm = Path(__file__).resolve().parent.parent / "i18n" / "kde-theme-manager_ru.qm"
+    translator = QTranslator()
+    assert translator.load(str(qm))
+    app.installTranslator(translator)
+    try:
+        from core.theme_core import tr
+
+        assert tr("Nothing to apply") == "Применять нечего"
+    finally:
+        app.removeTranslator(translator)
