@@ -69,8 +69,20 @@ theme-profile field set ID=VALUE ...
     up on this machine is reported as `skipped (app not set up here)`;
   - every touched file is copied to `backups/pre-apply-<name>-…` first;
   - commands run before key writes where Plasma needs them
-    (`plasma-apply-colorscheme`, `plasma-apply-lookandfeel`,
-    `plasma-apply-desktoptheme`, `kvantummanager`), then the palette broadcast;
+    (`plasma-apply-colorscheme`, `plasma-apply-desktoptheme`,
+    `plasma-apply-cursortheme`, `kvantummanager`); the key is read back and
+    written directly if the tool did not store it
+    (`plasma-apply-colorscheme --accent-color` reports success without writing
+    `AccentColor`);
+  - the Global Theme (`look_and_feel`) is recorded as a key only:
+    `plasma-apply-lookandfeel -a` would reset icons, colours and widget style
+    after the theme's own values (interactive *field set* still runs it);
+  - accent: `accent_from_wallpaper=true` → the flag is flipped with `--notify`
+    so the kded accent service recomputes it; `false` with an `accent_color` →
+    that colour; `false` without one → the previous theme's `AccentColor` is
+    removed so the colour scheme's own accent is used (never flipped through
+    `true`, which would re-tint selection colours from the wallpaper);
+  - finally the palette broadcast (`KGlobalSettings.notifyChange`);
     plasmashell is not restarted;
   - `--json` prints the report `{applied, skipped, installed, missing, errors,
     backup}` instead of text (used by the GUI and MCP).

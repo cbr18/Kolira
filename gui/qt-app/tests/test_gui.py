@@ -178,6 +178,14 @@ def test_core_factory_reset_and_recreate() -> None:
 class TestCliProfileCore:
     """Unit tests for CliProfileCore with mocked subprocess."""
 
+    @pytest.fixture(autouse=True)
+    def _isolated_home(self, tmp_path, monkeypatch) -> None:
+        # Package vs legacy is decided by the profile dir: never the real one.
+        for key in [k for k in os.environ if k.startswith("XDG_")]:
+            monkeypatch.delenv(key)
+        monkeypatch.setenv("HOME", str(tmp_path))
+        self.home = tmp_path
+
     def _make_core(self) -> "object":
         from core.cli_core import CliProfileCore
 
@@ -217,6 +225,23 @@ class TestCliProfileCore:
         mock_run.assert_called_once()
         args, kwargs = mock_run.call_args
         assert args[0] == ["apply", "glass", "--components=kwin,kdeglobals"]
+
+    def test_apply_package_uses_json_report(self) -> None:
+        package = self.home / ".config/theme-profile/profiles/night"
+        package.mkdir(parents=True)
+        (package / "theme.json").write_text("{}", encoding="utf-8")
+        core = self._make_core()
+        report = '{"applied":["color_scheme"],"skipped":[],"installed":[],' \
+                 '"missing":[{"field":"icon_theme","name":"YAMIS","source":"https://x"}],' \
+                 '"errors":[],"backup":"/b"}'
+        with mock.patch.object(core, "_run") as mock_run:
+            mock_run.return_value = mock.Mock(success=True, message=report)
+            result = core.apply("night", keep_wallpaper=True, install_missing=True)
+        args, _ = mock_run.call_args
+        assert args[0] == ["apply", "night", "--json", "--keep-wallpaper", "--install-missing"]
+        assert result.success
+        assert result.data["missing"][0]["name"] == "YAMIS"
+        assert "Missing: YAMIS (https://x)" in result.message
 
     def test_apply_profile_no_components(self) -> None:
         core = self._make_core()

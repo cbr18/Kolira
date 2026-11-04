@@ -640,7 +640,19 @@ pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
 
     let backup = backup_targets(name, &values)?;
     report.backup = backup.display().to_string();
-    let applied = field::apply(&values);
+
+    // A fixed (not wallpaper) accent that the theme leaves unset means "the
+    // colour scheme's own accent": drop the previous theme's AccentColor
+    // before the scheme is applied, or it tints the new scheme.
+    let from_wallpaper = package.values.get("accent_from_wallpaper").map(field::value_str);
+    if from_wallpaper.as_deref() == Some("false") && !package.values.contains_key("accent_color") {
+        run("kwriteconfig6", &["--file", "kdeglobals", "--group", "General", "--key", "AccentColor", "--delete"]);
+    }
+
+    // The theme carries every value a Global Theme would set, so its key is
+    // only recorded: `plasma-apply-lookandfeel -a` resets icons, colours and
+    // the widget style asynchronously, after the theme's own values.
+    let applied = field::apply_with(&values, &["look_and_feel"]);
 
     // Whole files of user-defined components, then their reload commands.
     let home = home_dir();
@@ -672,15 +684,16 @@ pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
     report.applied = applied.applied;
     report.errors.extend(applied.errors);
 
-    // kdeglobals keys changed outside KConfig's own writers: tell the accent
-    // service about the flag (flip first, unchanged writes notify nothing) and
-    // running apps that the palette changed.
-    if let Some(flag) = package.values.get("accent_from_wallpaper").map(field::value_str) {
-        let flipped = if flag == "true" { "false" } else { "true" };
-        for v in [flipped, flag.as_str()] {
+    // Accent from the wallpaper: wake the kded accent service (flip the flag
+    // with --notify; an unchanged write notifies nothing). Never flip a fixed
+    // accent through `true`: the service would derive an accent from the
+    // wallpaper and re-tint the theme's selection colours.
+    if from_wallpaper.as_deref() == Some("true") {
+        for v in ["false", "true"] {
             run("kwriteconfig6", &["--notify", "--file", "kdeglobals", "--group", "General", "--key", "accentColorFromWallpaper", v]);
         }
     }
+    // Tell running apps that the palette changed.
     run("dbus-send", &["--session", "--type=signal", "/KGlobalSettings", "org.kde.KGlobalSettings.notifyChange", "int32:0", "int32:0"]);
 
     if let Some(p) = &package.palette {

@@ -885,6 +885,7 @@
    "apply": "cmd_config",
    "command": [
     "plasma-apply-lookandfeel",
+    "-a",
     "{value}"
    ],
    "summary": true,

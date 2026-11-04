@@ -696,6 +696,17 @@ pub fn write(f: &FieldDef, value: &Value) -> Result<PathBuf> {
     Ok(path)
 }
 
+/// Whether two values of field `f` mean the same (colors compare as hex).
+fn same_value(f: &FieldDef, a: &Value, b: &Value) -> bool {
+    if f.kind == "color" {
+        let (x, y) = (color_hex(a), color_hex(b));
+        if !x.is_empty() && !y.is_empty() {
+            return x.eq_ignore_ascii_case(&y);
+        }
+    }
+    value_str(a).trim().eq_ignore_ascii_case(value_str(b).trim())
+}
+
 fn command_args(f: &FieldDef, value: &Value) -> Vec<String> {
     let live = |id: &str| field(id).and_then(|x| read(x, &Base::Live)).map(|v| value_str(&v)).unwrap_or_default();
     let cursor = {
@@ -755,6 +766,12 @@ pub struct ApplyReport {
 /// Write `values` (field id → value), run live commands and each hook once.
 /// Look & Feel, Plasma style, colour scheme and accent go first.
 pub fn apply(values: &[(String, Value)]) -> ApplyReport {
+    apply_with(values, &[])
+}
+
+/// [`apply`], but the fields in `key_only` get their key written without
+/// running their live command.
+pub fn apply_with(values: &[(String, Value)], key_only: &[&str]) -> ApplyReport {
     let rank = |id: &str| APPLY_FIRST.iter().position(|x| *x == id).unwrap_or(APPLY_FIRST.len());
     let mut ordered: Vec<&(String, Value)> = values.iter().collect();
     ordered.sort_by_key(|(id, _)| rank(id));
@@ -774,14 +791,18 @@ pub fn apply(values: &[(String, Value)]) -> ApplyReport {
         // -desktoptheme, -cursortheme, kvantummanager): run it *first* — the
         // tool writes the key itself. Writing the key beforehand made e.g.
         // plasma-apply-colorscheme answer "already in use" and skip the live
-        // update. The key is written directly only when the command is not
-        // run (KTM_THEME_NO_APPLY) or fails.
+        // update. The key is written directly when the command is not run
+        // (KTM_THEME_NO_APPLY), fails, or "succeeds" without storing the value
+        // (`plasma-apply-colorscheme --accent-color` reports success but
+        // writes no AccentColor) — so the key is read back after the command.
         let mut done = false;
-        if f.apply == "cmd_config" && !f.command.is_empty() && !no_apply() {
+        if f.apply == "cmd_config" && !f.command.is_empty() && !no_apply() && !key_only.contains(&id.as_str()) {
             let args = command_args(f, &raw);
             if let Some((cmd, rest)) = args.split_first() {
                 let rest: Vec<&str> = rest.iter().map(String::as_str).collect();
-                done = which::which(cmd).is_ok() && run(cmd, &rest);
+                done = which::which(cmd).is_ok()
+                    && run(cmd, &rest)
+                    && read(f, &Base::Live).is_some_and(|live| same_value(f, &live, &raw));
             }
         }
         if !done {
@@ -867,6 +888,18 @@ mod tests {
         let out = userjs_set(js, "zen.view.window.scheme", &json!(1));
         assert!(out.contains("user_pref(\"zen.view.window.scheme\", 1);") && out.contains("\"a.b\", true"));
         assert!(userjs_set("", "x.y", &json!("s")).contains("user_pref(\"x.y\", \"s\");"));
+    }
+
+    #[test]
+    fn read_back_compares_meaning_not_spelling() {
+        let accent = field("accent_color").unwrap();
+        assert!(same_value(accent, &Value::from("155,150,77"), &Value::from("#9b964d")));
+        assert!(!same_value(accent, &Value::from("155,150,77"), &Value::from("#000000")));
+        let laf = field("look_and_feel").unwrap();
+        assert!(same_value(laf, &Value::from("paper"), &Value::from("paper")));
+        assert!(!same_value(laf, &Value::from("glass"), &Value::from("paper")));
+        assert_eq!(laf.command.first().map(String::as_str), Some("plasma-apply-lookandfeel"));
+        assert!(laf.command.iter().any(|a| a == "-a"), "plasma-apply-lookandfeel needs -a");
     }
 
     #[test]

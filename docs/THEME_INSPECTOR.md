@@ -137,7 +137,7 @@
 | Поле | Источник | Тип | Применение | Рестарт |
 |---|---|---|---|---|
 | Plasma theme | `plasmarc [Theme] name` | enum | `plasma-apply-desktoptheme <name>` | — |
-| Look & Feel | `kdeglobals [KDE] LookAndFeelPackage` | enum | `plasma-apply-lookandfeel <name>` (confirm!) | — |
+| Look & Feel | `kdeglobals [KDE] LookAndFeelPackage` | enum | `plasma-apply-lookandfeel -a <name>` (confirm!) | — |
 | Icon theme | `[Icons] Theme` | enum | `kwriteconfig6 --notify` + `kbuildsycoca6` | app |
 | Cursor theme | `kcminputrc [Mouse] cursorTheme` | enum | `plasma-apply-cursortheme <name>` | — |
 | Cursor size | `kcminputrc [Mouse] cursorSize` | int 16–96 | `plasma-apply-cursortheme --size` / config | — |
