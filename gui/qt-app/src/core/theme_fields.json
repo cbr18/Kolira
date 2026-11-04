@@ -1,0 +1,1389 @@
+{
+ "schema": "theme-fields@1",
+ "comment": "Single source of the theme field registry, read by the Python core (theme_schema.py) and compiled into the Rust core (field.rs). Edit here only.",
+ "sections": [
+  {
+   "id": "colors",
+   "title": "Colors",
+   "icon": "preferences-desktop-color",
+   "description": "Accent, color scheme, palette roles"
+  },
+  {
+   "id": "typography",
+   "title": "Typography",
+   "icon": "preferences-desktop-font",
+   "description": "UI, fixed, menu and title fonts"
+  },
+  {
+   "id": "windows",
+   "title": "Windows & Effects",
+   "icon": "preferences-system-windows",
+   "description": "Decorations, blur, translucency, motion"
+  },
+  {
+   "id": "assets",
+   "title": "Desktop & Assets",
+   "icon": "preferences-desktop-theme",
+   "description": "Plasma theme, look & feel, icons, cursors, Kvantum"
+  },
+  {
+   "id": "apps",
+   "title": "Applications",
+   "icon": "application-x-executable",
+   "description": "Terminal, editor and app-level theming"
+  }
+ ],
+ "fields": [
+  {
+   "id": "accent_color",
+   "section": "colors",
+   "label": "Accent color",
+   "type": "color",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "General",
+   "key": "AccentColor",
+   "apply": "cmd_config",
+   "command": [
+    "plasma-apply-colorscheme",
+    "--accent-color",
+    "{hex}",
+    "{scheme}"
+   ],
+   "summary": true,
+   "description": "Selection/accent color used by Plasma and Qt applications",
+   "keywords": [
+    "accent",
+    "выделение",
+    "цвет",
+    "акцент"
+   ]
+  },
+  {
+   "id": "accent_from_wallpaper",
+   "section": "colors",
+   "label": "Accent from wallpaper",
+   "type": "bool",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "General",
+   "key": "accentColorFromWallpaper",
+   "description": "Let Plasma derive the accent color from the wallpaper",
+   "keywords": [
+    "wallpaper",
+    "обои",
+    "акцент"
+   ]
+  },
+  {
+   "id": "color_scheme",
+   "section": "colors",
+   "label": "Color scheme",
+   "type": "enum",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "General",
+   "key": "ColorScheme",
+   "choices": "color_schemes",
+   "apply": "cmd_config",
+   "command": [
+    "plasma-apply-colorscheme",
+    "{value}"
+   ],
+   "summary": true,
+   "description": "Installed KDE color scheme",
+   "keywords": [
+    "scheme",
+    "схема",
+    "цвета",
+    "палитра"
+   ]
+  },
+  {
+   "id": "window_bg",
+   "section": "colors",
+   "label": "Window background",
+   "type": "color",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "Colors:Window",
+   "key": "BackgroundNormal",
+   "summary": true,
+   "description": "Background of normal windows",
+   "keywords": [
+    "window",
+    "фон",
+    "окно"
+   ]
+  },
+  {
+   "id": "view_bg",
+   "section": "colors",
+   "label": "View background",
+   "type": "color",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "Colors:View",
+   "key": "BackgroundNormal",
+   "description": "Background of lists, text views and inputs",
+   "keywords": [
+    "view",
+    "список",
+    "поле"
+   ]
+  },
+  {
+   "id": "button_bg",
+   "section": "colors",
+   "label": "Button background",
+   "type": "color",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "Colors:Button",
+   "key": "BackgroundNormal",
+   "description": "Background of push buttons",
+   "keywords": [
+    "button",
+    "кнопка"
+   ]
+  },
+  {
+   "id": "text_color",
+   "section": "colors",
+   "label": "Text",
+   "type": "color",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "Colors:Window",
+   "key": "ForegroundNormal",
+   "description": "Normal foreground text",
+   "keywords": [
+    "text",
+    "текст"
+   ]
+  },
+  {
+   "id": "dim_text",
+   "section": "colors",
+   "label": "Dim text",
+   "type": "color",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "Colors:Window",
+   "key": "ForegroundInactive",
+   "description": "Inactive/secondary text",
+   "keywords": [
+    "dim",
+    "вторичный",
+    "текст"
+   ]
+  },
+  {
+   "id": "selection_bg",
+   "section": "colors",
+   "label": "Selection background",
+   "type": "color",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "Colors:Selection",
+   "key": "BackgroundNormal",
+   "description": "Highlighted text/selection background",
+   "keywords": [
+    "selection",
+    "выделение"
+   ]
+  },
+  {
+   "id": "selection_text",
+   "section": "colors",
+   "label": "Selection text",
+   "type": "color",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "Colors:Selection",
+   "key": "ForegroundNormal",
+   "description": "Highlighted text color",
+   "keywords": [
+    "selection",
+    "выделение",
+    "текст"
+   ]
+  },
+  {
+   "id": "link_color",
+   "section": "colors",
+   "label": "Link",
+   "type": "color",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "Colors:Window",
+   "key": "ForegroundLink",
+   "description": "Hyperlink color",
+   "keywords": [
+    "link",
+    "ссылка"
+   ]
+  },
+  {
+   "id": "header_bg",
+   "section": "colors",
+   "label": "Header background",
+   "type": "color",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "Colors:Header",
+   "key": "BackgroundNormal",
+   "description": "Window header/title area background",
+   "keywords": [
+    "header",
+    "заголовок"
+   ]
+  },
+  {
+   "id": "tooltip_bg",
+   "section": "colors",
+   "label": "Tooltip background",
+   "type": "color",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "Colors:Tooltip",
+   "key": "BackgroundNormal",
+   "description": "Tooltip background",
+   "keywords": [
+    "tooltip",
+    "подсказка"
+   ]
+  },
+  {
+   "id": "contrast",
+   "section": "colors",
+   "label": "Contrast",
+   "type": "int",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "KDE",
+   "key": "contrast",
+   "description": "Widget style contrast level",
+   "keywords": [
+    "contrast",
+    "контраст"
+   ],
+   "min": 0,
+   "max": 7,
+   "step": 1
+  },
+  {
+   "id": "frame_contrast",
+   "section": "colors",
+   "label": "Frame contrast",
+   "type": "float",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "KDE",
+   "key": "frameContrast",
+   "description": "Contrast of frames and separators",
+   "keywords": [
+    "frame",
+    "контраст",
+    "рамка"
+   ],
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05
+  },
+  {
+   "id": "widget_style",
+   "section": "colors",
+   "label": "Widget style",
+   "type": "enum",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "KDE",
+   "key": "widgetStyle",
+   "choices": "widget_styles",
+   "badge": "app",
+   "description": "Qt widget style; Kvantum themes are selected below",
+   "keywords": [
+    "style",
+    "стиль",
+    "kvantum"
+   ]
+  },
+  {
+   "id": "ui_font",
+   "section": "typography",
+   "label": "UI font",
+   "type": "font",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "General",
+   "key": "font",
+   "summary": true,
+   "description": "Default font for Plasma and Qt applications",
+   "keywords": [
+    "font",
+    "шрифт",
+    "ui"
+   ]
+  },
+  {
+   "id": "fixed_font",
+   "section": "typography",
+   "label": "Fixed font",
+   "type": "font",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "General",
+   "key": "fixed",
+   "description": "Monospace font",
+   "keywords": [
+    "monospace",
+    "моно",
+    "шрифт"
+   ]
+  },
+  {
+   "id": "small_font",
+   "section": "typography",
+   "label": "Small font",
+   "type": "font",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "General",
+   "key": "smallestReadableFont",
+   "description": "Smallest readable font",
+   "keywords": [
+    "small",
+    "мелкий",
+    "шрифт"
+   ]
+  },
+  {
+   "id": "menu_font",
+   "section": "typography",
+   "label": "Menu font",
+   "type": "font",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "General",
+   "key": "menuFont",
+   "description": "Menu font (defaults to the UI font)",
+   "keywords": [
+    "menu",
+    "меню",
+    "шрифт"
+   ]
+  },
+  {
+   "id": "toolbar_font",
+   "section": "typography",
+   "label": "Toolbar font",
+   "type": "font",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "General",
+   "key": "toolBarFont",
+   "description": "Toolbar font (defaults to the UI font)",
+   "keywords": [
+    "toolbar",
+    "панель",
+    "шрифт"
+   ]
+  },
+  {
+   "id": "title_font",
+   "section": "typography",
+   "label": "Window title font",
+   "type": "font",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "WM",
+   "key": "activeFont",
+   "badge": "new",
+   "description": "Active window title font",
+   "keywords": [
+    "title",
+    "заголовок",
+    "шрифт"
+   ]
+  },
+  {
+   "id": "gtk_font",
+   "section": "typography",
+   "label": "GTK font",
+   "type": "font",
+   "source": "ini",
+   "file": ".config/gtk-3.0/settings.ini",
+   "group": "Settings",
+   "key": "gtk-font-name",
+   "apply": "ini",
+   "badge": "app",
+   "description": "Font used by GTK3/GTK4 applications",
+   "keywords": [
+    "gtk",
+    "шрифт"
+   ]
+  },
+  {
+   "id": "decoration_library",
+   "section": "windows",
+   "label": "Decoration library",
+   "type": "enum",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "org.kde.kdecoration2",
+   "key": "library",
+   "choices": "decoration_libraries",
+   "hook": "kwin",
+   "badge": "new",
+   "summary": true,
+   "description": "Window decoration plugin",
+   "keywords": [
+    "decoration",
+    "декорации",
+    "окна"
+   ]
+  },
+  {
+   "id": "decoration_theme",
+   "section": "windows",
+   "label": "Decoration theme",
+   "type": "enum",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "org.kde.kdecoration2",
+   "key": "theme",
+   "choices": "decoration_themes",
+   "hook": "kwin",
+   "badge": "new",
+   "description": "Theme of the selected decoration plugin",
+   "keywords": [
+    "decoration",
+    "тема",
+    "окна"
+   ]
+  },
+  {
+   "id": "border_size",
+   "section": "windows",
+   "label": "Border size",
+   "type": "enum",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "org.kde.kdecoration2",
+   "key": "BorderSize",
+   "choices": "border_sizes",
+   "hook": "kwin",
+   "badge": "new",
+   "description": "Window border size",
+   "keywords": [
+    "border",
+    "рамка"
+   ]
+  },
+  {
+   "id": "klassy_active_opacity",
+   "section": "windows",
+   "label": "Active titlebar opacity",
+   "type": "int",
+   "source": "ini",
+   "file": ".config/klassy/klassyrc",
+   "group": "TitleBarOpacity",
+   "key": "ActiveTitleBarOpacity",
+   "hook": "kwin",
+   "badge": "new",
+   "summary": true,
+   "description": "Klassy active window titlebar opacity",
+   "keywords": [
+    "klassy",
+    "opacity",
+    "прозрачность",
+    "заголовок"
+   ],
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "suffix": " %"
+  },
+  {
+   "id": "klassy_inactive_opacity",
+   "section": "windows",
+   "label": "Inactive titlebar opacity",
+   "type": "int",
+   "source": "ini",
+   "file": ".config/klassy/klassyrc",
+   "group": "TitleBarOpacity",
+   "key": "InactiveTitleBarOpacity",
+   "hook": "kwin",
+   "badge": "new",
+   "description": "Klassy inactive window titlebar opacity",
+   "keywords": [
+    "klassy",
+    "opacity",
+    "прозрачность"
+   ],
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "suffix": " %"
+  },
+  {
+   "id": "klassy_radius",
+   "section": "windows",
+   "label": "Corner radius",
+   "type": "int",
+   "source": "ini",
+   "file": ".config/klassy/klassyrc",
+   "group": "Windeco",
+   "key": "WindowCornerRadius",
+   "hook": "kwin",
+   "badge": "new",
+   "summary": true,
+   "description": "Klassy window corner radius",
+   "keywords": [
+    "radius",
+    "углы",
+    "скругление",
+    "klassy"
+   ],
+   "min": 0,
+   "max": 30,
+   "step": 1,
+   "suffix": " px"
+  },
+  {
+   "id": "klassy_shadow",
+   "section": "windows",
+   "label": "Shadow",
+   "type": "enum",
+   "source": "ini",
+   "file": ".config/klassy/klassyrc",
+   "group": "ShadowStyle",
+   "key": "ShadowSizeActive",
+   "choices": "shadow_sizes",
+   "hook": "kwin",
+   "badge": "new",
+   "description": "Klassy window shadow size",
+   "keywords": [
+    "shadow",
+    "тень"
+   ]
+  },
+  {
+   "id": "blur_enabled",
+   "section": "windows",
+   "label": "Better Blur DX",
+   "type": "bool",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "Plugins",
+   "key": "better_blur_dxEnabled",
+   "hook": "effect:better_blur_dx",
+   "summary": true,
+   "description": "Enable the Better Blur DX KWin effect",
+   "keywords": [
+    "blur",
+    "размытие",
+    "стекло",
+    "glass"
+   ]
+  },
+  {
+   "id": "blur_strength",
+   "section": "windows",
+   "label": "Blur strength",
+   "type": "int",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "Effect-better-blur-dx",
+   "key": "BlurStrength",
+   "hook": "effect:better_blur_dx",
+   "summary": true,
+   "description": "Better Blur DX blur strength",
+   "keywords": [
+    "blur",
+    "размытие"
+   ],
+   "min": 0,
+   "max": 20,
+   "step": 1
+  },
+  {
+   "id": "blur_contrast",
+   "section": "windows",
+   "label": "Blur contrast",
+   "type": "int",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "Effect-better-blur-dx",
+   "key": "Contrast",
+   "hook": "effect:better_blur_dx",
+   "description": "Better Blur DX contrast",
+   "keywords": [
+    "blur",
+    "контраст"
+   ],
+   "min": 0,
+   "max": 100,
+   "step": 1
+  },
+  {
+   "id": "blur_decorations",
+   "section": "windows",
+   "label": "Blur decorations",
+   "type": "bool",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "Effect-better-blur-dx",
+   "key": "BlurDecorations",
+   "hook": "effect:better_blur_dx",
+   "description": "Blur window decorations",
+   "keywords": [
+    "blur",
+    "декорации"
+   ]
+  },
+  {
+   "id": "blur_docks",
+   "section": "windows",
+   "label": "Blur docks",
+   "type": "bool",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "Effect-better-blur-dx",
+   "key": "BlurDocks",
+   "hook": "effect:better_blur_dx",
+   "description": "Blur docks and panels",
+   "keywords": [
+    "blur",
+    "док",
+    "панель"
+   ]
+  },
+  {
+   "id": "blur_menus",
+   "section": "windows",
+   "label": "Blur menus",
+   "type": "bool",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "Effect-better-blur-dx",
+   "key": "BlurMenus",
+   "hook": "effect:better_blur_dx",
+   "description": "Blur menus and popups",
+   "keywords": [
+    "blur",
+    "меню"
+   ]
+  },
+  {
+   "id": "breeze_menu_opacity",
+   "section": "windows",
+   "label": "Breeze menu opacity",
+   "type": "int",
+   "source": "ini",
+   "file": ".config/breezerc",
+   "group": "Style",
+   "key": "MenuOpacity",
+   "description": "Opacity of menus with the Breeze widget style (100 = opaque); translucent menus are blurred only with Blur menus on. Applies to newly started applications",
+   "keywords": [
+    "menu",
+    "меню",
+    "прозрачность",
+    "breeze",
+    "opacity"
+   ],
+   "min": 0,
+   "max": 100,
+   "step": 5,
+   "suffix": " %"
+  },
+  {
+   "id": "legacy_blur",
+   "section": "windows",
+   "label": "Legacy blur effect",
+   "type": "bool",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "Plugins",
+   "key": "blurEnabled",
+   "hook": "effect:blur",
+   "advanced": true,
+   "description": "Classic KWin Blur effect (do not combine with Better Blur DX)",
+   "keywords": [
+    "blur",
+    "размытие"
+   ]
+  },
+  {
+   "id": "contrast_enabled",
+   "section": "windows",
+   "label": "Contrast effect",
+   "type": "bool",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "Plugins",
+   "key": "contrastEnabled",
+   "hook": "effect:contrast",
+   "advanced": true,
+   "description": "KWin Contrast effect",
+   "keywords": [
+    "contrast",
+    "контраст"
+   ]
+  },
+  {
+   "id": "translucency_enabled",
+   "section": "windows",
+   "label": "Translucency effect",
+   "type": "bool",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "Plugins",
+   "key": "translucencyEnabled",
+   "hook": "effect:translucency",
+   "description": "KWin Translucency effect",
+   "keywords": [
+    "translucency",
+    "прозрачность"
+   ]
+  },
+  {
+   "id": "translucency_inactive",
+   "section": "windows",
+   "label": "Inactive windows",
+   "type": "int",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "Effect-translucency",
+   "key": "Inactive",
+   "hook": "effect:translucency",
+   "summary": true,
+   "description": "Opacity of inactive windows",
+   "keywords": [
+    "translucency",
+    "прозрачность"
+   ],
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "suffix": " %"
+  },
+  {
+   "id": "translucency_menus",
+   "section": "windows",
+   "label": "Menus",
+   "type": "int",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "Effect-translucency",
+   "key": "Menus",
+   "hook": "effect:translucency",
+   "description": "Opacity of menus",
+   "keywords": [
+    "translucency",
+    "меню"
+   ],
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "suffix": " %"
+  },
+  {
+   "id": "translucency_dialogs",
+   "section": "windows",
+   "label": "Dialogs",
+   "type": "int",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "Effect-translucency",
+   "key": "Dialogs",
+   "hook": "effect:translucency",
+   "description": "Opacity of dialogs",
+   "keywords": [
+    "translucency",
+    "диалоги"
+   ],
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "suffix": " %"
+  },
+  {
+   "id": "translucency_popups",
+   "section": "windows",
+   "label": "Popups",
+   "type": "int",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "Effect-translucency",
+   "key": "PopupMenus",
+   "hook": "effect:translucency",
+   "description": "Opacity of popup menus",
+   "keywords": [
+    "translucency",
+    "попрпы"
+   ],
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "suffix": " %"
+  },
+  {
+   "id": "animation_factor",
+   "section": "windows",
+   "label": "Animation speed",
+   "type": "float",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "KDE",
+   "key": "AnimationDurationFactor",
+   "description": "Global animation duration multiplier (0 = off)",
+   "keywords": [
+    "animation",
+    "анимация",
+    "скорость"
+   ],
+   "min": 0.0,
+   "max": 2.0,
+   "step": 0.1,
+   "suffix": "×"
+  },
+  {
+   "id": "plasma_theme",
+   "section": "assets",
+   "label": "Plasma theme",
+   "type": "enum",
+   "source": "ini",
+   "file": ".config/plasmarc",
+   "group": "Theme",
+   "key": "name",
+   "choices": "plasma_themes",
+   "apply": "cmd_config",
+   "command": [
+    "plasma-apply-desktoptheme",
+    "{value}"
+   ],
+   "summary": true,
+   "description": "Plasma desktop theme (widgets, panels)",
+   "keywords": [
+    "plasma",
+    "тема",
+    "плазма"
+   ],
+   "confirm": true
+  },
+  {
+   "id": "look_and_feel",
+   "section": "assets",
+   "label": "Look & Feel",
+   "type": "enum",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "KDE",
+   "key": "LookAndFeelPackage",
+   "choices": "look_and_feel",
+   "apply": "cmd_config",
+   "command": [
+    "plasma-apply-lookandfeel",
+    "{value}"
+   ],
+   "summary": true,
+   "description": "Global look & feel package (may change colors, wallpaper and layout)",
+   "keywords": [
+    "look",
+    "feel",
+    "l&f",
+    "пакет",
+    "оформление"
+   ],
+   "confirm": true
+  },
+  {
+   "id": "icon_theme",
+   "section": "assets",
+   "label": "Icon theme",
+   "type": "enum",
+   "source": "ini",
+   "file": ".config/kdeglobals",
+   "group": "Icons",
+   "key": "Theme",
+   "choices": "icon_themes",
+   "hook": "kbuildsycoca",
+   "badge": "app",
+   "summary": true,
+   "description": "Icon theme for Plasma and Qt apps",
+   "keywords": [
+    "icons",
+    "иконки"
+   ],
+   "confirm": true
+  },
+  {
+   "id": "cursor_theme",
+   "section": "assets",
+   "label": "Cursor theme",
+   "type": "enum",
+   "source": "ini",
+   "file": ".config/kcminputrc",
+   "group": "Mouse",
+   "key": "cursorTheme",
+   "choices": "cursor_themes",
+   "apply": "cmd_config",
+   "command": [
+    "plasma-apply-cursortheme",
+    "{value}"
+   ],
+   "summary": true,
+   "profile_tracked": false,
+   "description": "Mouse cursor theme (live only — not stored in profiles)",
+   "keywords": [
+    "cursor",
+    "курсор",
+    "мышь"
+   ]
+  },
+  {
+   "id": "cursor_size",
+   "section": "assets",
+   "label": "Cursor size",
+   "type": "int",
+   "source": "ini",
+   "file": ".config/kcminputrc",
+   "group": "Mouse",
+   "key": "cursorSize",
+   "apply": "cmd_config",
+   "command": [
+    "plasma-apply-cursortheme",
+    "--size",
+    "{value}",
+    "{cursor}"
+   ],
+   "profile_tracked": false,
+   "description": "Mouse cursor size",
+   "keywords": [
+    "cursor",
+    "курсор",
+    "размер"
+   ],
+   "min": 16,
+   "max": 96,
+   "step": 1,
+   "suffix": " px"
+  },
+  {
+   "id": "gtk_theme",
+   "section": "assets",
+   "label": "GTK theme",
+   "type": "enum",
+   "source": "ini",
+   "file": ".config/gtk-3.0/settings.ini",
+   "group": "Settings",
+   "key": "gtk-theme-name",
+   "choices": "gtk_themes",
+   "apply": "ini",
+   "badge": "app",
+   "description": "Theme for GTK3/GTK4 applications",
+   "keywords": [
+    "gtk",
+    "тема"
+   ]
+  },
+  {
+   "id": "gtk_dark",
+   "section": "assets",
+   "label": "GTK prefer dark",
+   "type": "bool",
+   "source": "ini",
+   "file": ".config/gtk-3.0/settings.ini",
+   "group": "Settings",
+   "key": "gtk-application-prefer-dark-theme",
+   "apply": "ini",
+   "badge": "app",
+   "description": "Prefer dark GTK variant",
+   "keywords": [
+    "gtk",
+    "тёмная"
+   ]
+  },
+  {
+   "id": "kvantum_theme",
+   "section": "assets",
+   "label": "Kvantum theme",
+   "type": "enum",
+   "source": "ini",
+   "file": ".config/Kvantum/kvantum.kvconfig",
+   "group": "General",
+   "key": "theme",
+   "choices": "kvantum_themes",
+   "apply": "cmd_config",
+   "command": [
+    "kvantummanager",
+    "--set",
+    "{value}"
+   ],
+   "badge": "app",
+   "summary": true,
+   "description": "SVG theme used by the Kvantum Qt style",
+   "keywords": [
+    "kvantum",
+    "тема",
+    "qt"
+   ]
+  },
+  {
+   "id": "kvantum_translucent",
+   "section": "assets",
+   "label": "Kvantum translucent windows",
+   "type": "bool",
+   "source": "kvantum",
+   "group": "%General",
+   "key": "translucent_windows",
+   "apply": "cmd_config",
+   "command": [
+    "kvantummanager",
+    "--set",
+    "{theme}"
+   ],
+   "badge": "app",
+   "advanced": true,
+   "description": "Let Kvantum paint translucent windows",
+   "keywords": [
+    "kvantum",
+    "прозрачность"
+   ]
+  },
+  {
+   "id": "kvantum_blurring",
+   "section": "assets",
+   "label": "Kvantum blurring",
+   "type": "bool",
+   "source": "kvantum",
+   "group": "%General",
+   "key": "blurring",
+   "apply": "cmd_config",
+   "command": [
+    "kvantummanager",
+    "--set",
+    "{theme}"
+   ],
+   "badge": "app",
+   "advanced": true,
+   "description": "Blur behind translucent Kvantum windows",
+   "keywords": [
+    "kvantum",
+    "blur",
+    "размытие"
+   ]
+  },
+  {
+   "id": "kvantum_popup_blurring",
+   "section": "assets",
+   "label": "Kvantum popup blurring",
+   "type": "bool",
+   "source": "kvantum",
+   "group": "%General",
+   "key": "popup_blurring",
+   "apply": "cmd_config",
+   "command": [
+    "kvantummanager",
+    "--set",
+    "{theme}"
+   ],
+   "badge": "app",
+   "advanced": true,
+   "description": "Blur behind Kvantum popups",
+   "keywords": [
+    "kvantum",
+    "blur",
+    "попапы"
+   ]
+  },
+  {
+   "id": "kitty_opacity",
+   "section": "apps",
+   "label": "Kitty opacity",
+   "type": "float",
+   "source": "kv",
+   "file": ".config/kitty/kitty.conf",
+   "key": "background_opacity",
+   "apply": "kv",
+   "hook": "kitty",
+   "summary": true,
+   "description": "Kitty background opacity (live reload)",
+   "keywords": [
+    "kitty",
+    "терминал",
+    "прозрачность"
+   ],
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05
+  },
+  {
+   "id": "kitty_blur",
+   "section": "apps",
+   "label": "Kitty blur",
+   "type": "int",
+   "source": "kv",
+   "file": ".config/kitty/kitty.conf",
+   "key": "background_blur",
+   "apply": "kv",
+   "hook": "kitty",
+   "description": "Kitty background blur (live reload)",
+   "keywords": [
+    "kitty",
+    "blur",
+    "размытие"
+   ],
+   "min": 0,
+   "max": 64,
+   "step": 1
+  },
+  {
+   "id": "alacritty_opacity",
+   "section": "apps",
+   "label": "Alacritty opacity",
+   "type": "float",
+   "source": "toml",
+   "file": ".config/alacritty/alacritty.toml",
+   "key": "opacity",
+   "path": [
+    "window"
+   ],
+   "apply": "toml",
+   "badge": "app",
+   "description": "Alacritty background opacity",
+   "keywords": [
+    "alacritty",
+    "терминал",
+    "прозрачность"
+   ],
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05
+  },
+  {
+   "id": "alacritty_blur",
+   "section": "apps",
+   "label": "Alacritty blur",
+   "type": "bool",
+   "source": "toml",
+   "file": ".config/alacritty/alacritty.toml",
+   "key": "blur",
+   "path": [
+    "window"
+   ],
+   "apply": "toml",
+   "badge": "app",
+   "description": "Alacritty background blur",
+   "keywords": [
+    "alacritty",
+    "blur"
+   ]
+  },
+  {
+   "id": "btop_theme",
+   "section": "apps",
+   "label": "btop theme",
+   "type": "enum",
+   "source": "ini",
+   "file": ".config/btop/btop.conf",
+   "key": "color_theme",
+   "choices": "btop_themes",
+   "apply": "ini",
+   "badge": "app",
+   "description": "btop color theme",
+   "keywords": [
+    "btop",
+    "тема"
+   ]
+  },
+  {
+   "id": "btop_rounded",
+   "section": "apps",
+   "label": "btop rounded corners",
+   "type": "bool",
+   "source": "ini",
+   "file": ".config/btop/btop.conf",
+   "key": "rounded_corners",
+   "apply": "ini",
+   "badge": "app",
+   "description": "Rounded corners in btop",
+   "keywords": [
+    "btop",
+    "углы"
+   ]
+  },
+  {
+   "id": "zed_mode",
+   "section": "apps",
+   "label": "Zed theme mode",
+   "type": "enum",
+   "source": "json",
+   "file": ".config/zed/settings.json",
+   "path": [
+    "theme",
+    "mode"
+   ],
+   "choices": "zed_modes",
+   "apply": "json",
+   "description": "Zed light/dark/system mode",
+   "keywords": [
+    "zed",
+    "тема"
+   ]
+  },
+  {
+   "id": "zed_light",
+   "section": "apps",
+   "label": "Zed light theme",
+   "type": "str",
+   "source": "json",
+   "file": ".config/zed/settings.json",
+   "path": [
+    "theme",
+    "light"
+   ],
+   "apply": "json",
+   "description": "Zed theme used in light mode",
+   "keywords": [
+    "zed",
+    "тема",
+    "светлая"
+   ]
+  },
+  {
+   "id": "zed_dark",
+   "section": "apps",
+   "label": "Zed dark theme",
+   "type": "str",
+   "source": "json",
+   "file": ".config/zed/settings.json",
+   "path": [
+    "theme",
+    "dark"
+   ],
+   "apply": "json",
+   "description": "Zed theme used in dark mode",
+   "keywords": [
+    "zed",
+    "тема",
+    "тёмная"
+   ]
+  },
+  {
+   "id": "vscode_theme",
+   "section": "apps",
+   "label": "VS Code theme",
+   "type": "str",
+   "source": "json",
+   "file": ".config/Code/User/settings.json",
+   "path": [
+    "workbench.colorTheme"
+   ],
+   "apply": "json",
+   "description": "VS Code color theme",
+   "keywords": [
+    "vscode",
+    "code",
+    "тема"
+   ]
+  },
+  {
+   "id": "cursor_ide_theme",
+   "section": "apps",
+   "label": "Cursor theme",
+   "type": "str",
+   "source": "json",
+   "file": ".config/Cursor/User/settings.json",
+   "path": [
+    "workbench.colorTheme"
+   ],
+   "apply": "json",
+   "description": "Cursor editor color theme",
+   "keywords": [
+    "cursor",
+    "ide",
+    "тема"
+   ]
+  },
+  {
+   "id": "zen_transparent",
+   "section": "apps",
+   "label": "Zen transparency",
+   "type": "bool",
+   "source": "userjs",
+   "file": ".zen/gp0y8wrv.Default (release)/user.js",
+   "key": "browser.tabs.allow_transparent_browser",
+   "apply": "userjs",
+   "badge": "app",
+   "description": "Allow transparent browser tabs in Zen",
+   "keywords": [
+    "zen",
+    "прозрачность",
+    "браузер"
+   ]
+  },
+  {
+   "id": "zen_opacity",
+   "section": "apps",
+   "label": "Zen background opacity",
+   "type": "float",
+   "source": "userjs",
+   "file": ".zen/gp0y8wrv.Default (release)/user.js",
+   "key": "mod.sameerasw.zen_bg_opacity",
+   "apply": "userjs",
+   "badge": "app",
+   "description": "Zen background opacity",
+   "keywords": [
+    "zen",
+    "прозрачность"
+   ],
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.05
+  },
+  {
+   "id": "zen_window_scheme",
+   "section": "apps",
+   "label": "Zen window scheme",
+   "type": "enum",
+   "source": "userjs",
+   "file": ".zen/gp0y8wrv.Default (release)/user.js",
+   "key": "zen.view.window.scheme",
+   "choices": "zen_window_schemes",
+   "apply": "userjs",
+   "badge": "app",
+   "summary": true,
+   "description": "Zen Browser window color scheme (dark, light or system)",
+   "keywords": [
+    "zen",
+    "browser",
+    "dark",
+    "light",
+    "тема",
+    "светлая",
+    "тёмная"
+   ]
+  },
+  {
+   "id": "obsidian_theme",
+   "section": "apps",
+   "label": "Obsidian theme",
+   "type": "str",
+   "source": "json",
+   "file": "obsidian/vault/.obsidian/appearance.json",
+   "path": [
+    "theme"
+   ],
+   "apply": "json",
+   "badge": "app",
+   "description": "Obsidian base theme",
+   "keywords": [
+    "obsidian",
+    "тема"
+   ]
+  }
+ ]
+}
