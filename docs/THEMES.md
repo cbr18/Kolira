@@ -16,18 +16,24 @@ layouts, key bindings, editor behaviour or an SSH host.
 
 ### What is stored per file (`rust_core/src/appearance.rs`)
 
+**Sizes never travel** — screens differ: font *families* are part of the look,
+font sizes and the cursor size are the user's. Where a size lives inside a
+font string (KDE `family,pointSize,pixelSize,…`, GTK `family size`), apply
+takes the family from the theme and keeps the live size.
+
 | File | Stored and applied | Left alone |
 |---|---|---|
-| `kdeglobals` | `[Colors:*]`, `[ColorEffects:*]`, `[WM]`, `[Icons]`, fonts, `General` ColorScheme/Accent*, `KDE` LookAndFeelPackage/widgetStyle/contrast/AnimationDurationFactor | `[KScreen]` scaling, `TerminalApplication`, `[KFileDialog Settings]`, `[PreviewSettings]`, other `[KDE]` behaviour |
+| `kdeglobals` | `[Colors:*]`, `[ColorEffects:*]`, `[WM]`, `[Icons]`, font families (live sizes kept), `General` ColorScheme/Accent*, `KDE` LookAndFeelPackage/widgetStyle/contrast/AnimationDurationFactor | `[KScreen]` scaling, `TerminalApplication`, `[KFileDialog Settings]`, `[PreviewSettings]`, other `[KDE]` behaviour |
 | `kwinrc` | `[Effect-*]`, `[org.kde.kdecoration2]`, effect switches in `[Plugins]` | `[Desktops]`, `[Tiling]`, `[Windows]`, `[Wayland]`, KWin *scripts* in `[Plugins]` (krohnkite, snapping…) |
 | `kwinrulesrc` | the theme's rules (by id) | the user's other rules |
 | `plasmarc`, `plasmashellrc` | `[Theme]`; `[PlasmaViews…]` (panel opacity, floating, thickness) | `[Wallpapers]` list, `[Updates]` |
-| GTK `settings.ini` | theme, icons, cursor, font, dark preference, title-bar buttons, animations, font rendering | cursor blinking, sounds, `gtk-modules`, … |
+| GTK `settings.ini` | theme, icons, cursor theme, font family (live size kept), dark preference, title-bar buttons, animations, font rendering | cursor size, cursor blinking, sounds, `gtk-modules`, … |
+| `kcminputrc` | `[Mouse] cursorTheme` | cursor size, mouse settings |
 | `btop.conf` | `color_theme`, `theme_background`, `truecolor`, `rounded_corners`, `graph_symbol*` | ~70 behaviour keys |
-| VS Code / Cursor `settings.json` | `workbench.colorTheme`/`iconTheme`/`productIconTheme`/`colorCustomizations`, `editor.tokenColorCustomizations`, editor/terminal fonts, line highlight, APC / Animations / Custom UI Style keys | everything else (SSH hosts, AI, wrapping, …) |
-| Zed `settings.json` | `theme`, `icon_theme`, `ui_font_*`, `buffer_font_*`, `theme_overrides` | agent/models, panels, keymap, sessions, … |
-| kitty | `kitty/theme-profile.conf` (fonts, colours, cursor, opacity/blur, padding, borders, tab bar) | `kitty.conf` — only gains `include theme-profile.conf` (last line) |
-| Alacritty | `alacritty/theme-profile.toml` (`[colors.*]`, `[font]`, window opacity/blur/padding/decorations, cursor style) | `alacritty.toml` — only gains `general.import` |
+| VS Code / Cursor `settings.json` | `workbench.colorTheme`/`iconTheme`/`productIconTheme`/`colorCustomizations`, `editor.tokenColorCustomizations`, editor/terminal font family, weight, ligatures, line highlight, APC / Animations / Custom UI Style keys | font sizes, line height, everything else (SSH hosts, AI, wrapping, …) |
+| Zed `settings.json` | `theme`, `icon_theme`, `ui_font_family/features/weight`, `buffer_font_family/features/weight`, `theme_overrides` | font sizes, agent/models, panels, keymap, sessions, … |
+| kitty | `kitty/theme-profile.conf` (font faces, colours, cursor, opacity/blur, padding, borders, tab bar) | `kitty.conf` — keeps `font_size`/`modify_font` and gains `include theme-profile.conf` (last line) |
+| Alacritty | `alacritty/theme-profile.toml` (`[colors.*]`, `[font]` faces, window opacity/blur/padding/decorations, cursor style) | `[font] size`/offsets; `alacritty.toml` gains `general.import` |
 | everything else (Klassy, Breeze, GTK CSS, wofi CSS, Zen, Obsidian appearance, Trolltech palette, Kvantum, colour schemes, L&F, fastfetch, panels file) | whole file | — |
 
 Mixed files are **merged** on apply: the theme's allowed keys are written,

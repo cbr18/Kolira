@@ -96,27 +96,31 @@ const PLASMASHELLRC: &[Rule] = &[r("PlasmaViews*", Keys::All)];
 const GTK_SETTINGS: &[Rule] = &[r(
     "Settings",
     Keys::Only(&[
-        "gtk-theme-name", "gtk-icon-theme-name", "gtk-cursor-theme-name", "gtk-cursor-theme-size",
+        "gtk-theme-name", "gtk-icon-theme-name", "gtk-cursor-theme-name",
         "gtk-font-name", "gtk-application-prefer-dark-theme", "gtk-decoration-layout",
         "gtk-enable-animations", "gtk-button-images", "gtk-menu-images", "gtk-toolbar-style",
         "gtk-xft-antialias", "gtk-xft-hinting", "gtk-xft-hintstyle", "gtk-xft-rgba",
     ]),
 )];
-const KCMINPUTRC: &[Rule] = &[r("Mouse", Keys::Only(&["cursorTheme", "cursorSize"]))];
+// Sizes (fonts, cursor) are never part of a theme: screens differ. Font
+// *families* travel; a size inside a font string is kept from the live file
+// (see `keep_live_size`).
+const KCMINPUTRC: &[Rule] = &[r("Mouse", Keys::Only(&["cursorTheme"]))];
 const BTOP: &[&str] = &["color_theme", "theme_background", "truecolor", "rounded_corners", "graph_symbol*"];
 const VSCODE: &[&str] = &[
     "workbench.colorTheme", "workbench.iconTheme", "workbench.productIconTheme",
     "workbench.colorCustomizations", "workbench.preferredDarkColorTheme",
     "workbench.preferredLightColorTheme", "window.autoDetectColorScheme",
     "editor.tokenColorCustomizations", "editor.semanticTokenColorCustomizations",
-    "editor.fontFamily", "editor.fontSize", "editor.fontWeight", "editor.fontLigatures",
-    "editor.lineHeight", "editor.lineHighlight*", "terminal.integrated.fontFamily",
-    "terminal.integrated.fontSize",
+    "editor.fontFamily", "editor.fontWeight", "editor.fontLigatures",
+    "editor.lineHighlight*", "terminal.integrated.fontFamily",
     // Appearance extensions: Custom UI Style, APC, VS Code Animations.
     "apc.*", "animations.*", "custom-ui-style.*", "vscode_custom_css.*",
 ];
 const ZED: &[&str] = &[
-    "theme", "icon_theme", "ui_font_*", "buffer_font_*", "theme_overrides", "experimental.theme_overrides",
+    "theme", "icon_theme", "ui_font_family", "ui_font_features", "ui_font_weight",
+    "buffer_font_family", "buffer_font_features", "buffer_font_weight", "theme_overrides",
+    "experimental.theme_overrides",
 ];
 
 /// The policy for a tracked file (`$HOME`-relative path).
@@ -259,11 +263,61 @@ pub fn ini_filter(text: &str, rules: &[Rule]) -> String {
     render_ini(&sections)
 }
 
+/// Font keys whose value holds a size: KDE `family,pointSize,pixelSize,…`
+/// and GTK `family[,] size`.
+const FONT_KEYS: &[&str] = &["font", "fixed", "smallestReadableFont", "toolBarFont", "menuFont", "activeFont", "gtk-font-name"];
+
+/// The theme's font with the live size: the family is the look, the size is
+/// the user's (their screen). Without a live value the theme's stays.
+pub fn keep_live_size(key: &str, theme_value: &str, live_value: Option<&str>) -> String {
+    let Some(live) = live_value else { return theme_value.to_string() };
+    if key == "gtk-font-name" {
+        let split = |v: &str| -> (String, String) {
+            let v = v.trim();
+            match v.rsplit_once([' ', ',']) {
+                Some((family, size)) if size.parse::<f32>().is_ok() => (family.trim_end_matches([',', ' ']).to_string(), size.to_string()),
+                _ => (v.to_string(), String::new()),
+            }
+        };
+        let (family, _) = split(theme_value);
+        let (_, size) = split(live);
+        return if size.is_empty() { family } else { format!("{family}, {size}") };
+    }
+    let mut theme: Vec<&str> = theme_value.split(',').collect();
+    let live: Vec<&str> = live.split(',').collect();
+    for i in [1, 2] {
+        if let (Some(slot), Some(l)) = (theme.get_mut(i), live.get(i)) {
+            *slot = l;
+        }
+    }
+    theme.join(",")
+}
+
 /// `live` with its appearance keys replaced by the theme's: allowed keys the
-/// theme lacks are removed, every other key is kept as it is.
+/// theme lacks are removed, every other key is kept as it is; fonts keep the
+/// live size.
 pub fn ini_merge(theme: &str, live: &str, rules: &[Rule]) -> String {
     let theme = parse_ini(&ini_filter(theme, rules));
     let mut live = parse_ini(live);
+    let live_font = |sections: &[Section], group: &str, key: &str| -> Option<String> {
+        sections.iter().filter(|s| s.group() == group).flat_map(|s| s.lines.iter()).find_map(|l| {
+            (base_key(l) == Some(key)).then(|| l.split_once('=').map(|(_, v)| v.to_string())).flatten()
+        })
+    };
+    let theme: Vec<Section> = theme
+        .into_iter()
+        .map(|mut t| {
+            let group = t.group().to_string();
+            for line in t.lines.iter_mut() {
+                if let (Some(key), Some((k, v))) = (base_key(line).map(str::to_string), line.clone().split_once('=')) {
+                    if FONT_KEYS.contains(&key.as_str()) {
+                        *line = format!("{k}={}", keep_live_size(&key, v, live_font(&live, &group, &key).as_deref()));
+                    }
+                }
+            }
+            t
+        })
+        .collect();
     for s in live.iter_mut().filter(|s| s.header.is_some()) {
         let group = s.group().to_string();
         s.lines.retain(|l| !allowed_line(rules, &group, l));
@@ -566,8 +620,8 @@ pub fn jsonc_merge(theme: &str, live: &str, keys: &[&str]) -> String {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const KITTY_LOOK: &[&str] = &[
-    "font_family", "bold_font", "italic_font", "bold_italic_font", "font_size", "font_features",
-    "modify_font", "disable_ligatures", "symbol_map", "narrow_symbols", "text_composition_strategy",
+    "font_family", "bold_font", "italic_font", "bold_italic_font", "font_features",
+    "disable_ligatures", "symbol_map", "narrow_symbols", "text_composition_strategy",
     "foreground", "background", "background_*", "selection_*", "cursor", "cursor_*", "url_color",
     "url_style", "mark1_*", "mark2_*", "mark3_*", "active_border_color", "inactive_border_color",
     "bell_border_color", "window_border_width", "window_margin_width", "window_padding_width",
@@ -655,9 +709,21 @@ const ALACRITTY_CURSOR: &[&str] = &["style", "unfocused_hollow", "thickness"];
 pub fn alacritty_split(host: &str) -> Result<(String, String)> {
     let mut doc: DocumentMut = host.parse().context("alacritty.toml is not valid TOML")?;
     let mut look = DocumentMut::new();
-    for table in ["colors", "font"] {
-        if let Some(item) = doc.remove(table) {
-            look[table] = item;
+    if let Some(item) = doc.remove("colors") {
+        look["colors"] = item;
+    }
+    // [font]: the faces travel, size/offsets stay (screens differ).
+    if let Some(font) = doc.get_mut("font").and_then(Item::as_table_like_mut) {
+        for face in ["normal", "bold", "italic", "bold_italic", "builtin_box_drawing"] {
+            if let Some(item) = font.remove(face) {
+                if look.get("font").is_none() {
+                    look["font"] = Item::Table(Table::new());
+                }
+                look["font"][face] = item;
+            }
+        }
+        if font.is_empty() {
+            doc.remove("font");
         }
     }
     for (table, keys) in [("window", ALACRITTY_WINDOW), ("cursor", ALACRITTY_CURSOR)] {
@@ -791,6 +857,22 @@ mod tests {
     }
 
     #[test]
+    fn font_sizes_stay_the_users() {
+        // KDE: family from the theme, point/pixel size from the live file.
+        assert_eq!(keep_live_size("font", "Inter,10,-1,5,50,0,0,0,0,0", Some("Noto Sans,13,-1,5,50,0,0,0,0,0")), "Inter,13,-1,5,50,0,0,0,0,0");
+        assert_eq!(keep_live_size("gtk-font-name", "Inter, 10", Some("Noto Sans,  13")), "Inter, 13");
+        assert_eq!(keep_live_size("font", "Inter,10", None), "Inter,10");
+        let m = ini_merge("[General]\nfont=Inter,10,-1,5,50,0,0,0,0,0\n", "[General]\nfont=Noto Sans,14,-1,5,50,0,0,0,0,0\n", KDEGLOBALS);
+        assert!(m.contains("font=Inter,14,"), "{m}");
+        // Sizes never stored or moved.
+        assert!(!jsonc_filter("{\"ui_font_size\": 16, \"theme\": \"x\"}", ZED).contains("ui_font_size"));
+        let (look, rest) = kitty_split("font_family Inter\nfont_size 13\n");
+        assert!(look.contains("font_family") && !look.contains("font_size") && rest.contains("font_size 13"));
+        let (look, _) = alacritty_split("[font]\nsize = 13\n[font.normal]\nfamily = \"Inter\"\n").unwrap();
+        assert!(look.contains("Inter") && !look.contains("size"));
+    }
+
+    #[test]
     fn kwin_scripts_are_not_effects() {
         let rule = Rule { group: "Plugins", keys: Keys::KwinEffects };
         assert!(key_allowed(&rule, "blurEnabled"));
@@ -836,7 +918,8 @@ mod tests {
     fn kitty_split_moves_only_the_look() {
         let host = "font_size 11\nmap ctrl+c copy\nbackground #000000\ncolor1 #ff0000\nscrollback_lines 5000\nbackground_opacity 0.5\ndynamic_background_opacity yes\nconfirm_os_window_close 0\n";
         let (look, rest) = kitty_split(host);
-        assert_eq!(look, "font_size 11\nbackground #000000\ncolor1 #ff0000\nbackground_opacity 0.5\n");
+        assert_eq!(look, "background #000000\ncolor1 #ff0000\nbackground_opacity 0.5\n");
+        assert!(rest.contains("font_size 11"), "font sizes stay the user's");
         assert!(rest.contains("map ctrl+c copy") && rest.contains("dynamic_background_opacity yes") && rest.contains("confirm_os_window_close"));
         let h = kitty_host(host);
         assert!(h.trim_end().ends_with(KITTY_INCLUDE) && !h.contains("color1"));

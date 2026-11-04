@@ -200,7 +200,7 @@ rt_has() { grep -qF -- "$2" "$RT_HOME/$1" || rt_bad="$rt_bad [$1: no '$2']"; }
 rt_not() { ! grep -qF -- "$2" "$RT_HOME/$1" || rt_bad="$rt_bad [$1: still '$2']"; }
 rt_bad=""
 rt_has .config/kitty/theme-profile.conf "background #fffbf4"
-rt_has .config/kitty/theme-profile.conf "font_size 11"
+rt_not .config/kitty/theme-profile.conf "font_size"
 rt_has .config/kitty/kitty.conf "include theme-profile.conf"
 rt_not .config/kitty/kitty.conf "background #282a36"
 rt_has .config/wofi/style.css "#fffbf4"
@@ -215,6 +215,7 @@ else
 fi
 rt_bad=""
 rt_has .config/kitty/kitty.conf "map ctrl+b close_tab"
+rt_not .config/kitty/kitty.conf "font_size 11"   # the theme's size never arrives
 rt_not .config/kitty/kitty.conf "map ctrl+a new_tab"
 rt_has .config/gtk-4.0/settings.ini "gtk-cursor-blink=false"
 rt_has .config/kdeglobals "TerminalApplication=konsole"
@@ -521,10 +522,10 @@ pal_cli palette apply >/dev/null 2>&1
 kitty_conf="$PAL_HOME/.config/kitty/kitty.conf"
 kitty_theme="$PAL_HOME/.config/kitty/theme-profile.conf"
 if [ "$(grep -c '^# BEGIN theme-profile palette' "$kitty_theme")" = 1 ] &&
-  grep -qx "background #2d353b" "$kitty_theme" && grep -qx "font_size 11" "$kitty_theme" &&
+  grep -qx "background #2d353b" "$kitty_theme" && ! grep -q "font_size" "$kitty_theme" &&
   [ "$(grep -c '^include theme-profile.conf' "$kitty_conf")" = 1 ] && grep -qx "map ctrl+a new_tab" "$kitty_conf" &&
-  ! grep -q "font_size\|background" "$kitty_conf"; then
-  ok "palette apply writes kitty colours to theme-profile.conf; kitty.conf keeps keys + one include"
+  grep -qx "font_size 11" "$kitty_conf" && ! grep -q "background" "$kitty_conf"; then
+  ok "palette apply writes kitty colours to theme-profile.conf; kitty.conf keeps keys, font size + one include"
 else
   fail "kitty theme/include wrong: $(cat "$kitty_conf") // $(cat "$kitty_theme" 2>&1)"
 fi
