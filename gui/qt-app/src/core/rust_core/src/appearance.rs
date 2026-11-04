@@ -110,6 +110,10 @@ const GTK_SETTINGS: &[Rule] = &[r(
 // *families* travel; a size inside a font string is kept from the live file
 // (see `keep_live_size`).
 const KONSOLE_PROFILE: &[Rule] = &[r("Appearance", Keys::Only(&["ColorScheme", "Font"]))];
+const SPICETIFY: &[Rule] = &[r(
+    "Setting",
+    Keys::Only(&["current_theme", "color_scheme", "inject_css", "replace_colors", "overwrite_assets", "inject_theme_js"]),
+)];
 const KCMINPUTRC: &[Rule] = &[r("Mouse", Keys::Only(&["cursorTheme"]))];
 const BTOP: &[&str] = &["color_theme", "theme_background", "truecolor", "rounded_corners", "graph_symbol*"];
 const VSCODE: &[&str] = &[
@@ -154,6 +158,7 @@ pub fn policy(rel: &str) -> Policy {
         ".config/kwinrulesrc" => Policy::KwinRules,
         ".config/plasmarc" => Policy::Ini(PLASMARC),
         ".config/kcminputrc" => Policy::Ini(KCMINPUTRC),
+        crate::spicetify::CONFIG => Policy::Ini(SPICETIFY),
         ".config/plasmashellrc" => Policy::Ini(PLASMASHELLRC),
         ".config/gtk-3.0/settings.ini" | ".config/gtk-4.0/settings.ini" => Policy::Ini(GTK_SETTINGS),
         ".config/btop/btop.conf" => Policy::Kv(BTOP),

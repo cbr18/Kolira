@@ -548,11 +548,11 @@ pub fn alacritty_with_palette(existing: &str, p: &Palette) -> Result<String> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Targets a palette can be applied to.
-pub const TARGETS: [&str; 7] = ["kde", "kitty", "alacritty", "konsole", "nvim", "discord", "kvantum"];
+pub const TARGETS: [&str; 8] = ["kde", "kitty", "alacritty", "konsole", "nvim", "discord", "spicetify", "kvantum"];
 
 /// Targets used when none are given. `kvantum` is opt-in: it switches the Qt
 /// widget style, which the user may have chosen deliberately (e.g. Breeze).
-pub const DEFAULT_TARGETS: [&str; 6] = ["kde", "kitty", "alacritty", "konsole", "nvim", "discord"];
+pub const DEFAULT_TARGETS: [&str; 7] = ["kde", "kitty", "alacritty", "konsole", "nvim", "discord", "spicetify"];
 
 /// Extra knobs for [`apply`].
 #[derive(Debug, Default, Clone)]
@@ -745,6 +745,13 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
         }
         for f in files {
             report.push(format!("discord: {} (enabled; Vencord reloads themes itself)", f.display()));
+        }
+    }
+
+    if wants("spicetify") {
+        match crate::spicetify::apply_palette(p)? {
+            Some(path) => report.push(format!("spicetify: {} (selected; spicetify apply)", path.display())),
+            None => report.push("spicetify: skipped, no ~/.config/spicetify/config-xpui.ini".to_string()),
         }
     }
 

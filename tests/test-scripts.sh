@@ -1750,6 +1750,39 @@ else
   fail "no discord-client dependency: $(dc "$DC_C" deps disc)"
 fi
 
+# --- 23. Spotify (Spicetify): generated colour scheme, only theme keys ------
+echo "=== Section 23: Spicetify ==="
+SP_A="$TMP_ROOT/sp-a"; SP_B="$TMP_ROOT/sp-b"
+mkdir -p "$SP_A/.config/spicetify" "$SP_B/.config/spicetify"
+printf '[Setting]\nspotify_path = /opt/spotify-a\ncurrent_theme = Old\ncolor_scheme = dark\n\n[AdditionalOptions]\nextensions = mine.js\n' >"$SP_A/.config/spicetify/config-xpui.ini"
+printf '[Setting]\nspotify_path = /usr/share/spotify\ncurrent_theme = Other\n\n[AdditionalOptions]\nextensions = theirs.js\n' >"$SP_B/.config/spicetify/config-xpui.ini"
+sp() { local h="$1"; shift; env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$h" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+sp "$SP_A" palette import "$BASE16" >/dev/null 2>&1
+sp "$SP_A" palette apply --targets=spicetify >/dev/null 2>&1
+spa="$SP_A/.config/spicetify"
+if grep -q "^\[ThemeProfile\]" "$spa/Themes/ThemeProfile/color.ini" 2>/dev/null && grep -q "current_theme=ThemeProfile" "$spa/config-xpui.ini" &&
+  grep -q "spotify_path = /opt/spotify-a" "$spa/config-xpui.ini"; then
+  ok "palette apply writes a Spicetify colour scheme and selects it, keeping spotify_path"
+else
+  fail "Spicetify palette apply wrong: $(cat "$spa/config-xpui.ini")"
+fi
+sp "$SP_A" save spot >/dev/null 2>&1
+sp_store="$SP_A/.config/theme-profile/profiles/spot/.config/spicetify"
+if grep -q "current_theme" "$sp_store/config-xpui.ini" && ! grep -q "spotify_path\|extensions" "$sp_store/config-xpui.ini"; then
+  ok "save stores only the Spicetify theme keys"
+else
+  fail "Spicetify save wrong: $(cat "$sp_store/config-xpui.ini" 2>&1)"
+fi
+sp "$SP_A" export spot --out="$TMP_ROOT/spot.zip" >/dev/null 2>&1
+sp "$SP_B" import "$TMP_ROOT/spot.zip" --apply >/dev/null 2>&1
+spb="$SP_B/.config/spicetify"
+if grep -q "current_theme=ThemeProfile" "$spb/config-xpui.ini" && grep -q "spotify_path = /usr/share/spotify" "$spb/config-xpui.ini" &&
+  grep -q "extensions = theirs.js" "$spb/config-xpui.ini" && [ -f "$spb/Themes/ThemeProfile/color.ini" ]; then
+  ok "the receiver gets the Spicetify theme and keeps their Spotify path and extensions"
+else
+  fail "Spicetify apply wrong: $(cat "$spb/config-xpui.ini")"
+fi
+
 # --- Summary ------------------------------------------------------------------
 echo ""
 echo "═══════════════════════════════════════"

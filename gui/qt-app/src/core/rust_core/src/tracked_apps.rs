@@ -420,6 +420,19 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             docs_url: "https://vencord.dev/".to_string(),
         },
         TrackedAppDef {
+            id: "spicetify".to_string(),
+            name: "Spotify (Spicetify)".to_string(),
+            category: "Media".to_string(),
+            // Themes/ + only the theme keys of config-xpui.ini (spicetify.rs).
+            config_paths: crate::spicetify::config_paths(),
+            detect_command: Some("spicetify".to_string()),
+            flatpak_id: None,
+            supports_live_reload: false,
+            description: "Spicetify theme and colour scheme (palette → color.ini); runs spicetify apply".to_string(),
+            icon: "spotify".to_string(),
+            docs_url: "https://spicetify.app/docs/customization/themes".to_string(),
+        },
+        TrackedAppDef {
             id: "konsole".to_string(),
             name: "Konsole".to_string(),
             category: "Terminals".to_string(),

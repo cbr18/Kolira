@@ -95,6 +95,12 @@ theme-profile palette apply [--targets=kde,kitty,alacritty,kvantum] [--kvantum-b
 включается в `settings/settings.json` `enabledThemes` (точечная правка, прочие
 настройки не трогаются). Vencord перечитывает темы сам.
 
+**Spotify / Spicetify** (цель `spicetify`, по умолчанию включена, пропускается
+без `~/.config/spicetify/config-xpui.ini`): `Themes/ThemeProfile/color.ini`
+(раздел `[ThemeProfile]`, соответствие ролей — как в шаблоне matugen) + пустой
+`user.css`; в `config-xpui.ini` выставляются `current_theme`/`color_scheme`
+`ThemeProfile`, `inject_css`/`replace_colors` `1`, затем `spicetify apply -n`.
+
 **Kvantum** (цель `kvantum`, включается явно — она переключает стиль виджетов на
 `kvantum`). Темы Kvantum — GPL-графика, поэтому в репозитории их нет: при
 применении берётся **установленная** базовая тема (по умолчанию `KvArcDark` для

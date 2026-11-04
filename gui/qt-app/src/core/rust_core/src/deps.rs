@@ -143,6 +143,7 @@ fn decoration_plugin(library: &str) -> Option<PathBuf> {
 pub fn installed(d: &Dependency) -> bool {
     match d.kind.as_str() {
         "decoration" => decoration_plugin(&d.name).is_some(),
+        "spicetify" => which::which("spicetify").is_ok(),
         "discord-client" => crate::discord::CLIENTS.iter().any(|(_, rel)| home_dir().join(rel).exists()),
         "firefox-theme" => crate::tracked_apps::firefox_profile_dir().is_some_and(|dir| {
             home_dir().join(".mozilla/firefox").join(dir).join("extensions").join(format!("{}.xpi", d.name)).exists()
@@ -407,6 +408,18 @@ pub fn detect(dir: &Path, values: &std::collections::BTreeMap<String, Value>, so
             id: "vesktop-bin".into(),
             title: "Vesktop (Discord with Vencord) — or install Vencord into Discord: https://vencord.dev/download/".into(),
             url: "https://vencord.dev/download/".into(),
+            exact: true,
+        });
+    }
+    // Spicetify themes need Spicetify (and Spotify).
+    if dir.join(crate::spicetify::CONFIG).is_file() {
+        add(Dependency {
+            kind: "spicetify".into(),
+            name: "spicetify".into(),
+            source: "aur".into(),
+            id: "spicetify-cli".into(),
+            title: "Spicetify (needs Spotify: spotify-launcher)".into(),
+            url: "https://spicetify.app/docs/getting-started".into(),
             exact: true,
         });
     }

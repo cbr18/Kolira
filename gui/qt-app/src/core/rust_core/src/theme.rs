@@ -643,6 +643,9 @@ pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
         .filter(|p| p.is_file());
 
     let backup = crate::profile::apply_profile_cli(name, None)?;
+    if dir.join(crate::spicetify::CONFIG).is_file() {
+        crate::spicetify::refresh();
+    }
     report.backup = backup.display().to_string();
     report.applied = crate::profile::get_profile_components(name).unwrap_or_default();
 

@@ -293,6 +293,16 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         docs_url="https://vencord.dev/",
     ),
     TrackedAppDef(
+        id="spicetify",
+        name="Spotify (Spicetify)",
+        category="Media",
+        config_paths=(".config/spicetify/config-xpui.ini", ".config/spicetify/Themes"),
+        detect_command="spicetify",
+        description="Spicetify theme and colour scheme (palette → color.ini); runs spicetify apply",
+        icon="spotify",
+        docs_url="https://spicetify.app/docs/customization/themes",
+    ),
+    TrackedAppDef(
         id="konsole",
         name="Konsole",
         category="Terminals",
