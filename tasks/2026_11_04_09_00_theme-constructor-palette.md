@@ -1,6 +1,6 @@
 # Конструктор тем: палитра, генераторы, магазины, база для новой темы
 
-Status: IN PROGRESS — P0 ✅, обои ✅, P1: палитра + генераторы KDE/kitty/Alacritty/Kvantum + галерея + из обоев + детект/магазины + страница «Палитра» ✅
+Status: IN PROGRESS — P0 ✅, обои ✅, P1: палитра + генераторы KDE/kitty/Alacritty/Kvantum + галерея + из обоев + детект/магазины + страница «Палитра» + MCP ✅ (P1 закрыт)
 
 Plan: [2026_11_04_09_00_theme-constructor-palette.md](../plans/2026_11_04_09_00_theme-constructor-palette.md)
 
@@ -124,4 +124,7 @@ Kvantum не перекрашивается, тем для редакторов 
   ожиданием непустой палитры и fallback на Rust), «Из обоев (подробно)»,
   импорт файла, применение по целям; плитка на обзоре темы; настройка
   «Сетевые функции»; `palette show --json` отдаёт `warnings` и `kdeScheme`.
-- Дальше в P1: инструменты MCP.
+- 2026-11-04 — **P1, часть 8**: MCP — `palette_show|gallery|import|set|from_wallpaper|from_colors|apply`,
+  `app_store_search|install` (через тот же CLI), сценарий в `docs/MCP.md`.
+  **P1 закрыт.** Дальше: P2 («Начать с…», свой L&F, темы приложений в профиле
+  только по выбору), P3 (предпросмотр).

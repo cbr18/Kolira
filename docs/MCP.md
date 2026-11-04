@@ -134,6 +134,38 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 
 - `name` — имя профиля.
 
+## Палитра и магазины тем
+
+Работают через тот же Rust CLI, что и GUI (`theme-profile palette …`,
+`theme-profile apps …`); подробности модели — `docs/PALETTE.md`.
+
+| Инструмент | Аргументы | Что делает |
+|---|---|---|
+| `palette_show` | — | живая палитра (16 слотов + `accent`, `variant`, `source`, `warnings`, `kdeScheme`) или `null` |
+| `palette_gallery` | `query?`, `online?` | схемы: встроенные + скачанные; `online: true` — каталог tinted-theming (сеть) |
+| `palette_import` | `source` | `gallery:<id>` или путь к base16 YAML / JSON палитры → живая палитра (без применения) |
+| `palette_set` | `slots` | `{"base08":"#e67e80","accent":"#a7c080"}` (без применения) |
+| `palette_from_wallpaper` | `image?` | палитра из картинки (по умолчанию — текущие обои), k-means в Rust |
+| `palette_from_colors` | `colors`, `name?` | палитра из `[{color, ratio}]` (формат `Kirigami.ImageColors.palette`) |
+| `palette_apply` | `targets?`, `kvantumBase?` | **меняет живую сессию**: `kde`, `kitty`, `alacritty` (по умолчанию), `kvantum` (явно, переключает стиль виджетов) |
+| `app_store_search` | `appId`, `query` | поиск темы в магазине редактора: `zed` (api.zed.dev), `vscode`/`cursor` (Open VSX) |
+| `app_store_install` | `appId`, `extensionId` | **внешнее действие**: установка расширения с темами; возвращает id тем для `set_component` |
+
+Сеть отключается настройкой `network_enabled` или `KTM_OFFLINE=1`; тогда
+инструменты, которым нужна сеть, возвращают ошибку. `KTM_THEME_NO_APPLY=1`
+отключает внешние команды при `palette_apply` (файлы всё равно пишутся).
+
+## Сценарий: тема из палитры
+
+1. `palette_gallery {"query": "everforest"}` → `palette_import {"source": "gallery:everforest"}`
+   (или `palette_from_wallpaper`).
+2. `palette_show` — проверить `warnings`; при необходимости `palette_set`.
+3. `palette_apply {"targets": ["kde", "kitty", "alacritty"]}` — только если
+   пользователь просил применить.
+4. `app_store_search {"appId": "zed", "query": "everforest"}` →
+   `app_store_install` → `set_component {"componentId": "zed", "value": "<тема>"}`.
+5. `create_profile {"name": "everforest"}` → `validate_profile`.
+
 ## Рекомендуемый сценарий для нейронки
 
 1. `list_installed_themes` для нужных компонентов.

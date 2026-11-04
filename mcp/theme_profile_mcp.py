@@ -20,6 +20,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from core import CoreFactory  # noqa: E402
+from core.palette_core import DEFAULT_TARGETS, TARGETS, PaletteCore  # noqa: E402
 from core.theme_bundle import ThemeBundleCore  # noqa: E402
 
 
@@ -71,7 +72,17 @@ class ThemeProfileMcpServer:
             "create_custom_theme": self._create_custom_theme,
             "create_profile": self._create_profile,
             "apply_profile": self._apply_profile,
+            "palette_show": self._palette_show,
+            "palette_gallery": self._palette_gallery,
+            "palette_import": self._palette_import,
+            "palette_set": self._palette_set,
+            "palette_from_wallpaper": self._palette_from_wallpaper,
+            "palette_from_colors": self._palette_from_colors,
+            "palette_apply": self._palette_apply,
+            "app_store_search": self._app_store_search,
+            "app_store_install": self._app_store_install,
         }
+        self.palette = PaletteCore()
 
     # ── MCP protocol ───────────────────────────────────────────────────
 
@@ -224,6 +235,95 @@ class ThemeProfileMcpServer:
                     "required": ["name"],
                 },
             },
+            {
+                "name": "palette_show",
+                "description": "Live base16 palette (16 slots + accent, variant, source, contrast warnings, generated KDE scheme id) or null.",
+                "inputSchema": {"type": "object", "properties": {}},
+            },
+            {
+                "name": "palette_gallery",
+                "description": "List base16 schemes: bundled + downloaded; online=true adds the tinted-theming catalogue (network).",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string"},
+                        "online": {"type": "boolean"},
+                    },
+                },
+            },
+            {
+                "name": "palette_import",
+                "description": "Make a scheme the live palette: 'gallery:<id>' or a path to a base16 YAML / palette JSON. Does not apply it.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {"source": {"type": "string"}},
+                    "required": ["source"],
+                },
+            },
+            {
+                "name": "palette_set",
+                "description": "Edit live palette colours: {\"slots\": {\"base08\": \"#e67e80\", \"accent\": \"#a7c080\"}}. Does not apply.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {"slots": {"type": "object", "additionalProperties": {"type": "string"}}},
+                    "required": ["slots"],
+                },
+            },
+            {
+                "name": "palette_from_wallpaper",
+                "description": "Build the live palette from an image (default: current wallpaper) with the Rust k-means extractor. Does not apply.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {"image": {"type": "string"}},
+                },
+            },
+            {
+                "name": "palette_from_colors",
+                "description": "Build the live palette from weighted colours [{color:'#rrggbb', ratio:0.4}, …] (the shape of Kirigami.ImageColors.palette). Does not apply.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "colors": {"type": "array", "items": {"type": "object"}},
+                        "name": {"type": "string"},
+                    },
+                    "required": ["colors"],
+                },
+            },
+            {
+                "name": "palette_apply",
+                "description": "APPLY the live palette to the desktop (changes the live session): targets from kde, kitty, alacritty, kvantum (default kde,kitty,alacritty; kvantum switches the widget style; kvantumBase picks the installed base theme). Terminal configs are backed up first.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "targets": {"type": "array", "items": {"type": "string", "enum": list(TARGETS)}},
+                        "kvantumBase": {"type": "string"},
+                    },
+                },
+            },
+            {
+                "name": "app_store_search",
+                "description": "Search an editor's theme store (network): zed (api.zed.dev) or vscode/cursor (Open VSX).",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "appId": {"type": "string", "enum": ["zed", "vscode", "cursor"]},
+                        "query": {"type": "string"},
+                    },
+                    "required": ["appId", "query"],
+                },
+            },
+            {
+                "name": "app_store_install",
+                "description": "INSTALL a theme extension (external action): Zed themes are copied to ~/.config/zed/themes, VS Code/Cursor use their own --install-extension. Returns the theme ids now selectable with set_component.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "appId": {"type": "string", "enum": ["zed", "vscode", "cursor"]},
+                        "extensionId": {"type": "string"},
+                    },
+                    "required": ["appId", "extensionId"],
+                },
+            },
         ]
 
     # ── tool implementations ───────────────────────────────────────────
@@ -306,6 +406,70 @@ class ThemeProfileMcpServer:
     def _apply_profile(self, arguments: dict) -> dict:
         result = self.core.apply_profile(str(arguments.get("name") or ""))
         return {"ok": result.success, "message": result.message}
+
+
+    # ── palette (Rust CLI via PaletteCore) ─────────────────────────────
+
+    def _palette_state(self, result) -> dict:
+        if not result.success:
+            raise ValueError(result.message)
+        return {"ok": True, "palette": self.palette.show()}
+
+    def _palette_show(self, arguments: dict) -> dict:
+        return {"palette": self.palette.show()}
+
+    def _palette_gallery(self, arguments: dict) -> dict:
+        result = self.palette.gallery(str(arguments.get("query") or ""), bool(arguments.get("online")))
+        if not result.success:
+            raise ValueError(result.message)
+        return {"items": (result.data or {}).get("items", [])}
+
+    def _palette_import(self, arguments: dict) -> dict:
+        source = str(arguments.get("source") or "").strip()
+        if not source:
+            raise ValueError("source is required ('gallery:<id>' or a file path)")
+        if source.startswith("gallery:"):
+            return self._palette_state(self.palette.import_gallery(source[len("gallery:"):]))
+        return self._palette_state(self.palette.import_file(source))
+
+    def _palette_set(self, arguments: dict) -> dict:
+        slots = {str(k): str(v) for k, v in dict(arguments.get("slots") or {}).items()}
+        return self._palette_state(self.palette.set_slots(slots))
+
+    def _palette_from_wallpaper(self, arguments: dict) -> dict:
+        return self._palette_state(self.palette.from_wallpaper(str(arguments.get("image") or "")))
+
+    def _palette_from_colors(self, arguments: dict) -> dict:
+        colors = [dict(c) for c in list(arguments.get("colors") or []) if isinstance(c, dict)]
+        return self._palette_state(
+            self.palette.from_colors(colors, name=str(arguments.get("name") or ""), source="mcp")
+        )
+
+    def _palette_apply(self, arguments: dict) -> dict:
+        targets = [str(t) for t in (arguments.get("targets") or DEFAULT_TARGETS)]
+        unknown = [t for t in targets if t not in TARGETS]
+        if unknown:
+            raise ValueError(f"Unknown targets: {', '.join(unknown)} (known: {', '.join(TARGETS)})")
+        result = self.palette.apply(targets, str(arguments.get("kvantumBase") or ""))
+        if not result.success:
+            raise ValueError(result.message)
+        return {"ok": True, "report": result.message.splitlines()}
+
+    # ── editor theme stores ────────────────────────────────────────────
+
+    def _app_store_search(self, arguments: dict) -> dict:
+        result = self.core.store_search(str(arguments.get("appId") or ""), str(arguments.get("query") or ""))
+        if not result.success:
+            raise ValueError(result.message)
+        return {"items": (result.data or {}).get("items", [])}
+
+    def _app_store_install(self, arguments: dict) -> dict:
+        result = self.core.store_install(
+            str(arguments.get("appId") or ""), str(arguments.get("extensionId") or "")
+        )
+        if not result.success:
+            raise ValueError(result.message)
+        return {"ok": True, "message": result.message, "install": result.data}
 
 
 def main() -> int:

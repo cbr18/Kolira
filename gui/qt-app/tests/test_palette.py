@@ -94,3 +94,39 @@ def test_controller_slots(home: Path) -> None:
     ctrl.importGallery("../etc")
     _settle()
     assert toasts and toasts[-1][1] is False  # invalid id reported, not crashed
+
+
+def test_mcp_palette_and_store_tools(home: Path) -> None:
+    import json
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "mcp"))
+    from theme_profile_mcp import ThemeProfileMcpServer
+
+    server = ThemeProfileMcpServer()
+
+    def call(tool: str, /, **arguments):
+        reply = server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                               "params": {"name": tool, "arguments": arguments}})["result"]
+        return reply["isError"], json.loads(reply["content"][0]["text"])
+
+    names = {t["name"] for t in server.handle({"jsonrpc": "2.0", "id": 0, "method": "tools/list"})["result"]["tools"]}
+    assert {"palette_show", "palette_gallery", "palette_import", "palette_set", "palette_from_wallpaper",
+            "palette_from_colors", "palette_apply", "app_store_search", "app_store_install"} <= names
+
+    assert call("palette_show") == (False, {"palette": None})
+    err, out = call("palette_gallery", query="gruvbox")
+    assert not err and {i["id"] for i in out["items"]} == {"gruvbox-dark-medium", "gruvbox-light-medium"}
+
+    err, out = call("palette_import", source="gallery:gruvbox-dark-medium")
+    assert not err and out["palette"]["name"] == "Gruvbox dark, medium"
+    err, out = call("palette_set", slots={"accent": "#b8bb26"})
+    assert not err and out["palette"]["accent"] == "#b8bb26"
+    err, out = call("palette_from_colors", colors=[{"color": "#1f3326", "ratio": 0.7}, {"color": "#8fb573", "ratio": 0.3}], name="Agent")
+    assert not err and out["palette"]["name"] == "Agent"
+
+    err, out = call("palette_apply", targets=["kde"])
+    assert not err and any("ThemeProfileAgent" in line for line in out["report"])
+    assert call("palette_apply", targets=["gtk4"])[0] is True
+    assert call("palette_import", source="gallery:../etc")[0] is True
+    # Offline (KTM_OFFLINE=1): the store reports the disabled network as a tool error.
+    assert call("app_store_search", appId="btop", query="x")[0] is True
