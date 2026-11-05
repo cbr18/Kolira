@@ -128,6 +128,8 @@ Marketplace / Open VSX / Zed extensions are referenced through `sources`.
 
 ```bash
 theme-profile save NAME [--description=...] [--no-wallpaper]
+theme-profile new NAME --from=neutral-light|neutral-dark|THEME [--description=...]
+theme-profile look-and-feel NAME           # the live look as a Global Theme (no layout)
 theme-profile apply NAME [--keep-wallpaper] [--install-missing] [--json]
 theme-profile check NAME [--json]          # what the theme references but this machine lacks
 theme-profile migrate NAME|--all           # add theme.json to a snapshot profile (files untouched)
@@ -164,6 +166,20 @@ theme-profile automation [--json] | set KEY=ask|always|never … | ask   # the u
   5. report: `missing` (field, name, where to get it: KDE Store search link,
      store URL or Zed extension id); `--json` prints `{applied, skipped,
      installed, missing, errors, backup}` (used by the GUI and MCP).
+- **new** starts a theme (`rust_core/src/constructor.rs`). From
+  `neutral-light`/`neutral-dark` it applies a neutral template to the live
+  session — Breeze colour scheme, widget style, icons, cursor, Plasma style and
+  window decoration, Breeze GTK, no blur, no translucency, opaque kitty/Alacritty,
+  no transparent Zen — and saves it under NAME. From an existing THEME it copies
+  that theme under NAME and applies it. Either way NAME becomes the active
+  theme; the user then changes the live look and saves over it. Applying makes
+  the usual pre-apply backup first.
+- **look-and-feel** writes `~/.local/share/plasma/look-and-feel/theme-profile-<name>/`
+  (`metadata.json` + `contents/defaults`: colour scheme, widget style, icons,
+  cursor, Plasma style, window decoration — never a layout, so choosing it in
+  System Settings does not touch panels) and selects it (only the
+  `LookAndFeelPackage` key; the look is already live). The next save carries it
+  as the theme's own generated asset (MIT).
 - **check** lists what the theme references but this machine lacks; exit code 0.
 - **migrate** adds `theme.json` to snapshot profiles and reduces stored files
   to the look (kitty.conf/alacritty.toml → their theme files); the theme is
@@ -180,7 +196,12 @@ and written directly if the tool did not store it
 
 ## GUI
 
-- **Save Profile** dialog: name, description, *Include the current wallpaper*.
+- **Save Profile** dialog: name, description, *Include the current wallpaper*,
+  *Create a Look & Feel package for this theme* (runs `look-and-feel` before
+  saving, so the package is part of the theme).
+- **New theme…** (profiles toolbar): name and base — *Neutral, light/dark*
+  or *Copy of "X"* for each theme — then `theme-profile new`; a warning says
+  that starting replaces the current look (a backup is made).
 - **Apply** (confirmation dialog): *Keep the current wallpaper*.
 - After applying or importing, a **This Theme Needs** dialog lists the missing
   dependencies with their source: store items have a checkbox (exact matches

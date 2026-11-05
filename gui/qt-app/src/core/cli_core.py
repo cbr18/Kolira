@@ -253,6 +253,24 @@ class CliProfileCore(ProfileCore):
             args.append("--no-wallpaper")
         return self._run(args, timeout=120)
 
+    def new_theme(self, name: str, base: str) -> Result:
+        """`theme-profile new NAME --from=BASE` (replaces the live look)."""
+        try:
+            name = validate_profile_name(name)
+            if base not in ("neutral-light", "neutral-dark"):
+                base = validate_profile_name(base)
+        except ValueError as exc:
+            return Result.err(str(exc))
+        return self._run(["new", name, f"--from={base}"], timeout=300)
+
+    def look_and_feel(self, name: str) -> Result:
+        """`theme-profile look-and-feel NAME`: the live look as a Global Theme."""
+        try:
+            name = validate_profile_name(name)
+        except ValueError as exc:
+            return Result.err(str(exc))
+        return self._run(["look-and-feel", name], timeout=60)
+
     def export_theme(self, name: str, path: str, include_wallpaper: bool = True) -> Result:
         """`theme-profile export NAME --out=PATH [--no-wallpaper]`."""
         try:

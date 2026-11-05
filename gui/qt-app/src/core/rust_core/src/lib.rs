@@ -30,6 +30,7 @@ pub mod spicetify;
 pub mod telegram;
 pub mod actions;
 pub mod automation;
+pub mod constructor;
 pub mod extras;
 pub mod tracked_apps;
 pub mod custom_components;

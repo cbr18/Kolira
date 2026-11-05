@@ -317,6 +317,32 @@ Kirigami.ScrollablePage {
             }
         }
 
+        // ── Preview ───────────────────────────────────────────────────
+        Kirigami.Card {
+            Layout.fillWidth: true
+            visible: paletteController.hasPalette
+            background: Rectangle {
+                color: ThemeColors.cardBg(page.glassMode)
+                radius: Platform.Units.smallSpacing
+                border.width: 1
+                border.color: ThemeColors.cardBorder(page.glassMode)
+            }
+            contentItem: ColumnLayout {
+                spacing: Platform.Units.smallSpacing
+                Kirigami.Heading {
+                    level: 3
+                    text: qsTr("Preview")
+                    color: ThemeColors.fgColor(page.glassMode)
+                }
+                PalettePreview {
+                    Layout.fillWidth: true
+                    base: page.pal.base || []
+                    accent: page.pal.accent || "#3daee9"
+                    glassMode: page.glassMode
+                }
+            }
+        }
+
         // ── Apply ─────────────────────────────────────────────────────
         Kirigami.Card {
             Layout.fillWidth: true

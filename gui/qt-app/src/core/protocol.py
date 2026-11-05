@@ -147,6 +147,14 @@ class ProfileCore(ABC):
         """Install dependencies (None = all missing); data = [{index, ok, message}]."""
         return Result.err("Dependencies are not supported by this core")
 
+    def new_theme(self, name: str, base: str) -> Result:
+        """Start a new theme from a base (neutral template or a theme copy)."""
+        return Result.err("New themes are not supported by this core")
+
+    def look_and_feel(self, name: str) -> Result:
+        """Create a Look & Feel package for the live look."""
+        return Result.err("Look & Feel packages are not supported by this core")
+
     def run_action(self, action_id: str) -> Result:
         """Do one follow-up action after an apply (restart a program, …)."""
         return Result.err("Actions are not supported by this core")

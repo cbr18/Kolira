@@ -251,6 +251,12 @@ and dependencies: `themes/README.md`):
 - **`everforest`** — Everforest Dark Medium, misty pine forest
 - **`dracula`** — Dracula palette on glass, official Dracula wallpaper
 
+Start a new theme with `theme-profile new NAME --from=neutral-light`
+(or `neutral-dark`, or an existing theme to copy) — GUI: **New theme…** — then
+change the look and save over it. `theme-profile look-and-feel NAME` (or the
+Save dialog's checkbox) adds a Look & Feel package with the look and no panel
+layout.
+
 Profiles live in `~/.config/theme-profile/profiles/`. Old snapshot profiles keep
 working until converted with `theme-profile migrate --all`.
 

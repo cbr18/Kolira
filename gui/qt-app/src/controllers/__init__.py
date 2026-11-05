@@ -325,6 +325,43 @@ class ProfileController(QObject):
 
         self._start_operation("apply", _work)
 
+    @Slot(str, str)
+    def newTheme(self, name: str, base: str) -> None:
+        """Start a new theme from a base (neutral template or a theme copy)."""
+        try:
+            name = validate_profile_name(name)
+        except ValueError as exc:
+            self.operationFinished.emit(False, str(exc))
+            return
+
+        def _work() -> tuple[bool, str]:
+            result = self._core.new_theme(name, base)
+            return result.success, result.message
+
+        self._start_operation("new", _work)
+
+    @Slot(str, str, bool, bool)
+    def saveProfileWithLookAndFeel(self, name: str, description: str,
+                                   include_wallpaper: bool, make_look_and_feel: bool) -> None:
+        """Save, first creating the theme's own Look & Feel package if asked."""
+        if not make_look_and_feel:
+            self.saveProfile(name, description, include_wallpaper)
+            return
+        try:
+            name = validate_profile_name(name)
+        except ValueError as exc:
+            self.operationFinished.emit(False, str(exc))
+            return
+
+        def _work() -> tuple[bool, str]:
+            laf = self._core.look_and_feel(name)
+            if not laf.success:
+                return False, laf.message
+            result = self._core.save(name, description=description.strip(), include_wallpaper=include_wallpaper)
+            return result.success, (result.message if not result.success else f"Saved profile: {name}")
+
+        self._start_operation("save", _work)
+
     @Slot(str, str, bool)
     def saveProfile(self, name: str, description: str = "",
                     include_wallpaper: bool = True) -> None:

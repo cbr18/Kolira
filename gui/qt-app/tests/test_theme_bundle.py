@@ -806,3 +806,48 @@ def test_mcp_automation_and_actions(monkeypatch: pytest.MonkeyPatch, cli_bundle_
 
     applied = json.loads(call("apply_profile", {"name": "night"})["content"][0]["text"])
     assert "dependencies" in applied and "actions" in applied
+
+
+def test_new_theme_rejects_bad_names_without_running_the_cli(bundle_home, monkeypatch):
+    from core.cli_core import CliProfileCore
+
+    calls: list[list[str]] = []
+    monkeypatch.setattr(CliProfileCore, "_run", lambda self, args, **kw: calls.append(args))
+    profiles = CliProfileCore()
+    assert not profiles.new_theme("../evil", "neutral-light").success
+    assert not profiles.new_theme("ok", "../evil").success
+    assert not profiles.look_and_feel(".hidden").success
+    assert not profiles.run_action("rm -rf").success
+    assert calls == []
+
+
+def test_new_theme_from_neutral_and_from_theme(cli_bundle_home):
+    profiles = cli_bundle_home["profiles"]
+    home = cli_bundle_home["home"]
+    result = profiles.new_theme("plain", "neutral-dark")
+    assert result.success, result.message
+    kdeglobals = (home / ".config/kdeglobals").read_text(encoding="utf-8")
+    assert "ColorScheme=BreezeDark" in kdeglobals
+    assert (profile_dir("plain")).is_dir()
+    assert (home / ".config/theme-profile/active-profile").read_text().strip() == "plain"
+
+    copy = profiles.new_theme("plain2", "plain")
+    assert copy.success, copy.message
+    assert profile_dir("plain2").is_dir()
+    assert not profiles.new_theme("plain2", "neutral-light").success  # exists
+
+
+def test_look_and_feel_package_has_no_layout(cli_bundle_home):
+    profiles = cli_bundle_home["profiles"]
+    home = cli_bundle_home["home"]
+    assert profiles.new_theme("plain", "neutral-light").success
+    result = profiles.look_and_feel("Plain")
+    assert result.success, result.message
+    laf = home / ".local/share/plasma/look-and-feel/theme-profile-plain"
+    defaults = (laf / "contents/defaults").read_text(encoding="utf-8")
+    assert "ColorScheme=BreezeLight" in defaults
+    assert not (laf / "contents/layouts").exists()
+    meta = json.loads((laf / "metadata.json").read_text(encoding="utf-8"))
+    assert meta["KPlugin"]["Id"] == "theme-profile-plain"
+    kdeglobals = (home / ".config/kdeglobals").read_text(encoding="utf-8")
+    assert "LookAndFeelPackage=theme-profile-plain" in kdeglobals

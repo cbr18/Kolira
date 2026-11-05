@@ -2020,6 +2020,31 @@ else
   fail "apply policies: never=$never_count ask=$ask_count"
 fi
 
+# Theme constructor: a new theme from the neutral template or from a theme;
+# a Look & Feel package (defaults only, no layout) for the live look.
+NT="$TMP_ROOT/new-theme"; mkdir -p "$NT/.config"
+printf '[General]\nColorScheme=Mine\n' >"$NT/.config/kdeglobals"
+nt() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$NT" KTM_THEME_NO_APPLY=1 KTM_OFFLINE=1 "$CLI_DIR/theme-profile" "$@"; }
+nt new fresh --from=neutral-dark >/dev/null 2>&1
+nt new copy --from=fresh >/dev/null 2>&1
+if python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); v=d["values"]; assert v.get("color_scheme")=="BreezeDark" and v.get("blur_enabled") is False, v' \
+     "$NT/.config/theme-profile/profiles/fresh/theme.json" 2>/dev/null &&
+  [ -f "$NT/.config/theme-profile/profiles/copy/theme.json" ] &&
+  [ "$(cat "$NT/.config/theme-profile/active-profile")" = copy ] &&
+  ! nt new fresh --from=neutral-light >/dev/null 2>&1 && ! nt new other --from=nosuch >/dev/null 2>&1; then
+  ok "new: neutral template saved as a theme, a copy of a theme applied; names and bases checked"
+else
+  fail "new: $(cat "$NT/.config/theme-profile/profiles/fresh/theme.json" 2>/dev/null | head -c 400)"
+fi
+nt look-and-feel copy >/dev/null 2>&1
+LAF="$NT/.local/share/plasma/look-and-feel/theme-profile-copy"
+if grep -qx "ColorScheme=BreezeDark" "$LAF/contents/defaults" 2>/dev/null && [ -f "$LAF/metadata.json" ] &&
+  [ ! -e "$LAF/contents/layouts" ] && grep -q "LookAndFeelPackage=theme-profile-copy" "$NT/.config/kdeglobals"; then
+  ok "look-and-feel: defaults from the live look, no layout, selected"
+else
+  fail "look-and-feel: $(cat "$LAF/contents/defaults" 2>&1) // $(grep -i lookandfeel "$NT/.config/kdeglobals")"
+fi
+
 # --- Summary ------------------------------------------------------------------
 echo ""
 echo "═══════════════════════════════════════"

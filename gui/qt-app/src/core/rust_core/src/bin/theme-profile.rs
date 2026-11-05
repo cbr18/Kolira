@@ -45,6 +45,9 @@ Usage:
                               (portable copy: $HOME for the home dir, no desktop icons)
   theme-profile import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
   theme-profile migrate NAME|--all            (add theme.json to snapshot profiles)
+  theme-profile new NAME [--from=THEME|neutral-light|neutral-dark] [--description=…]
+                              (start a new theme from a base; replaces the live look, backup first)
+  theme-profile look-and-feel NAME           (Look & Feel package of the live look, defaults only)
   theme-profile clone SOURCE TARGET
   theme-profile diff A B
   theme-profile delete NAME
@@ -699,6 +702,38 @@ fn main() -> ExitCode {
                     ExitCode::SUCCESS
                 }
                 Err(e) => fail(e),
+            }
+        }
+        "new" => {
+            // A new theme from a base: a theme, neutral-light or neutral-dark.
+            let Some(name) = args.iter().skip(1).find(|a| !a.starts_with("--")) else {
+                return fail("Usage: theme-profile new NAME --from=THEME|neutral-light|neutral-dark [--description=…]");
+            };
+            let base = args.iter().find_map(|a| a.strip_prefix("--from=")).unwrap_or("neutral-light");
+            let description = args.iter().find_map(|a| a.strip_prefix("--description=")).map(str::to_string);
+            match kde_theme_core::constructor::new_theme(name, base, description) {
+                Ok(t) => {
+                    println!("New theme: {} (from {})", t.name, t.base);
+                    for n in &t.notes {
+                        eprintln!("error={n}");
+                    }
+                    println!("Edit the look, then save it again: theme-profile save {}", t.name);
+                    ExitCode::SUCCESS
+                }
+                Err(e) => fail(format!("{e:#}")),
+            }
+        }
+        "look-and-feel" => {
+            // A Look & Feel package (defaults only) for the live look.
+            let Some(name) = args.get(1) else {
+                return fail("Usage: theme-profile look-and-feel NAME");
+            };
+            match kde_theme_core::constructor::look_and_feel(name) {
+                Ok(dir) => {
+                    println!("Look & Feel: {} (selected; save the theme to keep it)", dir.display());
+                    ExitCode::SUCCESS
+                }
+                Err(e) => fail(format!("{e:#}")),
             }
         }
         "clone" => {

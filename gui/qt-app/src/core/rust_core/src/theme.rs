@@ -482,7 +482,9 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
             }
         };
         let rel = path.strip_prefix(dir).unwrap_or(&path).to_string_lossy().to_string();
-        let generated = asset.starts_with("ThemeProfile");
+        // Ours: palette-generated assets (ThemeProfile…) and the Look & Feel
+        // packages `theme-profile look-and-feel` writes (theme-profile-…).
+        let generated = asset.starts_with("ThemeProfile") || (k.kind == "look-and-feel" && asset.starts_with("theme-profile-"));
         // Generated from the palette: ours (colour scheme: MIT). A Kvantum
         // recolour keeps its base's licence: GPL for the themes that ship with
         // Kvantum; another base (store theme, unknown licence) stays private.

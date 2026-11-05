@@ -352,6 +352,12 @@ Kirigami.ApplicationWindow {
                             onClicked: importFileDialog.open()
                         }
                         Button {
+                            text: qsTr("New theme…")
+                            icon.name: "document-new"
+                            enabled: !root.applying && !profileController.busy
+                            onClicked: newThemeDialog.open()
+                        }
+                        Button {
                             text: qsTr("Save current…")
                             icon.name: "list-add"
                             enabled: !root.applying
@@ -689,6 +695,72 @@ Kirigami.ApplicationWindow {
         }
     }
 
+    // New theme: start from a base — a built-in neutral template (Breeze, no
+    // blur, no translucency) or a copy of a theme — then edit the live look
+    // and save over it.
+    Kirigami.Dialog {
+        id: newThemeDialog
+        title: qsTr("New Theme")
+        preferredWidth: 480
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+        readonly property var bases: {
+            var list = [{ value: "neutral-light", text: qsTr("Neutral, light (Breeze, no blur)") },
+                        { value: "neutral-dark", text: qsTr("Neutral, dark (Breeze, no blur)") }]
+            for (var i = 0; i < profileController.profiles.length; i++) {
+                var n = profileController.profiles[i].name
+                list.push({ value: n, text: qsTr("Copy of \"%1\"").arg(n) })
+            }
+            return list
+        }
+        background: Rectangle {
+            color: ThemeColors.dialogBg(root.glassMode)
+            radius: 8
+            border.width: 1
+            border.color: ThemeColors.cardBorder(root.glassMode)
+        }
+        ColumnLayout {
+            Layout.fillWidth: true
+            TextField {
+                id: newThemeName
+                Layout.fillWidth: true
+                placeholderText: qsTr("Theme name")
+            }
+            ComboBox {
+                id: newThemeBase
+                Layout.fillWidth: true
+                textRole: "text"
+                valueRole: "value"
+                model: newThemeDialog.bases
+            }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                font.pointSize: TypeScale.caption
+                color: ThemeColors.dimColor(root.glassMode)
+                text: qsTr("Starting replaces your current look with the base (a backup is made). Then change the look and use Save current… with the same name.")
+            }
+            Label {
+                id: newThemeError
+                Layout.fillWidth: true
+                visible: false
+                wrapMode: Text.WordWrap
+                color: ThemeColors.negative()
+                text: qsTr("Use letters, digits, dots, dashes or underscores; the first character must not be a dot.")
+            }
+        }
+        onAccepted: {
+            var name = newThemeName.text.trim()
+            if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(name) || root.caseDuplicateOf(name) !== "") {
+                newThemeError.visible = true
+                newThemeDialog.open()
+                return
+            }
+            newThemeError.visible = false
+            profileController.newTheme(name, newThemeBase.currentValue)
+            newThemeName.text = ""
+        }
+    }
+
     // First run: ask the user what applying themes may do by itself
     // (store downloads, system packages, restarting programs). Per user, not
     // per theme; changeable later in Settings → Automation.
@@ -1014,6 +1086,13 @@ Kirigami.ApplicationWindow {
                 ToolTip.text: qsTr("Without a wallpaper, applying this theme leaves the wallpaper unchanged")
                 ToolTip.visible: hovered
             }
+            CheckBox {
+                id: makeLookAndFeelBox
+                checked: false
+                text: qsTr("Create a Look & Feel package for this theme")
+                ToolTip.text: qsTr("Colour scheme, widget style, icons, cursor, Plasma style and window decoration as a Global Theme (no panel layout)")
+                ToolTip.visible: hovered
+            }
             Label {
                 id: saveError
                 Layout.fillWidth: true
@@ -1035,10 +1114,12 @@ Kirigami.ApplicationWindow {
                 saveDialog.open()
                 return
             }
-            profileController.saveProfile(name, descriptionField.text.trim(), includeWallpaperBox.checked)
+            profileController.saveProfileWithLookAndFeel(name, descriptionField.text.trim(),
+                                                         includeWallpaperBox.checked, makeLookAndFeelBox.checked)
             nameField.text = ""
             descriptionField.text = ""
             includeWallpaperBox.checked = true
+            makeLookAndFeelBox.checked = false
         }
     }
 
