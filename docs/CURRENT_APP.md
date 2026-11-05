@@ -299,7 +299,7 @@ $XDG_CONFIG_HOME/theme-profile/        # по умолчанию ~/.config/theme
 │   └── pre-save-glass-…/                   # прежняя версия перезаписанной темы
 ├── manifests/              # манифесты сохранения (опционально)
 ├── installed-assets.json   # что `deps --install` поставил из KDE Store (путь → id)
-└── app-preferences.json    # настройки GUI
+└── app-preferences.json    # настройки GUI + выбор автоматизации ("automation", ядро)
 ```
 
 ---

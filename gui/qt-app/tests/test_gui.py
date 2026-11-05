@@ -2884,3 +2884,17 @@ def test_run_action_rejects_odd_ids() -> None:
     core = CliProfileCore()
     assert not core.run_action("rm -rf /").success
     assert not core.run_action("../x").success
+
+
+def test_settings_save_keeps_the_cores_automation_keys(tmp_path, monkeypatch) -> None:
+    import json
+    import core.cli_core as cc
+    from core.protocol import AppSettings
+
+    path = tmp_path / "app-preferences.json"
+    path.write_text(json.dumps({"automation": {"store": "never"}, "automation_configured": True}))
+    monkeypatch.setattr(cc, "SETTINGS_FILE", path)
+    assert cc.CliSettingsCore().save(AppSettings(theme="paper")).success
+    data = json.loads(path.read_text())
+    assert data["automation"] == {"store": "never"} and data["automation_configured"] is True
+    assert data["theme"] == "paper"

@@ -1990,6 +1990,36 @@ else
   fail "actions: $(ac actions plain 2>&1) / $(ac action bogus 2>&1)"
 fi
 
+# Automation choices are the user's (app-preferences.json), kept beside the
+# app's own settings; unknown keys and values are refused.
+AU2="$TMP_ROOT/automation"; mkdir -p "$AU2/.config/theme-profile"
+printf '{\n  "theme": "glass",\n  "network_enabled": false\n}\n' >"$AU2/.config/theme-profile/app-preferences.json"
+au2() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$AU2" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+if au2 automation --json | grep -q '"configured":false' &&
+  au2 automation set store=always restart_zen=never &&
+  au2 automation --json | grep -q '"configured":true' &&
+  au2 automation | grep -qx "store=always  # .*" && au2 automation | grep -q "^restart_zen=never" &&
+  grep -q '"theme": "glass"' "$AU2/.config/theme-profile/app-preferences.json" &&
+  ! au2 automation set store=maybe 2>/dev/null && ! au2 automation set bogus=ask 2>/dev/null &&
+  printf 'never\n\n\n\n\n\n' | au2 automation ask >/dev/null && au2 automation | grep -q "^store=never"; then
+  ok "automation choices are stored per user beside the app settings; bad keys/values refused; ask reads answers"
+else
+  fail "automation: $(au2 automation 2>&1 | tr '\n' ' ') // $(cat "$AU2/.config/theme-profile/app-preferences.json")"
+fi
+
+# Apply follows the choices: "never" drops a missing store dependency from
+# what is offered, "ask" keeps it.
+mkdir -p "$AU2/.config/theme-profile/profiles/needs"
+printf '{"schema": "theme-profile/theme@2", "name": "needs", "values": {}, "assets": [], "dependencies": [{"kind": "icons", "name": "NoSuchIcons", "source": "kde-store", "id": "999999999", "title": "No Such Icons", "url": "https://store.kde.org/p/999999999", "exact": true}]}\n' >"$AU2/.config/theme-profile/profiles/needs/theme.json"
+deps_offered() { au2 apply needs --json 2>/dev/null | python3 -c 'import json,sys; print(len(json.load(sys.stdin)["dependencies"]))'; }
+au2 automation set store=never >/dev/null; never_count="$(deps_offered)"
+au2 automation set store=ask >/dev/null; ask_count="$(deps_offered)"
+if [ "$never_count" = 0 ] && [ "$ask_count" = 1 ]; then
+  ok "apply drops dependencies the user set to never, offers them on ask"
+else
+  fail "apply policies: never=$never_count ask=$ask_count"
+fi
+
 # --- Summary ------------------------------------------------------------------
 echo ""
 echo "═══════════════════════════════════════"

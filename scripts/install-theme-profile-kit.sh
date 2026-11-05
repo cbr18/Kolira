@@ -190,6 +190,18 @@ install_cli() {
 
 # The ready themes shipped in themes/ (exports made with `export --public`).
 # Only names the user does not have yet; never applied, never overwritten.
+# What applying themes may do by itself (store downloads, system packages,
+# restarting programs) is the user's choice: ask it once, on a terminal, if
+# not answered yet (the GUI asks on its first start otherwise).
+ask_automation() {
+  local cli="$BINDIR/theme-profile"
+  [ -x "$cli" ] || return 0
+  [ -t 0 ] && [ -t 1 ] || return 0
+  "$cli" automation --json 2>/dev/null | grep -q '"configured":false' || return 0
+  say "Автоматизация тем"
+  "$cli" automation ask || warn "Не сохранено — приложение спросит при первом запуске."
+}
+
 install_bundled_themes() {
   [ "$THEMES" = "yes" ] || return 0
   local cli="$BINDIR/theme-profile" dir name added=0
@@ -354,6 +366,7 @@ case "$MODE" in
   cli)
     install_cli
     install_bundled_themes
+    ask_automation
     say "Skipped the GUI (--only-cli)."
     ;;
   gui)
@@ -363,6 +376,7 @@ case "$MODE" in
   *)
     install_cli
     install_bundled_themes
+    ask_automation
     install_gui
     ;;
 esac

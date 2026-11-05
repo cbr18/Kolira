@@ -936,6 +936,39 @@ class SettingsController(QObject):
             )
             self.settingsChanged.emit()
 
+    # ── Automation: what applying a theme may do by itself (per user) ──
+    automationChanged = Signal()
+
+    def _automation(self) -> dict:
+        getter = getattr(self._core, "automation", None)
+        return getter() if callable(getter) else {}
+
+    @Property(list, notify=automationChanged)
+    def automationItems(self) -> list:
+        """[{key, what, note, policy}] from `theme-profile automation --json`."""
+        return list(self._automation().get("items") or [])
+
+    @Property(bool, notify=automationChanged)
+    def automationConfigured(self) -> bool:
+        return bool(self._automation().get("configured", True))
+
+    @Slot(str, str)
+    def setAutomation(self, key: str, policy: str) -> None:
+        setter = getattr(self._core, "set_automation", None)
+        if callable(setter):
+            setter({key: policy})
+        self.automationChanged.emit()
+
+    @Slot("QVariantMap")
+    def confirmAutomation(self, choices: dict) -> None:
+        """First run: store every choice shown (marks automation configured)."""
+        setter = getattr(self._core, "set_automation", None)
+        if callable(setter):
+            current = {i["key"]: i["policy"] for i in self.automationItems}
+            current.update({str(k): str(v) for k, v in dict(choices).items()})
+            setter(current)
+        self.automationChanged.emit()
+
     @Property(bool, notify=settingsChanged)
     def networkEnabled(self) -> bool:
         """Online features: palette gallery catalogue, editor theme stores."""

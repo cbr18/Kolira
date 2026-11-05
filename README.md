@@ -93,6 +93,13 @@ entry). Creates timestamped backups of every replaced file in
 
 Install locations follow `XDG_BIN_HOME` / `XDG_DATA_HOME` when set.
 
+**Automation choices.** Run in a terminal, the installer asks once what
+applying a theme may do by itself — download from stores, install system
+packages in a terminal (you type the password), restart Vesktop / Discord /
+Zen / Firefox — each *ask*, *always* or *never* (`theme-profile automation
+ask`). Otherwise the app asks on its first start; change it later in
+*Settings → Automation* or with `theme-profile automation set KEY=POLICY`.
+
 **Data is separate from code** — profiles, backups and settings live in
 `$XDG_CONFIG_HOME/theme-profile/` (default `~/.config/theme-profile/`;
 `profiles/`, `backups/`, `manifests/`, `active-profile`,

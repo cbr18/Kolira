@@ -110,10 +110,10 @@ A change is not done until the docs agree with the code. At minimum:
 # Build the Rust CLI first
 cd gui/qt-app/src/core/rust_core && cargo build --release && cargo test && cargo clippy --all-targets -- -D warnings
 
-# Python tests (offscreen Qt; 255 tests)
+# Python tests (offscreen Qt; 256 tests)
 cd gui/qt-app && QT_QPA_PLATFORM=offscreen uv run --project . --extra dev pytest tests -q
 
-# Bash + installer tests (~199 assertions) — from the repo root
+# Bash + installer tests (~201 assertions) — from the repo root
 bash tests/test-scripts.sh
 
 # Shell static analysis (installer scripts)

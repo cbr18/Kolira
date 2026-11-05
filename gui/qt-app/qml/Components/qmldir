@@ -4,3 +4,4 @@ ComponentCategoryGroup 1.0 ComponentCategoryGroup.qml
 ComponentCheckbox 1.0 ComponentCheckbox.qml
 singleton ThemeColors 1.0 ThemeColors.qml
 singleton TypeScale 1.0 TypeScale.qml
+AutomationList 1.0 AutomationList.qml

@@ -689,6 +689,54 @@ Kirigami.ApplicationWindow {
         }
     }
 
+    // First run: ask the user what applying themes may do by itself
+    // (store downloads, system packages, restarting programs). Per user, not
+    // per theme; changeable later in Settings → Automation.
+    Kirigami.Dialog {
+        id: automationDialog
+        title: qsTr("Before You Apply Themes")
+        preferredWidth: 640
+        closePolicy: Popup.NoAutoClose
+        standardButtons: Kirigami.Dialog.NoButton
+        customFooterActions: [
+            Kirigami.Action {
+                text: qsTr("Save")
+                icon.name: "dialog-ok"
+                onTriggered: {
+                    settingsController.confirmAutomation(automationList.pending)
+                    automationDialog.close()
+                }
+            }
+        ]
+        background: Rectangle {
+            color: ThemeColors.dialogBg(root.glassMode)
+            radius: 8
+            border.width: 1
+            border.color: ThemeColors.cardBorder(root.glassMode)
+        }
+        ColumnLayout {
+            Layout.fillWidth: true
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                color: ThemeColors.fgColor(root.glassMode)
+                text: qsTr("A theme may need things outside its files. What may the app do by itself? Ask — offer it each time; Always — just do it; Never — skip it. You can change this later in Settings → Automation.")
+            }
+            AutomationList {
+                id: automationList
+                Layout.fillWidth: true
+                glassMode: root.glassMode
+                items: settingsController.automationItems
+            }
+        }
+    }
+    Timer {
+        // After the window is up (the settings controller is initialised).
+        interval: 600
+        running: true
+        onTriggered: if (!settingsController.automationConfigured) automationDialog.open()
+    }
+
     // After applying: programs to restart, Telegram's
     // one-time choice — each with a warning and its own checkbox; nothing
     // runs without the user (a call or a game may be on).

@@ -37,6 +37,8 @@ Usage:
                               (what the theme needs and where from; install from official sources)
   theme-profile actions NAME [--json]         (what applying leaves to do: restarts, Telegram)
   theme-profile action ID                     (do one: vesktop, discord, zen, firefox)
+  theme-profile automation [--json] | set KEY=ask|always|never … | ask
+                              (what applying may do by itself: store, packages, restart_<app>)
   theme-profile license NAME ASSET --license=SPDX [--source=URL] [--no-redistribute]
                               (mark a theme asset — wallpaper, Look & Feel…, or kind:name — for publishing)
   theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper] [--public]
@@ -830,6 +832,47 @@ fn main() -> ExitCode {
                 }
             }
             ExitCode::SUCCESS
+        }
+        "automation" => {
+            // The user's choices: `automation` shows them, `automation set
+            // KEY=ask|always|never …`, `automation ask` asks on the terminal.
+            use kde_theme_core::automation::{self, Policy};
+            match args.get(1).map(String::as_str) {
+                None | Some("--json") => {
+                    if args.iter().any(|a| a == "--json") {
+                        let items: Vec<serde_json::Value> = automation::KEYS
+                            .iter()
+                            .map(|(k, what, note)| serde_json::json!({"key": k, "what": what, "note": note, "policy": automation::policy(k).as_str()}))
+                            .collect();
+                        println!("{}", serde_json::json!({"configured": automation::configured(), "items": items}));
+                    } else {
+                        for (k, what, _) in automation::KEYS {
+                            println!("{k}={}  # {what}", automation::policy(k).as_str());
+                        }
+                    }
+                    ExitCode::SUCCESS
+                }
+                Some("set") => {
+                    let mut choices = Vec::new();
+                    for pair in &args[2..] {
+                        let Some((k, v)) = pair.split_once('=') else { return fail(format!("Expected KEY=ask|always|never, got {pair:?}")) };
+                        let Some(p) = Policy::parse(v) else { return fail(format!("{k}: expected ask, always or never")) };
+                        choices.push((k, p));
+                    }
+                    match automation::set(&choices) {
+                        Ok(()) => ExitCode::SUCCESS,
+                        Err(e) => fail(format!("{e:#}")),
+                    }
+                }
+                Some("ask") => {
+                    let stdin = std::io::stdin();
+                    match automation::ask_interactively(&mut stdin.lock(), &mut std::io::stdout()) {
+                        Ok(()) => ExitCode::SUCCESS,
+                        Err(e) => fail(format!("{e:#}")),
+                    }
+                }
+                Some(other) => fail(format!("Usage error: automation [--json] | set KEY=POLICY … | ask (got {other:?})")),
+            }
         }
         "action" => {
             // Perform one action from `actions NAME` (the user agreed to it).

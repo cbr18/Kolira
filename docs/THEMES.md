@@ -138,6 +138,7 @@ theme-profile import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
 theme-profile deps NAME [--refresh] [--install[=all|0,2]] [--json]
 theme-profile actions NAME [--json]        # what applying leaves to do (restarts, Telegram)
 theme-profile action ID                    # do one: vesktop, discord, zen, firefox
+theme-profile automation [--json] | set KEY=ask|always|never … | ask   # the user's choices
 ```
 
 - **save** snapshots the look of every tracked file (filtered as above; old
@@ -261,6 +262,26 @@ A Qt widget style that is a plugin of its own — Kvantum — is a dependency
 (`widget-style`, the package owning `qt6/plugins/styles/libkvantum.so`; where
 Kvantum is not installed, the `kvantum` package). Breeze, Fusion, Windows and
 Oxygen ship with Qt/KDE.
+
+### Automation choices (per user)
+
+What applying may do by itself is the **user's** choice, not the theme's
+(`rust_core/src/automation.rs`, `app-preferences.json` → `"automation"`):
+
+| Key | Covers |
+|---|---|
+| `store` | downloading missing dependencies from the KDE Store and editor stores |
+| `packages` | system packages and the SDDM theme — one terminal, the user's password |
+| `restart_vesktop`, `restart_discord`, `restart_zen`, `restart_firefox` | restarting that program when an apply changed its look |
+
+Each is `ask` (default: offered in *This Theme Needs* / *Finish Applying*),
+`always` (done during the apply — store items are installed before the files
+are restored, packages open their terminal, programs restart — and reported)
+or `never` (skipped, not offered). Asked once: by the installer when it runs
+in a terminal (`theme-profile automation ask`), else by the app on its first
+start (*Before You Apply Themes*); changed in *Settings → Automation* or with
+`theme-profile automation set KEY=ask|always|never`. The GUI reads and writes
+them through the CLI; saving the app's own settings keeps them.
 
 ### After applying: actions
 

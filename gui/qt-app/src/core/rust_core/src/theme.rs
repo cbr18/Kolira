@@ -145,6 +145,28 @@ pub struct Needed {
     pub command: Option<String>,
 }
 
+/// The user's automation choices for the dependencies an apply found
+/// missing: `always` installs them now (store downloads; system packages in a
+/// terminal), `never` drops them; only `ask` ones stay to be offered.
+fn apply_dependency_policies(name: &str, report: &mut ApplyReport) -> Result<()> {
+    use crate::automation::{policy, Policy};
+    let (store, packages) = (policy("store"), policy("packages"));
+    let of = |n: &Needed| if crate::deps::needs_root(&n.dependency) { packages } else { store };
+    let auto: Vec<usize> = report.dependencies.iter().filter(|n| of(n) == Policy::Always).map(|n| n.index).collect();
+    if !auto.is_empty() {
+        for (i, result) in install_dependencies(name, Some(&auto))? {
+            match result {
+                Ok(msg) => report.installed.push(msg),
+                Err(e) => report.errors.push(format!("dependency {i}: {e:#}")),
+            }
+        }
+        report.missing = check(name)?;
+        report.dependencies = needed(name)?;
+    }
+    report.dependencies.retain(|n| of(n) == Policy::Ask);
+    Ok(())
+}
+
 /// Dependencies of theme `name` not installed on this machine.
 pub fn needed(name: &str) -> Result<Vec<Needed>> {
     let package = load(&profile_dir(name)?)?;
@@ -810,6 +832,7 @@ pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
     }
     report.missing = check(name)?;
     report.dependencies = needed(name)?;
+    apply_dependency_policies(name, &mut report)?;
 
     // The theme's own assets (colour scheme, Kvantum family, Look & Feel,
     // Plasma style, btop/Zed/Konsole themes, fastfetch logo) are restored with
@@ -843,7 +866,21 @@ pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
     report.applied = crate::profile::get_profile_components(name).unwrap_or_default();
     // Restarts, Telegram's one-time choice: offered, not done (actions.rs) —
     // a program may be in a call.
-    report.actions = crate::actions::for_theme_since(&dir, Some(&backup));
+    for action in crate::actions::for_theme_since(&dir, Some(&backup)) {
+        let policy = if action.kind == "restart" {
+            crate::automation::policy(&format!("restart_{}", action.id))
+        } else {
+            crate::automation::Policy::Ask
+        };
+        match policy {
+            crate::automation::Policy::Always => match crate::actions::run(&action.id) {
+                Ok(msg) => report.installed.push(msg),
+                Err(e) => report.errors.push(format!("{}: {e:#}", action.title)),
+            },
+            crate::automation::Policy::Never => {}
+            crate::automation::Policy::Ask => report.actions.push(action),
+        }
+    }
 
     if let Some(path) = keep {
         if plasma_wallpaper_from(&live_path(APPLETSRC_REL)).as_deref() != Some(path.to_string_lossy().as_ref()) {

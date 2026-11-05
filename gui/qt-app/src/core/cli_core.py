@@ -589,10 +589,20 @@ class CliSettingsCore(SettingsCore):
     def save(self, settings: AppSettings) -> Result:
         try:
             SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            # Keep keys this model does not own (the Rust core's "automation"
+            # choices): overwrite only the app's own settings.
+            data: dict = {}
+            if SETTINGS_FILE.exists():
+                try:
+                    loaded = json.loads(SETTINGS_FILE.read_text())
+                    data = loaded if isinstance(loaded, dict) else {}
+                except ValueError:
+                    data = {}
+            data.update(settings.to_dict())
             # Preferences can reveal local paths; never widen them to 0644.
             atomic_write_text(
                 SETTINGS_FILE,
-                json.dumps(settings.to_dict(), indent=2) + "\n",
+                json.dumps(data, indent=2) + "\n",
                 mode=0o600,
             )
             return Result.ok("Settings saved")
@@ -601,6 +611,31 @@ class CliSettingsCore(SettingsCore):
 
     def get_defaults(self) -> AppSettings:
         return AppSettings()
+
+    # ── automation choices (owned by the Rust core: `theme-profile automation`)
+
+    def automation(self) -> dict:
+        """{configured: bool, items: [{key, what, note, policy}]}."""
+        try:
+            proc = subprocess.run([resolve_cli_bin(), "automation", "--json"],
+                                  capture_output=True, text=True, timeout=15)
+            data = json.loads(proc.stdout or "{}")
+            return data if isinstance(data, dict) else {}
+        except (OSError, subprocess.SubprocessError, ValueError):
+            return {}
+
+    def set_automation(self, choices: dict) -> Result:
+        """`theme-profile automation set KEY=POLICY …` (also marks it configured)."""
+        pairs = [f"{k}={v}" for k, v in choices.items()
+                 if str(k).replace("_", "").isalnum() and v in ("ask", "always", "never")]
+        if not pairs:
+            return Result.err("nothing to set")
+        try:
+            proc = subprocess.run([resolve_cli_bin(), "automation", "set", *pairs],
+                                  capture_output=True, text=True, timeout=15)
+        except (OSError, subprocess.SubprocessError) as exc:
+            return Result.err(str(exc))
+        return Result(proc.returncode == 0, (proc.stderr or proc.stdout).strip())
 
 
 # ──────────────────────────────────────────────────────────────

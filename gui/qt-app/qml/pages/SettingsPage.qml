@@ -248,6 +248,40 @@ Kirigami.ScrollablePage {
             }
         }
 
+        // ─── Automation (per user: what applying a theme may do by itself) ───
+        Kirigami.Card {
+            Layout.fillWidth: true
+
+            background: Rectangle {
+                radius: Platform.Units.smallSpacing
+                border.width: 1
+                color: ThemeColors.cardBg(page.glassMode)
+                border.color: ThemeColors.cardBorder(page.glassMode)
+            }
+
+            contentItem: ColumnLayout {
+                spacing: Platform.Units.mediumSpacing
+
+                Kirigami.Heading {
+                    level: 2
+                    text: qsTr("Automation")
+                    color: ThemeColors.fgColor(page.glassMode)
+                }
+                Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    color: ThemeColors.dimColor(page.glassMode)
+                    text: qsTr("What applying a theme may do by itself. Ask — offer it each time; Always — just do it; Never — skip it.")
+                }
+                AutomationList {
+                    Layout.fillWidth: true
+                    glassMode: page.glassMode
+                    items: settingsController.automationItems
+                    onChosen: (key, policy) => settingsController.setAutomation(key, policy)
+                }
+            }
+        }
+
         // ─── Behavior Settings ───
         Kirigami.Card {
             Layout.fillWidth: true
