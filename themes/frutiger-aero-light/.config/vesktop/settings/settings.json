@@ -1,4 +1,5 @@
 {
   "themeLinks": [],
-  "enabledThemes": ["theme-profile.theme.css"]
+  "enabledThemes": ["theme-profile.theme.css"],
+  "transparent": true
 }

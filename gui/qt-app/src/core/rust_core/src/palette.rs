@@ -564,6 +564,8 @@ pub struct ApplyOptions {
     /// Background opacity for the `gtk` target (libadwaita), 0.3–1.0;
     /// `None` = 1.0 (opaque).
     pub gtk_opacity: Option<f64>,
+    /// Background opacity for the `discord` target, 0.3–1; `None` = 1.0.
+    pub discord_opacity: Option<f64>,
 }
 
 fn no_apply() -> bool {
@@ -744,12 +746,14 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
     }
 
     if wants("discord") {
-        let files = crate::discord::apply_palette(p)?;
+        let opacity = options.discord_opacity.unwrap_or(1.0);
+        let files = crate::discord::apply_palette(p, opacity)?;
         if files.is_empty() {
             report.push("discord: skipped, no Vencord/Vesktop (stock Discord has no themes)".to_string());
         }
         for f in files {
-            report.push(format!("discord: {} (enabled; Vencord reloads themes itself)", f.display()));
+            let note = if opacity < 1.0 { "translucent window — restart the client" } else { "enabled; restart the client if it was not enabled before" };
+            report.push(format!("discord: {} ({note})", f.display()));
         }
     }
 

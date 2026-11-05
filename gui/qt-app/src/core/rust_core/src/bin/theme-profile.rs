@@ -62,7 +62,7 @@ Usage:
   theme-profile palette from-colors JSON|-    ({\"colors\":[{\"color\":\"#rrggbb\",\"ratio\":0.4},...]},
                               the shape of Kirigami.ImageColors.palette; - reads stdin)
   theme-profile palette generate <kde|kitty|alacritty>   (print the generated colours)
-  theme-profile palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvantum-base=THEME] [--gtk-opacity=0.3-1]
+  theme-profile palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvantum-base=THEME] [--opacity=0.3-1] [--gtk-opacity=…] [--discord-opacity=…]
                               (default: all but kvantum and gtk; kvantum switches the widget style, gtk recolours libadwaita apps)
 
 Components: kwin, plasma_shell, kdeglobals, gtk3, gtk4, qt5ct,
@@ -439,10 +439,8 @@ fn palette_cmd(args: &[String]) -> ExitCode {
                     .iter()
                     .find_map(|a| a.strip_prefix("--kvantum-base="))
                     .map(str::to_string),
-                gtk_opacity: args[1..]
-                    .iter()
-                    .find_map(|a| a.strip_prefix("--gtk-opacity="))
-                    .and_then(|v| v.parse::<f64>().ok()),
+                gtk_opacity: opacity_arg(&args[1..], "--gtk-opacity="),
+                discord_opacity: opacity_arg(&args[1..], "--discord-opacity="),
             };
             match palette::apply(&p, &targets, &options) {
                 Ok(lines) => {
@@ -459,6 +457,12 @@ fn palette_cmd(args: &[String]) -> ExitCode {
             fail("Usage error: palette <show|import|gallery|set|from-wallpaper|from-colors|generate|apply>")
         }
     }
+}
+
+/// `--<app>-opacity=X`, else the shared `--opacity=X`.
+fn opacity_arg(args: &[String], key: &str) -> Option<f64> {
+    let find = |k: &str| args.iter().find_map(|a| a.strip_prefix(k)).and_then(|v| v.parse::<f64>().ok());
+    find(key).or_else(|| find("--opacity="))
 }
 
 fn main() -> ExitCode {

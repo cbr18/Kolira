@@ -6,7 +6,11 @@
 //! * the palette generates `themes/theme-profile.theme.css` on top of the
 //!   popular midnight theme (MIT, refact0r — the approach of matugen's
 //!   template; midnight is loaded from its site) and enables it. Vencord
-//!   reloads themes by itself.
+//!   reloads theme files by itself; a newly enabled theme needs a restart.
+//! * translucency (`--discord-opacity` / `--opacity` < 1): the backgrounds
+//!   get that alpha, the window root is cleared, and the client's
+//!   `transparent` setting (a transparent Electron window, so the
+//!   compositor's blur shows through) is switched on — restart the client.
 
 use std::fmt::Write as _;
 use std::fs;
@@ -19,7 +23,7 @@ use crate::palette::{kde_roles, Palette, Rgb};
 pub const THEME_FILE: &str = "theme-profile.theme.css";
 /// (client name, config folder relative to `$HOME`).
 pub const CLIENTS: &[(&str, &str)] = &[("Vencord", ".config/Vencord"), ("Vesktop", ".config/vesktop")];
-pub const SETTINGS_KEYS: &[&str] = &["enabledThemes", "themeLinks"];
+pub const SETTINGS_KEYS: &[&str] = &["enabledThemes", "themeLinks", "transparent"];
 
 fn client_dir(rel: &str) -> PathBuf {
     crate::paths::home_dir().join(rel)
@@ -39,12 +43,18 @@ pub fn is_settings(rel: &str) -> bool {
     CLIENTS.iter().any(|(_, base)| rel == format!("{base}/settings/settings.json"))
 }
 
-fn hex(c: Rgb) -> String {
-    c.hex()
+fn rgba(c: Rgb, alpha: f64) -> String {
+    if alpha >= 1.0 {
+        c.hex()
+    } else {
+        format!("rgba({}, {}, {}, {:.2})", c.0, c.1, c.2, alpha)
+    }
 }
 
-/// The palette as a midnight-discord theme.
-pub fn css(p: &Palette) -> String {
+/// The palette as a midnight-discord theme; `opacity` (0.3–1) is the alpha
+/// of the backgrounds.
+pub fn css(p: &Palette, opacity: f64) -> String {
+    let o = opacity.clamp(0.3, 1.0);
     let r = kde_roles(p);
     let mut out = String::new();
     let _ = writeln!(
@@ -54,7 +64,7 @@ pub fn css(p: &Palette) -> String {
     );
     out.push_str("@import url('https://refact0r.github.io/midnight-discord/build/midnight.css');\n\n:root {\n");
     let mut var = |name: &str, c: Rgb| {
-        let _ = writeln!(out, "\t--{name}: {};", hex(c));
+        let _ = writeln!(out, "\t--{name}: {};", c.hex());
     };
     var("online-indicator", r.positive);
     var("dnd-indicator", r.negative);
@@ -74,14 +84,24 @@ pub fn css(p: &Palette) -> String {
     var("text-3", r.text.mix(r.window, 0.1));
     var("text-4", r.text_inactive);
     var("text-5", r.text_inactive.mix(r.window, 0.3));
-    var("bg-1", r.button_alt);
-    var("bg-2", r.button);
-    var("bg-3", r.window_alt);
-    var("bg-4", r.window);
-    var("hover", r.view_alt);
-    var("active", r.view_alt.mix(r.accent, 0.15));
-    var("message-hover", r.window_alt);
+    // Backgrounds: buttons stay a little more solid than the panels.
+    let solid = |x: f64| (o + (1.0 - o) * x).min(1.0);
+    let mut bg = |name: &str, c: Rgb, alpha: f64| {
+        let _ = writeln!(out, "\t--{name}: {};", rgba(c, alpha));
+    };
+    bg("bg-1", r.button_alt, solid(0.5));
+    bg("bg-2", r.button, solid(0.4));
+    bg("bg-3", r.window_alt, o);
+    bg("bg-4", r.window, o);
+    bg("hover", r.view_alt, solid(0.3));
+    bg("active", r.view_alt.mix(r.accent, 0.15), solid(0.4));
+    bg("message-hover", r.window_alt, solid(0.2));
     out.push_str("}\n");
+    if o < 1.0 {
+        // The window itself must be see-through for the panels' alpha to show
+        // the desktop (with the compositor's blur) behind them.
+        out.push_str("\nhtml, body, #app-mount {\n\tbackground: transparent !important;\n}\n");
+    }
     out
 }
 
@@ -101,9 +121,16 @@ pub fn enable(settings: &str, theme: &str) -> String {
     crate::appearance::jsonc_merge(&snippet, base, &["enabledThemes"])
 }
 
+/// `settings.json` with the client's `transparent` window option set.
+pub fn set_transparent(settings: &str, on: bool) -> String {
+    let snippet = format!("{{\"transparent\": {on}}}");
+    let base = if settings.trim().is_empty() { "{}" } else { settings };
+    crate::appearance::jsonc_merge(&snippet, base, &["transparent"])
+}
+
 /// Palette target `discord`: write and enable the generated theme in every
 /// client set up here. Returns the theme files written.
-pub fn apply_palette(p: &Palette) -> Result<Vec<PathBuf>> {
+pub fn apply_palette(p: &Palette, opacity: f64) -> Result<Vec<PathBuf>> {
     let mut written = Vec::new();
     for (_, rel) in CLIENTS {
         let dir = client_dir(rel);
@@ -112,11 +139,11 @@ pub fn apply_palette(p: &Palette) -> Result<Vec<PathBuf>> {
         }
         fs::create_dir_all(dir.join("themes"))?;
         let file = dir.join("themes").join(THEME_FILE);
-        fs::write(&file, css(p))?;
+        fs::write(&file, css(p, opacity))?;
         let settings = dir.join("settings/settings.json");
         let text = fs::read_to_string(&settings).unwrap_or_default();
         fs::create_dir_all(dir.join("settings"))?;
-        fs::write(&settings, enable(&text, THEME_FILE))?;
+        fs::write(&settings, set_transparent(&enable(&text, THEME_FILE), opacity < 1.0))?;
         written.push(file);
     }
     Ok(written)
@@ -125,6 +152,19 @@ pub fn apply_palette(p: &Palette) -> Result<Vec<PathBuf>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn translucent_backgrounds_and_window() {
+        let p = crate::palette::parse_base16(include_str!("../data/base16/everforest.yaml"), "t").unwrap();
+        let solid = css(&p, 1.0);
+        assert!(!solid.contains("rgba(") && !solid.contains("transparent !important"));
+        let glass = css(&p, 0.7);
+        assert!(glass.contains("--bg-4: rgba(") && glass.contains(", 0.70);") && glass.contains("background: transparent !important"));
+        let s = set_transparent("{\n  \"autoUpdate\": true\n}\n", true);
+        let v: serde_json::Value = serde_json::from_str(&s).unwrap();
+        assert_eq!(v["transparent"], serde_json::json!(true));
+        assert_eq!(v["autoUpdate"], serde_json::json!(true));
+    }
 
     #[test]
     fn enable_adds_once_and_keeps_other_settings() {

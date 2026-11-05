@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "frutiger-aero-light",
-  "exported": "2026-11-05T19:52:13+10:00",
+  "exported": "2026-11-05T20:01:14+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -40,8 +40,8 @@
     ".config/plasmarc": "39b8beb745703c17d0f44096c4d884b96cdb97507d097fe0a17c8fcf8ce833e2",
     ".config/plasmashellrc": "7054c4e9bcca1f72210370fbe330a29caf58803ea6a443206c6c98e0bbf1d5b4",
     ".config/theme-profile/palette.json": "eb80e1e27b270824e6f82363b5a40703c8abc0bc2dac55f86ea048a780057d01",
-    ".config/vesktop/settings/settings.json": "82dcbfd6287d0fedc58eba85ae91fa173477cd1ae5634f358fbb1a7c5ebc36b8",
-    ".config/vesktop/themes/theme-profile.theme.css": "816cdca156d9f9d6da2daf6fe1bc4e85942ca88101dab15cee1d875957d4bdba",
+    ".config/vesktop/settings/settings.json": "fa282c9ee5d184e906eb1eb08b02090b8d86009ef27918b45170f6f65bd48882",
+    ".config/vesktop/themes/theme-profile.theme.css": "5cbd91c07289c116c3e6d115db3879c53ec5af8dd02db9541c851d445adad13b",
     ".config/wofi/style.css": "41664fe18c91b08b43be6a6b2a0b4fde7c9658df0e5839a8cc23320689fe3c96",
     ".config/wofi/wallpaper.css": "517d148b6df0103ccd5506cfb41545087133cbe990ede5868a1e338b2eb54153",
     ".config/zed/settings.json": "4e9381fe3cd4accbaea7618e7aa2b541eb05a9619720088885bfad77f3361f06",

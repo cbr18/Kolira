@@ -46,7 +46,7 @@ theme-profile palette set accent=#a7c080 base0F=#9da9a0
 theme-profile palette from-wallpaper [IMAGE] [--variant=dark|light] [--name=…]   # по умолчанию — текущие обои
 theme-profile palette from-colors JSON|-   # цвета от Kirigami.ImageColors (GUI)
 theme-profile palette generate kde|kitty|alacritty   # напечатать сгенерированное
-theme-profile palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvantum-base=THEME] [--gtk-opacity=0.3-1]
+theme-profile palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvantum-base=THEME] [--opacity=0.3-1] [--gtk-opacity=…] [--discord-opacity=…]
                                            # по умолчанию все цели, кроме gtk и kvantum
 ```
 
@@ -93,7 +93,14 @@ theme-profile palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvant
 `theme-profile.theme.css` — цвета палитры поверх популярной темы midnight
 (MIT, refact0r; подключается с её сайта, как в шаблоне matugen) — и
 включается в `settings/settings.json` `enabledThemes` (точечная правка, прочие
-настройки не трогаются). Vencord перечитывает темы сам.
+настройки не трогаются). Vencord перечитывает файлы тем сам; новую включённую
+тему клиент подхватывает после перезапуска. Прозрачность —
+`--discord-opacity` (или общая `--opacity`, она же задаёт и `--gtk-opacity`):
+при значении < 1 фоны midnight (`--bg-*`, наведение, выделение) получают эту
+альфу, корневой фон окна (`html, body, #app-mount`) — прозрачный, а в настройках
+клиента включается `transparent` (прозрачное окно Electron, сквозь которое видно
+размытие KWin); ключ `transparent` едет вместе с темой. Нужен перезапуск
+клиента.
 
 **Spotify / Spicetify** (цель `spicetify`, по умолчанию включена, пропускается
 без `~/.config/spicetify/config-xpui.ini`): `Themes/ThemeProfile/color.ini`
