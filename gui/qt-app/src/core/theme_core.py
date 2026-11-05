@@ -33,34 +33,10 @@ from typing import Any, Iterable, Optional
 from .fileutil import atomic_write_bytes, atomic_write_text, copy_preserving_mode
 
 
-# Same rule as the Rust core (field.rs GTK_MIRROR): KDE's gtkconfig syncs GTK
-# settings only for System Settings changes, so these fields are mirrored into
-# GTK 3 and GTK 4 settings.ini. The GTK font is not mirrored (sizes are personal).
-GTK_MIRROR = {
-    "gtk_theme": "gtk-theme-name",
-    "gtk_dark": "gtk-application-prefer-dark-theme",
-    "icon_theme": "gtk-icon-theme-name",
-    "cursor_theme": "gtk-cursor-theme-name",
-}
+# Fields the Rust core mirrors into GTK 3 and GTK 4 settings.ini (field.rs
+# GTK_MIRROR): their undo snapshot includes those files.
+GTK_MIRROR_FIELDS = frozenset({"gtk_theme", "gtk_dark", "icon_theme", "cursor_theme"})
 GTK_SETTINGS = (".config/gtk-3.0/settings.ini", ".config/gtk-4.0/settings.ini")
-
-
-def _mirror_to_gtk(field_id: str, value: Any) -> str:
-    """Write the GTK counterpart of ``field_id``; returns an error text or ""."""
-    key = GTK_MIRROR.get(field_id)
-    if key is None:
-        return ""
-    text_value = ("true" if value else "false") if isinstance(value, bool) else str(value)
-    try:
-        for rel in GTK_SETTINGS:
-            path = live_path(rel)
-            text = path.read_text(encoding="utf-8", errors="replace") if path.is_file() else ""
-            if _ini_get(text, "Settings", key) != text_value:
-                path.parent.mkdir(parents=True, exist_ok=True)
-                atomic_write_text(path, _set_ini_text(text, "Settings", key, text_value))
-    except OSError as exc:
-        return str(exc)
-    return ""
 
 
 def tr(text: str) -> str:
@@ -1238,20 +1214,6 @@ class AppThemeCore(ThemeCore):
 
     # ── writing ───────────────────────────────────────────────────────────
 
-    def _run(self, args: list[str], timeout: float = 20) -> tuple[bool, str]:
-        if os.environ.get(_NO_APPLY) == "1":
-            return True, "skipped (KTM_THEME_NO_APPLY=1)"
-        if not shutil.which(args[0]):
-            return False, f"{args[0]} not found"
-        try:
-            result = subprocess.run(
-                args, capture_output=True, text=True, timeout=timeout, check=False,
-            )
-        except (OSError, subprocess.SubprocessError) as exc:
-            return False, str(exc)
-        output = (result.stderr or result.stdout or "").strip()
-        return result.returncode == 0, output
-
     def _snapshot(self, path: Optional[Path]) -> Optional[bytes]:
         """Record the first-seen state of ``path`` for undo/revert.
 
@@ -1281,123 +1243,37 @@ class AppThemeCore(ThemeCore):
         copy_preserving_mode(path, target)
         return data
 
-    def _write_config(self, field: FieldDef, path: Path, value: Any) -> None:
-        text = _read_text(path) or ""
+    def _field_file(self, field: FieldDef) -> Optional[Path]:
+        """The file a field writes (for undo snapshots): the active Kvantum
+        theme's kvconfig for Kvantum fields, else the field's file."""
         if field.source == "kvantum":
-            text = _set_ini_text(text, field.group, field.key, _stringify(field, value))
-            _atomic_write(path, text)
-            return
+            theme = self._read_raw(FIELD_BY_ID["kvantum_theme"], _home())
+            return self._kvantum_file(str(theme), _home()) if theme else None
+        return self._target_path(field)
 
-        if field.file in _KDE_FILES and shutil.which("kwriteconfig6") and os.environ.get(_NO_APPLY) != "1":
-            args = [
-                "kwriteconfig6", "--file", str(path),
-                "--group", field.group, "--key", field.key,
-            ]
-            if field.type == "bool":
-                args += ["--type", "bool"]
-            args += [_stringify(field, value)]
-            try:
-                result = subprocess.run(args, capture_output=True, timeout=15, check=False)
-                if result.returncode == 0:
-                    return
-            except (OSError, subprocess.SubprocessError):
-                pass
+    @staticmethod
+    def _side_files(field: FieldDef) -> list[Path]:
+        """Other files the core touches for this field (GTK mirrors)."""
+        if field.id in GTK_MIRROR_FIELDS:
+            return [live_path(rel) for rel in GTK_SETTINGS]
+        return []
 
-        text = _set_ini_text(text, field.group, field.key, _stringify(field, value))
-        _atomic_write(path, text)
+    def _cli_field_set(self, values: list[tuple[str, Any]]) -> tuple[set[str], list[str]]:
+        """`theme-profile field set ID=VALUE …` — the Rust core writes the
+        values, runs live commands and hooks. Returns (applied ids, errors)."""
+        from .cli_core import resolve_cli_bin
 
-    def _write_field(self, field: FieldDef, value: Any) -> Optional[Path]:
-        """Write the raw value; return the touched file (for undo)."""
-        home = _home()
-        if field.source == "kvantum":
-            theme = self._read_raw(FIELD_BY_ID["kvantum_theme"], home)
-            path = self._kvantum_file(str(theme), home) if theme else None
-            if path is None:
-                raise FileNotFoundError("active Kvantum theme file not found")
-            self._write_config(field, path, value)
-            return path
-
-        path = self._target_path(field)
-        if path is None:
-            raise FileNotFoundError(f"cannot resolve path for {field.id}")
-        if field.apply == "config":
-            self._write_config(field, path, value)
-        elif field.apply == "ini":
-            text = _read_text(path) or ""
-            _atomic_write(path, _set_ini_text(text, field.group, field.key, _stringify(field, value)))
-        elif field.apply == "kv":
-            _atomic_write(path, _patch_kv(_read_text(path) or "", field.key, _stringify(field, value)))
-        elif field.apply == "toml":
-            _atomic_write(
-                path,
-                _patch_toml(
-                    _read_text(path) or "",
-                    field.key,
-                    _toml_value(field, value),
-                    field.path[0] if field.path else "",
-                ),
-            )
-        elif field.apply == "json":
-            _atomic_write(path, _json_patch(_read_text(path) or "{}", field.path, value))
-        elif field.apply == "userjs":
-            _atomic_write(path, _patch_userjs(_read_text(path) or "", field.key, value))
-        elif field.apply == "cmd_config":
-            self._write_config(field, path, value)
-        else:
-            raise ValueError(f"unsupported apply mode: {field.apply}")
-        return path
-
-    def _command_args(self, field: FieldDef, value: Any) -> list[str]:
-        home = _home()
-        scheme = self._read_raw(FIELD_BY_ID["color_scheme"], home) or ""
-        cursor = self._read_raw(FIELD_BY_ID["cursor_theme"], home) or "default"
-        kvantum = self._read_raw(FIELD_BY_ID["kvantum_theme"], home) or ""
-        replacements = {
-            "{value}": _stringify(field, value),
-            "{hex}": _color_hex(value),
-            "{scheme}": str(scheme),
-            "{cursor}": str(cursor),
-            "{theme}": str(kvantum),
-        }
-        args: list[str] = []
-        for part in field.command:
-            for token, replacement in replacements.items():
-                part = part.replace(token, replacement)
-            args.append(part)
-        return args
-
-    def _run_hook(self, field: FieldDef) -> str:
-        hook = field.hook
-        if not hook or os.environ.get(_NO_APPLY) == "1":
-            return ""
-        messages: list[str] = []
-        if hook == "kwin":
-            ok, out = self._run(["qdbus6", "org.kde.KWin", "/KWin", "reconfigure"], timeout=5)
-            if not ok:
-                messages.append(out)
-        elif hook.startswith("effect:"):
-            name = hook.split(":", 1)[1]
-            if field.type == "bool":
-                enabled = bool(field and self._coerce(field, self._read_raw(field, _home())))
-                action = "loadEffect" if enabled else "unloadEffect"
-                self._run(["qdbus6", "org.kde.KWin", "/Effects", action, name], timeout=5)
-            self._run(["qdbus6", "org.kde.KWin", "/Effects", "reconfigureEffect", name], timeout=5)
-        elif hook == "kbuildsycoca":
-            self._run(["kbuildsycoca6"], timeout=20)
-        elif hook == "kitty":
-            config = live_path(".config/kitty/kitty.conf")
-            self._run(
-                ["kitty", "@", "--to", "unix:/tmp/kitty-theme-profile", "load-config", str(config)],
-                timeout=5,
-            )
-            opacity = _kv_read(_read_text(config), "background_opacity")
-            if opacity:
-                self._run(
-                    ["kitty", "@", "--to", "unix:/tmp/kitty-theme-profile",
-                     "set-background-opacity", "--all", opacity],
-                    timeout=5,
-                )
-        return "; ".join(m for m in messages if m)
+        args = [resolve_cli_bin(), "field", "set"]
+        args += [f"{field_id}={json.dumps(value)}" for field_id, value in values]
+        try:
+            result = subprocess.run(args, capture_output=True, text=True, timeout=120, check=False)
+        except (OSError, subprocess.SubprocessError) as exc:
+            return set(), [tr("theme-profile is not available: %s") % exc]
+        applied = {line.split("=", 1)[1] for line in result.stdout.splitlines() if line.startswith("applied=")}
+        errors = [line.split("=", 1)[1] for line in result.stderr.splitlines() if line.startswith("error=")]
+        if result.returncode != 0 and not errors:
+            errors.append((result.stderr or result.stdout or "theme-profile field set failed").strip())
+        return applied, errors
 
     def set_value(self, field_id: str, value: object) -> Result:
         """Застейджить правку поля (без записи): применится по apply()."""
@@ -1424,44 +1300,34 @@ class AppThemeCore(ThemeCore):
             return Result.err(tr("Nothing to apply"))
 
         messages: list[str] = []
-        hooks_seen: set[str] = set()
         applied = 0
 
+        # Writing, live commands and hooks are the Rust core's (`theme-profile
+        # field set`, one call for the batch): a second implementation here
+        # drifted (kitty socket name, GTK mirroring). Python only records the
+        # files' first-seen state for undo/revert.
+        pending: list[tuple[FieldDef, Any, Any, Optional[Path], Optional[bytes]]] = []
         for field_id, new_raw in list(self._staged.items()):
             field = FIELD_BY_ID.get(field_id)
             if field is None:
                 continue
-            path: Optional[Path] = None
-            old_bytes: Optional[bytes] = None
-            old_raw: Any = None
             try:
-                path = self._target_path(field)
+                path = self._field_file(field)
                 old_raw = self._coerce(field, self._read_raw(field, _home()))
                 old_bytes = self._snapshot(path)
-                written = self._write_field(field, new_raw)
-                if written is not None:
-                    path = written
+                for extra in self._side_files(field):
+                    self._snapshot(extra)
             except (OSError, KeyError, ValueError) as exc:
                 messages.append(f"{field.label}: {exc}")
                 continue
-
-            if field.apply == "cmd_config" and field.command:
-                ok, out = self._run(self._command_args(field, new_raw))
-                if not ok and out:
-                    messages.append(f"{field.label}: live apply failed: {out}")
-
-            if field.hook and field.hook not in hooks_seen:
-                hooks_seen.add(field.hook)
-                hook_message = self._run_hook(field)
-                if hook_message:
-                    messages.append(hook_message)
-
-            mirror_error = _mirror_to_gtk(field_id, new_raw)
-            if mirror_error:
-                messages.append(f"{field.label}: GTK settings: {mirror_error}")
-
-            self._undo.append(_UndoEntry(field_id, old_raw, path, old_bytes))
-            applied += 1
+            pending.append((field, new_raw, old_raw, path, old_bytes))
+        if pending:
+            done, errors = self._cli_field_set([(f.id, raw) for f, raw, _, _, _ in pending])
+            messages.extend(errors)
+            for field, _, old_raw, path, old_bytes in pending:
+                if field.id in done:
+                    self._undo.append(_UndoEntry(field.id, old_raw, path, old_bytes))
+                    applied += 1
         self._staged.clear()
 
         for (rel_path, key), value in list(self._staged_configs.items()):
@@ -1640,9 +1506,11 @@ class AppThemeCore(ThemeCore):
             # Generic-запись (этап C2): хуков и команд нет, только файл.
             self._choices_cache.clear()
             return Result.ok(tr("Undone: %s") % (entry.label or entry.field_id))
-        if field.apply == "cmd_config" and field.command and entry.old_raw is not None:
-            self._run(self._command_args(field, entry.old_raw))
-        self._run_hook(field)
+        if entry.old_raw is not None:
+            _, errors = self._cli_field_set([(field.id, entry.old_raw)])
+            if errors:
+                self._choices_cache.clear()
+                return Result.err(tr("Undo failed: %s") % "; ".join(errors))
         self._choices_cache.clear()
         return Result.ok(tr("Undone: %s") % field.label)
 
@@ -1682,22 +1550,18 @@ class AppThemeCore(ThemeCore):
         # (accent, look-and-feel, Kvantum, cursor). Re-apply their (now old)
         # values and refresh the hooks once.
         seen: set[str] = set()
+        reapply: list[tuple[str, Any]] = []
         for field in reversed(touched):
-            if field.id in seen:
+            if field.id in seen or not (field.command or field.hook):
                 continue
             seen.add(field.id)
-            if field.apply == "cmd_config" and field.command:
-                raw = self._read_raw(field, _home())
-                value = self._coerce(field, raw)
-                if value is not None and os.environ.get(_NO_APPLY) != "1":
-                    self._run(self._command_args(field, value))
-            if os.environ.get(_NO_APPLY) != "1":
-                self._run_hook(field)
-
-        if os.environ.get(_NO_APPLY) != "1":
-            self._run(["qdbus6", "org.kde.KWin", "/KWin", "reconfigure"], timeout=5)
-            self._run(["kbuildsycoca6"], timeout=20)
+            value = self._coerce(field, self._read_raw(field, _home()))
+            if value is not None:
+                reapply.append((field.id, value))
         messages = []
+        if reapply:
+            _, errors = self._cli_field_set(reapply)
+            messages.extend(errors)
         if discarded:
             messages.append(tr("Discarded %s staged change(s)") % discarded)
         messages.append(tr("Reverted %s file(s)") % restored)
@@ -1717,14 +1581,6 @@ def _stringify(field: FieldDef, value: Any) -> str:
         return "true" if value else "false"
     if field.type in ("int", "float"):
         return _fmt_number(float(value))
-    return str(value)
-
-
-def _toml_value(field: FieldDef, value: Any) -> Any:
-    if field.type == "bool":
-        return bool(value)
-    if field.type in ("int", "float"):
-        return float(value) if field.type == "float" else int(value)
     return str(value)
 
 
