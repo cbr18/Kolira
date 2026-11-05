@@ -14,9 +14,14 @@
 //! on blue: buttons, the open chat, userpics) gets the palette's on-accent
 //! text — a light base recoloured dark would otherwise turn it dark on blue.
 //!
-//! Telegram keeps the applied theme inside its own encrypted settings, so a
-//! theme cannot be switched from outside: the file is opened in Telegram,
-//! which shows a preview with an *Apply* button.
+//! Telegram keeps the applied theme inside its own encrypted settings, so the
+//! first switch is the user's: *Settings → Chat Settings → Choose from file*
+//! and this file. Telegram then watches the applied theme file
+//! (`ChatBackground::refreshThemeWatcher`, a QFileSystemWatcher) and
+//! re-applies it whenever it changes — every later palette or theme apply
+//! recolours a running Telegram by rewriting the file. (Passing the file on
+//! Telegram's command line does *not* apply it: Telegram offers to forward
+//! the file to a chat.)
 
 use std::path::PathBuf;
 
@@ -98,8 +103,11 @@ pub fn generate(p: &Palette, default_palette: &str) -> String {
     text
 }
 
-fn no_apply() -> bool {
-    std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1")
+/// Has the user chosen our file in Telegram? Telegram's log records the
+/// theme it loads; a cheap hint, not a guarantee.
+fn chosen_in_telegram() -> bool {
+    let log = crate::paths::data_home().join("TelegramDesktop/log.txt");
+    std::fs::read_to_string(log).is_ok_and(|t| t.contains("theme-profile.tdesktop-palette"))
 }
 
 /// Telegram's binary, if installed.
@@ -107,25 +115,10 @@ fn telegram_bin() -> Option<PathBuf> {
     ["Telegram", "telegram-desktop"].iter().find_map(|b| which::which(b).ok())
 }
 
-/// Open the palette in Telegram: a running Telegram shows a preview with
-/// *Apply*. Returns whether Telegram was asked.
-pub fn open_in_telegram(file: &std::path::Path) -> bool {
-    if no_apply() || !file.is_file() {
-        return false;
-    }
-    let Some(bin) = telegram_bin() else { return false };
-    std::process::Command::new(bin)
-        .arg("--")
-        .arg(file)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .spawn()
-        .is_ok()
-}
-
 /// Palette target outcome.
 pub enum Outcome {
-    /// Written; whether Telegram was asked to show the preview.
+    /// Written; whether Telegram already uses this file (then it recolours
+    /// itself) — otherwise the user picks it once in Telegram.
     Written(PathBuf, bool),
     /// Skipped, with the reason (not installed, default palette unavailable).
     Skipped(String),
@@ -147,9 +140,9 @@ pub fn apply_palette(p: &Palette) -> Result<Outcome> {
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir)?;
     }
+    // Written in place (same inode): Telegram's file watcher keeps watching.
     std::fs::write(&path, text)?;
-    let opened = open_in_telegram(&path);
-    Ok(Outcome::Written(path, opened))
+    Ok(Outcome::Written(path, chosen_in_telegram()))
 }
 
 #[cfg(test)]

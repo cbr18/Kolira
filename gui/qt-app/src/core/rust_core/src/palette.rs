@@ -776,8 +776,11 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
 
     if wants("telegram") {
         match crate::telegram::apply_palette(p)? {
-            crate::telegram::Outcome::Written(path, true) => report.push(format!("telegram: {} (Telegram shows a preview — press Apply)", path.display())),
-            crate::telegram::Outcome::Written(path, false) => report.push(format!("telegram: {} (open it in Telegram to apply)", path.display())),
+            crate::telegram::Outcome::Written(path, true) => report.push(format!("telegram: {} (Telegram follows this file)", path.display())),
+            crate::telegram::Outcome::Written(path, false) => report.push(format!(
+                "telegram: {} (once: Telegram → Settings → Chat Settings → Choose from file → this file; then it follows it)",
+                path.display()
+            )),
             crate::telegram::Outcome::Skipped(why) => report.push(format!("telegram: skipped, {why}")),
         }
     }
