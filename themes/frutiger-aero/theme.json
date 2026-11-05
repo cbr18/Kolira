@@ -27,7 +27,7 @@
       "source": "https://commons.wikimedia.org/wiki/File:Maldives_Surgeonfish,_Acanthurus_leucosternon.jpg"
     }
   ],
-  "created": "2026-11-05T12:18:35+10:00",
+  "created": "2026-11-05T13:22:36+10:00",
   "dependencies": [
     {
       "exact": true,
@@ -82,6 +82,15 @@
       "source": "kde-store",
       "title": "Simple Application Launcher for Plasma 6",
       "url": "https://store.kde.org/p/2115883"
+    },
+    {
+      "exact": true,
+      "id": "vesktop-bin",
+      "kind": "discord-client",
+      "name": "Vesktop",
+      "source": "aur",
+      "title": "Vesktop (Discord with Vencord) — or install Vencord into Discord: https://vencord.dev/download/",
+      "url": "https://vencord.dev/download/"
     },
     {
       "exact": true,

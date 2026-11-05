@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "frutiger-aero",
-  "exported": "2026-11-05T12:18:35+10:00",
+  "exported": "2026-11-05T13:22:37+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -32,10 +32,12 @@
     ".config/nvim/colors/theme-profile.lua": "db70ac013c8686edeb94e623855f00252dd16d57d3cf4d836fc928a44018862f",
     ".config/nvim/lua/theme-profile.lua": "ebc889352074d943714ed81e3a3a574f069410a45705a75f7bd7742f3e715453",
     ".config/oh-my-posh/theme-profile.omp.json": "8c6275d69b4441c495c9ecf21ec08eff723c42d4138839165eb4b6958b1d7368",
-    ".config/plasma-org.kde.plasma.desktop-appletsrc": "a11fce335df17018c65a542df5c14f1b96720b1ef08bbd522b20bd327d3aa857",
+    ".config/plasma-org.kde.plasma.desktop-appletsrc": "c925b98aa93d11797ed550c99761d2f73b15af628fe606395297e712f86de77b",
     ".config/plasmarc": "39b8beb745703c17d0f44096c4d884b96cdb97507d097fe0a17c8fcf8ce833e2",
     ".config/plasmashellrc": "7054c4e9bcca1f72210370fbe330a29caf58803ea6a443206c6c98e0bbf1d5b4",
     ".config/theme-profile/palette.json": "5c891503086bbc94bb2c47771f8d47628105740872e1d91d8644ac55c94c5bbd",
+    ".config/vesktop/settings/settings.json": "82dcbfd6287d0fedc58eba85ae91fa173477cd1ae5634f358fbb1a7c5ebc36b8",
+    ".config/vesktop/themes/theme-profile.theme.css": "5f5e5afaf4e3904e6e5f9b07a4ecfa32a3f8fe91d33190bc0fcab899f5b7b5ed",
     ".config/wofi/style.css": "41664fe18c91b08b43be6a6b2a0b4fde7c9658df0e5839a8cc23320689fe3c96",
     ".config/wofi/wallpaper.css": "517d148b6df0103ccd5506cfb41545087133cbe990ede5868a1e338b2eb54153",
     ".config/zed/settings.json": "3a6efd091931ed691c85ac04df776d0bcdae5ac60b52d52c8d934eca939da4aa",
@@ -46,10 +48,10 @@
     ".zen/gp0y8wrv.Default (release)/chrome/userContent.css": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".zen/gp0y8wrv.Default (release)/chrome/zen-themes.css": "f7afe2bc7895408a82571ea975394c857a29a6184e2bd97babce51a22c017f46",
     ".zen/gp0y8wrv.Default (release)/user.js": "bc657830d7e5c732db0374176452db2fdc6133f01e9283aeeed09f984a147857",
-    "manifest.json": "de3e9fd2c2fd25240dc4e63712887678e25e88149c5cbf8c4ed526c7c6859c73",
-    "manifest.txt": "6eb0141c79255440933ce20aeb7bfca2e986ab93d7a0b7c83f3fdf9c6dec5059",
+    "manifest.json": "ca86bc9ccb1cb4d34e0df168a663ed12d7b9fafe0d9329591c5c84f78f72c6cc",
+    "manifest.txt": "88d4325f6910e9eefd24dc3aa1ce85a05216550625f2dcd297b98fd165ba9dc0",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-    "theme.json": "8e8241511c64d6e509578ecbb582be558e866ecbcfe42a34db42e70bbdcbc0ab",
+    "theme.json": "eaee76e8eb5fa2ae598deba23710e4a17a88241aad319c361c99f9dc33d411cb",
     "wallpaper/frutiger-aero-fish.jpg": "879498e1e98deb6d30f81c55e3d897ff72136decee79848f80afc9eb5de6906f",
     "wallpaper/source": "b8239e067a3563796e66895650f39aab398dacd33a87cca21386dba40eeea6fc"
   }

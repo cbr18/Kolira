@@ -215,7 +215,7 @@ DialogWidth=810
 [Containments][283][Applets][437][Configuration][General]
 favoritesPortedToKAstats=true
 icon=cachyos-pi
-paneSwap=true
+paneSwap=false
 systemFavorites=suspend\\,hibernate\\,reboot\\,shutdown
 
 [Containments][283][General]
@@ -386,6 +386,7 @@ DialogWidth=810
 appNameFormat=2
 favoritesPortedToKAstats=true
 icon=cachyos-pi
+paneSwap=false
 systemFavorites=suspend\\,hibernate\\,reboot\\,shutdown
 
 [Containments][306][General]

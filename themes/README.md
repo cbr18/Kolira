@@ -150,6 +150,7 @@ Frutiger Aero: Windows 7 glass titlebars (Se7en Aero), translucent KvGlass + Cyb
 | aurorae | Se7en Aero Aurorae | KDE Store | [link](https://store.kde.org/p/1406638) |
 | plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
 | plasmoid | Simple Application Launcher for Plasma 6 | KDE Store | [link](https://store.kde.org/p/2115883) |
+| discord-client | Vesktop (Discord with Vencord) — or install Vencord into Discord: https://vencord.dev/download/ | AUR | [link](https://vencord.dev/download/) |
 | sddm | sddm-astronaut-theme | AUR | [link](https://aur.archlinux.org/packages/sddm-astronaut-theme) |
 | oh-my-posh | oh-my-posh (prompts usually need a Nerd Font) | AUR | [link](https://ohmyposh.dev/docs/installation/linux) |
 | vscode | Night Owl | VS Code Marketplace | [link](https://marketplace.visualstudio.com/items?itemName=sdras.night-owl) |

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "created_at": "2026-11-05T12:18:35+10:00",
+  "created_at": "2026-11-05T13:22:36+10:00",
   "tool_version": "0.5.0",
   "name": "frutiger-aero",
   "description": "",
@@ -139,6 +139,13 @@
         ".config/nvim/init.lua",
         ".config/nvim/lua/theme-profile.lua",
         ".config/nvim/colors/theme-profile.lua"
+      ]
+    },
+    {
+      "id": "discord",
+      "paths": [
+        ".config/vesktop/settings/settings.json",
+        ".config/vesktop/themes"
       ]
     },
     {
