@@ -99,6 +99,8 @@ const KDEGLOBALS: &[Rule] = &[
 ];
 const KWINRC: &[Rule] = &[
     r("Effect-*", Keys::All),
+    // Rounded Corners (kwin4_effect_shapecorners) keeps its settings here.
+    r("Round-Corners", Keys::All),
     r("org.kde.kdecoration2", Keys::All),
     r("Plugins", Keys::KwinEffects),
 ];

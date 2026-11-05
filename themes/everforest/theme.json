@@ -50,6 +50,15 @@
     },
     {
       "exact": true,
+      "id": "kwin-effects-better-blur-dx",
+      "kind": "kwin-effect",
+      "name": "better_blur_dx",
+      "source": "aur",
+      "title": "",
+      "url": "https://aur.archlinux.org/packages/kwin-effects-better-blur-dx"
+    },
+    {
+      "exact": true,
       "id": "2130967",
       "kind": "plasmoid",
       "name": "luisbocanegra.panel.colorizer",

@@ -169,7 +169,7 @@ GTK-тема, «prefer dark», тема иконок и тема курсора 
 | btop | `theme` (enum из `btop/themes`), `rounded_corners` | restart |
 | zed | `theme.mode`, `theme.light`, `theme.dark` | live (Zed перечитывает) |
 | VS Code / Cursor | `workbench.colorTheme` | live |
-| Zen | prefs из `user.js`: transparency, opacity, color, `zen.view.window.scheme` | restart |
+| Zen | prefs из `user.js`: transparency, opacity, color, `zen.view.window.scheme`, схема для сайтов `layout.css.prefers-color-scheme.content-override` (поле `zen_sites_scheme`: 0 тёмная, 1 светлая, 2 как в системе, 3 как тема браузера) | restart |
 | Obsidian | `theme`, `cssTheme` | reload |
 | wofi | цвета `@define-color` | при следующем открытии |
 | fastfetch | `logo`, путь конфига | при следующем запуске |

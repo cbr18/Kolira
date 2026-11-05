@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "dracula",
-  "exported": "2026-11-05T13:29:22+10:00",
+  "exported": "2026-11-05T18:46:24+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -49,7 +49,7 @@
     "manifest.json": "7bddb8ebae4ca2c68d13a3f3f619e5a1133a0f3b94f2ce6370a728abc2aafa99",
     "manifest.txt": "b637a4a7994cbbeaaf29435c2ce550743977ad1169d0ef4ea4dfd541e165982e",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-    "theme.json": "d6451087827d561b62536833dc92bb7632068664414ae22be6b2396ac4a1d3f4",
+    "theme.json": "0f979cf502128d7e47785723497c7d0df9ea865832af6850cd50aa1d17c73c69",
     "wallpaper/dracula-kde.png": "ea3b30412f97bc24c74707930253135d4b2ac247c43d4887ca00062cc5272d22",
     "wallpaper/source": "47645aa7576ec3ce19752e66897b341efadf2ca961ba333cf85e1a6e417f2803"
   }

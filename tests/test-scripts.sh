@@ -1968,6 +1968,17 @@ else
   fail "aurorae not carried: $(cat "$AU/.config/theme-profile/profiles/deco/theme.json" 2>/dev/null | head -c 700)"
 fi
 
+# Rounded Corners keeps its settings in [Round-Corners]: part of the theme.
+RC="$TMP_ROOT/round-corners"; mkdir -p "$RC/.config"
+printf '[Plugins]\nkwin4_effect_shapecornersEnabled=true\n\n[Round-Corners]\nSize=10\nShadowSize=45\n\n[Desktops]\nNumber=4\n' >"$RC/.config/kwinrc"
+env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$RC" KTM_THEME_NO_APPLY=1 KTM_OFFLINE=1 "$CLI_DIR/theme-profile" save rc >/dev/null 2>&1
+snap="$RC/.config/theme-profile/profiles/rc/.config/kwinrc"
+if grep -q "^Size=10" "$snap" 2>/dev/null && grep -q "^kwin4_effect_shapecornersEnabled=true" "$snap" && ! grep -q "Desktops" "$snap"; then
+  ok "rounded-corner settings and the effect switch travel with the theme (desktops do not)"
+else
+  fail "Round-Corners not captured: $(cat "$snap" 2>/dev/null | tr '\n' ' ')"
+fi
+
 # --- Summary ------------------------------------------------------------------
 echo ""
 echo "═══════════════════════════════════════"

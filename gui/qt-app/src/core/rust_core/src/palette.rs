@@ -776,7 +776,7 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
     if wants("gtk") {
         let opacity = options.gtk_opacity.unwrap_or(1.0);
         let path = crate::extras::gtk_apply_palette(p, opacity)?;
-        report.push(format!("gtk: {} (libadwaita apps, opacity {:.2}; reopen them)", path.display(), opacity.clamp(0.3, 1.0)));
+        report.push(format!("gtk: {} (+ gtk-3.0/theme-profile.css; GTK 3 and libadwaita apps, opacity {:.2}; reopen them)", path.display(), opacity.clamp(0.3, 1.0)));
     }
 
     if wants("kvantum") {

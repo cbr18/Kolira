@@ -861,8 +861,8 @@ class AppThemeCore(ThemeCore):
             return _color_hex(value)
         if field.type == "font":
             return _font_display(value, field.file.endswith(".ini") and "gtk" in field.file)
-        if field.id == "zen_window_scheme":
-            return {"0": "Dark", "1": "Light", "2": "System"}.get(str(value), str(value))
+        if field.id in ("zen_window_scheme", "zen_sites_scheme"):
+            return {"0": "Dark", "1": "Light", "2": "System", "3": "Browser theme"}.get(str(value), str(value))
         if field.type in ("int", "float"):
             return f"{_fmt_number(float(value))}{field.suffix}"
         return str(value)
@@ -1122,6 +1122,13 @@ class AppThemeCore(ThemeCore):
                 Choice("0", "Dark"),
                 Choice("1", "Light"),
                 Choice("2", "System"),
+            ]
+        elif key == "zen_site_schemes":
+            result = [
+                Choice("0", "Dark"),
+                Choice("1", "Light"),
+                Choice("2", "System"),
+                Choice("3", "Browser theme"),
             ]
         elif key == "zed_modes":
             result = [Choice(v) for v in ("system", "light", "dark")]
@@ -1473,12 +1480,13 @@ class AppThemeCore(ThemeCore):
         return Result.ok(message)
 
     def _normalize_input(self, field: FieldDef, value: Any) -> Any:
-        if field.id == "zen_window_scheme":
+        if field.id in ("zen_window_scheme", "zen_sites_scheme"):
             try:
                 number = int(float(value))
             except (TypeError, ValueError):
                 return None
-            return number if number in (0, 1, 2) else None
+            top = 3 if field.id == "zen_sites_scheme" else 2
+            return number if 0 <= number <= top else None
         if field.type == "bool":
             return _as_bool(value)
         if field.type == "int":

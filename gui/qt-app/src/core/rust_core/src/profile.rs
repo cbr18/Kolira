@@ -908,15 +908,20 @@ fn apply_live_hooks(source: &Path) {
     reapply_widget_style(source);
 
     run_external("kbuildsycoca6", &[]);
+    // Running apps reload icons only on KIconLoader's signal (what
+    // plasma-changeicons emits); the copied kdeglobals alone changes nothing
+    // until they restart.
+    run_external("dbus-send", &["--session", "--type=signal", "/KIconLoader", "org.kde.KIconLoader.iconChanged", "int32:0"]);
     run_external("systemctl", &["--user", "stop", "swaync.service"]);
     run_external("qdbus6", &["org.kde.KWin", "/KWin", "reconfigure"]);
 
-    for effect in ["glass", "blur", "contrast", "better_blur_dx"] {
+    // Built into KWin: as the theme says (absent = KWin's default).
+    for effect in ["blur", "contrast"] {
         sync_kwin_effect(source, effect);
-    }
-    for effect in ["glass", "blur", "contrast", "better_blur_dx"] {
         run_external("qdbus6", &["org.kde.KWin", "/Effects", "reconfigureEffect", effect]);
     }
+    // Third-party effects: every installed one, off when the theme predates it.
+    crate::kwin_effects::sync(&source.join(".config/kwinrc"));
 
     apply_kitty_live(source);
     start_plasma_shell();
@@ -1447,6 +1452,7 @@ fn save_with_paths(profile: &str, rel_paths: &[String]) -> Result<()> {
     let tmp = unique_dir(&profiles, &format!(".save-{profile}"))?;
     let built = split_live_hosts(rel_paths)
         .and(copy_tracked_appearance(&tmp, rel_paths))
+        .and(crate::kwin_effects::pin_states(&tmp.join(".config/kwinrc")).map_err(anyhow::Error::from))
         .and(capture_derived(&tmp, rel_paths))
         .and(capture_wallpaper(&tmp, rel_paths))
         .and(capture_active_kvantum_theme(&tmp, rel_paths))

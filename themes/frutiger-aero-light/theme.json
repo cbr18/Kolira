@@ -44,7 +44,7 @@
       "source": "https://commons.wikimedia.org/wiki/File:Frutiger_Aero_(1).jpg"
     }
   ],
-  "created": "2026-11-05T15:48:52+10:00",
+  "created": "2026-11-05T18:40:04+10:00",
   "dependencies": [
     {
       "exact": true,
@@ -72,6 +72,24 @@
       "source": "kde-store",
       "title": "Aero",
       "url": "https://store.kde.org/p/1012735"
+    },
+    {
+      "exact": true,
+      "id": "kwin-effects-better-blur-dx",
+      "kind": "kwin-effect",
+      "name": "better_blur_dx",
+      "source": "aur",
+      "title": "",
+      "url": "https://aur.archlinux.org/packages/kwin-effects-better-blur-dx"
+    },
+    {
+      "exact": true,
+      "id": "kwin-effect-rounded-corners-git",
+      "kind": "kwin-effect",
+      "name": "kwin4_effect_shapecorners",
+      "source": "aur",
+      "title": "",
+      "url": "https://aur.archlinux.org/packages/kwin-effect-rounded-corners-git"
     },
     {
       "exact": true,
@@ -138,21 +156,12 @@
     },
     {
       "exact": true,
-      "id": "night-owlz",
+      "id": "glass-theme",
       "kind": "zed",
-      "name": "Night Owl Dark",
+      "name": "Light Glass",
       "source": "zed",
       "title": "",
-      "url": "https://zed.dev/extensions?query=night-owlz"
-    },
-    {
-      "exact": true,
-      "id": "night-owlz",
-      "kind": "zed",
-      "name": "Night Owl Light",
-      "source": "zed",
-      "title": "",
-      "url": "https://zed.dev/extensions?query=night-owlz"
+      "url": "https://zed.dev/extensions?query=glass-theme"
     },
     {
       "exact": true,
@@ -164,7 +173,7 @@
       "url": "https://store.kde.org/p/1407084"
     }
   ],
-  "description": "Frutiger Aero Light — Windows 7 as it shipped: white windows with black text, Aero glass title bars with black glowing titles (Se7en Aero Light), light Kvantum and libadwaita glass, Windows 7 GTK, Seven icons, Aero cursors, CC0 Frutiger Aero wallpaper",
+  "description": "Frutiger Aero Light — Windows 7 as it shipped: white windows with black text, Aero glass title bars with black glowing titles (Se7en Aero Light), light Kvantum, GTK 3 and libadwaita glass, Windows 7 GTK, Seven icons, Aero cursors, CC0 Frutiger Aero wallpaper",
   "generator": "theme-profile 0.5.0",
   "name": "frutiger-aero-light",
   "palette": {
@@ -205,12 +214,12 @@
       "url": ""
     },
     "zed_dark": {
-      "id": "night-owlz",
+      "id": "glass-theme",
       "store": "zed",
       "url": ""
     },
     "zed_light": {
-      "id": "night-owlz",
+      "id": "glass-theme",
       "store": "zed",
       "url": ""
     }
@@ -225,7 +234,7 @@
     "blur_docks": true,
     "blur_enabled": true,
     "blur_menus": true,
-    "blur_strength": 11,
+    "blur_strength": 5,
     "border_size": "None",
     "breeze_menu_opacity": 50,
     "btop_rounded": true,
@@ -275,10 +284,11 @@
     "vscode_theme": "Night Owl Light",
     "widget_style": "kvantum",
     "window_bg": "255,255,255",
-    "zed_dark": "Night Owl Dark",
-    "zed_light": "Night Owl Light",
+    "zed_dark": "Light Glass",
+    "zed_light": "Light Glass",
     "zed_mode": "light",
     "zen_opacity": 0.55,
+    "zen_sites_scheme": "1",
     "zen_transparent": true,
     "zen_window_scheme": "1"
   },

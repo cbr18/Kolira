@@ -917,7 +917,12 @@
     "icons",
     "иконки"
    ],
-   "confirm": true
+   "confirm": true,
+   "apply": "cmd_config",
+   "command": [
+    "/usr/lib/plasma-changeicons",
+    "{value}"
+   ]
   },
   {
    "id": "cursor_theme",
@@ -1462,6 +1467,28 @@
     "тема",
     "светлая",
     "тёмная"
+   ]
+  },
+  {
+   "id": "zen_sites_scheme",
+   "section": "apps",
+   "label": "Zen: colour scheme for websites",
+   "type": "enum",
+   "source": "userjs",
+   "file": ".zen/gp0y8wrv.Default (release)/user.js",
+   "key": "layout.css.prefers-color-scheme.content-override",
+   "choices": "zen_site_schemes",
+   "apply": "userjs",
+   "badge": "app",
+   "description": "What websites see as prefers-color-scheme: dark, light, the system's scheme or the browser theme",
+   "keywords": [
+    "zen",
+    "browser",
+    "websites",
+    "prefers-color-scheme",
+    "сайты",
+    "тёмная",
+    "светлая"
    ]
   },
   {

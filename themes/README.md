@@ -41,11 +41,12 @@ Dark translucent glass: blur everywhere, OrchisDark Kvantum, accent from the mon
 | icons | Yet Another Monochrome Icon Set For KDE Plasma | KDE Store (search match — confirm) | [link](https://store.kde.org/p/2303161) |
 | gtk | Fluent-Dark | AUR | [link](https://aur.archlinux.org/packages/fluent-gtk-theme) |
 | decoration | org.kde.klassy | AUR | [link](https://aur.archlinux.org/packages/klassy) |
+| kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
 | plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
 | plasmoid | Simple Application Launcher for Plasma 6 | KDE Store | [link](https://store.kde.org/p/2115883) |
 | sddm | sddm-astronaut-theme | AUR | [link](https://aur.archlinux.org/packages/sddm-astronaut-theme) |
 | oh-my-posh | oh-my-posh (prompts usually need a Nerd Font) | AUR | [link](https://ohmyposh.dev/docs/installation/linux) |
-| vscode | Doki Theme | VS Code Marketplace | [link](https://marketplace.visualstudio.com/items?itemName=unthrottled.doki-theme) |
+| vscode | unthrottled.doki-theme | VS Code Marketplace | [link](https://marketplace.visualstudio.com/items?itemName=unthrottled.doki-theme) |
 | zed | New Darcula Darker | Zed extensions | [link](https://zed.dev/extensions?query=new-darcula) |
 | kvantum | Orchis kvantum | KDE Store (search match — confirm) | [link](https://store.kde.org/p/1458909) |
 
@@ -68,6 +69,8 @@ Light, flat and warm: Sandstone Kvantum, no transparency, watercolour wallpaper
 |---|---|---|---|
 | icons | klassy | AUR | [link](https://aur.archlinux.org/packages/klassy) |
 | gtk | Fluent-Light | AUR | [link](https://aur.archlinux.org/packages/fluent-gtk-theme) |
+| kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
+| kwin-effect | glass | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-glass-git) |
 | plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
 | plasmoid | Simple Application Launcher for Plasma 6 | KDE Store | [link](https://store.kde.org/p/2115883) |
 | sddm | sddm-astronaut-theme | AUR | [link](https://aur.archlinux.org/packages/sddm-astronaut-theme) |
@@ -92,11 +95,12 @@ Everforest Dark Medium: matte green palette, Breeze widgets/GTK, misty pine fore
 |---|---|---|---|
 | icons | Yet Another Monochrome Icon Set For KDE Plasma | KDE Store (search match — confirm) | [link](https://store.kde.org/p/2303161) |
 | decoration | org.kde.klassy | AUR | [link](https://aur.archlinux.org/packages/klassy) |
+| kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
 | plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
 | plasmoid | Simple Application Launcher for Plasma 6 | KDE Store | [link](https://store.kde.org/p/2115883) |
 | sddm | sddm-astronaut-theme | AUR | [link](https://aur.archlinux.org/packages/sddm-astronaut-theme) |
 | oh-my-posh | oh-my-posh (prompts usually need a Nerd Font) | AUR | [link](https://ohmyposh.dev/docs/installation/linux) |
-| vscode | Doki Theme | VS Code Marketplace | [link](https://marketplace.visualstudio.com/items?itemName=unthrottled.doki-theme) |
+| vscode | unthrottled.doki-theme | VS Code Marketplace | [link](https://marketplace.visualstudio.com/items?itemName=unthrottled.doki-theme) |
 | zed | Everforest Dark Medium (blur) | Zed extensions | [link](https://zed.dev/extensions?query=everforest) |
 | kvantum | Orchis kvantum | KDE Store (search match — confirm) | [link](https://store.kde.org/p/1458909) |
 
@@ -120,11 +124,12 @@ Dracula palette on glass: purple accent, recoloured Kvantum, blur
 | icons | Yet Another Monochrome Icon Set For KDE Plasma | KDE Store (search match — confirm) | [link](https://store.kde.org/p/2303161) |
 | gtk | Fluent-Dark | AUR | [link](https://aur.archlinux.org/packages/fluent-gtk-theme) |
 | decoration | org.kde.klassy | AUR | [link](https://aur.archlinux.org/packages/klassy) |
+| kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
 | plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
 | plasmoid | Simple Application Launcher for Plasma 6 | KDE Store | [link](https://store.kde.org/p/2115883) |
 | sddm | sddm-astronaut-theme | AUR | [link](https://aur.archlinux.org/packages/sddm-astronaut-theme) |
 | oh-my-posh | oh-my-posh (prompts usually need a Nerd Font) | AUR | [link](https://ohmyposh.dev/docs/installation/linux) |
-| vscode | Doki Theme | VS Code Marketplace | [link](https://marketplace.visualstudio.com/items?itemName=unthrottled.doki-theme) |
+| vscode | unthrottled.doki-theme | VS Code Marketplace | [link](https://marketplace.visualstudio.com/items?itemName=unthrottled.doki-theme) |
 | cursor | Dracula Theme | Open VSX | [link](https://open-vsx.org/extension/dracula-theme/theme-dracula) |
 | zed | Dracula | Zed extensions | [link](https://zed.dev/extensions?query=dracula) |
 
@@ -149,6 +154,7 @@ Frutiger Aero: Windows 7 glass titlebars (Se7en Aero), see-through Kvantum glass
 | cursors | Aero Mouse Cursors with Drop Shadow | KDE Store | [link](https://store.kde.org/p/999972) |
 | gtk | Cyber Dusk Fedora | KDE Store | [link](https://store.kde.org/p/2357650) |
 | aurorae | Se7en Aero Aurorae | KDE Store | [link](https://store.kde.org/p/1406638) |
+| kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
 | plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
 | plasmoid | Simple Application Launcher for Plasma 6 | KDE Store | [link](https://store.kde.org/p/2115883) |
 | discord-client | Vesktop (Discord with Vencord) — or install Vencord into Discord: https://vencord.dev/download/ | AUR | [link](https://vencord.dev/download/) |
@@ -161,7 +167,7 @@ Frutiger Aero: Windows 7 glass titlebars (Se7en Aero), see-through Kvantum glass
 
 ## frutiger-aero-light
 
-Frutiger Aero Light — Windows 7 as it shipped: white windows with black text, Aero glass title bars with black glowing titles (Se7en Aero Light), light Kvantum and libadwaita glass, Windows 7 GTK, Seven icons, Aero cursors, CC0 Frutiger Aero wallpaper
+Frutiger Aero Light — Windows 7 as it shipped: white windows with black text, Aero glass title bars with black glowing titles (Se7en Aero Light), light Kvantum, GTK 3 and libadwaita glass, Windows 7 GTK, Seven icons, Aero cursors, CC0 Frutiger Aero wallpaper
 
 **Included assets**
 
@@ -180,6 +186,8 @@ Frutiger Aero Light — Windows 7 as it shipped: white windows with black text, 
 | icons | Seven Icons for KDE | KDE Store | [link](https://store.kde.org/p/1631627) |
 | cursors | Aero Mouse Cursors with Drop Shadow | KDE Store | [link](https://store.kde.org/p/999972) |
 | gtk | Aero | KDE Store | [link](https://store.kde.org/p/1012735) |
+| kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
+| kwin-effect | kwin4_effect_shapecorners | AUR | [link](https://aur.archlinux.org/packages/kwin-effect-rounded-corners-git) |
 | plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
 | plasmoid | Simple Application Launcher for Plasma 6 | KDE Store | [link](https://store.kde.org/p/2115883) |
 | discord-client | Vesktop (Discord with Vencord) — or install Vencord into Discord: https://vencord.dev/download/ | AUR | [link](https://vencord.dev/download/) |
@@ -187,8 +195,7 @@ Frutiger Aero Light — Windows 7 as it shipped: white windows with black text, 
 | oh-my-posh | oh-my-posh (prompts usually need a Nerd Font) | AUR | [link](https://ohmyposh.dev/docs/installation/linux) |
 | vscode | Night Owl Light | VS Code Marketplace | [link](https://marketplace.visualstudio.com/items?itemName=sdras.night-owl) |
 | cursor | Night Owl Light | Open VSX | [link](https://open-vsx.org/extension/sdras/night-owl) |
-| zed | Night Owl Dark | Zed extensions | [link](https://zed.dev/extensions?query=night-owlz) |
-| zed | Night Owl Light | Zed extensions | [link](https://zed.dev/extensions?query=night-owlz) |
+| zed | Light Glass | Zed extensions | [link](https://zed.dev/extensions?query=glass-theme) |
 | plasma-theme | Se7en Aero Plasma Style | KDE Store | [link](https://store.kde.org/p/1407084) |
 
 ## Adding a theme

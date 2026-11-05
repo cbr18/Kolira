@@ -24,7 +24,7 @@ takes the family from the theme and keeps the live size.
 | File | Stored and applied | Left alone |
 |---|---|---|
 | `kdeglobals` | `[Colors:*]`, `[ColorEffects:*]`, `[WM]`, `[Icons]`, font families (live sizes kept), `General` ColorScheme/Accent*, `KDE` LookAndFeelPackage/widgetStyle/contrast/AnimationDurationFactor | `[KScreen]` scaling, `TerminalApplication`, `[KFileDialog Settings]`, `[PreviewSettings]`, other `[KDE]` behaviour |
-| `kwinrc` | `[Effect-*]`, `[org.kde.kdecoration2]`, effect switches in `[Plugins]` | `[Desktops]`, `[Tiling]`, `[Windows]`, `[Wayland]`, KWin *scripts* in `[Plugins]` (krohnkite, snapping…) |
+| `kwinrc` | `[Effect-*]`, `[Round-Corners]` (Rounded Corners effect), `[org.kde.kdecoration2]`, effect switches in `[Plugins]` | `[Desktops]`, `[Tiling]`, `[Windows]`, `[Wayland]`, KWin *scripts* in `[Plugins]` (krohnkite, snapping…) |
 | `kwinrulesrc` | the theme's rules (by id) | the user's other rules |
 | `plasmarc`, `plasmashellrc` | `[Theme]`; `[PlasmaViews…]` (panel opacity, floating, thickness) | `[Wallpapers]` list, `[Updates]` |
 | GTK `settings.ini` | theme, icons, cursor theme, font family (live size kept), dark preference, title-bar buttons, animations, font rendering | cursor size, cursor blinking, sounds, `gtk-modules`, … |
@@ -195,7 +195,10 @@ and written directly if the tool did not store it
 
 Detected when a theme is saved (`rust_core/src/deps.rs`) for every asset it
 references but does not carry: icons, cursors, GTK, Kvantum, Plasma style,
-Global Theme, colour scheme, window decoration (plugin or Aurorae), panel
+Global Theme, colour scheme, window decoration (plugin or Aurorae),
+third-party KWin effects the theme switches on (`kwin-effect`: Better Blur DX,
+Rounded Corners… — the package owning the plugin, or the store item of a
+scripted effect), panel
 widgets the user installed, editor themes, the Firefox theme add-on
 (`amo`: link to addons.mozilla.org — add-ons are installed from inside
 Firefox), a Discord theming client (`discord-client`: Vesktop from the AUR or
@@ -214,7 +217,8 @@ app never runs sudo). KDE's own assets (Breeze, Oxygen,
 2. **package** — `pacman -Qqo` on any installed copy (repo or AUR; a user copy
    shadowing a packaged one — Klassy's generated icons — is looked through);
 3. **editor stores** — the installed VS Code / Cursor extension or Zed
-   extension (an editor that is not installed on this machine — no binary on
+   extension — ours (`zed/themes/<extension>--<file>.json`) or one Zed
+   installed itself (`zed/extensions/installed/<extension>/`) (an editor that is not installed on this machine — no binary on
    PATH, no Flatpak — gets nothing: its theme is neither listed by `deps`,
    nor downloaded, nor reported missing by `check`/`apply`); VS Code and Cursor share extensions, so when one editor is not
    installed but names the same theme as the other, the other's extension id
@@ -232,10 +236,28 @@ OCS API (`api.kde-look.org`) — Plasma styles, Global Themes and widgets with
 folders (zip via enclosed names, tarballs via `tar`; symlinks escaping the
 tree are dropped; an existing folder is never overwritten), colour schemes
 copied; editor themes via their stores. Aurorae decorations are looked up in
-both the "Aurorae" and "Window Decorations" store categories. **System packages are never installed**
+both the "Aurorae" and "Window Decorations" store categories. An icon theme
+made for GNOME (Seven Icons: `Inherits=Humanity,…,gnome,hicolor`) lacks KDE's
+action icons — `configure`, `document-edit` — and icon-only buttons in Plasma
+(Desktop Effects' *Configure*) come out empty, so an icon theme we install gets
+`breeze` before `hicolor` in its `Inherits`. **System packages are never installed**
 (no sudo): the report carries `sudo pacman -S …` / `yay -S …`. Network access
 follows *Settings → Network* (`KTM_OFFLINE=1` turns it off); `--refresh`
-re-detects the dependencies of a theme saved earlier.
+re-detects the dependencies of a theme saved earlier (a display name found
+before is kept when this machine cannot tell it, e.g. VS Code not installed).
+
+### Third-party KWin effects
+
+KWin writes `<effect>Enabled` only when it differs from the effect's default,
+and Rounded Corners is enabled by default — after installing it, every older
+theme would get rounded corners with the effect's default settings. So saving
+a theme records the state of every installed third-party effect explicitly
+(compiled plugins in `/usr/lib/qt6/plugins/kwin/effects/plugins`, the user's
+scripted effects in `~/.local/share/kwin/effects`; KWin's and Plasma's own
+effects are left to KWin), and applying a theme loads/unloads each installed
+third-party effect as the theme says — an effect the theme does not mention
+(saved before it was installed) is switched off and written as off.
+(`rust_core/src/kwin_effects.rs`)
 
 ## Export and import
 

@@ -580,9 +580,16 @@ pub fn coerce(f: &FieldDef, raw: Value) -> Option<Value> {
 /// Validate/convert user input to the raw form written to the file
 /// (Python `_normalize_input`): colours become `r,g,b`, numbers numbers.
 pub fn normalize_input(f: &FieldDef, v: &Value) -> Option<Value> {
-    if f.id == "zen_window_scheme" {
+    // Zen numeric enums: window scheme 0 dark / 1 light / 2 system; websites
+    // (layout.css.prefers-color-scheme.content-override) add 3 = browser theme.
+    let zen_max = match f.id.as_str() {
+        "zen_window_scheme" => Some(2),
+        "zen_sites_scheme" => Some(3),
+        _ => None,
+    };
+    if let Some(max) = zen_max {
         let n = value_str(v).trim().parse::<f64>().ok()? as i64;
-        return (0..=2).contains(&n).then(|| Value::from(n));
+        return (0..=max).contains(&n).then(|| Value::from(n));
     }
     match f.kind.as_str() {
         "bool" => as_bool(v).map(Value::Bool),
@@ -940,6 +947,9 @@ mod tests {
         assert_eq!(coerce(blur, json!("false")), Some(json!(false)));
         let zen = field("zen_window_scheme").unwrap();
         assert_eq!(normalize_input(zen, &json!(3)), None);
+        let sites = field("zen_sites_scheme").unwrap();
+        assert_eq!(normalize_input(sites, &json!("3")), Some(json!(3)), "3 = browser theme");
+        assert_eq!(normalize_input(sites, &json!(4)), None);
         assert_eq!(value_str(&json!(0.5)), "0.5");
         assert_eq!(value_str(&json!(14.0)), "14");
     }

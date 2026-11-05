@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "Paper",
-  "exported": "2026-11-05T13:29:21+10:00",
+  "exported": "2026-11-05T18:46:23+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -48,7 +48,7 @@
     "manifest.json": "2f9027f36bcd03e78cae495601b2bcb2f269db9ad9855f4b982d6379b790e0d7",
     "manifest.txt": "084226f8064cb99e5a7195db0983b0b4e17ad4b41a11a429b20d027b2e0eb689",
     "obsidian/vault/.obsidian/appearance.json": "4eeaef8673657dc645e1cb3f5149b41ac895bc2bbc7c34db82f8441d1aa18867",
-    "theme.json": "be08551af257fde2370b67e94905e0361b438591adf397f4899dd77f5bd08eb0",
+    "theme.json": "59dfeb208991e5e77c9a17d2b7a10037dca5b18f029af8522aa24dcf20723303",
     "wallpaper/paper-falat-sviciaz.jpg": "43945d0609075068ee770a3e2fac9375c958388045dfeb50942fa697fe256b6f",
     "wallpaper/source": "96496d5669804c8c3b73bd46935d27db6e9f258e38603ef0002b3e0c609a73a7"
   }

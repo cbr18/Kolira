@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "everforest",
-  "exported": "2026-11-05T13:29:22+10:00",
+  "exported": "2026-11-05T18:46:24+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -47,7 +47,7 @@
     "manifest.json": "afaa9a7a18d86e8a09b803cc8e29a9f7ffc4a835a5d496cde61228fbab5ffb13",
     "manifest.txt": "52039771a0d809e109ea759f9897529ad4b86cfb50d4ded40dc549073d5e325a",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-    "theme.json": "2300bbeb0b96a7b2c0ef7fda3dcd9baab5a5b69220c6f87c84cbfea2536c8f13",
+    "theme.json": "e14b82a12d40a72ef0e13df0de9e2226ff8344375b397ee53cf0212dd8d76cb5",
     "wallpaper/everforest-misty-pines.jpg": "eaa504fb6526ae9d04e7a647944ecb9ea2ca867a3241064b66467fda288e4958",
     "wallpaper/source": "90437a63f17675e4ed75072ee076622b2c650787a8f4336b3f9d4057f7445a5a"
   }

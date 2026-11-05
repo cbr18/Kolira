@@ -157,9 +157,21 @@ pub fn needed(name: &str) -> Result<Vec<Needed>> {
 pub fn refresh_dependencies(name: &str) -> Result<Vec<crate::deps::Dependency>> {
     let dir = profile_dir(name)?;
     let mut package = load(&dir)?;
-    package.dependencies = crate::deps::detect(&dir, &package.values, &package.sources);
+    let mut fresh = crate::deps::detect(&dir, &package.values, &package.sources);
+    keep_known_titles(&package.dependencies, &mut fresh);
+    package.dependencies = fresh;
     write_manifest(&dir, &package)?;
     Ok(package.dependencies)
+}
+
+/// A re-detection on a machine without the app (VS Code not installed) finds
+/// the source but not its display name: keep the title found earlier.
+fn keep_known_titles(old: &[crate::deps::Dependency], fresh: &mut [crate::deps::Dependency]) {
+    for d in fresh.iter_mut().filter(|d| d.title.is_empty() && !d.id.is_empty()) {
+        if let Some(prev) = old.iter().find(|o| o.kind == d.kind && o.source == d.source && o.id == d.id && !o.title.is_empty()) {
+            d.title = prev.title.clone();
+        }
+    }
 }
 
 /// Install dependencies `indexes` (None = all missing) of theme `name`;
@@ -338,6 +350,20 @@ fn zed_theme_file(theme_name: &str, base: &Base) -> Option<PathBuf> {
     None
 }
 
+/// Zed extension id providing theme file `file`: our installs are named
+/// `<extension>--<file>.json`; Zed's own installs live in
+/// `zed/extensions/installed/<extension>/themes/`.
+fn zed_extension_of(file: &Path, file_name: &str) -> Option<String> {
+    if let Some((ext, _)) = file_name.split_once("--") {
+        return Some(ext.to_string());
+    }
+    let themes = file.parent()?;
+    let ext = themes.parent()?;
+    (themes.file_name()? == "themes" && ext.parent()?.file_name()? == "installed")
+        .then(|| ext.file_name()?.to_str().map(str::to_string))
+        .flatten()
+}
+
 /// `publisher.name` of the installed extension contributing a VS Code/Cursor
 /// theme (matched by theme `id` or `label`).
 fn vscode_theme_extension(app: &str, theme: &str) -> Option<String> {
@@ -450,7 +476,7 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
             if let Ok(rel) = file.strip_prefix(dir) {
                 package.assets.push(Asset { kind: "zed".into(), name: theme.clone(), path: rel.to_string_lossy().into(), origin: "user".into(), redistributable: false, license: String::new(), source: String::new() });
             }
-            if let Some(ext) = file_name.split_once("--").map(|(e, _)| e.to_string()) {
+            if let Some(ext) = zed_extension_of(&file, &file_name) {
                 package.sources.insert(id.into(), Source { store: "zed".into(), id: ext, url: String::new() });
             }
         }
@@ -570,6 +596,7 @@ pub fn save(name: &str, options: &SaveOptions) -> Result<Package> {
     let mut package = build(name, &target, &options)?;
     if let Some(prev) = previous {
         carry_licences(&prev, &mut package);
+        keep_known_titles(&prev.dependencies, &mut package.dependencies);
         write_manifest(&target, &package)?;
     }
     Ok(package)
@@ -882,6 +909,27 @@ mod tests {
         assert!(new.assets[0].license.starts_with("LGPL"), "hand mark kept");
         assert!(new.assets[1].license.ends_with("KvRoughGlass)"), "computed label refreshed");
         assert_eq!(new.assets[2].license, "CC0-1.0");
+    }
+
+    #[test]
+    fn zed_extension_ids() {
+        let ours = Path::new("/h/.config/zed/themes/night-owlz--NightOwl.json");
+        assert_eq!(zed_extension_of(ours, "night-owlz--NightOwl.json").as_deref(), Some("night-owlz"));
+        let zeds = Path::new("/h/.local/share/zed/extensions/installed/glass-theme/themes/glass.json");
+        assert_eq!(zed_extension_of(zeds, "glass.json").as_deref(), Some("glass-theme"));
+        assert_eq!(zed_extension_of(Path::new("/h/.config/zed/themes/mine.json"), "mine.json"), None);
+    }
+
+    #[test]
+    fn redetection_keeps_known_titles() {
+        let dep = |title: &str| crate::deps::Dependency {
+            kind: "vscode".into(), name: "dfd05a73".into(), source: "vscode-marketplace".into(),
+            id: "unthrottled.doki-theme".into(), title: title.into(), ..Default::default()
+        };
+        let old = vec![dep("Doki Theme")];
+        let mut fresh = vec![dep("")];
+        keep_known_titles(&old, &mut fresh);
+        assert_eq!(fresh[0].title, "Doki Theme");
     }
 
     #[test]

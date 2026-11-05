@@ -104,6 +104,9 @@ fn locate_all(kind: &str, name: &str) -> Vec<PathBuf> {
     if !safe_name(name) {
         return out;
     }
+    if kind == "kwin-effect" {
+        return crate::kwin_effects::find(name).map(|e| e.path).into_iter().collect();
+    }
     for root in roots(kind) {
         let hit = match kind {
             "color-scheme" => Some(root.join(format!("{name}.colors"))).filter(|p| p.is_file()),
@@ -278,6 +281,7 @@ fn store_types(kind: &str) -> &'static [&'static str] {
         "color-scheme" => &["Color Schemes"],
         "aurorae" => &["Aurorae", "Window Decorations"],
         "plasmoid" => &["Plasma Widgets", "Plasma 6 Widgets", "Plasmoid"],
+        "kwin-effect" => &["KWin Effects"],
         _ => &[],
     }
 }
@@ -482,6 +486,14 @@ pub fn detect(dir: &Path, values: &std::collections::BTreeMap<String, Value>, so
             d.url = format!("https://aur.archlinux.org/packages?K={}", library.rsplit('.').next().unwrap_or(&library));
         }
         add(d);
+    }
+    // Third-party KWin effects the theme switches on (Better Blur DX, Rounded
+    // Corners…): their package, or the store item of a scripted effect.
+    if let Ok(kwinrc) = fs::read_to_string(dir.join(".config/kwinrc")) {
+        for id in crate::kwin_effects::enabled_third_party(&kwinrc) {
+            let paths = locate_all("kwin-effect", &id);
+            add(describe("kwin-effect", &id, &paths));
+        }
     }
     // Panel widgets the user installed (system ones come with Plasma).
     if let Ok(text) = fs::read_to_string(dir.join(crate::wallpaper::APPLETSRC_REL)) {
@@ -855,9 +867,50 @@ fn install_from_store(d: &Dependency) -> Result<String> {
         }
         crate::profile::copy_tree(&dir, &dst)?;
         record_install(std::slice::from_ref(&dst), &d.id, &d.title);
-        placed.push(name);
+        let mut note = String::new();
+        if d.kind == "icons" && add_breeze_fallback(&dst.join("index.theme")) {
+            note = " (Breeze added as fallback for icons it lacks)".into();
+        }
+        placed.push(format!("{name}{note}"));
     }
     Ok(format!("installed {} into {}: {}", d.title, root.display(), placed.join(", ")))
+}
+
+/// Icon themes made for GNOME (Seven Icons: `Inherits=Humanity,…,gnome,hicolor`)
+/// lack KDE's action icons — `configure`, `document-edit`… — so icon-only
+/// buttons in Plasma (Desktop Effects' "Configure") come out empty. Put
+/// `breeze` before `hicolor` in the inheritance chain of an icon theme we
+/// installed. Returns whether the file changed.
+fn add_breeze_fallback(index: &Path) -> bool {
+    let Ok(text) = fs::read_to_string(index) else { return false };
+    match with_breeze_fallback(&text) {
+        Some(new) => fs::write(index, new).is_ok(),
+        None => false,
+    }
+}
+
+fn with_breeze_fallback(index_theme: &str) -> Option<String> {
+    let mut changed = false;
+    let mut in_main = false;
+    let mut out: Vec<String> = Vec::new();
+    for line in index_theme.lines() {
+        let t = line.trim();
+        if t.starts_with('[') {
+            in_main = t == "[Icon Theme]";
+        }
+        if let Some(value) = t.strip_prefix("Inherits=").filter(|_| in_main) {
+            let mut parents: Vec<&str> = value.split(',').map(str::trim).filter(|p| !p.is_empty()).collect();
+            if !parents.iter().any(|p| p.eq_ignore_ascii_case("breeze") || p.eq_ignore_ascii_case("breeze-dark")) {
+                let at = parents.iter().position(|p| p.eq_ignore_ascii_case("hicolor")).unwrap_or(parents.len());
+                parents.insert(at, "breeze");
+                out.push(format!("Inherits={}", parents.join(",")));
+                changed = true;
+                continue;
+            }
+        }
+        out.push(line.to_string());
+    }
+    changed.then(|| out.join("\n") + "\n")
 }
 
 fn store_message(r: &crate::stores::InstallReport) -> String {
@@ -886,6 +939,17 @@ pub fn install(d: &Dependency) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn icon_themes_get_a_breeze_fallback() {
+        let seven = "[Icon Theme]\nName=Windows 7\nInherits=Humanity-Dark,Humanity,gnome,hicolor\nDirectories=actions/16x16\n\n[actions/16x16]\nSize=16\n";
+        let out = with_breeze_fallback(seven).unwrap();
+        assert!(out.contains("Inherits=Humanity-Dark,Humanity,gnome,breeze,hicolor\n"), "{out}");
+        assert!(out.contains("[actions/16x16]\nSize=16"));
+        assert_eq!(with_breeze_fallback(&out), None, "idempotent");
+        assert_eq!(with_breeze_fallback("[Icon Theme]\nInherits=breeze-dark\n"), None);
+        assert!(with_breeze_fallback("[Icon Theme]\nInherits=Papirus\n").unwrap().contains("Inherits=Papirus,breeze\n"));
+    }
 
     #[test]
     fn search_ranking_prefers_the_kde_build() {
