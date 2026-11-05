@@ -115,6 +115,19 @@ theme-profile palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvant
 файл открывается в Telegram (`Telegram -- файл`), тот показывает предпросмотр с
 кнопкой *Применить*. То же при применении темы, которая несёт этот файл.
 
+**Steam** (цель `steam`, включается явно — она правит файлы клиента Steam):
+своей поддержки тем у Steam нет, поэтому используется скин Adwaita for Steam
+(github.com/tkashkin/Adwaita-for-Steam, GPL-3). Цель пишет
+`~/.config/theme-profile/steam.css` — переменные скина `--adw-*` из ролей палитры
+(окно, списки, шапка, боковая панель, карточки, всплывающие окна, акцент,
+смысловые) — и ставит скин его установщиком: `python3 install.py --custom-css
+steam.css --color-scheme light|dark --accent-color #акцент --font system`. Скин
+качается из официального репозитория и кэшируется
+(`~/.cache/theme-profile/adwaita-for-steam`). Виден после перезапуска Steam;
+обновление Steam снимает патч — применение темы с этим файлом ставит его заново,
+когда цвета изменились или скин пропал. Удалить:
+`python3 ~/.cache/theme-profile/adwaita-for-steam/install.py --uninstall`.
+
 **Ghostty** (цель `ghostty`, по умолчанию; пропускается без
 `~/.config/ghostty/config`): блок цветов (`background`, `foreground`,
 `palette = N=…`, курсор, выделение) в `~/.config/ghostty/theme-profile`; `config`

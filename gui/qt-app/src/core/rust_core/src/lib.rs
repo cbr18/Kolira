@@ -28,6 +28,7 @@ pub mod nvim;
 pub mod discord;
 pub mod spicetify;
 pub mod telegram;
+pub mod steam;
 pub mod extras;
 pub mod tracked_apps;
 pub mod custom_components;

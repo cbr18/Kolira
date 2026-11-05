@@ -532,6 +532,19 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             docs_url: "https://github.com/desktop-app/lib_ui/blob/master/ui/colors.palette".to_string(),
         },
         TrackedAppDef {
+            id: "steam".to_string(),
+            name: "Steam (Adwaita for Steam)".to_string(),
+            category: "Media".to_string(),
+            // Colours for the Adwaita for Steam skin; applying (re)installs it (steam.rs).
+            config_paths: vec![crate::steam::CSS_FILE.to_string()],
+            detect_command: Some("steam".to_string()),
+            flatpak_id: None,
+            supports_live_reload: false,
+            description: "Steam client colours via Adwaita for Steam (palette target steam; patches steamui)".to_string(),
+            icon: "steam".to_string(),
+            docs_url: "https://github.com/tkashkin/Adwaita-for-Steam".to_string(),
+        },
+        TrackedAppDef {
             id: "oh-my-posh".to_string(),
             name: "oh-my-posh (prompt)".to_string(),
             category: "Shell".to_string(),

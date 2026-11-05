@@ -825,6 +825,14 @@ pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
     }
     report.backup = backup.display().to_string();
     report.applied = crate::profile::get_profile_components(name).unwrap_or_default();
+    // Steam colours (Adwaita for Steam): re-install when they changed or a
+    // Steam update removed the skin.
+    if dir.join(crate::steam::CSS_FILE).is_file() && crate::steam::steam_installed() {
+        match crate::steam::install(&crate::paths::home_dir().join(crate::steam::CSS_FILE), false) {
+            Ok(note) => report.installed.push(format!("Steam colours: {note}")),
+            Err(e) => report.errors.push(format!("Steam colours: {e:#}")),
+        }
+    }
 
     if let Some(path) = keep {
         if plasma_wallpaper_from(&live_path(APPLETSRC_REL)).as_deref() != Some(path.to_string_lossy().as_ref()) {
