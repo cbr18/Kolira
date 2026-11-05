@@ -965,6 +965,29 @@ else
   fail "kit installer did not install the GUI launcher"
 fi
 
+# The bundled themes (themes/) come with the app, never overwriting a theme.
+bundled_ok=1
+for dir in "$SCRIPT_DIR/themes"/*/; do
+  name="$(basename "$dir")"
+  [ -f "$FAKE_HOME/.config/theme-profile/profiles/$name/theme.json" ] || bundled_ok=0
+done
+bundled_names="$(find "$SCRIPT_DIR/themes" -mindepth 1 -maxdepth 1 -type d -printf '%f ' | sort)"
+if [ "$bundled_ok" = 1 ] && [ -n "$bundled_names" ]; then
+  ok "kit installer added the bundled themes ($bundled_names)"
+else
+  fail "bundled themes missing from $FAKE_HOME/.config/theme-profile/profiles"
+fi
+first_theme="$(find "$SCRIPT_DIR/themes" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | head -1)"
+printf 'mine\n' >"$FAKE_HOME/.config/theme-profile/profiles/$first_theme/marker"
+env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
+  PATH="/usr/bin:/bin:$REAL_CARGO_BIN" CARGO_HOME="$REAL_CARGO_HOME" RUSTUP_HOME="$REAL_RUSTUP_HOME" \
+  bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --only-cli >/dev/null 2>&1
+if [ -f "$FAKE_HOME/.config/theme-profile/profiles/$first_theme/marker" ]; then
+  ok "re-installing never replaces an existing theme"
+else
+  fail "re-install replaced the user's theme $first_theme"
+fi
+
 rm -rf "$FAKE_HOME/.local/share/kde-theme-manager" "$FAKE_HOME/.local/bin/kde-theme-manager"
 env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
   PATH="/usr/bin:/bin:$REAL_CARGO_BIN" CARGO_HOME="$REAL_CARGO_HOME" RUSTUP_HOME="$REAL_RUSTUP_HOME" \

@@ -26,6 +26,7 @@ GUI_BACKUP_DIR="$BACKUP_ROOT/deploy-kde-theme-manager-$(date +%Y%m%d-%H%M%S)"
 MODE="all" # all | cli | gui
 VENV_MODE="auto" # auto | yes | no
 RESTART="no"     # yes: restart a running KDE Theme Manager after install
+THEMES="yes"     # no: do not add the bundled themes (themes/)
 
 usage() {
   cat <<'EOF'
@@ -43,6 +44,9 @@ Options:
   --no-venv     Never build a venv — use the system PySide6
   --restart     Restart a running KDE Theme Manager so it picks up the new
                 version (default: only warn that the old copy is running)
+  --no-themes   Do not add the bundled themes from themes/ (by default each
+                one is imported unless a theme with that name already exists;
+                existing themes are never changed, nothing is applied)
   -h, --help    Show this help message and exit.
 
 Binaries installed to ${XDG_BIN_HOME:-~/.local/bin}:
@@ -80,6 +84,9 @@ while [ $# -gt 0 ]; do
       ;;
     --restart)
       RESTART="yes"
+      ;;
+    --no-themes)
+      THEMES="no"
       ;;
     *)
       say "Unknown option: $1" >&2
@@ -179,6 +186,30 @@ install_cli() {
 
   say "Installed theme-profile-kit CLI to $BINDIR"
   say "Backup: $CLI_BACKUP_DIR"
+}
+
+# The ready themes shipped in themes/ (exports made with `export --public`).
+# Only names the user does not have yet; never applied, never overwritten.
+install_bundled_themes() {
+  [ "$THEMES" = "yes" ] || return 0
+  local cli="$BINDIR/theme-profile" dir name added=0
+  [ -x "$cli" ] || return 0
+  [ -d "$KIT_DIR/themes" ] || return 0
+  for dir in "$KIT_DIR/themes"/*/; do
+    [ -f "$dir/export.json" ] || continue
+    name="$(basename "$dir")"
+    if "$cli" list 2>/dev/null | grep -qixF -- "$name"; then
+      continue
+    fi
+    if "$cli" import "$dir" >/dev/null 2>&1; then
+      say "Added theme: $name"
+      added=$((added + 1))
+    else
+      warn "Could not add theme $name (run: theme-profile import $dir)"
+    fi
+  done
+  [ "$added" -gt 0 ] && say "Ready themes added: $added (apply one in KDE Theme Manager or with: theme-profile apply NAME)"
+  return 0
 }
 
 install_gui() {
@@ -322,6 +353,7 @@ LAUNCHER
 case "$MODE" in
   cli)
     install_cli
+    install_bundled_themes
     say "Skipped the GUI (--only-cli)."
     ;;
   gui)
@@ -330,6 +362,7 @@ case "$MODE" in
     ;;
   *)
     install_cli
+    install_bundled_themes
     install_gui
     ;;
 esac

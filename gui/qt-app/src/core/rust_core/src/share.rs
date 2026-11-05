@@ -79,6 +79,10 @@ pub struct ExportManifest {
 #[derive(Debug, Clone, Default)]
 pub struct ExportOptions {
     pub include_wallpaper: bool,
+    /// For publishing (the themes in the repository): ship only assets marked
+    /// redistributable (`theme-profile license`), turn the others into
+    /// dependencies with their source, drop Look & Feel preview screenshots.
+    pub public: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -183,6 +187,15 @@ fn walk(root: &Path, rel: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
 /// its own assets (only those from library folders) and, optionally, its
 /// wallpaper. Shared by export and by pruning stored themes.
 pub(crate) fn theme_files(dir: &Path, include_wallpaper: bool) -> Result<Vec<PathBuf>> {
+    theme_files_for(dir, include_wallpaper, false)
+}
+
+/// Assets `export --public` leaves out (not marked redistributable).
+fn withheld(package: &theme::Package) -> Vec<&theme::Asset> {
+    package.assets.iter().filter(|a| !a.redistributable).collect()
+}
+
+fn theme_files_for(dir: &Path, include_wallpaper: bool, public: bool) -> Result<Vec<PathBuf>> {
     let package = theme::load(dir)?;
     let mut rels: Vec<PathBuf> = Vec::new();
     for rel in ["manifest.json", "manifest.txt"] {
@@ -205,11 +218,20 @@ pub(crate) fn theme_files(dir: &Path, include_wallpaper: bool) -> Result<Vec<Pat
 
     let asset_paths: Vec<PathBuf> = package.assets.iter().map(|a| PathBuf::from(&a.path)).collect();
     rels.retain(|rel| exported(rel, &asset_paths));
+    if public {
+        let held: Vec<PathBuf> = withheld(&package).iter().map(|a| PathBuf::from(&a.path)).collect();
+        rels.retain(|rel| !held.iter().any(|h| rel.starts_with(h)));
+        // Look & Feel previews are screenshots of the author's desktop.
+        rels.retain(|rel| !rel.to_string_lossy().contains("/contents/previews/"));
+    }
     Ok(rels)
 }
 
 fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(String, Vec<u8>)>> {
-    let rels = theme_files(dir, options.include_wallpaper)?;
+    let package = theme::load(dir)?;
+    let wallpaper_ok = !options.public || package.assets.iter().any(|a| a.kind == "wallpaper" && a.redistributable);
+    let include_wallpaper = options.include_wallpaper && wallpaper_ok;
+    let rels = theme_files_for(dir, include_wallpaper, options.public)?;
 
     // Only the look leaves the machine, even from themes saved before the
     // appearance filters existed (appearance.rs).
@@ -247,7 +269,22 @@ fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(
     // theme.json last, adjusted: name, and no wallpaper when it is left out.
     let mut json: serde_json::Value = serde_json::from_slice(&fs::read(dir.join(theme::MANIFEST))?)?;
     json["name"] = serde_json::Value::from(name);
-    if !options.include_wallpaper {
+    if options.public {
+        let held = withheld(&package);
+        let mut deps: Vec<crate::deps::Dependency> = package.dependencies.clone();
+        for a in &held {
+            if let Some(d) = crate::deps::for_asset(&a.kind, &a.name, &a.path) {
+                if !deps.iter().any(|x| x.kind == d.kind && x.name == d.name) {
+                    deps.push(d);
+                }
+            }
+        }
+        if let Some(assets) = json.get_mut("assets").and_then(|a| a.as_array_mut()) {
+            assets.retain(|a| a.get("redistributable").and_then(|r| r.as_bool()) == Some(true));
+        }
+        json["dependencies"] = serde_json::to_value(&deps)?;
+    }
+    if !include_wallpaper {
         json["wallpaper"] = serde_json::Value::Null;
         if let Some(assets) = json.get_mut("assets").and_then(|a| a.as_array_mut()) {
             assets.retain(|a| a.get("kind").and_then(|k| k.as_str()) != Some("wallpaper"));

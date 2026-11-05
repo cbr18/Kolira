@@ -126,7 +126,8 @@ theme-profile apply NAME [--keep-wallpaper] [--install-missing] [--json]
 theme-profile check NAME [--json]          # what the theme references but this machine lacks
 theme-profile migrate NAME|--all           # add theme.json to a snapshot profile (files untouched)
 theme-profile prune NAME|--all             # drop what is not part of the theme (backup first)
-theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper]
+theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper] [--public]
+theme-profile license NAME ASSET --license=SPDX [--source=URL] [--no-redistribute]
 theme-profile import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
 theme-profile deps NAME [--refresh] [--install[=all|0,2]] [--json]
 ```
@@ -265,9 +266,28 @@ theme references but this machine lacks (`missing`, with where to get it);
 *Import theme…* next to *Save current…* (name conflict → new name or replace),
 then the *Missing Theme Parts* dialog. MCP: `export_theme`, `import_theme`.
 
-## Licensing
+## Licensing and publishing
 
-The code is MIT; each bundled asset keeps its own license
-(`redistributable` flag; a LICENSE/source note beside it in published themes).
-Anything that may not be redistributed is shipped as a reference only and shows
-up in the missing-parts report.
+The code is MIT; each asset in `theme.json` keeps its own licence: `license`,
+`source` and `redistributable`. Generated assets are marked automatically
+(colour schemes: MIT; Kvantum recolours: GPL-3.0-or-later, derived from
+Kvantum's KvArc); everything else the author marks with `theme-profile license
+NAME ASSET --license=… --source=…` (`kind:name` when two assets share a name;
+marks survive re-saves and `prune`).
+
+`export --public` (the themes in `themes/`) ships only redistributable assets:
+the others (third-party Kvantum like Orchis/Sandstone, Zed theme files from
+the store, an unmarked wallpaper or logo) become dependencies with their source
+(KNewStuff registry, package, or a KDE Store search — a bare name retries with
+the category word, e.g. "Orchis kvantum"), and Look & Feel preview screenshots
+(a picture of the author's desktop) are dropped.
+
+The ready themes in `themes/` (glass, Paper, everforest, dracula; licences and
+sources in `themes/README.md`) are added by the installer when a theme of that
+name does not exist yet (`--no-themes` skips; nothing is applied or replaced).
+
+Downloads that a store rate-limits (HTTP 429) are retried twice (Retry-After,
+at most 30 s; else 5 → 15 s), then reported as "rate-limiting — try again in a
+few minutes". A theme's wallpaper copy goes back to its original folder only if
+that folder exists here — a theme from another machine never creates e.g.
+`~/Изображения`; this machine's wallpaper folder is used instead.

@@ -35,7 +35,9 @@ Usage:
   theme-profile prune NAME|--all              (drop what is not part of the theme; backup first)
   theme-profile deps NAME [--refresh] [--install[=all|0,2]] [--json]
                               (what the theme needs and where from; install from official sources)
-  theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper]
+  theme-profile license NAME ASSET --license=SPDX [--source=URL] [--no-redistribute]
+                              (mark a theme asset — wallpaper, Look & Feel…, or kind:name — for publishing)
+  theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper] [--public]
                               (portable copy: $HOME for the home dir, no desktop icons)
   theme-profile import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
   theme-profile migrate NAME|--all            (add theme.json to snapshot profiles)
@@ -741,7 +743,10 @@ fn main() -> ExitCode {
             let Some(name) = args.get(1).filter(|a| !a.starts_with("--")) else {
                 return fail("Usage error: export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper]");
             };
-            let options = share::ExportOptions { include_wallpaper: !args.iter().any(|a| a == "--no-wallpaper") };
+            let options = share::ExportOptions {
+                include_wallpaper: !args.iter().any(|a| a == "--no-wallpaper"),
+                public: args.iter().any(|a| a == "--public"),
+            };
             let dir = args.iter().find_map(|a| a.strip_prefix("--dir="));
             let result = match dir {
                 Some(d) => share::export_dir(name, std::path::Path::new(d), &options).map(|n| (n, d.to_string())),
@@ -792,6 +797,22 @@ fn main() -> ExitCode {
                 }
             }
             ExitCode::SUCCESS
+        }
+        "license" => {
+            let pos: Vec<&String> = args.iter().skip(1).filter(|a| !a.starts_with("--")).collect();
+            let licence = args.iter().find_map(|a| a.strip_prefix("--license="));
+            let (Some(name), Some(asset), Some(licence)) = (pos.first(), pos.get(1), licence) else {
+                return fail("Usage error: license NAME ASSET --license=SPDX [--source=URL] [--no-redistribute]");
+            };
+            let source = args.iter().find_map(|a| a.strip_prefix("--source=")).unwrap_or("");
+            let redistribute = !args.iter().any(|a| a == "--no-redistribute");
+            match theme::set_licence(name, asset, licence, source, redistribute) {
+                Ok(a) => {
+                    println!("{name}: {} {} — {} ({})", a.kind, a.name, a.license, if a.redistributable { "redistributable" } else { "not shipped by export --public" });
+                    ExitCode::SUCCESS
+                }
+                Err(e) => fail(format!("{e:#}")),
+            }
         }
         "prune" => {
             let names: Vec<String> = if args.iter().any(|a| a == "--all") {

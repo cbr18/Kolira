@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-11-05T11:16:33+10:00",
+  "tool_version": "0.5.0",
+  "name": "Paper",
+  "description": "",
+  "wallpaper": "",
+  "accent_from_wallpaper": false,
+  "components": [
+    {
+      "id": "kwin",
+      "paths": [
+        ".config/kwinrc",
+        ".config/kwinrulesrc"
+      ]
+    },
+    {
+      "id": "plasma_shell",
+      "paths": [
+        ".config/plasmarc",
+        ".config/plasmashellrc",
+        ".config/plasma-org.kde.plasma.desktop-appletsrc"
+      ]
+    },
+    {
+      "id": "kdeglobals",
+      "paths": [
+        ".config/kdeglobals",
+        ".config/kcminputrc"
+      ]
+    },
+    {
+      "id": "gtk3",
+      "paths": [
+        ".config/gtk-3.0/settings.ini",
+        ".config/gtk-3.0/gtk.css",
+        ".config/gtk-3.0/colors.css"
+      ]
+    },
+    {
+      "id": "gtk4",
+      "paths": [
+        ".config/gtk-4.0/settings.ini",
+        ".config/gtk-4.0/gtk.css",
+        ".config/gtk-4.0/colors.css"
+      ]
+    },
+    {
+      "id": "qt5ct",
+      "paths": [
+        ".config/Trolltech.conf"
+      ]
+    },
+    {
+      "id": "breeze",
+      "paths": [
+        ".config/breezerc"
+      ]
+    },
+    {
+      "id": "klassy",
+      "paths": [
+        ".config/klassy/klassyrc",
+        ".config/klassy/windecopresetsrc"
+      ]
+    },
+    {
+      "id": "kvantum",
+      "paths": [
+        ".config/Kvantum/kvantum.kvconfig",
+        ".config/Kvantum/Sandstone"
+      ]
+    },
+    {
+      "id": "kitty",
+      "paths": [
+        ".config/kitty/kitty.conf",
+        ".config/kitty/theme-profile.conf"
+      ]
+    },
+    {
+      "id": "alacritty",
+      "paths": [
+        ".config/alacritty/alacritty.toml",
+        ".config/alacritty/theme-profile.toml"
+      ]
+    },
+    {
+      "id": "wofi",
+      "paths": [
+        ".config/wofi/style.css",
+        ".config/wofi/wallpaper.css"
+      ]
+    },
+    {
+      "id": "btop",
+      "paths": [
+        ".config/btop/btop.conf",
+        ".config/btop/themes/paper.theme"
+      ]
+    },
+    {
+      "id": "fastfetch",
+      "paths": [
+        ".config/fastfetch/config.jsonc",
+        ".config/fastfetch/logo"
+      ]
+    },
+    {
+      "id": "zed",
+      "paths": [
+        ".config/zed/settings.json"
+      ]
+    },
+    {
+      "id": "vscode",
+      "paths": [
+        ".config/Code/User/settings.json"
+      ]
+    },
+    {
+      "id": "cursor",
+      "paths": [
+        ".config/Cursor/User/settings.json"
+      ]
+    },
+    {
+      "id": "zen",
+      "paths": [
+        ".zen/gp0y8wrv.Default (release)/user.js",
+        ".zen/gp0y8wrv.Default (release)/chrome/userChrome.css",
+        ".zen/gp0y8wrv.Default (release)/chrome/userContent.css",
+        ".zen/gp0y8wrv.Default (release)/chrome/zen-themes.css"
+      ]
+    },
+    {
+      "id": "nvim",
+      "paths": [
+        ".config/nvim/init.lua",
+        ".config/nvim/lua/theme-profile.lua",
+        ".config/nvim/colors/theme-profile.lua"
+      ]
+    },
+    {
+      "id": "oh-my-posh",
+      "paths": [
+        ".config/fish/config.fish",
+        ".config/oh-my-posh/theme-profile.omp.json"
+      ]
+    },
+    {
+      "id": "fish",
+      "paths": [
+        ".config/fish/fish_variables"
+      ]
+    },
+    {
+      "id": "ghostty",
+      "paths": [
+        ".config/ghostty/config",
+        ".config/ghostty/theme-profile"
+      ]
+    },
+    {
+      "id": "cava",
+      "paths": [
+        ".config/cava/config"
+      ]
+    },
+    {
+      "id": "yazi",
+      "paths": [
+        ".config/yazi/theme.toml",
+        ".config/yazi/flavors"
+      ]
+    },
+    {
+      "id": "bat",
+      "paths": [
+        ".config/bat/config",
+        ".config/bat/themes"
+      ]
+    },
+    {
+      "id": "konsole",
+      "paths": [
+        ".local/share/konsole/Theme Profile.profile"
+      ]
+    },
+    {
+      "id": "firefox",
+      "paths": [
+        ".mozilla/firefox/l48zutsk.default-release-1788951816985/user.js",
+        ".mozilla/firefox/l48zutsk.default-release-1788951816985/chrome/userChrome.css",
+        ".mozilla/firefox/l48zutsk.default-release-1788951816985/chrome/userContent.css"
+      ]
+    },
+    {
+      "id": "obsidian",
+      "paths": [
+        "obsidian/vault/.obsidian/appearance.json"
+      ]
+    },
+    {
+      "id": "color_schemes",
+      "paths": [
+        ".local/share/color-schemes/ThemeProfilePaper.colors"
+      ]
+    },
+    {
+      "id": "palette",
+      "paths": [
+        ".config/theme-profile/palette.json"
+      ]
+    },
+    {
+      "id": "look_and_feel",
+      "paths": [
+        ".local/share/plasma/look-and-feel/paper"
+      ]
+    }
+  ]
+}

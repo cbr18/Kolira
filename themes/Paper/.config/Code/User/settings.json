@@ -1,0 +1,11 @@
+{
+  "workbench.colorTheme": "Default Light Modern",
+  "animations.Install-Method": "Apc Customize UI++",
+  "apc.imports": [
+    "file://${userHome}/.vscode/extensions/brandonkirbyson.vscode-animations-2.0.7/dist/updateHandler.js"
+  ],
+  "workbench.colorCustomizations": {
+    "editor.lineHighlightBackground": "#f1eadf",
+    "editor.lineHighlightBorder": "#d8ccb9"
+  }
+}

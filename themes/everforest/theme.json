@@ -1,0 +1,195 @@
+{
+  "appearance_only": true,
+  "assets": [
+    {
+      "kind": "color-scheme",
+      "license": "LGPL-2.0-or-later (derived from KDE Breeze)",
+      "name": "Everforest",
+      "origin": "user",
+      "path": ".local/share/color-schemes/Everforest.colors",
+      "redistributable": true,
+      "source": "https://invent.kde.org/plasma/breeze"
+    },
+    {
+      "kind": "look-and-feel",
+      "license": "MIT (theme-profile-kit)",
+      "name": "glass",
+      "origin": "user",
+      "path": ".local/share/plasma/look-and-feel/glass",
+      "redistributable": true
+    },
+    {
+      "kind": "wallpaper",
+      "license": "CC0-1.0 (Jaymantri, via Pexels)",
+      "name": "everforest-misty-pines.jpg",
+      "origin": "user",
+      "path": "wallpaper/everforest-misty-pines.jpg",
+      "redistributable": true,
+      "source": "https://commons.wikimedia.org/wiki/File:Nature-forest-trees-fog.jpg"
+    }
+  ],
+  "created": "2026-11-05T11:16:46+10:00",
+  "dependencies": [
+    {
+      "exact": false,
+      "id": "2303161",
+      "kind": "icons",
+      "name": "YAMIS",
+      "source": "kde-store",
+      "title": "Yet Another Monochrome Icon Set For KDE Plasma",
+      "url": "https://store.kde.org/p/2303161"
+    },
+    {
+      "exact": true,
+      "id": "klassy",
+      "kind": "decoration",
+      "name": "org.kde.klassy",
+      "source": "aur",
+      "title": "",
+      "url": "https://aur.archlinux.org/packages/klassy"
+    },
+    {
+      "exact": true,
+      "id": "2130967",
+      "kind": "plasmoid",
+      "name": "luisbocanegra.panel.colorizer",
+      "source": "kde-store",
+      "title": "Panel Colorizer",
+      "url": "https://store.kde.org/p/2130967"
+    },
+    {
+      "exact": true,
+      "id": "2115883",
+      "kind": "plasmoid",
+      "name": "org.kde.plasma.simplekickoff",
+      "source": "kde-store",
+      "title": "Simple Application Launcher for Plasma 6",
+      "url": "https://store.kde.org/p/2115883"
+    },
+    {
+      "exact": true,
+      "id": "sddm-astronaut-theme",
+      "kind": "sddm",
+      "name": "sddm-astronaut-theme",
+      "source": "aur",
+      "title": "",
+      "url": "https://aur.archlinux.org/packages/sddm-astronaut-theme"
+    },
+    {
+      "exact": true,
+      "id": "oh-my-posh-bin",
+      "kind": "oh-my-posh",
+      "name": "oh-my-posh",
+      "source": "aur",
+      "title": "oh-my-posh (prompts usually need a Nerd Font)",
+      "url": "https://ohmyposh.dev/docs/installation/linux"
+    },
+    {
+      "exact": true,
+      "id": "unthrottled.doki-theme",
+      "kind": "vscode",
+      "name": "dfd05a73-c189-4622-87c7-573fbb3a46b9",
+      "source": "vscode-marketplace",
+      "title": "",
+      "url": "https://marketplace.visualstudio.com/items?itemName=unthrottled.doki-theme"
+    },
+    {
+      "exact": true,
+      "id": "everforest",
+      "kind": "zed",
+      "name": "Everforest Dark Medium (blur)",
+      "source": "zed",
+      "title": "",
+      "url": "https://zed.dev/extensions?query=everforest"
+    },
+    {
+      "exact": false,
+      "id": "1458909",
+      "kind": "kvantum",
+      "name": "OrchisDark",
+      "source": "kde-store",
+      "title": "Orchis kvantum",
+      "url": "https://store.kde.org/p/1458909"
+    }
+  ],
+  "description": "Everforest Dark Medium: matte green palette, Breeze widgets/GTK, misty pine forest",
+  "generator": "theme-profile 0.5.0",
+  "name": "everforest",
+  "palette": null,
+  "schema": "theme-profile/theme@2",
+  "sources": {
+    "vscode_theme": {
+      "id": "unthrottled.doki-theme",
+      "store": "vscode-marketplace",
+      "url": ""
+    },
+    "zed_dark": {
+      "id": "everforest",
+      "store": "zed",
+      "url": ""
+    }
+  },
+  "values": {
+    "accent_color": "167,192,128",
+    "accent_from_wallpaper": false,
+    "alacritty_blur": true,
+    "alacritty_opacity": 0.5,
+    "animation_factor": 0.5,
+    "blur_contrast": 80,
+    "blur_decorations": true,
+    "blur_docks": true,
+    "blur_enabled": true,
+    "blur_menus": true,
+    "blur_strength": 11,
+    "border_size": "None",
+    "breeze_menu_opacity": 50,
+    "btop_rounded": true,
+    "btop_theme": "everforest-dark-medium",
+    "button_bg": "61,72,77",
+    "color_scheme": "Everforest",
+    "contrast": 4,
+    "contrast_enabled": true,
+    "cursor_ide_theme": "Cursor Dark Midnight",
+    "decoration_library": "org.kde.klassy",
+    "decoration_theme": "Klassy",
+    "dim_text": "133,146,137",
+    "frame_contrast": 0.2,
+    "gtk_dark": true,
+    "gtk_font": "Noto Sans, 10",
+    "gtk_theme": "Breeze",
+    "header_bg": "35,42,46",
+    "icon_theme": "YAMIS",
+    "kitty_blur": 0,
+    "kitty_opacity": 0.95,
+    "klassy_active_opacity": 50,
+    "klassy_inactive_opacity": 48,
+    "klassy_radius": 10,
+    "klassy_shadow": "ShadowSmall",
+    "kvantum_blurring": false,
+    "kvantum_popup_blurring": true,
+    "kvantum_theme": "OrchisDark",
+    "kvantum_translucent": true,
+    "legacy_blur": false,
+    "link_color": "167,192,128",
+    "look_and_feel": "glass",
+    "selection_bg": "127,147,103",
+    "selection_text": "0,0,0",
+    "text_color": "211,198,170",
+    "tooltip_bg": "52,63,68",
+    "translucency_dialogs": 99,
+    "translucency_inactive": 97,
+    "translucency_menus": 96,
+    "translucency_popups": 97,
+    "view_bg": "35,42,46",
+    "vscode_theme": "dfd05a73-c189-4622-87c7-573fbb3a46b9",
+    "widget_style": "Breeze",
+    "window_bg": "45,53,59",
+    "zed_dark": "Everforest Dark Medium (blur)",
+    "zed_light": "Ayu Light",
+    "zed_mode": "dark",
+    "zen_opacity": 0.55,
+    "zen_transparent": true,
+    "zen_window_scheme": "0"
+  },
+  "wallpaper": "wallpaper/everforest-misty-pines.jpg"
+}

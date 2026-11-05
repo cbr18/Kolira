@@ -113,7 +113,7 @@ cd gui/qt-app/src/core/rust_core && cargo build --release && cargo test && cargo
 # Python tests (offscreen Qt; 253 tests)
 cd gui/qt-app && QT_QPA_PLATFORM=offscreen uv run --project . --extra dev pytest tests -q
 
-# Bash + installer tests (~189 assertions) — from the repo root
+# Bash + installer tests (~191 assertions) — from the repo root
 bash tests/test-scripts.sh
 
 # Shell static analysis (installer scripts)

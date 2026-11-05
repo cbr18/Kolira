@@ -1,0 +1,94 @@
+/* Main window — black, 80% opacity */
+window {
+    margin: 0;
+    padding: 0;
+
+    background-color: rgba(15, 15, 18, 0.80);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+
+    font-family: "Noto Sans";
+    font-size: 12pt;
+    color: #ebebf0;
+}
+
+/* Main container */
+#outer-box {
+    margin: 0;
+    padding: 16px;
+
+    background-color: transparent;
+}
+
+/* Search */
+#input {
+    margin: 0 0 12px 0;
+    padding: 11px 14px;
+
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #ebebf0;
+
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+
+    outline: none;
+    box-shadow: none;
+}
+
+#input:focus {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Results area */
+#scroll {
+    margin: 0;
+    padding: 0;
+
+    background-color: transparent;
+}
+
+#inner-box {
+    margin: 0;
+    padding: 0;
+
+    background-color: transparent;
+}
+
+/* Individual entries */
+#entry {
+    margin: 2px 0;
+    padding: 9px 12px;
+
+    background-color: transparent;
+
+    border: 1px solid transparent;
+    border-radius: 9px;
+}
+
+/* Selected entry — black, 85% opacity */
+#entry:selected {
+    background-color: rgba(35, 35, 40, 0.85);
+
+    border: 1px solid rgba(255, 255, 255, 0.18);
+
+    outline: none;
+}
+
+/* Text */
+#text {
+    margin: 0 0 0 10px;
+
+    background-color: transparent;
+    color: #ebebf0;
+}
+
+#text:selected {
+    color: #ffffff;
+}
+
+/* Application icons */
+#img {
+    margin: 0;
+
+    background-color: transparent;
+}

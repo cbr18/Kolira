@@ -236,9 +236,13 @@ Applying restores it after a pre-apply backup and reports what this machine
 lacks, with where to get it. Format, CLI and GUI behaviour:
 **`docs/THEMES.md`**.
 
-- **`glass`** — полупрозрачные окна с размытием, KWin glass enabled
-- **`Paper`** — светлая/solid тема, без прозрачностей
-- **`everforest`** — тёплая тёмная тема из палитры Everforest
+Ready themes ship in `themes/` and are added by the installer (licences, sources
+and dependencies: `themes/README.md`):
+
+- **`glass`** — dark translucent glass, blur everywhere, monochrome Saturn wallpaper
+- **`Paper`** — light, flat and warm, watercolour wallpaper
+- **`everforest`** — Everforest Dark Medium, misty pine forest
+- **`dracula`** — Dracula palette on glass, official Dracula wallpaper
 
 Profiles live in `~/.config/theme-profile/profiles/`. Old snapshot profiles keep
 working until converted with `theme-profile migrate --all`.

@@ -1,0 +1,94 @@
+/* Paper profile: solid, flat launcher */
+window {
+    margin: 0;
+    padding: 0;
+
+    background-color: #fffbf4;
+    border: 1px solid #cfc4b4;
+    border-radius: 0;
+
+    font-family: "Noto Sans";
+    font-size: 12pt;
+    color: #2f2a24;
+}
+
+/* Main container */
+#outer-box {
+    margin: 0;
+    padding: 16px;
+
+    background-color: transparent;
+}
+
+/* Search */
+#input {
+    margin: 0 0 12px 0;
+    padding: 11px 14px;
+
+    background-color: #f6f0e6;
+    color: #2f2a24;
+
+    border: 1px solid #cfc4b4;
+    border-radius: 0;
+
+    outline: none;
+    box-shadow: none;
+}
+
+#input:focus {
+    border: 1px solid #586d47;
+}
+
+/* Results area */
+#scroll {
+    margin: 0;
+    padding: 0;
+
+    background-color: transparent;
+}
+
+#inner-box {
+    margin: 0;
+    padding: 0;
+
+    background-color: transparent;
+}
+
+/* Individual entries */
+#entry {
+    margin: 2px 0;
+    padding: 9px 12px;
+
+    background-color: transparent;
+
+    border: 1px solid transparent;
+    border-radius: 0;
+}
+
+/* Selected entry */
+#entry:selected {
+    background-color: #e7dfd1;
+
+    border: 1px solid #b9aa96;
+
+    outline: none;
+}
+
+/* Text */
+#text {
+    margin: 0 0 0 10px;
+
+    background-color: transparent;
+    color: #2f2a24;
+}
+
+#text:selected {
+    color: #2f2a24;
+}
+
+/* Application icons */
+#img {
+    margin: 0;
+
+    background-color: transparent;
+}

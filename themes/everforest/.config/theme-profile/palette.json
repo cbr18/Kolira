@@ -1,0 +1,25 @@
+{
+  "name": "Dracula",
+  "author": "clach04 (https://github.com/clach04)",
+  "variant": "dark",
+  "base": [
+    "#282a36",
+    "#21222c",
+    "#44475a",
+    "#6272a4",
+    "#9ea8c7",
+    "#f8f8f2",
+    "#f8f8f2",
+    "#ffffff",
+    "#ff5555",
+    "#ffb86c",
+    "#f1fa8c",
+    "#50fa7b",
+    "#8be9fd",
+    "#bd93f9",
+    "#ff79c6",
+    "#993333"
+  ],
+  "accent": "#bd93f9",
+  "source": "gallery:dracula"
+}

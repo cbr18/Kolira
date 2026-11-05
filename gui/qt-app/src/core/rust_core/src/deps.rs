@@ -262,15 +262,33 @@ fn store_lookup(kind: &str, name: &str) -> Option<(String, String, bool)> {
     if types.is_empty() || !crate::net::network_enabled() {
         return None;
     }
-    let url = format!("{OCS}?search={}&pagesize=20", name.replace(' ', "%20"));
-    let xml = crate::net::http_get(&url, 4 << 20).ok()?;
+    // A bare name ("Orchis") fills the page with other categories (GTK,
+    // icons…); retry with the category word ("Orchis kvantum").
+    let keyword = match kind {
+        "icons" => "icons",
+        "cursors" => "cursors",
+        "gtk" => "gtk",
+        "kvantum" => "kvantum",
+        "plasma-theme" => "plasma",
+        "look-and-feel" => "global theme",
+        "color-scheme" => "colors",
+        "aurorae" => "aurorae",
+        _ => "plasmoid",
+    };
     let mut hits: Vec<(String, String)> = Vec::new();
-    for c in xml.split("<content details=\"summary\">").skip(1) {
-        let typename = xml_tag(c, "typename").unwrap_or_default();
-        if types.iter().any(|t| typename.contains(t)) {
-            if let (Some(id), Some(title)) = (xml_tag(c, "id"), xml_tag(c, "name")) {
-                hits.push((id, title));
+    for query in [name.to_string(), format!("{name} {keyword}")] {
+        let url = format!("{OCS}?search={}&pagesize=50", query.replace(' ', "%20"));
+        let Ok(xml) = crate::net::http_get(&url, 8 << 20) else { continue };
+        for c in xml.split("<content details=\"summary\">").skip(1) {
+            let typename = xml_tag(c, "typename").unwrap_or_default();
+            if types.iter().any(|t| typename.contains(t)) {
+                if let (Some(id), Some(title)) = (xml_tag(c, "id"), xml_tag(c, "name")) {
+                    hits.push((id, title));
+                }
             }
+        }
+        if !hits.is_empty() {
+            break;
         }
     }
     hits.into_iter()
@@ -341,6 +359,29 @@ fn describe(kind: &str, name: &str, paths: &[PathBuf]) -> Dependency {
     }
     d.url = store_search(name);
     d
+}
+
+/// The dependency a theme asset becomes when it is not shipped (`export
+/// --public`): its source detected on this machine (KNewStuff registry,
+/// package, KDE Store search). Kvantum is looked up by its family folder.
+pub fn for_asset(asset_kind: &str, name: &str, asset_path: &str) -> Option<Dependency> {
+    let kind = match asset_kind {
+        "color-scheme" => "color-scheme",
+        "kvantum" => "kvantum",
+        "look-and-feel" => "look-and-feel",
+        "desktoptheme" => "plasma-theme",
+        _ => return None,
+    };
+    let live = home_dir().join(asset_path);
+    let paths: Vec<PathBuf> = if live.exists() { vec![live] } else { locate_all(kind, name) };
+    let lookup = if kind == "kvantum" {
+        asset_path.trim_end_matches('/').rsplit('/').next().unwrap_or(name).to_string()
+    } else {
+        name.to_string()
+    };
+    let mut d = describe(kind, &lookup, &paths);
+    d.name = name.to_string();
+    Some(d)
 }
 
 /// Values that name an asset: field id → dependency kind.
@@ -539,8 +580,25 @@ fn target_root(kind: &str) -> Option<PathBuf> {
 }
 
 /// Theme directories inside an unpacked archive, by what marks a theme of
-/// `kind` (index.theme, cursors/, gtk-3.0/, *.kvconfig, …).
-fn theme_dirs(root: &Path, kind: &str) -> Vec<PathBuf> {
+/// `kind` (index.theme, cursors/, gtk-3.0/, *.kvconfig, …), with the folder
+/// name to install them under. A theme packed without a folder (files at the
+/// archive root, e.g. `Sandstone.kvconfig`) is named after its file.
+fn theme_dirs(root: &Path, kind: &str) -> Vec<(PathBuf, String)> {
+    let mut out: Vec<(PathBuf, String)> = theme_subdirs(root, kind)
+        .into_iter()
+        .filter_map(|d| d.file_name().map(|n| (d.clone(), n.to_string_lossy().to_string())))
+        .collect();
+    if out.is_empty() && kind == "kvantum" {
+        if let Some(stem) = fs::read_dir(root).ok().and_then(|it| {
+            it.flatten().map(|e| e.path()).find(|p| p.extension().is_some_and(|x| x == "kvconfig"))
+        }).and_then(|p| p.file_stem().map(|s| s.to_string_lossy().to_string())) {
+            out.push((root.to_path_buf(), stem));
+        }
+    }
+    out
+}
+
+fn theme_subdirs(root: &Path, kind: &str) -> Vec<PathBuf> {
     let marks = |d: &Path| -> bool {
         match kind {
             "icons" => d.join("index.theme").is_file() && !d.join("cursors").exists(),
@@ -599,6 +657,7 @@ fn unpack(archive: &Path, dest: &Path) -> Result<()> {
             .arg("-C")
             .arg(dest)
             .arg("--no-same-owner")
+            .arg("--warning=no-unknown-keyword")
             .status()
             .with_context(|| "run tar")?
             .success();
@@ -648,19 +707,51 @@ fn store_files(id: &str) -> Result<Vec<(String, String)>> {
     Ok(files)
 }
 
+/// Does unpacked `dir` hold the theme the dependency names (e.g. a Kvantum
+/// family with `OrchisDark.kvconfig`, an icon theme folder `YAMIS`)?
+fn holds(found: &[(PathBuf, String)], kind: &str, name: &str) -> bool {
+    found.iter().any(|(dir, folder)| match kind {
+        "kvantum" => dir.join(format!("{name}.kvconfig")).is_file() || folder == name,
+        _ => folder == name,
+    })
+}
+
 fn install_from_store(d: &Dependency) -> Result<String> {
-    let files = store_files(&d.id)?;
+    let mut files = store_files(&d.id)?;
     let wanted = d.name.to_lowercase();
-    let (link, file_name) = files
-        .iter()
-        .find(|(_, n)| n.to_lowercase().contains(&wanted))
-        .unwrap_or(&files[0])
-        .clone();
-    let file_name = Path::new(&file_name).file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "download".into());
-    let bytes = crate::net::http_get_bytes(&link, 512 << 20)?;
+    // Files whose name mentions the theme first; an item can hold several
+    // variants (Orchis: Orchis-solid.tar.gz, Orchis.tar.gz).
+    files.sort_by_key(|(_, n)| !n.to_lowercase().contains(&wanted));
     let work = tempfile::Builder::new().prefix("theme-deps-").tempdir().context("temp dir")?;
-    let archive = work.path().join(&file_name);
-    fs::write(&archive, &bytes)?;
+    let unpackable = !matches!(d.kind.as_str(), "plasma-theme" | "look-and-feel" | "plasmoid" | "color-scheme");
+    let mut chosen: Option<(PathBuf, String, PathBuf)> = None;
+    let mut fallback: Option<(PathBuf, String, PathBuf)> = None;
+    for (i, (link, name)) in files.iter().enumerate().take(8) {
+        let file_name = Path::new(name).file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "download".into());
+        let bytes = crate::net::http_get_bytes(link, 512 << 20)?;
+        let archive = work.path().join(format!("{i}-{file_name}"));
+        fs::write(&archive, &bytes)?;
+        let out = work.path().join(format!("x{i}"));
+        if !unpackable {
+            chosen = Some((archive, file_name, out));
+            break;
+        }
+        if unpack(&archive, &out).is_err() {
+            continue;
+        }
+        let found = theme_dirs(&out, &d.kind);
+        if holds(&found, &d.kind, &d.name) {
+            chosen = Some((archive, file_name, out));
+            break;
+        }
+        if fallback.is_none() && !found.is_empty() {
+            fallback = Some((archive, file_name, out));
+        }
+    }
+    let chosen = chosen.or(fallback);
+    let Some((archive, file_name, out)) = chosen else {
+        bail!("KDE Store item {} has no file holding a {} theme", d.id, d.kind);
+    };
 
     if let Some(kind) = kpackage_type(&d.kind) {
         let run = |op: &str| {
@@ -710,15 +801,12 @@ fn install_from_store(d: &Dependency) -> Result<String> {
         return Ok(format!("installed {copied} colour scheme(s) from {}", d.title));
     }
 
-    let out = work.path().join("x");
-    unpack(&archive, &out)?;
     let dirs = theme_dirs(&out, &d.kind);
     if dirs.is_empty() {
         bail!("{file_name} holds no {} theme", d.kind);
     }
     let mut placed = Vec::new();
-    for dir in dirs {
-        let Some(name) = dir.file_name().map(|n| n.to_string_lossy().to_string()) else { continue };
+    for (dir, name) in dirs {
         let dst = root.join(&name);
         if dst.exists() {
             continue; // never overwrite the user's own copy
@@ -790,9 +878,15 @@ mod tests {
         fs::write(r.join("pkg/Cur/index.theme"), "").unwrap();
         fs::create_dir_all(r.join("Orchis")).unwrap();
         fs::write(r.join("Orchis/OrchisDark.kvconfig"), "").unwrap();
-        assert_eq!(theme_dirs(r, "icons"), vec![r.join("pkg/Candy")]);
-        assert_eq!(theme_dirs(r, "cursors"), vec![r.join("pkg/Cur")]);
-        assert_eq!(theme_dirs(r, "kvantum"), vec![r.join("Orchis")]);
+        assert_eq!(theme_dirs(r, "icons"), vec![(r.join("pkg/Candy"), "Candy".to_string())]);
+        assert_eq!(theme_dirs(r, "cursors"), vec![(r.join("pkg/Cur"), "Cur".to_string())]);
+        let kv = theme_dirs(r, "kvantum");
+        assert_eq!(kv, vec![(r.join("Orchis"), "Orchis".to_string())]);
+        assert!(holds(&kv, "kvantum", "OrchisDark"), "a variant inside the family folder");
+        // Files at the archive root (Sandstone): named after the .kvconfig.
+        let flat = tempfile::tempdir().unwrap();
+        fs::write(flat.path().join("Sandstone.kvconfig"), "").unwrap();
+        assert_eq!(theme_dirs(flat.path(), "kvantum"), vec![(flat.path().to_path_buf(), "Sandstone".to_string())]);
     }
 
     #[test]

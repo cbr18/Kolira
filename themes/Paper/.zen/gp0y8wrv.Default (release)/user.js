@@ -1,0 +1,16 @@
+user_pref("browser.tabs.allow_transparent_browser", false);
+user_pref("zen.widget.linux.transparency", false);
+user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", false);
+user_pref("browser.theme.content-theme", 1);
+user_pref("browser.theme.toolbar-theme", 1);
+user_pref("layout.css.prefers-color-scheme.content-override", 1);
+user_pref("extensions.activeThemeID", "default-theme@mozilla.org");
+user_pref("mod.sameerasw.zen_transparency_color", "#ffffff");
+user_pref("mod.sameerasw.zen_transparent_glance_enabled", false);
+user_pref("mod.sameerasw.zen_transparent_sidebar_enabled", false);
+user_pref("mod.sameerasw.zen_bg_color_enabled", false);
+user_pref("mod.sameerasw.zen_bg_opacity", "1");
+user_pref("mod.sameerasw.zen_tab_switch_anim", false);
+user_pref("mod.sameerasw.zen_trackpad_anim", false);
+user_pref("mod.sameerasw.zen_urlbar_zoom_anim", false);
+user_pref("zen.view.window.scheme", 1);

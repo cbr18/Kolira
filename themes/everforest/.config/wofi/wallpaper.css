@@ -1,0 +1,84 @@
+window {
+    background-color: rgba(15, 15, 18, 0.70);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+}
+
+#outer-box {
+    padding: 12px;
+}
+
+#input {
+    margin: 0 0 10px 0;
+    padding: 9px 12px;
+
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #ebebf0;
+
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+
+    box-shadow: none;
+}
+
+#input:focus {
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+#scroll {
+    background-color: transparent;
+}
+
+#inner-box {
+    background-color: transparent;
+}
+
+#entry {
+    margin: 5px;
+    padding: 5px;
+
+    background-color: transparent;
+    background-image: none;
+
+    border: 1px solid transparent;
+    border-radius: 10px;
+    outline: none;
+    box-shadow: none;
+}
+
+#entry:selected,
+#entry:selected:focus {
+    background-color: rgba(35, 35, 40, 0.85);
+    background-image: none;
+
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    border-radius: 10px;
+    outline: none;
+    box-shadow: none;
+}
+
+#entry:selected * {
+    background-color: transparent;
+    background-image: none;
+    outline: none;
+    box-shadow: none;
+}
+
+#img {
+    margin: 0;
+    background-color: transparent;
+    border-radius: 8px;
+}
+
+#text {
+    margin: 0;
+    padding: 0;
+    min-height: 0;
+
+    font-size: 0;
+    color: transparent;
+}
+
+scrollbar {
+    opacity: 0;
+}

@@ -1287,6 +1287,11 @@ fn capture_wallpaper(target: &Path, rel_paths: &[String]) -> Result<()> {
 /// existing file is never overwritten). Falls back to `theme-bundle.json`'s
 /// `wallpaper` path for profiles saved before copies existed.
 pub fn profile_wallpaper(profile_dir: &Path) -> Option<PathBuf> {
+    profile_wallpaper_in(profile_dir, &wallpaper_dir())
+}
+
+/// [`profile_wallpaper`] with an explicit wallpaper folder (tests).
+fn profile_wallpaper_in(profile_dir: &Path, walls: &Path) -> Option<PathBuf> {
     let dir = profile_dir.join(PROFILE_WALLPAPER_DIR);
     let original = fs::read_to_string(dir.join(PROFILE_WALLPAPER_SOURCE))
         .ok()
@@ -1304,7 +1309,11 @@ pub fn profile_wallpaper(profile_dir: &Path) -> Option<PathBuf> {
     }
     if let Some(copy) = copy {
         let name = copy.file_name()?.to_owned();
-        for target in [original, Some(wallpaper_dir().join(&name))].into_iter().flatten() {
+        // The original path only when its folder exists here: a theme from
+        // another machine names e.g. ~/Изображения/Wallpaper — don't create
+        // a localised folder, use this machine's wallpaper folder instead.
+        let original = original.filter(|p| p.is_file() || p.parent().is_some_and(Path::is_dir));
+        for target in [original, Some(walls.join(&name))].into_iter().flatten() {
             if target.is_file() {
                 return Some(target);
             }
@@ -1658,10 +1667,11 @@ mod wallpaper_tests {
         let saved = profile.join(PROFILE_WALLPAPER_DIR);
         fs::create_dir_all(&saved).unwrap();
         let original = tmp.path().join("walls/forest.jpg");
+        fs::create_dir_all(original.parent().unwrap()).unwrap();
         fs::write(saved.join("forest.jpg"), b"jpeg-bytes").unwrap();
         fs::write(saved.join(PROFILE_WALLPAPER_SOURCE), format!("{}\n", original.display())).unwrap();
 
-        // Original missing → the copy is put back where it was.
+        // Original missing (its folder exists) → the copy is put back where it was.
         assert_eq!(profile_wallpaper(&profile), Some(original.clone()));
         assert_eq!(fs::read(&original).unwrap(), b"jpeg-bytes");
 
@@ -1669,6 +1679,22 @@ mod wallpaper_tests {
         fs::write(&original, b"edited").unwrap();
         assert_eq!(profile_wallpaper(&profile), Some(original.clone()));
         assert_eq!(fs::read(&original).unwrap(), b"edited");
+    }
+
+    #[test]
+    fn profile_wallpaper_never_creates_a_foreign_folder() {
+        // A theme from another machine names e.g. ~/Изображения/Wallpaper:
+        // the copy goes to this machine's wallpaper folder instead.
+        let tmp = tempfile::tempdir().unwrap();
+        let profile = tmp.path().join("profile");
+        let saved = profile.join(PROFILE_WALLPAPER_DIR);
+        fs::create_dir_all(&saved).unwrap();
+        let foreign = tmp.path().join("no-such-folder/Wallpaper/sea.jpg");
+        fs::write(saved.join("sea.jpg"), b"jpeg").unwrap();
+        fs::write(saved.join(PROFILE_WALLPAPER_SOURCE), format!("{}\n", foreign.display())).unwrap();
+        let walls = tmp.path().join("my-walls");
+        assert_eq!(profile_wallpaper_in(&profile, &walls), Some(walls.join("sea.jpg")));
+        assert!(!tmp.path().join("no-such-folder").exists());
     }
 
     #[test]

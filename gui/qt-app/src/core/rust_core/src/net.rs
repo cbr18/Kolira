@@ -32,11 +32,28 @@ fn ensure_allowed() -> Result<()> {
 /// GET returning at most `limit` bytes (error if larger).
 pub fn http_get_bytes(url: &str, limit: u64) -> Result<Vec<u8>> {
     ensure_allowed()?;
-    let response = ureq::get(url)
-        .set("User-Agent", "theme-profile-kit")
-        .timeout(Duration::from_secs(30))
-        .call()
-        .with_context(|| format!("GET {url}"))?;
+    // Stores rate-limit bursts of downloads (KDE Store's file server answers
+    // 429 after a few dozen): wait (Retry-After, at most 30 s; else 5 → 15 s)
+    // and retry twice — about a minute at worst, then a clear error.
+    let mut attempt = 0;
+    let response = loop {
+        match ureq::get(url).set("User-Agent", "theme-profile-kit").timeout(Duration::from_secs(30)).call() {
+            Ok(r) => break r,
+            Err(ureq::Error::Status(429, r)) if attempt < 2 => {
+                let wait = r
+                    .header("Retry-After")
+                    .and_then(|v| v.trim().parse::<u64>().ok())
+                    .unwrap_or([5, 15][attempt])
+                    .min(30);
+                attempt += 1;
+                std::thread::sleep(Duration::from_secs(wait));
+            }
+            Err(ureq::Error::Status(429, _)) => {
+                return Err(anyhow!("the server is rate-limiting downloads (429) — try again in a few minutes"));
+            }
+            Err(e) => return Err(anyhow::Error::new(e).context(format!("GET {url}"))),
+        }
+    };
     let mut body = Vec::new();
     response
         .into_reader()
