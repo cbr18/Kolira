@@ -101,11 +101,11 @@ Obsidian…), плюс `theme.json` (описание, значения для G
 
 ### KDE/Plasma (базовые, всегда)
 - `.config/kwinrc` — KWin эффекты, правила
-- `.config/kwinrulesrc` — правила окон
+- `.config/kwinrulesrc` — правила окон (только свойства оформления)
 - `.config/kdeglobals` — цвета, акцент, Look & Feel, цветовая схема
 - `.config/plasmarc` — настройки Plasma
-- `.config/plasma-org.kde.plasma.desktop-appletsrc` — панель, виджеты, обои (весь конфиг)
-- `.config/plasmashellrc` — поведение оболочки
+- `.config/plasma-org.kde.plasma.desktop-appletsrc` — только вид: обои рабочих столов, значок меню запуска, Panel Colorizer; раскладка панелей и виджетов остаётся пользовательской (`rust_core/src/layout.rs`)
+- `.config/plasmashellrc` — только `floating`/`panelOpacity` панелей (размеры и автоскрытие — пользовательские)
 
 ### GTK
 - `.config/gtk-3.0/settings.ini`, `gtk.css`, `colors.css`

@@ -23,6 +23,7 @@ pub mod share;
 pub mod appearance;
 pub mod deps;
 pub mod kwin_effects;
+pub mod layout;
 pub mod konsole;
 pub mod nvim;
 pub mod discord;

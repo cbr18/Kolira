@@ -1102,7 +1102,22 @@ fn restore_from_profile(profile: &str, rel_paths: &[String]) -> Result<()> {
                 let theme_text = (!matches!(policy, appearance::Policy::Whole) && src.is_file())
                     .then(|| fs::read_to_string(&src).ok())
                     .flatten();
+                let live_layout_file = matches!(policy, appearance::Policy::Appletsrc | appearance::Policy::PanelViews);
+                if live_layout_file && !dst.is_file() {
+                    // No layout here yet: Plasma makes its default one; the
+                    // theme never brings the author's layout.
+                    continue;
+                }
                 match theme_text {
+                    Some(theme_text) if matches!(policy, appearance::Policy::PanelViews) => {
+                        let live = fs::read_to_string(&dst).unwrap_or_default();
+                        let theme_layout = fs::read_to_string(theme_file(&source, APPLETSRC_REL)).ok();
+                        let live_layout = fs::read_to_string(live_path(APPLETSRC_REL)).ok();
+                        let merged = crate::layout::panel_views_merge(&theme_text, &live, theme_layout.as_deref(), live_layout.as_deref());
+                        if merged != live {
+                            write_text(&dst, &merged)?;
+                        }
+                    }
                     Some(theme_text) => {
                         let live = fs::read_to_string(&dst).ok();
                         write_text(&dst, &appearance::applied(rel, &theme_text, live.as_deref())?)?;

@@ -1536,8 +1536,9 @@ mkdir -p "$EX_X" && (cd "$EX_X" && python3 -c 'import zipfile,sys; zipfile.ZipFi
 if ! grep -rqF "$EX_A" "$EX_X" && grep -qF '$HOME/.config/wofi/colors.css' "$EX_X/.config/wofi/style.css" &&
   grep -qx "background #282a36" "$EX_X/.config/kitty/theme-profile.conf" && [ ! -e "$EX_X/.config/kitty/kitty.conf" ] &&
   ! grep -q "secret-file" "$EX_X/.config/plasma-org.kde.plasma.desktop-appletsrc" &&
-  grep -q "sortMode=-1" "$EX_X/.config/plasma-org.kde.plasma.desktop-appletsrc" && [ -f "$EX_X/export.json" ]; then
-  ok "export is portable: \$HOME for the home path, only the look (no kitty.conf keys), no desktop icons"
+  ! grep -q "sortMode" "$EX_X/.config/plasma-org.kde.plasma.desktop-appletsrc" &&
+  grep -q "Wallpaper/sea.jpg" "$EX_X/.config/plasma-org.kde.plasma.desktop-appletsrc" && [ -f "$EX_X/export.json" ]; then
+  ok "export is portable: \$HOME for the home path, only the look (no kitty.conf keys, no layout), no desktop icons"
 else
   fail "export leaks the home path or desktop icons"
 fi
@@ -2043,6 +2044,114 @@ if grep -qx "ColorScheme=BreezeDark" "$LAF/contents/defaults" 2>/dev/null && [ -
   ok "look-and-feel: defaults from the live look, no layout, selected"
 else
   fail "look-and-feel: $(cat "$LAF/contents/defaults" 2>&1) // $(grep -i lookandfeel "$NT/.config/kdeglobals")"
+fi
+
+# --- Layouts stay the user's (layout.rs) ---------------------------------------
+LA="$TMP_ROOT/layout-author"
+LU="$TMP_ROOT/layout-user"
+mkdir -p "$LA/.config" "$LU/.config" "$LA/Pictures/Wallpaper"
+printf 'jpeg' >"$LA/Pictures/Wallpaper/dune.jpg"
+cat >"$LA/.config/plasma-org.kde.plasma.desktop-appletsrc" <<APPLETS
+[Containments][1]
+activityId=author-activity
+formfactor=0
+lastScreen=0
+location=0
+plugin=org.kde.plasma.folder
+wallpaperplugin=org.kde.image
+
+[Containments][1][Wallpaper][org.kde.image][General]
+Image=file://$LA/Pictures/Wallpaper/dune.jpg
+
+[Containments][2]
+formfactor=2
+location=4
+plugin=org.kde.panel
+
+[Containments][2][Applets][3]
+plugin=org.kde.plasma.kickoff
+
+[Containments][2][Applets][3][Configuration][General]
+favorites=author-app.desktop
+icon=author-logo
+
+[Containments][2][Applets][4]
+plugin=org.kde.plasma.weather
+
+[Containments][2][Applets][4][Configuration][General]
+source=author home town
+
+[Containments][2][General]
+AppletOrder=3;4
+APPLETS
+printf '[PlasmaViews][Panel 2]\nfloating=0\npanelOpacity=1\npanelVisibility=1\n\n[PlasmaViews][Panel 2][Defaults]\nthickness=80\n' >"$LA/.config/plasmashellrc"
+printf '[General]\nOrder=r1,r2\n\n[r1]\nDescription=see-through kitty\nwmclass=kitty\nwmclassmatch=1\nopacityactive=85\nopacityactiverule=2\nposition=0,0\npositionrule=3\n\n[r2]\nDescription=pinned size\nsize=900,700\nsizerule=3\n' >"$LA/.config/kwinrulesrc"
+cat >"$LU/.config/plasma-org.kde.plasma.desktop-appletsrc" <<'APPLETS'
+[Containments][10]
+formfactor=0
+lastScreen=0
+location=0
+plugin=org.kde.desktopcontainment
+wallpaperplugin=org.kde.image
+
+[Containments][10][Wallpaper][org.kde.image][General]
+Image=file:///nowhere/mine.jpg
+
+[Containments][20]
+formfactor=2
+location=4
+plugin=org.kde.panel
+
+[Containments][20][Applets][21]
+plugin=org.kde.plasma.icontasks
+
+[Containments][20][Applets][22]
+plugin=org.kde.plasma.kickoff
+
+[Containments][20][Applets][22][Configuration][General]
+favorites=my-app.desktop
+icon=start-here
+
+[Containments][20][General]
+AppletOrder=22;21
+APPLETS
+printf '[PlasmaViews][Panel 20]\nfloating=1\npanelOpacity=2\npanelVisibility=0\n\n[PlasmaViews][Panel 20][Defaults]\nthickness=44\n' >"$LU/.config/plasmashellrc"
+printf '[General]\nOrder=mine\n\n[mine]\nDescription=my rule\nwmclass=firefox\nwmclassmatch=1\nminimize=true\nminimizerule=2\n' >"$LU/.config/kwinrulesrc"
+la() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$LA" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+lu() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$LU" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+la save dune >/dev/null 2>&1
+STORED="$LA/.config/theme-profile/profiles/dune/.config/plasma-org.kde.plasma.desktop-appletsrc"
+if grep -q "icon=author-logo" "$STORED" && ! grep -q "weather\|author home town\|favorites\|AppletOrder\|author-activity" "$STORED" &&
+  ! grep -q "thickness\|panelVisibility" "$LA/.config/theme-profile/profiles/dune/.config/plasmashellrc" &&
+  ! grep -q "pinned size\|position" "$LA/.config/theme-profile/profiles/dune/.config/kwinrulesrc"; then
+  ok "save keeps the shell's look only: no widgets, widget settings, panel sizes or behaviour rules"
+else
+  fail "save stored layout: $(cat "$STORED")"
+fi
+DZIP="$TMP_ROOT/dune.ktmtheme.zip"
+la export dune --out="$DZIP" >/dev/null 2>&1
+lu import "$DZIP" --apply >/dev/null 2>&1
+LIVE_RC="$LU/.config/plasma-org.kde.plasma.desktop-appletsrc"
+if grep -q "Wallpaper/dune.jpg" "$LIVE_RC" && grep -q "icon=author-logo" "$LIVE_RC" && ! grep -q "start-here\|mine.jpg" "$LIVE_RC" &&
+  grep -q "favorites=my-app.desktop" "$LIVE_RC" && grep -q "AppletOrder=22;21" "$LIVE_RC" && grep -q "org.kde.plasma.icontasks" "$LIVE_RC" &&
+  ! grep -q "weather\|author-app\|Containments\]\[2\]" "$LIVE_RC"; then
+  ok "apply brings the wallpaper and launcher icon into the user's own layout (widgets, order, favourites kept)"
+else
+  fail "apply changed the layout: $(cat "$LIVE_RC")"
+fi
+SHELLRC="$LU/.config/plasmashellrc"
+if grep -qx "floating=0" "$SHELLRC" && grep -qx "panelOpacity=1" "$SHELLRC" && grep -qx "panelVisibility=0" "$SHELLRC" &&
+  grep -qx "thickness=44" "$SHELLRC" && ! grep -q "Panel 2\]" "$SHELLRC"; then
+  ok "panels take the theme's floating/opacity (matched by screen edge), keep their size and auto-hide"
+else
+  fail "panel views: $(cat "$SHELLRC")"
+fi
+RULES="$LU/.config/kwinrulesrc"
+if grep -qx "Order=mine,r1" "$RULES" && ! grep -q "count=\|^rules=" "$RULES" && grep -q "opacityactive=85" "$RULES" &&
+  grep -q "minimize=true" "$RULES" && ! grep -q "pinned size\|position=" "$RULES"; then
+  ok "window rules: the theme's look rule joins the user's (KWin 6 Order= kept, behaviour not carried)"
+else
+  fail "window rules: $(cat "$RULES")"
 fi
 
 # --- Summary ------------------------------------------------------------------

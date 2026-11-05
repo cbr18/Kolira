@@ -8,6 +8,10 @@ already have a theme with that name (nothing is applied or overwritten);
 theme-profile import themes/glass        # then: theme-profile apply glass
 ```
 
+Themes style the user's own panels and never bring a layout: Panel Colorizer
+and the launcher (Simple Application Launcher) are listed because the theme
+styles them — a theme does not add them to a panel (`docs/THEMES.md`).
+
 Each folder is a public export (`theme-profile export NAME --dir=themes/NAME --public`):
 only the look (see `docs/THEMES.md`), the home folder written as `$HOME`, no desktop
 icon positions, no Look & Feel preview screenshots. Assets that may not be

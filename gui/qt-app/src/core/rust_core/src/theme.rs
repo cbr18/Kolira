@@ -478,6 +478,10 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
                 let Some(live) = asset_in(k, &live_path(k.user_rel), &asset) else { continue };
                 let rel = live.strip_prefix(&home).map(Path::to_path_buf).unwrap_or_else(|_| Path::new(k.user_rel).join(live.file_name().unwrap_or_default()));
                 copy_into(&live, &dir.join(&rel))?;
+                if k.kind == "look-and-feel" {
+                    // A Global Theme's layout scripts are an arrangement, not a look.
+                    let _ = fs::remove_dir_all(dir.join(&rel).join(crate::layout::LAF_LAYOUTS));
+                }
                 dir.join(rel)
             }
         };
@@ -684,6 +688,9 @@ pub fn set_licence(name: &str, asset: &str, licence: &str, source: &str, redistr
     Ok(out)
 }
 
+/// Files whose layout part a theme does not carry (`layout.rs`).
+const LAYOUT_FILES: &[&str] = &[crate::wallpaper::APPLETSRC_REL, ".config/plasmashellrc", ".config/kwinrulesrc"];
+
 /// Drop from stored theme `name` everything that is not part of it: files no
 /// longer tracked (QtProject.conf, Obsidian vault list…), the `metadata/`
 /// diagnostics, other themes' assets from library folders. `theme.json` is
@@ -716,6 +723,20 @@ pub fn prune(name: &str) -> Result<usize> {
                 stack.push(child);
             } else if child != Path::new(MANIFEST) && !keep.contains(&child) {
                 fs::remove_file(e.path())?;
+                removed += 1;
+            }
+        }
+    }
+    // Layout files: only their look stays (themes saved before 2026-11-05
+    // carried the whole panel/widget layout, desktop icons, widget settings).
+    for rel in LAYOUT_FILES {
+        let path = dir.join(rel);
+        let Ok(text) = fs::read_to_string(&path) else { continue };
+        match crate::appearance::for_theme(rel, &text) {
+            Some(look) if look != text => fs::write(&path, look)?,
+            Some(_) => {}
+            None => {
+                fs::remove_file(&path)?;
                 removed += 1;
             }
         }

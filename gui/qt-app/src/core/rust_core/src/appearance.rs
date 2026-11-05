@@ -15,7 +15,11 @@
 //!   the look lives in a separate file (`kitty/theme-profile.conf`,
 //!   `alacritty/theme-profile.toml`) that the user's config includes once;
 //!   the user's config itself is never stored and only gains the include line;
-//! * [`Policy::KwinRules`] — window rules merged rule by rule.
+//! * [`Policy::KwinRules`] — window rules merged rule by rule, look
+//!   properties only;
+//! * [`Policy::Appletsrc`] / [`Policy::PanelViews`] — the Plasma shell's look
+//!   (wallpaper, launcher icon, Panel Colorizer, panel floating/opacity)
+//!   merged into the user's own layout (`layout.rs`).
 //!
 //! The same functions serve save (live → theme), apply (theme → live) and
 //! export (theme → archive), so all three agree.
@@ -74,6 +78,10 @@ pub enum Policy {
     /// Lines selected by a predicate, merged by name (fish colours, bat theme).
     Lines(fn(&str) -> bool),
     KwinRules,
+    /// `plasma-org.kde.plasma.desktop-appletsrc`: look merged into the live layout.
+    Appletsrc,
+    /// `plasmashellrc`: per-panel `floating` / `panelOpacity`.
+    PanelViews,
 }
 
 const KDEGLOBALS: &[Rule] = &[
@@ -105,7 +113,6 @@ const KWINRC: &[Rule] = &[
     r("Plugins", Keys::KwinEffects),
 ];
 const PLASMARC: &[Rule] = &[r("Theme", Keys::All)];
-const PLASMASHELLRC: &[Rule] = &[r("PlasmaViews*", Keys::All)];
 const GTK_SETTINGS: &[Rule] = &[r(
     "Settings",
     Keys::Only(&[
@@ -174,7 +181,8 @@ pub fn policy(rel: &str) -> Policy {
         crate::extras::BAT_CONFIG => Policy::Lines(crate::extras::bat_theme_line),
         crate::extras::GHOSTTY_HOST => Policy::GhosttyHost,
         rel if crate::extras::SHELL_HOSTS.contains(&rel) => Policy::OmpHost,
-        ".config/plasmashellrc" => Policy::Ini(PLASMASHELLRC),
+        ".config/plasmashellrc" => Policy::PanelViews,
+        crate::wallpaper::APPLETSRC_REL => Policy::Appletsrc,
         ".config/gtk-3.0/settings.ini" | ".config/gtk-4.0/settings.ini" => Policy::Ini(GTK_SETTINGS),
         ".config/btop/btop.conf" => Policy::Kv(BTOP),
         ".config/Code/User/settings.json"
@@ -201,14 +209,14 @@ fn pattern_matches(pattern: &str, name: &str) -> bool {
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Default)]
-struct Section {
+pub(crate) struct Section {
     /// Raw header line (`[Colors:View]`), `None` for lines before any header.
-    header: Option<String>,
-    lines: Vec<String>,
+    pub(crate) header: Option<String>,
+    pub(crate) lines: Vec<String>,
 }
 
 impl Section {
-    fn group(&self) -> &str {
+    pub(crate) fn group(&self) -> &str {
         self.header
             .as_deref()
             .map(|h| h.trim().strip_prefix('[').and_then(|h| h.strip_suffix(']')).unwrap_or(h))
@@ -216,7 +224,7 @@ impl Section {
     }
 }
 
-fn parse_ini(text: &str) -> Vec<Section> {
+pub(crate) fn parse_ini(text: &str) -> Vec<Section> {
     let mut out = vec![Section::default()];
     for line in text.lines() {
         if line.starts_with('[') {
@@ -228,7 +236,7 @@ fn parse_ini(text: &str) -> Vec<Section> {
     out
 }
 
-fn render_ini(sections: &[Section]) -> String {
+pub(crate) fn render_ini(sections: &[Section]) -> String {
     let mut out: Vec<String> = Vec::new();
     for s in sections {
         if s.header.is_none() && s.lines.iter().all(|l| l.trim().is_empty()) {
@@ -252,7 +260,7 @@ fn render_ini(sections: &[Section]) -> String {
 }
 
 /// `Name[ru]` / `Key[$e]` → `Name` / `Key`.
-fn base_key(line: &str) -> Option<&str> {
+pub(crate) fn base_key(line: &str) -> Option<&str> {
     let (key, _) = line.split_once('=')?;
     let key = key.trim();
     if key.starts_with('#') || key.starts_with(';') {
@@ -399,7 +407,7 @@ pub fn kwinrules_merge(theme: &str, live: &str) -> String {
     }
     for t in theme.into_iter().filter(|s| s.header.is_some() && s.group() != "General") {
         match live.iter_mut().find(|s| s.header.is_some() && s.group() == t.group()) {
-            Some(s) => s.lines = t.lines,
+            Some(s) => s.lines = crate::layout::kwinrule_lines(&t.lines, &s.lines),
             None => live.push(t),
         }
     }
@@ -410,9 +418,11 @@ pub fn kwinrules_merge(theme: &str, live: &str) -> String {
             live.iter_mut().find(|s| s.group() == "General" && s.header.is_some()).expect("just inserted")
         }
     };
+    let list = crate::layout::rule_list_lines(&order, &general.lines);
     general.lines.retain(|l| !matches!(base_key(l), Some("count" | "rules" | "Order")));
-    general.lines.insert(0, format!("rules={}", order.join(",")));
-    general.lines.insert(0, format!("count={}", order.len()));
+    for (i, line) in list.into_iter().enumerate() {
+        general.lines.insert(i, line);
+    }
     render_ini(&live)
 }
 
@@ -861,11 +871,18 @@ pub fn alacritty_host(host: &str) -> Result<String> {
 // Save / apply / export entry points
 // ─────────────────────────────────────────────────────────────────────────────
 
+fn non_empty(text: String) -> Option<String> {
+    (!text.trim().is_empty()).then_some(text)
+}
+
 /// What a theme stores for tracked file `rel` given its current text; `None`
 /// means "store nothing" (include hosts).
 pub fn for_theme(rel: &str, text: &str) -> Option<String> {
     match policy(rel) {
-        Policy::Whole | Policy::KwinRules => Some(text.to_string()),
+        Policy::Whole => Some(text.to_string()),
+        Policy::KwinRules => non_empty(crate::layout::kwinrules_for_theme(text)),
+        Policy::Appletsrc => non_empty(crate::layout::appletsrc_for_theme(text)),
+        Policy::PanelViews => non_empty(crate::layout::panel_views_for_theme(text)),
         Policy::Ini(rules) => Some(ini_filter(text, rules)),
         Policy::Kv(keys) => Some(kv_filter(text, keys)),
         Policy::Jsonc(keys) => Some(jsonc_filter(text, keys)),
@@ -881,7 +898,9 @@ pub fn applied(rel: &str, theme_text: &str, live_text: Option<&str>) -> Result<S
     Ok(match policy(rel) {
         Policy::Whole => theme_text.to_string(),
         Policy::Ini(rules) => ini_merge(theme_text, live, rules),
-        Policy::KwinRules => kwinrules_merge(theme_text, live),
+        Policy::KwinRules => kwinrules_merge(&crate::layout::kwinrules_for_theme(theme_text), live),
+        Policy::Appletsrc => crate::layout::appletsrc_merge(theme_text, live),
+        Policy::PanelViews => crate::layout::panel_views_merge(theme_text, live, None, None),
         Policy::Kv(keys) => kv_merge(theme_text, live, keys),
         Policy::Jsonc(keys) => jsonc_merge(theme_text, live, keys),
         Policy::Prefs(keys) => prefs_merge(theme_text, live, keys),
@@ -926,7 +945,7 @@ pub fn include_of(host: &str) -> Option<&'static str> {
 /// the theme already carries the host's include file.
 pub fn normalize(rel: &str, text: &str, has_include: bool) -> Result<Vec<(String, String)>> {
     Ok(match policy(rel) {
-        Policy::Whole | Policy::KwinRules => vec![(rel.to_string(), text.to_string())],
+        Policy::Whole => vec![(rel.to_string(), text.to_string())],
         Policy::NvimHost | Policy::OmpHost => Vec::new(),
         Policy::GhosttyHost => {
             let (look, _) = crate::extras::ghostty_split(text);
@@ -1013,6 +1032,18 @@ mod tests {
         let theme = "[General]\ncount=1\nrules=b\n\n[b]\nDescription=theme\nopacityactive=90\n";
         let m = kwinrules_merge(theme, live);
         assert!(m.contains("count=2") && m.contains("rules=a,b") && m.contains("Description=mine") && m.contains("opacityactive=90"));
+        assert!(!m.contains("Order="));
+    }
+
+    #[test]
+    fn kwinrules_merge_keeps_the_order_format_of_kwin_6() {
+        // KWin 6.8 writes [General] Order=…; rewriting it as count/rules
+        // would leave KWin without its rule list.
+        let live = "[General]\nOrder=a\n\n[a]\nDescription=mine\nnoborder=true\nnoborderrule=2\n";
+        let theme = "[General]\nOrder=b\n\n[b]\nDescription=theme\nopacityactive=90\nopacityactiverule=2\n";
+        let m = kwinrules_merge(theme, live);
+        assert!(m.contains("Order=a,b") && !m.contains("count=") && !m.contains("rules="), "{m}");
+        assert_eq!(kwinrules_merge(theme, &m), m);
     }
 
     #[test]

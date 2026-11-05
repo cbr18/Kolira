@@ -6,13 +6,16 @@ to after a mistake: apply it again and the look returns. There is no separate
 and (planned) `.zip` export/import all use one format: the **theme package**.
 
 A theme stores **everything that affects how the desktop looks — and nothing
-else**: KDE colours and fonts, KWin effects and decoration, window rules,
-panels and widgets (`plasma-org.kde.plasma.desktop-appletsrc`), GTK 3/4,
+else**: KDE colours and fonts, KWin effects and decoration, the look of window rules,
+the look of panels and widgets (wallpaper, launcher icon, Panel Colorizer,
+panel floating/opacity), GTK 3/4,
 Kvantum, terminal colours/fonts/opacity, launchers (wofi), btop, fastfetch,
 editor themes (Zed, VS Code, Cursor), Zen (`user.js` and chrome CSS), Obsidian,
 plus user-defined components and the wallpaper. Applying someone's theme (or
 switching your own) never resets screen scaling, virtual desktops, tiling
-layouts, key bindings, editor behaviour or an SSH host.
+layouts, key bindings, editor behaviour or an SSH host — nor the panel and
+widget **layout**: which panels and widgets exist, where they sit, their sizes
+and settings stay the user's (since 2026-11-05, `rust_core/src/layout.rs`).
 
 ### What is stored per file (`rust_core/src/appearance.rs`)
 
@@ -25,8 +28,10 @@ takes the family from the theme and keeps the live size.
 |---|---|---|
 | `kdeglobals` | `[Colors:*]`, `[ColorEffects:*]`, `[WM]`, `[Icons]`, font families (live sizes kept), `General` ColorScheme/Accent*, `KDE` LookAndFeelPackage/widgetStyle/contrast/AnimationDurationFactor | `[KScreen]` scaling, `TerminalApplication`, `[KFileDialog Settings]`, `[PreviewSettings]`, other `[KDE]` behaviour |
 | `kwinrc` | `[Effect-*]`, `[Round-Corners]` (Rounded Corners effect), `[org.kde.kdecoration2]`, effect switches in `[Plugins]` | `[Desktops]`, `[Tiling]`, `[Windows]`, `[Wayland]`, KWin *scripts* in `[Plugins]` (krohnkite, snapping…) |
-| `kwinrulesrc` | the theme's rules (by id) | the user's other rules |
-| `plasmarc`, `plasmashellrc` | `[Theme]`; `[PlasmaViews…]` (panel opacity, floating, thickness) | `[Wallpapers]` list, `[Updates]` |
+| `kwinrulesrc` | rules with a look property, reduced to their match keys (`Description`, `wmclass*`, `title*`, `types`, …) and look properties (`opacityactive/inactive`, `noborder`, `decocolor`, `decorationpolicy` + their `…rule`); merged by id — a live rule with the same id keeps its behaviour keys. The rule list is written in the live file's format (KWin 6: `Order=`, older: `count`/`rules`) | the user's other rules; position, size, desktops, shortcuts and other behaviour properties |
+| `plasmarc` | `[Theme]` | `[Wallpapers]` list |
+| `plasmashellrc` | per panel `[PlasmaViews][Panel N]` `floating`, `panelOpacity`; a live panel takes the theme panel with the same id, else the one on the same screen edge, else the first | thickness, lengths, alignment, offsets, auto-hide (`panelVisibility`), `[Updates]` |
+| `plasma-org.kde.plasma.desktop-appletsrc` | per containment only `plugin`/`formfactor`/`location`/`lastScreen`/`wallpaperplugin` (to match, never restored); each desktop's active wallpaper plugin settings → the live desktop on the same screen (else the first); look keys of widgets the user already has — launcher (`kickoff`, `simplekickoff`, `kicker`, `kickerdash`) `icon`/`useCustomButtonImage`/`customButtonImage`, Panel Colorizer `globalSettings`/`configurationOverrides`/`isEnabled`/`hideWidget` — the n-th live widget of a kind takes the theme's n-th (else first) | which panels and widgets exist, their order and place, every other widget setting (favourites, weather location, clock format…), activities, desktop icons; a theme never adds a widget — a styled one the user lacks is simply not styled |
 | GTK `settings.ini` | theme, icons, cursor theme, font family (live size kept), dark preference, title-bar buttons, animations, font rendering | cursor size, cursor blinking, sounds, `gtk-modules`, … |
 | `kcminputrc` | `[Mouse] cursorTheme` | cursor size, mouse settings |
 | `btop.conf` | `color_theme`, `theme_background`, `truecolor`, `rounded_corners`, `graph_symbol*` | ~70 behaviour keys |
@@ -46,7 +51,7 @@ takes the family from the theme and keeps the live size.
 | Konsole | the default profile's `[Appearance]` (`ColorScheme`, font family — live size kept) + its `.colorscheme` (whole: colours, opacity, blur; travels as an asset) | the profile's command, scrolling, keys…; without a profile a `Theme Profile` (`Parent=FALLBACK/`) is created and made default |
 | Firefox (default profile from `installs.ini`/`profiles.ini`) | `chrome/userChrome.css`, `chrome/userContent.css` (whole); `user.js` only look prefs (`browser.theme.*`, `toolkit.legacyUserProfileCustomizations.stylesheets`, `extensions.activeThemeID`, …) | privacy/behaviour prefs in `user.js` |
 | Alacritty | `alacritty/theme-profile.toml` (`[colors.*]`, `[font]` faces, window opacity/blur/padding/decorations, cursor style) | `[font] size`/offsets; `alacritty.toml` gains `general.import` |
-| everything else (Klassy, Breeze, GTK CSS, wofi CSS, Zen, Obsidian appearance, Trolltech palette, Kvantum, colour schemes, L&F, fastfetch, panels file) | whole file | — |
+| everything else (Klassy, Breeze, GTK CSS, wofi CSS, Zen, Obsidian appearance, Trolltech palette, Kvantum, colour schemes, L&F, fastfetch) | whole file (a Look & Feel package without its `contents/layouts/` scripts) | — |
 
 Browser profile folders have a random name per install (`gp0y8wrv.Default
 (release)`): a theme made elsewhere stores its files under the author's
@@ -64,11 +69,11 @@ includes; the first save, palette apply or theme apply moves the look out of
 
 Not stored, because they are not appearance: `QtProject.conf` (file-dialog
 state), `obsidian.json` (vault list) and Obsidian `Preferences` (spellcheck,
-zoom). Desktop icon positions inside `appletsrc` are saved with the file but
-never restored: apply keeps the current ones (`positions`, `changedPositions`,
-`lastResolution`, `[ScreenMapping]`), so switching themes does not move icons.
-Themes saved before 2026-11-04 evening may still contain those files; apply
-ignores them.
+zoom). Desktop icons, panel/widget layouts and Look & Feel layout scripts are
+not stored either (see the table). Themes saved before 2026-11-05 carry the
+whole `appletsrc`, `plasmashellrc` geometry, behaviour window rules and
+`contents/layouts/`: apply reads only the look from them (the same filter), and
+`theme-profile prune NAME|--all` reduces them on disk (backup first).
 
 > 2026-11-04: a short-lived values-only format (`theme@1`: only the 71 registry
 > fields) lost terminal colours, GTK4, wofi, Zen, KWin effect toggles and more.
@@ -133,7 +138,7 @@ theme-profile look-and-feel NAME           # the live look as a Global Theme (no
 theme-profile apply NAME [--keep-wallpaper] [--install-missing] [--json]
 theme-profile check NAME [--json]          # what the theme references but this machine lacks
 theme-profile migrate NAME|--all           # add theme.json to a snapshot profile (files untouched)
-theme-profile prune NAME|--all             # drop what is not part of the theme (backup first)
+theme-profile prune NAME|--all             # drop what is not part of the theme, incl. layouts (backup first)
 theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper] [--public]
 theme-profile license NAME ASSET --license=SPDX [--source=URL] [--no-redistribute]
 theme-profile import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]

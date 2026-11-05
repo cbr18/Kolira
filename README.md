@@ -236,7 +236,8 @@ limits: [`docs/PALETTE.md`](docs/PALETTE.md).
 ## Profiles / Профили
 
 A profile **is a theme**: a full snapshot of every file that shapes the look
-(KDE, KWin incl. window rules, panels, GTK, Kvantum, terminals with their
+(KDE, KWin incl. the look of window rules, the look of panels — never their
+layout, GTK, Kvantum, terminals with their
 colours, launchers, editors, Zen, Obsidian, wallpaper) described by
 `theme.json` (description, values, local assets, editor-theme sources).
 Applying restores it after a pre-apply backup and reports what this machine
