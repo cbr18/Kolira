@@ -141,7 +141,7 @@ class ProfileController(QObject):
     # A theme was applied but references assets this machine lacks:
     # profile name, [{field, name, source}].
     dependenciesMissing = Signal(str, list)
-    actionsOffered = Signal(str, list)  # profile, follow-up actions (restart apps, Steam skin…)
+    actionsOffered = Signal(str, list)  # profile, follow-up actions (restart apps, Telegram…)
 
     def __init__(self, parent: Optional[QObject] = None):
         super().__init__(parent)
@@ -425,8 +425,7 @@ class ProfileController(QObject):
 
     @Slot(list)
     def runActions(self, ids: list) -> None:
-        """Do the follow-up actions the user ticked (restart programs, Steam
-        skin…) — `theme-profile action ID` each, in the background."""
+        """Do the follow-up actions the user ticked (restart programs…) — `theme-profile action ID` each, in the background."""
         chosen = [str(i) for i in ids]
 
         def _work() -> tuple[bool, str]:

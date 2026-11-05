@@ -35,8 +35,8 @@ Usage:
   theme-profile prune NAME|--all              (drop what is not part of the theme; backup first)
   theme-profile deps NAME [--refresh] [--install[=all|0,2]] [--json]
                               (what the theme needs and where from; install from official sources)
-  theme-profile actions NAME [--json]         (what applying leaves to do: restarts, Steam skin, Telegram)
-  theme-profile action ID                     (do one: vesktop, discord, zen, firefox, steam-skin)
+  theme-profile actions NAME [--json]         (what applying leaves to do: restarts, Telegram)
+  theme-profile action ID                     (do one: vesktop, discord, zen, firefox)
   theme-profile license NAME ASSET --license=SPDX [--source=URL] [--no-redistribute]
                               (mark a theme asset — wallpaper, Look & Feel…, or kind:name — for publishing)
   theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper] [--public]
@@ -812,7 +812,7 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         "actions" => {
-            // What applying NAME leaves to do (restarts, Steam skin, Telegram).
+            // What applying NAME leaves to do (restarts, Telegram).
             let Some(name) = args.iter().skip(1).find(|a| !a.starts_with("--")) else {
                 return fail("Usage: theme-profile actions NAME [--json]");
             };

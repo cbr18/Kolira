@@ -131,7 +131,7 @@ pub struct ApplyReport {
     pub backup: String,
     /// Dependencies not installed here (deps.rs), to offer for installation.
     pub dependencies: Vec<Needed>,
-    /// Follow-up actions to offer (restart programs, Steam skin…).
+    /// Follow-up actions to offer (restart programs, Telegram…).
     pub actions: Vec<crate::actions::Action>,
 }
 
@@ -841,8 +841,8 @@ pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
     }
     report.backup = backup.display().to_string();
     report.applied = crate::profile::get_profile_components(name).unwrap_or_default();
-    // Restarts, the Steam skin, Telegram's one-time choice: offered, not done
-    // (actions.rs) — a program may be in a call or a game.
+    // Restarts, Telegram's one-time choice: offered, not done (actions.rs) —
+    // a program may be in a call.
     report.actions = crate::actions::for_theme_since(&dir, Some(&backup));
 
     if let Some(path) = keep {

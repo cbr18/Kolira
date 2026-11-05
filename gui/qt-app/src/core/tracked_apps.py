@@ -309,16 +309,6 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         docs_url="https://github.com/desktop-app/lib_ui/blob/master/ui/colors.palette",
     ),
     TrackedAppDef(
-        id="steam",
-        name="Steam (Adwaita for Steam)",
-        category="Media",
-        config_paths=(".config/theme-profile/steam.css",),
-        detect_command="steam",
-        description="Steam client colours via Adwaita for Steam (palette target steam; patches steamui)",
-        icon="steam",
-        docs_url="https://github.com/tkashkin/Adwaita-for-Steam",
-    ),
-    TrackedAppDef(
         id="oh-my-posh",
         name="oh-my-posh (prompt)",
         category="Shell",

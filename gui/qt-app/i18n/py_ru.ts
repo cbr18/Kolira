@@ -446,7 +446,7 @@
 </context><context>
     <name>WallpaperController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="560" />
+        <location filename="../src/controllers/__init__.py" line="559" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>

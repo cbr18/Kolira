@@ -4,8 +4,6 @@
 //! * **restart** a running program that reads its look only at start:
 //!   Vesktop / Discord with Vencord (a newly enabled theme, the translucent
 //!   window), Zen / Firefox (`user.js`, `userChrome.css`);
-//! * **steam-skin**: install Adwaita for Steam with the theme's colours
-//!   (patches the Steam client; restart Steam to see it);
 //! * **manual**: Telegram's one-time choice of the palette file (it cannot be
 //!   set from outside; after that Telegram follows the file by itself).
 //!
@@ -126,15 +124,6 @@ pub fn for_theme_since(dir: &Path, before: Option<&Path>) -> Vec<Action> {
             });
         }
     }
-    if dir.join(crate::steam::CSS_FILE).is_file() && crate::steam::steam_installed() {
-        out.push(Action {
-            id: "steam-skin".into(),
-            kind: "steam-skin".into(),
-            title: "Install the Steam skin (Adwaita for Steam)".into(),
-            reason: "the theme carries colours for Steam; the skin patches the Steam client's files".into(),
-            warning: "downloads and runs the Adwaita for Steam installer; restart Steam afterwards (close games first)".into(),
-        });
-    }
     if dir.join(crate::telegram::PALETTE_FILE).is_file() && crate::telegram::installed() && !crate::telegram::follows_file() {
         out.push(Action {
             id: "telegram".into(),
@@ -195,10 +184,6 @@ pub fn run(id: &str) -> Result<String> {
         return Ok(format!("{} restarted ({bin})", app.title));
     }
     match id {
-        "steam-skin" => {
-            let css = crate::paths::home_dir().join(crate::steam::CSS_FILE);
-            crate::steam::install(&css, false)
-        }
         "telegram" => Err(anyhow!("Telegram's theme is chosen inside Telegram: Settings → Chat Settings → Choose from file")),
         _ => bail!("unknown action {id:?}"),
     }
@@ -211,7 +196,7 @@ mod tests {
     #[test]
     fn nothing_for_an_empty_theme() {
         let tmp = tempfile::tempdir().unwrap();
-        assert!(for_theme(tmp.path()).iter().all(|a| a.kind != "steam-skin" && a.kind != "manual"));
+        assert!(for_theme(tmp.path()).iter().all(|a| a.kind != "manual"));
     }
 
     #[test]

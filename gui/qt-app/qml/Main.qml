@@ -689,7 +689,7 @@ Kirigami.ApplicationWindow {
         }
     }
 
-    // After applying: programs to restart, the Steam skin, Telegram's
+    // After applying: programs to restart, Telegram's
     // one-time choice — each with a warning and its own checkbox; nothing
     // runs without the user (a call or a game may be on).
     Kirigami.Dialog {

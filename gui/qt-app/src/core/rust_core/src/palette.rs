@@ -548,12 +548,11 @@ pub fn alacritty_with_palette(existing: &str, p: &Palette) -> Result<String> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Targets a palette can be applied to.
-pub const TARGETS: [&str; 13] = ["kde", "kitty", "alacritty", "konsole", "ghostty", "nvim", "discord", "spicetify", "cava", "telegram", "gtk", "kvantum", "steam"];
+pub const TARGETS: [&str; 12] = ["kde", "kitty", "alacritty", "konsole", "ghostty", "nvim", "discord", "spicetify", "cava", "telegram", "gtk", "kvantum"];
 
 /// Targets used when none are given. `kvantum` is opt-in: it switches the Qt
 /// widget style, which the user may have chosen deliberately (e.g. Breeze).
-/// `gtk` is opt-in too: it overrides libadwaita's own look; `steam` patches
-/// the Steam client's files (Adwaita for Steam).
+/// `gtk` is opt-in too: it overrides libadwaita's own look.
 pub const DEFAULT_TARGETS: [&str; 10] = ["kde", "kitty", "alacritty", "konsole", "ghostty", "nvim", "discord", "spicetify", "cava", "telegram"];
 
 /// Extra knobs for [`apply`].
@@ -786,13 +785,6 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
                 path.display()
             )),
             crate::telegram::Outcome::Skipped(why) => report.push(format!("telegram: skipped, {why}")),
-        }
-    }
-
-    if wants("steam") {
-        match crate::steam::apply_palette(p)? {
-            Some((path, note)) => report.push(format!("steam: {} (Adwaita for Steam {note})", path.display())),
-            None => report.push("steam: skipped, Steam is not installed".to_string()),
         }
     }
 

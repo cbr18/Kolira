@@ -37,7 +37,6 @@ takes the family from the theme and keeps the live size.
 | Discord (Vencord / Vesktop) | `themes/` (CSS themes) + `settings/settings.json` `enabledThemes`/`themeLinks`/`transparent` (translucent window); Vesktop ↔ Vencord themes map to whichever client the receiver has | every other client setting; stock Discord has no themes → `discord-client` dependency |
 | Spotify (Spicetify) | `Themes/` + `config-xpui.ini` `[Setting]` `current_theme`, `color_scheme`, `inject_css`, `replace_colors`, `overwrite_assets`, `inject_theme_js`; apply runs `spicetify apply` | `spotify_path`, `prefs_path`, extensions, custom apps; Spicetify itself is a dependency (`spicetify-cli`) |
 | Telegram | `TelegramDesktop/theme-profile.tdesktop-palette` (palette file generated from the theme palette); Telegram keeps the applied theme in its encrypted settings: the user picks this file once (*Settings → Chat Settings → Choose from file*), then Telegram watches it and re-applies it whenever a theme or palette rewrites it | everything in `tdata` (account, chats, settings, the chat background) |
-| Steam | `.config/theme-profile/steam.css` — colours for the Adwaita for Steam skin (`--adw-*` variables); applying (re)installs the skin with them when they changed or a Steam update removed it | the Steam client's own settings; the skin is fetched from its repository and patches `steamui` (restart Steam). Opt-in and experimental: no bundled theme uses it (a whole-window KWin opacity rule made text and images translucent too, and the skin's CSS cannot make Steam's CEF window see-through) |
 | oh-my-posh | the prompt theme the shell's `oh-my-posh init … --config` line uses, stored as `oh-my-posh/theme-profile.omp.json` | `config.fish` / `.zshrc` / `.bashrc` — only the `--config` path of an existing init line is changed (never added); oh-my-posh is a dependency |
 | fish | `fish_variables` lines `SETUVAR fish_color_*` / `fish_pager_color_*` | other universal variables (`fish_user_paths`, …) |
 | Ghostty | `ghostty/theme-profile` (colours, palette, opacity/blur, font families, padding) | `config` — keeps the rest and gains `config-file = ?theme-profile` (last) |
@@ -137,8 +136,8 @@ theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper] [--publi
 theme-profile license NAME ASSET --license=SPDX [--source=URL] [--no-redistribute]
 theme-profile import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
 theme-profile deps NAME [--refresh] [--install[=all|0,2]] [--json]
-theme-profile actions NAME [--json]        # what applying leaves to do (restarts, Steam skin, Telegram)
-theme-profile action ID                    # do one: vesktop, discord, zen, firefox, steam-skin
+theme-profile actions NAME [--json]        # what applying leaves to do (restarts, Telegram)
+theme-profile action ID                    # do one: vesktop, discord, zen, firefox
 ```
 
 - **save** snapshots the look of every tracked file (filtered as above; old
@@ -275,7 +274,6 @@ warning and its own checkbox:
 |---|---|---|
 | restart Vesktop / Discord (Vencord) | the apply changed the client's themes/settings and it is running (a newly enabled theme, the translucent window) | a voice call or screen share ends |
 | restart Zen / Firefox | the apply changed `user.js` / `userChrome.css` and the browser is running | calls and downloads stop; tabs return with session restore |
-| Steam skin | the theme carries Steam colours (`steam.css`) | downloads and runs the Adwaita for Steam installer; restart Steam (close games) |
 | Telegram (manual) | the theme carries a Telegram palette Telegram does not follow yet | — (Settings → Chat Settings → Choose from file, once) |
 
 A restart asks the program to quit (SIGTERM — a normal quit, browsers save
