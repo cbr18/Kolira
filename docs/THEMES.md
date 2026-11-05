@@ -98,7 +98,12 @@ copying the theme to `backups/pre-prune-<name>-…`.) Themes carry no
 Local assets the theme uses live inside the snapshot at their `$HOME`-relative
 path: `.local/share/color-schemes/<Name>.colors`, the active Kvantum family dir
 `.config/Kvantum/<Family>/`, `.local/share/plasma/look-and-feel/<id>/`, a user
-Plasma style `.local/share/plasma/desktoptheme/<id>/`, btop and Zed theme files.
+Plasma style `.local/share/plasma/desktoptheme/<id>/`, a user Aurorae window
+decoration `.local/share/aurorae/themes/<name>/` (field `decoration_theme` =
+`__aurorae__svg__<name>`), btop and Zed theme files. A store decoration the
+author may not redistribute is withheld by `export --public` and becomes a
+dependency; a derivative with a free licence (frutiger-aero-light's
+`Se7enAeroLight`, GPL-2) travels inside the theme.
 
 ## `theme.json`
 
@@ -242,7 +247,7 @@ portable copy of a theme:
 | `export.json` | `format: theme-profile/export@1`, theme name, date, generator, `home_token: "$HOME"`, `files`: path → SHA-256 |
 | `theme.json`, `manifest.json`, `manifest.txt` | `manifest.txt` without its `user=` line |
 | tracked appearance files | every file the theme restores (`.config/…`, `.local/share/…`, `.zen/…`, …) |
-| library folders | from `color-schemes`, `Kvantum`, `look-and-feel`, `desktoptheme`, `btop/themes`, `zed/themes` only the entries the theme uses (its `assets`) — not every installed theme |
+| library folders | from `color-schemes`, `Kvantum`, `look-and-feel`, `desktoptheme`, `aurorae/themes`, `btop/themes`, `zed/themes` only the entries the theme uses (its `assets`) — not every installed theme |
 | `wallpaper/` | unless `--no-wallpaper` (then `theme.json` has `wallpaper: null`) |
 | left out | `metadata/` (diagnostics), files the theme no longer tracks, symlinks |
 
@@ -293,12 +298,14 @@ the store, an unmarked wallpaper or logo) become dependencies with their source
 the category word, e.g. "Orchis kvantum"), and Look & Feel preview screenshots
 (a picture of the author's desktop) are dropped.
 
-The ready themes in `themes/` (glass, Paper, everforest, dracula, frutiger-aero; licences and
+The ready themes in `themes/` (glass, Paper, everforest, dracula, frutiger-aero, frutiger-aero-light; licences and
 sources in `themes/README.md`) are added by the installer when a theme of that
 name does not exist yet (`--no-themes` skips; nothing is applied or replaced).
 
 Downloads that a store rate-limits (HTTP 429) are retried twice (Retry-After,
 at most 30 s; else 5 → 15 s), then reported as "rate-limiting — try again in a
-few minutes". A theme's wallpaper copy goes back to its original folder only if
+few minutes". Timeouts are for connecting (20 s) and for silence (60 s without
+data), not for the whole transfer: a big icon-theme archive from a slow store
+mirror keeps downloading as long as data flows. A theme's wallpaper copy goes back to its original folder only if
 that folder exists here — a theme from another machine never creates e.g.
 `~/Изображения`; this machine's wallpaper folder is used instead.

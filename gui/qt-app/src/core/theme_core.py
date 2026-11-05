@@ -33,6 +33,36 @@ from typing import Any, Iterable, Optional
 from .fileutil import atomic_write_bytes, atomic_write_text, copy_preserving_mode
 
 
+# Same rule as the Rust core (field.rs GTK_MIRROR): KDE's gtkconfig syncs GTK
+# settings only for System Settings changes, so these fields are mirrored into
+# GTK 3 and GTK 4 settings.ini. The GTK font is not mirrored (sizes are personal).
+GTK_MIRROR = {
+    "gtk_theme": "gtk-theme-name",
+    "gtk_dark": "gtk-application-prefer-dark-theme",
+    "icon_theme": "gtk-icon-theme-name",
+    "cursor_theme": "gtk-cursor-theme-name",
+}
+GTK_SETTINGS = (".config/gtk-3.0/settings.ini", ".config/gtk-4.0/settings.ini")
+
+
+def _mirror_to_gtk(field_id: str, value: Any) -> str:
+    """Write the GTK counterpart of ``field_id``; returns an error text or ""."""
+    key = GTK_MIRROR.get(field_id)
+    if key is None:
+        return ""
+    text_value = ("true" if value else "false") if isinstance(value, bool) else str(value)
+    try:
+        for rel in GTK_SETTINGS:
+            path = live_path(rel)
+            text = path.read_text(encoding="utf-8", errors="replace") if path.is_file() else ""
+            if _ini_get(text, "Settings", key) != text_value:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                atomic_write_text(path, _set_ini_text(text, "Settings", key, text_value))
+    except OSError as exc:
+        return str(exc)
+    return ""
+
+
 def tr(text: str) -> str:
     """Перевод пользовательских сообщений ядра.
 
@@ -1418,6 +1448,10 @@ class AppThemeCore(ThemeCore):
                 hook_message = self._run_hook(field)
                 if hook_message:
                     messages.append(hook_message)
+
+            mirror_error = _mirror_to_gtk(field_id, new_raw)
+            if mirror_error:
+                messages.append(f"{field.label}: GTK settings: {mirror_error}")
 
             self._undo.append(_UndoEntry(field_id, old_raw, path, old_bytes))
             applied += 1

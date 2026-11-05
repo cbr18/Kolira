@@ -29,6 +29,17 @@ fn ensure_allowed() -> Result<()> {
     }
 }
 
+/// Connection and *idle* timeouts, not a deadline for the whole transfer: a
+/// large store archive (an icon theme of tens of MB) on a slow link keeps
+/// downloading as long as bytes keep coming.
+fn agent() -> ureq::Agent {
+    ureq::AgentBuilder::new()
+        .timeout_connect(Duration::from_secs(20))
+        .timeout_read(Duration::from_secs(60))
+        .timeout_write(Duration::from_secs(30))
+        .build()
+}
+
 /// GET returning at most `limit` bytes (error if larger).
 pub fn http_get_bytes(url: &str, limit: u64) -> Result<Vec<u8>> {
     ensure_allowed()?;
@@ -37,7 +48,7 @@ pub fn http_get_bytes(url: &str, limit: u64) -> Result<Vec<u8>> {
     // and retry twice — about a minute at worst, then a clear error.
     let mut attempt = 0;
     let response = loop {
-        match ureq::get(url).set("User-Agent", "theme-profile-kit").timeout(Duration::from_secs(30)).call() {
+        match agent().get(url).set("User-Agent", "theme-profile-kit").call() {
             Ok(r) => break r,
             Err(ureq::Error::Status(429, r)) if attempt < 2 => {
                 let wait = r

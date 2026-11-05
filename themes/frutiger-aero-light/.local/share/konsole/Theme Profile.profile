@@ -1,0 +1,2 @@
+[Appearance]
+ColorScheme=ThemeProfileFrutigerAeroLight

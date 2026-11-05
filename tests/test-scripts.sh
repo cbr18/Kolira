@@ -1954,6 +1954,20 @@ else
   fail "gtk target: $(cat "$GP/.config/gtk-4.0/gtk.css" "$GP/.config/gtk-4.0/theme-profile.css" 2>&1 | head -5)"
 fi
 
+# A user Aurorae decoration travels inside the theme (not a dependency).
+AU="$TMP_ROOT/aurorae"; mkdir -p "$AU/.local/share/aurorae/themes/MineAero" "$AU/.config"
+printf '[General]\nActiveTextColor=0,0,0,255\n' >"$AU/.local/share/aurorae/themes/MineAero/MineAerorc"
+printf '[org.kde.kdecoration2]\nlibrary=org.kde.kwin.aurorae\ntheme=__aurorae__svg__MineAero\n' >"$AU/.config/kwinrc"
+au() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$AU" KTM_THEME_NO_APPLY=1 KTM_OFFLINE=1 "$CLI_DIR/theme-profile" "$@"; }
+au save deco >/dev/null 2>&1
+if python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert any(a["kind"]=="aurorae" and a["name"]=="MineAero" for a in d["assets"]), d["assets"]; assert not any(x["kind"]=="aurorae" for x in d["dependencies"]), d["dependencies"]' \
+  "$AU/.config/theme-profile/profiles/deco/theme.json" 2>/dev/null &&
+  [ -f "$AU/.config/theme-profile/profiles/deco/.local/share/aurorae/themes/MineAero/MineAerorc" ]; then
+  ok "a user Aurorae decoration is carried as a theme asset, not a dependency"
+else
+  fail "aurorae not carried: $(cat "$AU/.config/theme-profile/profiles/deco/theme.json" 2>/dev/null | head -c 700)"
+fi
+
 # --- Summary ------------------------------------------------------------------
 echo ""
 echo "═══════════════════════════════════════"

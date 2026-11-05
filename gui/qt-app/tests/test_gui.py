@@ -1167,6 +1167,20 @@ class TestInspectorStaging:
         assert field["staged"] is False
         assert "cursorTheme=Breeze_Snow" in (conf / "kcminputrc").read_text()
 
+    def test_gtk_fields_mirror_into_gtk3_and_gtk4(self, tmp_path: Path, monkeypatch) -> None:
+        conf = tmp_path / ".config"
+        (conf / "gtk-3.0").mkdir(parents=True)
+        (conf / "gtk-3.0" / "settings.ini").write_text("[Settings]\ngtk-theme-name=Old\ngtk-xft-dpi=98304\n")
+        (conf / "kdeglobals").write_text("[Icons]\nTheme=breeze\n")
+        core = self._core(tmp_path, monkeypatch)
+        assert core.set_value("gtk_theme", "Glass").success
+        assert core.set_value("icon_theme", "Seven").success
+        assert core.apply().success
+        gtk3 = (conf / "gtk-3.0" / "settings.ini").read_text()
+        gtk4 = (conf / "gtk-4.0" / "settings.ini").read_text()
+        assert "gtk-theme-name=Glass" in gtk3 and "gtk-xft-dpi=98304" in gtk3
+        assert "gtk-theme-name=Glass" in gtk4 and "gtk-icon-theme-name=Seven" in gtk4
+
     def test_apply_with_empty_staging_is_error(self, tmp_path: Path, monkeypatch) -> None:
         core = self._core(tmp_path, monkeypatch)
         assert not core.apply().success

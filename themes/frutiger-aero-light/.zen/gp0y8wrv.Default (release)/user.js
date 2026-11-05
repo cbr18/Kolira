@@ -1,0 +1,10 @@
+user_pref("browser.tabs.allow_transparent_browser", true);
+user_pref("zen.widget.linux.transparency", true);
+user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
+user_pref("mod.sameerasw.zen_transparency_color", "#00000000");
+user_pref("mod.sameerasw.zen_transparent_glance_enabled", true);
+user_pref("mod.sameerasw.zen_transparent_sidebar_enabled", true);
+user_pref("mod.sameerasw.zen_bg_color_enabled", true);
+user_pref("mod.sameerasw.zen_bg_opacity", "0.55");
+user_pref("layout.css.prefers-color-scheme.content-override", 0);
+user_pref("zen.view.window.scheme", 1);

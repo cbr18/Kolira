@@ -207,14 +207,25 @@ struct AssetKind {
     user_rel: &'static str,
     system: &'static [&'static str],
     suffix: &'static str,
+    /// Prefix of the field value before the asset name (Aurorae:
+    /// `__aurorae__svg__<theme>`); a value without it names no asset here.
+    prefix: &'static str,
+}
+
+impl AssetKind {
+    /// Asset name a field value refers to (None: not this kind's asset).
+    fn asset_name(&self, value: &str) -> Option<String> {
+        value.strip_prefix(self.prefix).filter(|n| safe_name(n)).map(str::to_string)
+    }
 }
 
 const BUNDLED_KINDS: &[AssetKind] = &[
-    AssetKind { field: "color_scheme", kind: "color-scheme", user_rel: ".local/share/color-schemes", system: &["/usr/share/color-schemes"], suffix: ".colors" },
-    AssetKind { field: "kvantum_theme", kind: "kvantum", user_rel: ".config/Kvantum", system: &["/usr/share/Kvantum"], suffix: "" },
-    AssetKind { field: "look_and_feel", kind: "look-and-feel", user_rel: ".local/share/plasma/look-and-feel", system: &["/usr/share/plasma/look-and-feel"], suffix: "" },
-    AssetKind { field: "plasma_theme", kind: "desktoptheme", user_rel: ".local/share/plasma/desktoptheme", system: &["/usr/share/plasma/desktoptheme"], suffix: "" },
-    AssetKind { field: "btop_theme", kind: "btop", user_rel: ".config/btop/themes", system: &["/usr/share/btop/themes", "/usr/local/share/btop/themes"], suffix: ".theme" },
+    AssetKind { field: "color_scheme", kind: "color-scheme", user_rel: ".local/share/color-schemes", system: &["/usr/share/color-schemes"], suffix: ".colors", prefix: "" },
+    AssetKind { field: "kvantum_theme", kind: "kvantum", user_rel: ".config/Kvantum", system: &["/usr/share/Kvantum"], suffix: "", prefix: "" },
+    AssetKind { field: "look_and_feel", kind: "look-and-feel", user_rel: ".local/share/plasma/look-and-feel", system: &["/usr/share/plasma/look-and-feel"], suffix: "", prefix: "" },
+    AssetKind { field: "plasma_theme", kind: "desktoptheme", user_rel: ".local/share/plasma/desktoptheme", system: &["/usr/share/plasma/desktoptheme"], suffix: "", prefix: "" },
+    AssetKind { field: "btop_theme", kind: "btop", user_rel: ".config/btop/themes", system: &["/usr/share/btop/themes", "/usr/local/share/btop/themes"], suffix: ".theme", prefix: "" },
+    AssetKind { field: "decoration_theme", kind: "aurorae", user_rel: ".local/share/aurorae/themes", system: &["/usr/share/aurorae/themes"], suffix: "", prefix: "__aurorae__svg__" },
 ];
 
 fn safe_name(name: &str) -> bool {
@@ -280,7 +291,7 @@ pub fn available(field_id: &str, value: &Value) -> bool {
         other => BUNDLED_KINDS
             .iter()
             .find(|k| k.field == other)
-            .is_none_or(|k| kind_available(k, &name)),
+            .is_none_or(|k| k.asset_name(&name).is_none_or(|n| kind_available(k, &n))),
     }
 }
 
@@ -391,10 +402,7 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
     let home = home_dir();
     for k in BUNDLED_KINDS {
         let Some(value) = values.get(k.field) else { continue };
-        let asset = field::value_str(value);
-        if !safe_name(&asset) {
-            continue;
-        }
+        let Some(asset) = k.asset_name(&field::value_str(value)) else { continue };
         let in_snapshot = asset_in(k, &dir.join(k.user_rel), &asset);
         let path = match in_snapshot {
             Some(p) => p,
@@ -805,7 +813,9 @@ pub fn check(name: &str) -> Result<Vec<Missing>> {
         .iter()
         .filter(|(id, value)| {
             let name = field::value_str(value);
-            let in_package = BUNDLED_KINDS.iter().any(|k| k.field == id.as_str() && bundled.contains(&(k.kind, name.as_str())))
+            let in_package = BUNDLED_KINDS
+                .iter()
+                .any(|k| k.field == id.as_str() && k.asset_name(&name).is_some_and(|n| bundled.contains(&(k.kind, n.as_str()))))
                 || (id.starts_with("zed_") && bundled.iter().any(|(k, n)| *k == "zed" && *n == name));
             let editor_here = crate::stores::editor_of(id).is_none_or(crate::stores::editor_installed);
             editor_here && !in_package && !available(id, value)

@@ -47,6 +47,7 @@ const LIBRARY_ROOTS: &[&str] = &[
     ".config/Kvantum",
     ".local/share/plasma/look-and-feel",
     ".local/share/plasma/desktoptheme",
+    ".local/share/aurorae/themes",
     ".config/btop/themes",
     ".config/zed/themes",
 ];
