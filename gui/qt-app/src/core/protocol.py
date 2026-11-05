@@ -147,6 +147,10 @@ class ProfileCore(ABC):
         """Install dependencies (None = all missing); data = [{index, ok, message}]."""
         return Result.err("Dependencies are not supported by this core")
 
+    def run_action(self, action_id: str) -> Result:
+        """Do one follow-up action after an apply (restart a program, …)."""
+        return Result.err("Actions are not supported by this core")
+
 
 class WallpaperCore(ABC):
     """Управление обоями."""

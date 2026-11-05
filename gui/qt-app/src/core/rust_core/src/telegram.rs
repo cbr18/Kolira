@@ -103,9 +103,14 @@ pub fn generate(p: &Palette, default_palette: &str) -> String {
     text
 }
 
+/// Is Telegram installed here?
+pub fn installed() -> bool {
+    telegram_bin().is_some()
+}
+
 /// Has the user chosen our file in Telegram? Telegram's log records the
 /// theme it loads; a cheap hint, not a guarantee.
-fn chosen_in_telegram() -> bool {
+pub fn follows_file() -> bool {
     let log = crate::paths::data_home().join("TelegramDesktop/log.txt");
     std::fs::read_to_string(log).is_ok_and(|t| t.contains("theme-profile.tdesktop-palette"))
 }
@@ -142,7 +147,7 @@ pub fn apply_palette(p: &Palette) -> Result<Outcome> {
     }
     // Written in place (same inode): Telegram's file watcher keeps watching.
     std::fs::write(&path, text)?;
-    Ok(Outcome::Written(path, chosen_in_telegram()))
+    Ok(Outcome::Written(path, follows_file()))
 }
 
 #[cfg(test)]

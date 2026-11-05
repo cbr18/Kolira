@@ -35,6 +35,8 @@ Usage:
   theme-profile prune NAME|--all              (drop what is not part of the theme; backup first)
   theme-profile deps NAME [--refresh] [--install[=all|0,2]] [--json]
                               (what the theme needs and where from; install from official sources)
+  theme-profile actions NAME [--json]         (what applying leaves to do: restarts, Steam skin, Telegram)
+  theme-profile action ID                     (do one: vesktop, discord, zen, firefox, steam-skin)
   theme-profile license NAME ASSET --license=SPDX [--source=URL] [--no-redistribute]
                               (mark a theme asset — wallpaper, Look & Feel…, or kind:name — for publishing)
   theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper] [--public]
@@ -677,6 +679,9 @@ fn main() -> ExitCode {
                         for m in &report.missing {
                             println!("missing={}={}{}", m.field, m.name, if m.source.is_empty() { String::new() } else { format!(" ({})", m.source) });
                         }
+                        for a in &report.actions {
+                            println!("action={}: {}{}", a.id, a.title, if a.warning.is_empty() { String::new() } else { format!(" (warning: {})", a.warning) });
+                        }
                         for e in &report.errors {
                             eprintln!("error={e}");
                         }
@@ -805,6 +810,39 @@ fn main() -> ExitCode {
                 }
             }
             ExitCode::SUCCESS
+        }
+        "actions" => {
+            // What applying NAME leaves to do (restarts, Steam skin, Telegram).
+            let Some(name) = args.iter().skip(1).find(|a| !a.starts_with("--")) else {
+                return fail("Usage: theme-profile actions NAME [--json]");
+            };
+            if validate_profile_name(name).is_err() {
+                return fail(format!("Invalid profile name: {name}"));
+            }
+            let list = kde_theme_core::actions::for_theme(&kde_theme_core::paths::profiles_dir().join(name));
+            if args.iter().any(|a| a == "--json") {
+                println!("{}", serde_json::to_string(&list).unwrap_or_default());
+            } else if list.is_empty() {
+                println!("Nothing to do.");
+            } else {
+                for a in &list {
+                    println!("{}: {} — {}{}", a.id, a.title, a.reason, if a.warning.is_empty() { String::new() } else { format!(" (warning: {})", a.warning) });
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        "action" => {
+            // Perform one action from `actions NAME` (the user agreed to it).
+            let Some(id) = args.get(1) else {
+                return fail("Usage: theme-profile action ID");
+            };
+            match kde_theme_core::actions::run(id) {
+                Ok(msg) => {
+                    println!("{msg}");
+                    ExitCode::SUCCESS
+                }
+                Err(e) => fail(format!("{e:#}")),
+            }
         }
         "license" => {
             let pos: Vec<&String> = args.iter().skip(1).filter(|a| !a.starts_with("--")).collect();

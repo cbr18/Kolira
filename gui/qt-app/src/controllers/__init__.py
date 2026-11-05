@@ -141,11 +141,13 @@ class ProfileController(QObject):
     # A theme was applied but references assets this machine lacks:
     # profile name, [{field, name, source}].
     dependenciesMissing = Signal(str, list)
+    actionsOffered = Signal(str, list)  # profile, follow-up actions (restart apps, Steam skin…)
 
     def __init__(self, parent: Optional[QObject] = None):
         super().__init__(parent)
         self._core: ProfileCore = CoreFactory.profile_core()
         self._pending_missing: tuple[str, list] | None = None
+        self._pending_actions: tuple[str, list] | None = None
         self._profiles: list[ProfileInfo] = []
         self._profiles_model: list[dict] = []   # QML-ready cache (built once per refresh)
         self._active_profile: str = ""
@@ -253,6 +255,11 @@ class ProfileController(QObject):
             self._pending_missing = None
             if missing:
                 self.dependenciesMissing.emit(profile, missing)
+        if self._pending_actions is not None:
+            profile, actions = self._pending_actions
+            self._pending_actions = None
+            if actions:
+                self.actionsOffered.emit(profile, actions)
         if success:
             self._refresh_timer.start(500)  # небольшая задержка для применения
 
@@ -300,6 +307,8 @@ class ProfileController(QObject):
                     profile, keep_wallpaper=keep_wallpaper, install_missing=install_missing
                 )
                 self._pending_missing = (profile, _needed(result.data))
+                report = result.data if isinstance(result.data, dict) else {}
+                self._pending_actions = (profile, list(report.get("actions") or []))
                 return result.success, result.message
 
             self._start_operation("apply", _work)
@@ -413,6 +422,22 @@ class ProfileController(QObject):
             return result.success, message
 
         self._start_operation("install", _work)
+
+    @Slot(list)
+    def runActions(self, ids: list) -> None:
+        """Do the follow-up actions the user ticked (restart programs, Steam
+        skin…) — `theme-profile action ID` each, in the background."""
+        chosen = [str(i) for i in ids]
+
+        def _work() -> tuple[bool, str]:
+            lines, ok = [], True
+            for action_id in chosen:
+                result = self._core.run_action(action_id)
+                ok &= result.success
+                lines.append(("✓ " if result.success else "✗ ") + result.message)
+            return ok, "\n".join(lines)
+
+        self._start_operation("actions", _work)
 
     @Slot(str)
     def deleteProfile(self, name: str) -> None:

@@ -324,6 +324,12 @@ class CliProfileCore(ProfileCore):
         message = "\n".join(lines) or "Nothing to install"
         return Result(not failed, message, data=items)
 
+    def run_action(self, action_id: str) -> Result:
+        """`theme-profile action ID`: one follow-up step the user agreed to."""
+        if not action_id.replace("-", "").isalnum():
+            return Result.err(f"invalid action {action_id!r}")
+        return self._run(["action", action_id], timeout=300)
+
     def check(self, name: str) -> Result:
         """What applying ``name`` would miss: data["missing"] = [{field, name, source}]."""
         try:

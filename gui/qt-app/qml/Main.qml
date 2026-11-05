@@ -176,6 +176,15 @@ Kirigami.ApplicationWindow {
             missingDialog.afterImport = root._lastOperation === "import"
             missingDialog.open()
         }
+        function onActionsOffered(profile, actions) {
+            actionsDialog.targetProfile = profile
+            actionsDialog.actions = actions
+            // One dialog at a time: after the dependencies dialog, if it is open.
+            if (missingDialog.visible)
+                actionsDialog.waiting = true
+            else
+                actionsDialog.open()
+        }
     }
 
     Component.onCompleted: {
@@ -566,7 +575,9 @@ Kirigami.ApplicationWindow {
         property var missing: []
         property bool afterImport: false
         property var chosen: ({})
-        readonly property var installable: ["kde-store", "vscode-marketplace", "open-vsx", "zed"]
+        // System packages (and the SDDM theme) go to one terminal where the
+        // user types their password — the app itself never runs sudo.
+        readonly property var installable: ["kde-store", "vscode-marketplace", "open-vsx", "zed", "package", "aur"]
         function selection() {
             var out = []
             for (var i = 0; i < missing.length; i++) {
@@ -650,13 +661,21 @@ Kirigami.ApplicationWindow {
                             color: ThemeColors.dimColor(root.glassMode)
                             text: qsTr("Found by searching for \"%1\" — open the source to check it is the right one").arg(modelData.name)
                         }
+                        Label {
+                            Layout.fillWidth: true
+                            visible: modelData.source === "package" || modelData.source === "aur"
+                            wrapMode: Text.WordWrap
+                            font.pointSize: TypeScale.caption
+                            color: ThemeColors.dimColor(root.glassMode)
+                            text: qsTr("System package: installing opens a terminal with the command — you type your password there")
+                        }
                         TextField {
                             Layout.fillWidth: true
                             visible: !!modelData.command
                             readOnly: true
                             selectByMouse: true
                             text: modelData.command || ""
-                            ToolTip.text: qsTr("A system package: run this in a terminal")
+                            ToolTip.text: qsTr("The command the terminal runs")
                             ToolTip.visible: hovered
                         }
                     }
@@ -666,6 +685,105 @@ Kirigami.ApplicationWindow {
                 id: reapplyBox
                 checked: true
                 text: qsTr("Apply the theme again after installing")
+            }
+        }
+    }
+
+    // After applying: programs to restart, the Steam skin, Telegram's
+    // one-time choice — each with a warning and its own checkbox; nothing
+    // runs without the user (a call or a game may be on).
+    Kirigami.Dialog {
+        id: actionsDialog
+        title: qsTr("Finish Applying")
+        preferredWidth: 600
+        property string targetProfile: ""
+        property var actions: []
+        property var chosen: ({})
+        property bool waiting: false
+        function selection() {
+            var out = []
+            for (var i = 0; i < actions.length; i++)
+                if (actions[i].kind !== "manual" && chosen[actions[i].id] !== false)
+                    out.push(actions[i].id)
+            return out
+        }
+        onActionsChanged: chosen = ({})
+        standardButtons: Kirigami.Dialog.Close
+        customFooterActions: [
+            Kirigami.Action {
+                text: qsTr("Do selected")
+                icon.name: "run-build"
+                enabled: !profileController.busy && actionsDialog.selection().length > 0
+                onTriggered: {
+                    profileController.runActions(actionsDialog.selection())
+                    actionsDialog.close()
+                }
+            }
+        ]
+        background: Rectangle {
+            color: ThemeColors.dialogBg(root.glassMode)
+            radius: 8
+            border.width: 1
+            border.color: ThemeColors.cardBorder(root.glassMode)
+        }
+        ColumnLayout {
+            Layout.fillWidth: true
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                color: ThemeColors.fgColor(root.glassMode)
+                text: qsTr("Theme \"%1\" is applied. These steps finish it — untick what you want to skip.").arg(actionsDialog.targetProfile)
+            }
+            Repeater {
+                model: actionsDialog.actions
+                delegate: RowLayout {
+                    required property var modelData
+                    Layout.fillWidth: true
+                    CheckBox {
+                        visible: modelData.kind !== "manual"
+                        checked: actionsDialog.chosen[modelData.id] !== false
+                        onToggled: {
+                            var c = Object.assign({}, actionsDialog.chosen)
+                            c[modelData.id] = checked
+                            actionsDialog.chosen = c
+                        }
+                    }
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 0
+                        Label {
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                            font.bold: true
+                            color: ThemeColors.fgColor(root.glassMode)
+                            text: modelData.title
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                            font.pointSize: TypeScale.caption
+                            color: ThemeColors.dimColor(root.glassMode)
+                            text: modelData.reason
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            visible: modelData.warning !== ""
+                            wrapMode: Text.WordWrap
+                            font.pointSize: TypeScale.caption
+                            color: ThemeColors.warning()
+                            text: "⚠ " + modelData.warning
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Connections {
+        target: missingDialog
+        function onClosed() {
+            if (actionsDialog.waiting) {
+                actionsDialog.waiting = false
+                actionsDialog.open()
             }
         }
     }

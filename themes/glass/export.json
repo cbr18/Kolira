@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "glass",
-  "exported": "2026-11-05T19:05:29+10:00",
+  "exported": "2026-11-05T21:18:55+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -48,7 +48,7 @@
     "manifest.json": "ff7a8748f6ae9fb498577752eb9bc018ae9c0aa91523fbf4670d069b34e73735",
     "manifest.txt": "d143f10afe8f2cd24eb6c23051d507b533519ea8fd09854bd06a60ad8612f48f",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-    "theme.json": "e0cefebb4452aa0c29799a704a1c6a6fb4795ad01b36425362164c9ba5d1636e",
+    "theme.json": "21818c679dd3b203482e1034185929df30b1b4572d83d29aa6859403b35df266",
     "wallpaper/glass-saturn-mono.jpg": "e80c120a94025dc4a4a28a08d3b4e90c58b66f291850d07953ca8e05df0ef30f",
     "wallpaper/source": "93a5954a983f672acf6551c460a5c5889bc225e3230250c9b38e0303b92207dc"
   }

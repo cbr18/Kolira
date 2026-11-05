@@ -2876,3 +2876,11 @@ def test_tray_click_shows_the_window() -> None:
     assert shown == ["show", "show", "show"]
     controller._on_tray_activated(system_tray.QSystemTrayIcon.Context)
     assert shown == ["show", "show", "show"], "right click is the menu, not show"
+
+
+def test_run_action_rejects_odd_ids() -> None:
+    from core.cli_core import CliProfileCore
+
+    core = CliProfileCore()
+    assert not core.run_action("rm -rf /").success
+    assert not core.run_action("../x").success

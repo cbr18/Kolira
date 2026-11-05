@@ -131,6 +131,8 @@ pub struct ApplyReport {
     pub backup: String,
     /// Dependencies not installed here (deps.rs), to offer for installation.
     pub dependencies: Vec<Needed>,
+    /// Follow-up actions to offer (restart programs, Steam skin…).
+    pub actions: Vec<crate::actions::Action>,
 }
 
 /// A missing dependency with its index in `theme.json` (for `deps --install`)
@@ -179,11 +181,28 @@ fn keep_known_titles(old: &[crate::deps::Dependency], fresh: &mut [crate::deps::
 pub fn install_dependencies(name: &str, indexes: Option<&[usize]>) -> Result<Vec<(usize, Result<String>)>> {
     let package = load(&profile_dir(name)?)?;
     let mut out = Vec::new();
-    for (i, d) in crate::deps::missing(&package.dependencies) {
-        if indexes.is_some_and(|ix| !ix.contains(&i)) {
-            continue;
+    let chosen: Vec<(usize, &crate::deps::Dependency)> = crate::deps::missing(&package.dependencies)
+        .into_iter()
+        .filter(|(i, _)| indexes.is_none_or(|ix| ix.contains(i)))
+        .collect();
+    // System packages and the SDDM theme need root: one terminal with one
+    // command for all of them — the user sees it and types the password.
+    let root: Vec<&crate::deps::Dependency> = chosen.iter().filter(|(_, d)| crate::deps::needs_root(d)).map(|(_, d)| *d).collect();
+    let root_result = (!root.is_empty()).then(|| match crate::deps::root_command(&root) {
+        Some(cmd) => crate::deps::run_in_terminal(&cmd).map(|term| format!("opened {term}: {cmd}")),
+        None => Err(anyhow!("AUR packages need an AUR helper (yay or paru): install one first")),
+    });
+    for (i, d) in chosen {
+        if crate::deps::needs_root(d) {
+            let r = match &root_result {
+                Some(Ok(msg)) => Ok(format!("{} — {msg}", if d.title.is_empty() { d.name.as_str() } else { &d.title })),
+                Some(Err(e)) => Err(anyhow!("{e:#}")),
+                None => Err(anyhow!("nothing to run")),
+            };
+            out.push((i, r));
+        } else {
+            out.push((i, crate::deps::install(d)));
         }
-        out.push((i, crate::deps::install(d)));
     }
     Ok(out)
 }
@@ -822,14 +841,9 @@ pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
     }
     report.backup = backup.display().to_string();
     report.applied = crate::profile::get_profile_components(name).unwrap_or_default();
-    // Steam colours (Adwaita for Steam): re-install when they changed or a
-    // Steam update removed the skin.
-    if dir.join(crate::steam::CSS_FILE).is_file() && crate::steam::steam_installed() {
-        match crate::steam::install(&crate::paths::home_dir().join(crate::steam::CSS_FILE), false) {
-            Ok(note) => report.installed.push(format!("Steam colours: {note}")),
-            Err(e) => report.errors.push(format!("Steam colours: {e:#}")),
-        }
-    }
+    // Restarts, the Steam skin, Telegram's one-time choice: offered, not done
+    // (actions.rs) — a program may be in a call or a game.
+    report.actions = crate::actions::for_theme_since(&dir, Some(&backup));
 
     if let Some(path) = keep {
         if plasma_wallpaper_from(&live_path(APPLETSRC_REL)).as_deref() != Some(path.to_string_lossy().as_ref()) {

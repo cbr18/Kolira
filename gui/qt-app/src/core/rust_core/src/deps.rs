@@ -143,6 +143,20 @@ fn decoration_plugin(library: &str) -> Option<PathBuf> {
     None
 }
 
+/// Qt widget style plugin for `style` (kvantum → libkvantum.so), unless the
+/// style ships with Qt/KDE itself (Breeze, Fusion, Windows, Oxygen).
+fn widget_style_plugin(style: &str) -> Option<PathBuf> {
+    let short = style.to_lowercase();
+    if matches!(short.as_str(), "" | "breeze" | "fusion" | "windows" | "oxygen") {
+        return None;
+    }
+    ["/usr/lib/qt6/plugins/styles", "/usr/lib/qt/plugins/styles"].iter().find_map(|dir| {
+        fs::read_dir(dir).ok()?.flatten().map(|e| e.path()).find(|p| {
+            p.file_stem().is_some_and(|n| n.to_string_lossy().to_lowercase().trim_start_matches("lib").starts_with(&short))
+        })
+    })
+}
+
 /// SDDM's current theme (`[Theme] Current`): KDE writes it to
 /// `/etc/sddm.conf.d/kde_settings.conf`; `/etc/sddm.conf` is the fallback.
 pub fn sddm_current() -> Option<String> {
@@ -166,6 +180,7 @@ pub fn installed(d: &Dependency) -> bool {
         "sddm" => locate("sddm", &d.name).is_some() && sddm_current().as_deref() == Some(d.name.as_str()),
         "decoration" => decoration_plugin(&d.name).is_some(),
         "spicetify" => which::which("spicetify").is_ok(),
+        "widget-style" => widget_style_plugin(&d.name).is_some(),
         "oh-my-posh" => which::which("oh-my-posh").is_ok() || home_dir().join(".local/bin/oh-my-posh").is_file(),
         "discord-client" => crate::discord::CLIENTS.iter().any(|(_, rel)| home_dir().join(rel).exists()),
         "firefox-theme" => crate::tracked_apps::firefox_profile_dir().is_some_and(|dir| {
@@ -487,6 +502,26 @@ pub fn detect(dir: &Path, values: &std::collections::BTreeMap<String, Value>, so
         }
         add(d);
     }
+    // A Qt widget style that is a plugin of its own (Kvantum): its package.
+    let style = values.get("widget_style").map(crate::field::value_str).unwrap_or_default();
+    if let Some(plugin) = widget_style_plugin(&style) {
+        let mut d = describe("widget-style", &style, &[plugin]);
+        if d.source == "kde-store" && !d.exact {
+            d.source = "none".into();
+        }
+        add(d);
+    } else if style.eq_ignore_ascii_case("kvantum") {
+        // Not installed here: Kvantum is a package everywhere.
+        add(Dependency {
+            kind: "widget-style".into(),
+            name: "kvantum".into(),
+            source: "package".into(),
+            id: "kvantum".into(),
+            title: "Kvantum (Qt widget style engine)".into(),
+            url: "https://archlinux.org/packages/?q=kvantum".into(),
+            exact: true,
+        });
+    }
     // Third-party KWin effects the theme switches on (Better Blur DX, Rounded
     // Corners…): their package, or the store item of a scripted effect.
     if let Ok(kwinrc) = fs::read_to_string(dir.join(".config/kwinrc")) {
@@ -597,6 +632,84 @@ pub fn missing(deps: &[Dependency]) -> Vec<(usize, &Dependency)> {
 // ─────────────────────────────────────────────────────────────────────────────
 // Install
 // ─────────────────────────────────────────────────────────────────────────────
+
+/// Dependencies that need root (system packages, the SDDM theme): installed
+/// in a terminal the user sees, where they type their own password.
+pub fn needs_root(d: &Dependency) -> bool {
+    d.kind == "sddm" || matches!(d.source.as_str(), "package" | "aur")
+}
+
+fn safe_package(name: &str) -> bool {
+    !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || "-_.+@".contains(c))
+}
+
+/// One shell command for every root dependency in `deps`: one
+/// `yay/paru -S --needed …` (or `sudo pacman -S --needed …` when only repo
+/// packages and no AUR helper) and the SDDM selection. None when there is
+/// nothing to run or AUR packages need a helper that is missing.
+pub fn root_command(deps: &[&Dependency]) -> Option<String> {
+    let mut packages: Vec<&str> = Vec::new();
+    let mut aur = false;
+    let mut sddm: Vec<&str> = Vec::new();
+    for d in deps {
+        if d.kind == "sddm" {
+            if safe_package(&d.name) {
+                sddm.push(&d.name);
+            }
+            if locate("sddm", &d.name).is_some() {
+                continue;
+            }
+        }
+        if matches!(d.source.as_str(), "package" | "aur") && safe_package(&d.id) && !packages.contains(&d.id.as_str()) {
+            packages.push(&d.id);
+            aur |= d.source == "aur";
+        }
+    }
+    let helper = ["yay", "paru"].into_iter().find(|h| which::which(h).is_ok());
+    let mut steps: Vec<String> = Vec::new();
+    if !packages.is_empty() {
+        match helper {
+            Some(h) => steps.push(format!("{h} -S --needed {}", packages.join(" "))),
+            None if !aur => steps.push(format!("sudo pacman -S --needed {}", packages.join(" "))),
+            None => return None,
+        }
+    }
+    for name in sddm {
+        steps.push(format!("sudo kwriteconfig6 --file /etc/sddm.conf.d/kde_settings.conf --group Theme --key Current {name}"));
+    }
+    (!steps.is_empty()).then(|| steps.join(" && "))
+}
+
+/// Run `command` in a terminal window the user sees (konsole, kitty,
+/// alacritty, ghostty — the first installed); it stays open until Enter.
+/// Returns the terminal used.
+pub fn run_in_terminal(command: &str) -> Result<String> {
+    let script = format!("{command}; status=$?; echo; if [ $status -eq 0 ]; then echo 'Done.'; else echo \"Failed ($status).\"; fi; printf 'Press Enter to close… '; read _");
+    if std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1") {
+        return Ok("no terminal (KTM_THEME_NO_APPLY)".into());
+    }
+    let terminals: [(&str, &[&str]); 4] = [
+        ("konsole", &["-e", "sh", "-c"]),
+        ("kitty", &["sh", "-c"]),
+        ("alacritty", &["-e", "sh", "-c"]),
+        ("ghostty", &["-e", "sh", "-c"]),
+    ];
+    for (bin, args) in terminals {
+        if which::which(bin).is_err() {
+            continue;
+        }
+        std::process::Command::new(bin)
+            .args(args)
+            .arg(&script)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .with_context(|| format!("cannot start {bin}"))?;
+        return Ok(bin.to_string());
+    }
+    bail!("no terminal found (konsole, kitty, alacritty, ghostty) — run: {command}")
+}
 
 /// Command the user runs for a package dependency (we never sudo).
 pub fn package_command(d: &Dependency) -> Option<String> {
@@ -939,6 +1052,17 @@ pub fn install(d: &Dependency) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn root_dependencies_make_one_command() {
+        let dep = |kind: &str, source: &str, id: &str| Dependency { kind: kind.into(), name: id.into(), source: source.into(), id: id.into(), ..Default::default() };
+        let (a, b, c) = (dep("widget-style", "package", "kvantum"), dep("kwin-effect", "package", "kvantum"), dep("icons", "kde-store", "1"));
+        assert!(needs_root(&a) && !needs_root(&c));
+        let cmd = root_command(&[&a, &b]).unwrap();
+        assert!(cmd.ends_with("-S --needed kvantum"), "one package once: {cmd}");
+        let bad = dep("gtk", "package", "x; rm -rf ~");
+        assert_eq!(root_command(&[&bad]), None, "unsafe names never reach a shell");
+    }
 
     #[test]
     fn icon_themes_get_a_breeze_fallback() {

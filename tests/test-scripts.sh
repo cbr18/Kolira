@@ -1979,6 +1979,17 @@ else
   fail "Round-Corners not captured: $(cat "$snap" 2>/dev/null | tr '\n' ' ')"
 fi
 
+# Follow-up actions: nothing for a theme without restart-worthy apps; an
+# unknown action is refused.
+AC="$TMP_ROOT/actions"; mkdir -p "$AC/.config/theme-profile/profiles/plain"
+printf '{"schema": "theme-profile/theme@2", "name": "plain", "values": {}, "assets": [], "dependencies": []}\n' >"$AC/.config/theme-profile/profiles/plain/theme.json"
+ac() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$AC" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+if [ "$(ac actions plain)" = "Nothing to do." ] && [ "$(ac actions plain --json)" = "[]" ] && ! ac action bogus >/dev/null 2>&1; then
+  ok "actions lists nothing for a plain theme; unknown actions are refused"
+else
+  fail "actions: $(ac actions plain 2>&1) / $(ac action bogus 2>&1)"
+fi
+
 # --- Summary ------------------------------------------------------------------
 echo ""
 echo "═══════════════════════════════════════"

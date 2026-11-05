@@ -13,8 +13,8 @@ only the look (see `docs/THEMES.md`), the home folder written as `$HOME`, no des
 icon positions, no Look & Feel preview screenshots. Assets that may not be
 redistributed are **not** included — they are *dependencies* with their official
 source; after importing, KDE Theme Manager's *This Theme Needs* dialog (or
-`theme-profile deps NAME --install`) fetches them. System packages are only
-shown as commands.
+`theme-profile deps NAME --install`) fetches them. System packages open in a
+terminal with one install command — you type your own password there.
 
 The code of this repository is MIT; every asset below keeps its own licence. The
 other files are configuration written for these themes (colours, fonts, CSS,
@@ -41,6 +41,7 @@ Dark translucent glass: blur everywhere, OrchisDark Kvantum, accent from the mon
 | icons | Yet Another Monochrome Icon Set For KDE Plasma | KDE Store (search match — confirm) | [link](https://store.kde.org/p/2303161) |
 | gtk | Fluent-Dark | AUR | [link](https://aur.archlinux.org/packages/fluent-gtk-theme) |
 | decoration | org.kde.klassy | AUR | [link](https://aur.archlinux.org/packages/klassy) |
+| widget-style | kvantum | Arch package | [link](https://archlinux.org/packages/?q=kvantum) |
 | kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
 | plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
 | plasmoid | Simple Application Launcher for Plasma 6 | KDE Store | [link](https://store.kde.org/p/2115883) |
@@ -69,6 +70,7 @@ Light, flat and warm: Sandstone Kvantum, no transparency, watercolour wallpaper
 |---|---|---|---|
 | icons | klassy | AUR | [link](https://aur.archlinux.org/packages/klassy) |
 | gtk | Fluent-Light | AUR | [link](https://aur.archlinux.org/packages/fluent-gtk-theme) |
+| widget-style | kvantum | Arch package | [link](https://archlinux.org/packages/?q=kvantum) |
 | kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
 | kwin-effect | glass | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-glass-git) |
 | plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
@@ -124,6 +126,7 @@ Dracula palette on glass: purple accent, recoloured Kvantum, blur
 | icons | Yet Another Monochrome Icon Set For KDE Plasma | KDE Store (search match — confirm) | [link](https://store.kde.org/p/2303161) |
 | gtk | Fluent-Dark | AUR | [link](https://aur.archlinux.org/packages/fluent-gtk-theme) |
 | decoration | org.kde.klassy | AUR | [link](https://aur.archlinux.org/packages/klassy) |
+| widget-style | kvantum | Arch package | [link](https://archlinux.org/packages/?q=kvantum) |
 | kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
 | plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
 | plasmoid | Simple Application Launcher for Plasma 6 | KDE Store | [link](https://store.kde.org/p/2115883) |
@@ -154,6 +157,7 @@ Frutiger Aero: Windows 7 glass titlebars (Se7en Aero), see-through Kvantum glass
 | cursors | Aero Mouse Cursors with Drop Shadow | KDE Store | [link](https://store.kde.org/p/999972) |
 | gtk | Cyber Dusk Fedora | KDE Store | [link](https://store.kde.org/p/2357650) |
 | aurorae | Se7en Aero Aurorae | KDE Store | [link](https://store.kde.org/p/1406638) |
+| widget-style | kvantum | Arch package | [link](https://archlinux.org/packages/?q=kvantum) |
 | kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
 | plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
 | plasmoid | Simple Application Launcher for Plasma 6 | KDE Store | [link](https://store.kde.org/p/2115883) |
@@ -186,6 +190,7 @@ Frutiger Aero Light — Windows 7 as it shipped: white windows with black text, 
 | icons | Seven Icons for KDE | KDE Store | [link](https://store.kde.org/p/1631627) |
 | cursors | Aero Mouse Cursors with Drop Shadow | KDE Store | [link](https://store.kde.org/p/999972) |
 | gtk | Aero | KDE Store | [link](https://store.kde.org/p/1012735) |
+| widget-style | kvantum | Arch package | [link](https://archlinux.org/packages/?q=kvantum) |
 | kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
 | kwin-effect | kwin4_effect_shapecorners | AUR | [link](https://aur.archlinux.org/packages/kwin-effect-rounded-corners-git) |
 | plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |

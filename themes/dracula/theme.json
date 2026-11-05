@@ -66,6 +66,15 @@
     },
     {
       "exact": true,
+      "id": "kvantum",
+      "kind": "widget-style",
+      "name": "kvantum",
+      "source": "package",
+      "title": "",
+      "url": "https://archlinux.org/packages/?q=kvantum"
+    },
+    {
+      "exact": true,
       "id": "kwin-effects-better-blur-dx",
       "kind": "kwin-effect",
       "name": "better_blur_dx",

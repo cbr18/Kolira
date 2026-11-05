@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "frutiger-aero-light",
-  "exported": "2026-11-05T21:02:17+10:00",
+  "exported": "2026-11-05T21:18:57+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -67,7 +67,7 @@
     "manifest.json": "e7301acf2c73f42131d3797b8feeec2fa96feb6b607645203d2e4953f61f44c1",
     "manifest.txt": "66c131e49f93841876e5c75df63a6f4e3c7a64f602b8c689dbbddab5494374db",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-    "theme.json": "b55608825d3450a88a69dfa5d236ff31e59e6d125cfd35dbe3ce1b02fbcc1146",
+    "theme.json": "4ad4e31843682ee9962175f90927a9ce4d927a85a651935f784e6b5ff1bb034e",
     "wallpaper/frutiger-aero-bubble.jpg": "3c3a5d0326bd889443cdbe00ba67472440d719f2283cc45b60fb6c95570b1d79",
     "wallpaper/source": "1c9fff0c108759b859903530aaa29e3a5c0b564a5f2d97bdab9d8fc0187b2a50"
   }

@@ -137,6 +137,8 @@ theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper] [--publi
 theme-profile license NAME ASSET --license=SPDX [--source=URL] [--no-redistribute]
 theme-profile import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
 theme-profile deps NAME [--refresh] [--install[=all|0,2]] [--json]
+theme-profile actions NAME [--json]        # what applying leaves to do (restarts, Steam skin, Telegram)
+theme-profile action ID                    # do one: vesktop, discord, zen, firefox, steam-skin
 ```
 
 - **save** snapshots the look of every tracked file (filtered as above; old
@@ -237,16 +239,50 @@ OCS API (`api.kde-look.org`) — Plasma styles, Global Themes and widgets with
 `kpackagetool6`, icons/cursors/GTK/Kvantum/Aurorae unpacked into the user's
 folders (zip via enclosed names, tarballs via `tar`; symlinks escaping the
 tree are dropped; an existing folder is never overwritten), colour schemes
-copied; editor themes via their stores. Aurorae decorations are looked up in
+copied; editor themes via their stores. **System packages and the SDDM theme**
+(they need root) go to one terminal the user sees — konsole, kitty, alacritty
+or ghostty, the first installed — running one command for all of them
+(`yay`/`paru -S --needed …`, or `sudo pacman -S --needed …` for repository-only
+packages without an AUR helper; then the SDDM selection); the user types their
+own password there, the app itself never runs sudo. Package names that are not
+plain package names never reach the shell. Aurorae decorations are looked up in
 both the "Aurorae" and "Window Decorations" store categories. An icon theme
 made for GNOME (Seven Icons: `Inherits=Humanity,…,gnome,hicolor`) lacks KDE's
 action icons — `configure`, `document-edit` — and icon-only buttons in Plasma
 (Desktop Effects' *Configure*) come out empty, so an icon theme we install gets
-`breeze` before `hicolor` in its `Inherits`. **System packages are never installed**
-(no sudo): the report carries `sudo pacman -S …` / `yay -S …`. Network access
+`breeze` before `hicolor` in its `Inherits`. Without a terminal the report carries the
+command to run. Network access
 follows *Settings → Network* (`KTM_OFFLINE=1` turns it off); `--refresh`
 re-detects the dependencies of a theme saved earlier (a display name found
 before is kept when this machine cannot tell it, e.g. VS Code not installed).
+
+### Widget style
+
+A Qt widget style that is a plugin of its own — Kvantum — is a dependency
+(`widget-style`, the package owning `qt6/plugins/styles/libkvantum.so`; where
+Kvantum is not installed, the `kvantum` package). Breeze, Fusion, Windows and
+Oxygen ship with Qt/KDE.
+
+### After applying: actions
+
+Some steps cannot be done by writing files, or must not be done without the
+user (`rust_core/src/actions.rs`). Applying reports them (`actions` in
+`apply --json`, `action=` lines otherwise; `theme-profile actions NAME`), and
+KDE Theme Manager shows *Finish Applying* — each step with its reason, a
+warning and its own checkbox:
+
+| Action | When | Warning |
+|---|---|---|
+| restart Vesktop / Discord (Vencord) | the apply changed the client's themes/settings and it is running (a newly enabled theme, the translucent window) | a voice call or screen share ends |
+| restart Zen / Firefox | the apply changed `user.js` / `userChrome.css` and the browser is running | calls and downloads stop; tabs return with session restore |
+| Steam skin | the theme carries Steam colours (`steam.css`) | downloads and runs the Adwaita for Steam installer; restart Steam (close games) |
+| Telegram (manual) | the theme carries a Telegram palette Telegram does not follow yet | — (Settings → Chat Settings → Choose from file, once) |
+
+A restart asks the program to quit (SIGTERM — a normal quit, browsers save
+the session), waits up to 20 s and starts it again; a program that does not
+quit is left alone. Restarts are offered only when the apply actually changed
+that program's files (compared with the pre-apply backup). Nothing in this
+list runs without the user ticking it.
 
 ### Third-party KWin effects
 
