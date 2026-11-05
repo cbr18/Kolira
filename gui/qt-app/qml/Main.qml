@@ -804,14 +804,14 @@ Kirigami.ApplicationWindow {
                             wrapMode: Text.WordWrap
                             font.bold: true
                             color: ThemeColors.fgColor(root.glassMode)
-                            text: modelData.title
+                            text: qsTranslate("Core", modelData.title)
                         }
                         Label {
                             Layout.fillWidth: true
                             wrapMode: Text.WordWrap
                             font.pointSize: TypeScale.caption
                             color: ThemeColors.dimColor(root.glassMode)
-                            text: modelData.reason
+                            text: qsTranslate("Core", modelData.reason)
                         }
                         Label {
                             Layout.fillWidth: true
@@ -819,7 +819,7 @@ Kirigami.ApplicationWindow {
                             wrapMode: Text.WordWrap
                             font.pointSize: TypeScale.caption
                             color: ThemeColors.warning()
-                            text: "⚠ " + modelData.warning
+                            text: "⚠ " + qsTranslate("Core", modelData.warning)
                         }
                     }
                 }

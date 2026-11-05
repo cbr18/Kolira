@@ -212,6 +212,17 @@ Qt/QML-приложение (`gui/qt-app/`) ставится установщи�
 - старый field-based Theme Inspector остаётся для Advanced/Customize (`SectionPage.qml`, `ThemeFieldRow.qml`), но не является главным экраном;
 - для AI-агентов добавлен stdio MCP-сервер `mcp/theme_profile_mcp.py` (см. `docs/MCP.md`): перечисление тем, сборка/валидация/явное применение профилей, создание производных тем; удаление профилей не экспонируется;
 - интерфейс на системном языке: QML через `qsTr`, Python через `tr()`; статические подписи групп/компонентов `ThemeBundleCore` помечены `QT_TRANSLATE_NOOP("ThemeBundle", …)` и переводятся при выдаче в QML; пайплайн `scripts/update-translations.sh` по-прежнему собирает `kde-theme-manager_ru.qm`.
+- тексты из данных тоже переводятся: подписи и описания полей инспектора
+  (`theme_fields.json`, контекст `ThemeFields`), описания приложений
+  (`TrackedApps`), тексты ядра — пункты автоматизации и действия после
+  применения (`Core`, в QML `qsTranslate("Core", …)`), строки отчётов ядра
+  (`CoreMessages`: `core/core_messages.py` узнаёт известные строки — «installed …
+  into …», «… restarted» — и собирает их из переводимых шаблонов; CLI остаётся
+  английским для скриптов). `gui/qt-app/tools/gen_i18n_strings.py` пишет
+  `src/core/i18n_strings.py` (QT_TRANSLATE_NOOP для pylupdate6) и вписывает
+  переводы из `tools/i18n_ru.py` в `py_ru.ts`; `update-translations.sh` вызывает
+  его до и после pylupdate6. Тесты проверяют, что файл строк покрывает поля,
+  приложения и тексты ядра, а каталоги переведены полностью.
 
 Карточки профилей показывают палитру-свотчи, отпечаток темы, дату, число
 компонентов (без дублирующих чипов) и описание (правится карандашом на

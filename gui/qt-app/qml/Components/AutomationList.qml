@@ -36,14 +36,14 @@ ColumnLayout {
                     Layout.fillWidth: true
                     wrapMode: Text.WordWrap
                     color: ThemeColors.fgColor(list.glassMode)
-                    text: modelData.what
+                    text: qsTranslate("Core", modelData.what)
                 }
                 Label {
                     Layout.fillWidth: true
                     wrapMode: Text.WordWrap
                     font.pointSize: TypeScale.caption
                     color: ThemeColors.dimColor(list.glassMode)
-                    text: modelData.note
+                    text: qsTranslate("Core", modelData.note)
                 }
             }
             ComboBox {

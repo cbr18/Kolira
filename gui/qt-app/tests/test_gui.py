@@ -2898,3 +2898,90 @@ def test_settings_save_keeps_the_cores_automation_keys(tmp_path, monkeypatch) ->
     data = json.loads(path.read_text())
     assert data["automation"] == {"store": "never"} and data["automation_configured"] is True
     assert data["theme"] == "paper"
+
+
+def _i18n_sources() -> dict:
+    import ast
+    from pathlib import Path
+
+    tree = ast.parse((Path(__file__).resolve().parent.parent / "src/core/i18n_strings.py").read_text())
+    out: dict = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "QT_TRANSLATE_NOOP":
+            ctx, text = (a.value for a in node.args)
+            out.setdefault(ctx, set()).add(text)
+    return out
+
+
+def test_i18n_strings_cover_fields_apps_and_core() -> None:
+    """Every text the UI takes from data is in the catalogue (regenerate with
+    scripts/update-translations.sh when this fails)."""
+    import json
+    import re
+    from pathlib import Path
+
+    from core.tracked_apps import TRACKED_APPS
+
+    root = Path(__file__).resolve().parent.parent
+    src = _i18n_sources()
+    fields = json.loads((root / "src/core/theme_fields.json").read_text())["fields"]
+    for f in fields:
+        assert f["label"] in src["ThemeFields"], f["label"]
+        if f.get("description"):
+            assert f["description"] in src["ThemeFields"], f["description"]
+    for app in TRACKED_APPS:
+        if app.description:
+            assert app.description in src["TrackedApps"], app.description
+    rust = (root / "src/core/rust_core/src/automation.rs").read_text() + (root / "src/core/rust_core/src/actions.rs").read_text()
+    for what, note in re.findall(r'\("(?:store|packages|restart_\w+)", "([^"]+)", "([^"]+)"\)', rust):
+        assert what in src["Core"] and note in src["Core"], (what, note)
+    for title in re.findall(r'title: "([^"]+)",\n\s+processes', rust):
+        assert f"Restart {title}" in src["Core"], title
+        assert f"{title} reads the theme's look only when it starts" in src["Core"], title
+    for warning in re.findall(r'warning: "([^"]+)"', rust):
+        assert warning in src["Core"], warning
+
+
+def test_translation_catalogues_are_complete() -> None:
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent / "i18n"
+    for ts in ("py_ru.ts", "qml_ru.ts"):
+        text = (root / ts).read_text()
+        left = re.findall(r'<source>([^<]*)</source>\s*<translation type="unfinished"', text)
+        assert not left, f"{ts}: untranslated {left[:5]}"
+
+
+def test_core_messages_keep_english_without_a_translator() -> None:
+    from core.core_messages import localize
+
+    lines = [
+        "✓ installed Seven Icons into /x/icons: Windows-7",
+        "✓ Vesktop restarted (vesktop)",
+        "✗ AUR packages need an AUR helper (yay or paru): install one first",
+        "Applied profile: dracula",
+        "something else entirely",
+    ]
+    expected = lines[:]
+    expected[1] = "✓ Vesktop restarted"
+    assert localize("\n".join(lines)).split("\n") == expected
+
+
+def test_compiled_catalogue_translates_data_texts(qapp) -> None:
+    from pathlib import Path
+
+    from PySide6.QtCore import QCoreApplication, QTranslator
+
+    qm = Path(__file__).resolve().parent.parent / "i18n/kde-theme-manager_ru.qm"
+    translator = QTranslator()
+    assert translator.load(str(qm))
+    QCoreApplication.installTranslator(translator)
+    try:
+        assert QCoreApplication.translate("ThemeFields", "Accent color") == "Акцентный цвет"
+        assert QCoreApplication.translate("TrackedApps", "GTK4 theme, custom CSS, colors") == "Тема GTK4, свой CSS, цвета"
+        assert QCoreApplication.translate("Core", "Restart Vesktop") == "Перезапустить Vesktop"
+        from core.core_messages import localize
+        assert localize("✓ Vesktop restarted (vesktop)") == "✓ Vesktop перезапущен"
+    finally:
+        QCoreApplication.removeTranslator(translator)

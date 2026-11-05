@@ -11,9 +11,10 @@ import shutil
 import sys
 
 from PySide6.QtCore import (
-    QObject, Signal, Slot, Property, QTimer, QRunnable, QThreadPool, QUrl
+    QCoreApplication, QObject, Signal, Slot, Property, QTimer, QRunnable, QThreadPool, QUrl
 )
 
+from core.core_messages import localize
 from core.protocol import (
     ProfileCore, WallpaperCore, TrackedAppsCore, SettingsCore,
     ProfileInfo, Component, AppStatus, Result, AppSettings, CustomComponent
@@ -249,7 +250,7 @@ class ProfileController(QObject):
     def _on_operation_finished(self, success: bool, message: str) -> None:
         """Слот, вызываемый в главном потоке по завершении воркера."""
         self._set_busy(False)
-        self.operationFinished.emit(success, message)
+        self.operationFinished.emit(success, localize(message))
         if self._pending_missing is not None:
             profile, missing = self._pending_missing
             self._pending_missing = None
@@ -667,7 +668,7 @@ class TrackedAppsController(QObject):
             "status": c.status.value,
             "statusText": self._status_text(c.status),
             "supportsLiveReload": c.supports_live_reload,
-            "description": c.description,
+            "description": QCoreApplication.translate("TrackedApps", c.description) if c.description else "",
             "icon": c.icon,
             "docsUrl": c.docs_url,
             "configPaths": list(c.config_paths),
@@ -684,7 +685,7 @@ class TrackedAppsController(QObject):
             "status": c.status.value,
             "statusText": self._status_text(c.status),
             "supportsLiveReload": c.supports_live_reload,
-            "description": c.description,
+            "description": QCoreApplication.translate("TrackedApps", c.description) if c.description else "",
             "icon": c.icon,
             "docsUrl": c.docs_url,
             "isCustom": c.is_custom,

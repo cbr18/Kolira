@@ -31,8 +31,12 @@ cd "$APP_DIR"
 echo "== lupdate: строки QML → qml_ru.ts =="
 "$LUPDATE" qml -ts "$QML_TS"
 
+echo "== строки из данных (поля, приложения, ядро) → src/core/i18n_strings.py =="
+"${PYTHON:-python3}" tools/gen_i18n_strings.py
+
 echo "== pylupdate6: строки Python → py_ru.ts =="
 "$PYLUPDATE6" src --ts "$PY_TS"
+"${PYTHON:-python3}" tools/gen_i18n_strings.py --fill
 
 echo "== lrelease: слияние в kde-theme-manager_ru.qm =="
 "$LRELEASE" "$QML_TS" "$PY_TS" -qm "$QM_FILE"

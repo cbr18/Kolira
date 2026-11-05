@@ -527,7 +527,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             detect_command: Some("Telegram".to_string()),
             flatpak_id: Some("org.telegram.desktop".to_string()),
             supports_live_reload: false,
-            description: "Telegram palette (palette → .tdesktop-palette); applying opens a preview in Telegram".to_string(),
+            description: "Telegram palette (palette → .tdesktop-palette); Telegram follows it once chosen in Settings → Chat Settings".to_string(),
             icon: "telegram".to_string(),
             docs_url: "https://github.com/desktop-app/lib_ui/blob/master/ui/colors.palette".to_string(),
         },

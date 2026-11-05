@@ -1395,7 +1395,7 @@
   {
    "id": "cursor_ide_theme",
    "section": "apps",
-   "label": "Cursor theme",
+   "label": "Cursor editor theme",
    "type": "str",
    "source": "json",
    "file": ".config/Cursor/User/settings.json",

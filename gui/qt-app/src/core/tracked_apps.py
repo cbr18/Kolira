@@ -304,7 +304,7 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         category="Communication",
         config_paths=(".local/share/TelegramDesktop/theme-profile.tdesktop-palette",),
         detect_command="Telegram",
-        description="Telegram palette (palette → .tdesktop-palette); applying opens a preview in Telegram",
+        description="Telegram palette (palette → .tdesktop-palette); Telegram follows it once chosen in Settings → Chat Settings",
         icon="telegram",
         docs_url="https://github.com/desktop-app/lib_ui/blob/master/ui/colors.palette",
     ),

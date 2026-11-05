@@ -39,6 +39,16 @@ GTK_MIRROR_FIELDS = frozenset({"gtk_theme", "gtk_dark", "icon_theme", "cursor_th
 GTK_SETTINGS = (".config/gtk-3.0/settings.ini", ".config/gtk-4.0/settings.ini")
 
 
+def field_text(text: str) -> str:
+    """A field label/description from theme_fields.json, translated (the
+    strings reach the catalogue through i18n_strings.py)."""
+    if not text:
+        return text
+    from PySide6.QtCore import QCoreApplication
+
+    return QCoreApplication.translate("ThemeFields", text)
+
+
 def tr(text: str) -> str:
     """Перевод пользовательских сообщений ядра.
 
@@ -897,7 +907,7 @@ class AppThemeCore(ThemeCore):
         return ThemeFieldValue(
             id=field.id,
             section=field.section,
-            label=field.label,
+            label=field_text(field.label),
             type=field.type,
             raw=value,
             display=self._display(field, value),
@@ -906,7 +916,7 @@ class AppThemeCore(ThemeCore):
             profile_raw=self._coerce(field, profile_raw),
             profile_display=self._display(field, self._coerce(field, profile_raw)),
             badge=field.badge,
-            description=field.description,
+            description=field_text(field.description),
             file=file_label,
             group=field.group,
             key=field.key,
