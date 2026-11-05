@@ -128,7 +128,13 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 
 ### `apply_profile`
 
-Явно применяет тему: меняется только заданное в теме, перед этим — pre-apply бэкап. Возвращает `ok`, `message`, `missing` и `installed`.
+Явно применяет тему: меняется только заданное в теме, перед этим — pre-apply бэкап. Возвращает `ok`, `message`, `missing`, `installed`, `dependencies` и `actions`.
+
+Применение следует выбору автоматизации пользователя (`get_automation`): шаги
+«always» уже сделаны и перечислены в `installed`, «never» пропущены. В
+`dependencies` (для `install_dependencies`) и `actions` (для `run_action`)
+остаётся то, о чём пользователь хочет, чтобы его спрашивали, — спросите, прежде
+чем что-то из этого делать.
 
 Аргументы:
 
@@ -159,16 +165,39 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 
 Чего теме не хватает на этой машине (`theme-profile deps NAME --json`):
 `[{index, kind, name, source, id, title, url, exact, command}]`. `source`:
-`kde-store`, `package`/`aur` (`command` — что выполнить, сами пакеты не
-ставятся), `vscode-marketplace`/`open-vsx`/`zed`, `none`. `exact: false` —
+`kde-store`, `package`/`aur` (`command` — команда; `install_dependencies`
+выполняет её в терминале пользователя), `vscode-marketplace`/`open-vsx`/`zed`,
+`none`. `exact: false` —
 найдено поиском по имени, нужно подтверждение пользователя.
 
 ### `install_dependencies`
 
 Скачивает и ставит зависимости из официальных источников (KDE Store через
 `kpackagetool6` или распаковку, магазины редакторов). Аргументы: `name`,
-`indexes` (из `list_dependencies`; без него — все). Спрашивайте пользователя
+`indexes` (из `list_dependencies`; без него — все). Системные пакеты и тема SDDM
+открывают **один терминал** на экране пользователя с командой установки — пароль
+вводит пользователь; такой результат значит «терминал открыт», а не
+«установлено». sudo сервер не запускает никогда. Спрашивайте пользователя
 перед вызовом; результаты поиска (`exact: false`) — только с его согласия.
+
+### `get_automation` / `set_automation`
+
+Выбор пользователя — что применение темы может делать само
+(`theme-profile automation`): `store`, `packages`, `restart_vesktop`,
+`restart_discord`, `restart_zen`, `restart_firefox`; каждый `ask` | `always` |
+`never`, с описанием и предупреждением. `set_automation {"choices": {"store":
+"never"}}` — **только по явной просьбе пользователя**, не ради удобства
+ассистента.
+
+### `list_actions` / `run_action`
+
+`list_actions {"name": …}` — шаги после применения темы
+(`theme-profile actions NAME --json`): перезапуск запущенных Vesktop / Discord /
+Zen / Firefox, подсказка Telegram — с причиной и предупреждением.
+`run_action {"id": "zen"}` — выполнить один (программа закрывается обычным
+образом и запускается снова; звонок, демонстрация экрана, загрузки в ней
+прервутся). Передайте пользователю предупреждение и выполняйте только после его
+согласия.
 
 ## Палитра и магазины тем
 

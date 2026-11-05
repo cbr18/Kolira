@@ -772,3 +772,37 @@ def test_mcp_lists_dependencies(monkeypatch: pytest.MonkeyPatch, cli_bundle_home
     assert reply["result"]["isError"] is False, reply
     payload = json.loads(reply["result"]["content"][0]["text"])
     assert isinstance(payload["dependencies"], list)
+
+
+def test_mcp_automation_and_actions(monkeypatch: pytest.MonkeyPatch, cli_bundle_home):
+    monkeypatch.setattr(CoreFactory, "_theme_core", cli_bundle_home["theme"])
+    monkeypatch.setattr(CoreFactory, "_profile_core", cli_bundle_home["profiles"])
+    monkeypatch.setattr(CoreFactory, "_wallpaper_core", cli_bundle_home["wallpapers"])
+    server = ThemeProfileMcpServer()
+
+    def call(name: str, arguments: dict) -> dict:
+        reply = server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                               "params": {"name": name, "arguments": arguments}})
+        return reply["result"]
+
+    listed = server.handle({"jsonrpc": "2.0", "id": 0, "method": "tools/list"})
+    names = {t["name"] for t in listed["result"]["tools"]}
+    assert {"get_automation", "set_automation", "list_actions", "run_action"} <= names
+
+    got = json.loads(call("get_automation", {})["content"][0]["text"])
+    assert {i["key"] for i in got["items"]} >= {"store", "packages", "restart_zen"}
+    changed = call("set_automation", {"choices": {"store": "never"}})
+    assert changed["isError"] is False, changed
+    after = json.loads(changed["content"][0]["text"])
+    assert after["configured"] is True
+    assert next(i["policy"] for i in after["items"] if i["key"] == "store") == "never"
+    assert call("set_automation", {"choices": {"store": "maybe"}})["isError"] is True
+
+    assert cli_bundle_home["core"].save_profile("night").success
+    acts = json.loads(call("list_actions", {"name": "night"})["content"][0]["text"])
+    assert isinstance(acts["actions"], list)
+    bad = json.loads(call("run_action", {"id": "rm -rf"})["content"][0]["text"])
+    assert bad["ok"] is False
+
+    applied = json.loads(call("apply_profile", {"name": "night"})["content"][0]["text"])
+    assert "dependencies" in applied and "actions" in applied

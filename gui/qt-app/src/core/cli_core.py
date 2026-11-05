@@ -324,6 +324,18 @@ class CliProfileCore(ProfileCore):
         message = "\n".join(lines) or "Nothing to install"
         return Result(not failed, message, data=items)
 
+    def actions(self, name: str) -> Result:
+        """`theme-profile actions NAME --json`: follow-up steps for a theme."""
+        try:
+            name = validate_profile_name(name)
+        except ValueError as exc:
+            return Result.err(str(exc))
+        result = self._run(["actions", name, "--json"], timeout=30)
+        try:
+            return Result(result.success, "", data=json.loads(result.message or "[]"))
+        except ValueError:
+            return Result.err(result.message or "invalid JSON from theme-profile actions")
+
     def run_action(self, action_id: str) -> Result:
         """`theme-profile action ID`: one follow-up step the user agreed to."""
         if not action_id.replace("-", "").isalnum():

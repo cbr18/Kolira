@@ -1,6 +1,6 @@
 # Автоматизация через MCP
 
-**Статус:** TODO (запрос пользователя, 2026-11-05). Продолжение
+**Статус:** DONE (2026-11-05): get_automation, set_automation, list_actions, run_action; apply_profile отдаёт dependencies и actions; описания инструментов требуют согласия человека. Продолжение
 `2026_11_05_21_00_automate-manual-steps.md`.
 
 ## Что сделать

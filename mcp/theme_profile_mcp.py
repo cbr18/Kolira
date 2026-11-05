@@ -77,6 +77,10 @@ class ThemeProfileMcpServer:
             "import_theme": self._import_theme,
             "list_dependencies": self._list_dependencies,
             "install_dependencies": self._install_dependencies,
+            "get_automation": self._get_automation,
+            "set_automation": self._set_automation,
+            "list_actions": self._list_actions,
+            "run_action": self._run_action,
             "palette_show": self._palette_show,
             "palette_gallery": self._palette_gallery,
             "palette_import": self._palette_import,
@@ -236,7 +240,7 @@ class ThemeProfileMcpServer:
             },
             {
                 "name": "apply_profile",
-                "description": "Apply a saved theme: only what it defines changes (pre-apply backup first). Reports missing assets with where to get them.",
+                "description": "Apply a saved theme: only what it defines changes (pre-apply backup first). Follows the user's automation choices (get_automation): 'always' steps are done and listed in installed, 'never' ones skipped. Returns what is left to ask the user about: dependencies (install_dependencies) and actions (run_action) — ask before doing any of them.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -284,7 +288,7 @@ class ThemeProfileMcpServer:
             },
             {
                 "name": "install_dependencies",
-                "description": "Download and install a theme's missing dependencies from their official sources (KDE Store via kpackagetool6 or unpacking, VS Code Marketplace / Open VSX / Zed). Never installs system packages. Ask the user first; search results (exact=false) need their confirmation.",
+                "description": "Install a theme's missing dependencies from their official sources (KDE Store via kpackagetool6 or unpacking, VS Code Marketplace / Open VSX / Zed). System packages and the SDDM theme open ONE terminal on the user's screen with the install command — the user types their password there; such results mean 'terminal opened', not 'installed'. Never runs sudo. Ask the user first; search results (exact=false) need their confirmation.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -292,6 +296,44 @@ class ThemeProfileMcpServer:
                         "indexes": {"type": "array", "items": {"type": "integer"}, "description": "Indexes from list_dependencies; omit for all."},
                     },
                     "required": ["name"],
+                },
+            },
+            {
+                "name": "get_automation",
+                "description": "The user's automation choices — what applying a theme may do by itself: store (downloads), packages (system packages in a terminal), restart_vesktop/discord/zen/firefox. Each ask | always | never, with what it does and a warning.",
+                "inputSchema": {"type": "object", "properties": {}},
+            },
+            {
+                "name": "set_automation",
+                "description": "Change the user's automation choices. Only when the user explicitly asks for that change — never to make your own work easier.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "choices": {
+                            "type": "object",
+                            "description": "key → ask | always | never (keys from get_automation).",
+                            "additionalProperties": {"type": "string", "enum": ["ask", "always", "never"]},
+                        }
+                    },
+                    "required": ["choices"],
+                },
+            },
+            {
+                "name": "list_actions",
+                "description": "Follow-up steps a theme leaves on this machine (restart a running Vesktop/Discord/Zen/Firefox, Telegram's one-time file choice), each with reason and warning. apply_profile already returns the ones the user wants to be asked about.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {"name": {"type": "string"}},
+                    "required": ["name"],
+                },
+            },
+            {
+                "name": "run_action",
+                "description": "Do one follow-up step (restart vesktop | discord | zen | firefox): the program quits normally and starts again. A call, screen share or download in it ends — tell the user the warning and run it only after they agree.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {"id": {"type": "string", "enum": ["vesktop", "discord", "zen", "firefox"]}},
+                    "required": ["id"],
                 },
             },
             {
@@ -512,7 +554,37 @@ class ThemeProfileMcpServer:
             "message": result.message,
             "missing": report.get("missing", []),
             "installed": report.get("installed", []),
+            "dependencies": report.get("dependencies", []),
+            "actions": report.get("actions", []),
         }
+
+    # ── automation & follow-up actions (ask the user before acting) ────
+
+    def _get_automation(self, arguments: dict) -> dict:
+        from core.cli_core import CliSettingsCore
+
+        return CliSettingsCore().automation()
+
+    def _set_automation(self, arguments: dict) -> dict:
+        from core.cli_core import CliSettingsCore
+
+        choices = arguments.get("choices") or {}
+        if not isinstance(choices, dict) or not choices:
+            raise ValueError("choices must be an object key → ask|always|never")
+        result = CliSettingsCore().set_automation({str(k): str(v) for k, v in choices.items()})
+        if not result.success:
+            raise ValueError(result.message)
+        return CliSettingsCore().automation()
+
+    def _list_actions(self, arguments: dict) -> dict:
+        result = self.profiles.actions(str(arguments.get("name") or ""))
+        if not result.success:
+            raise ValueError(result.message)
+        return {"actions": result.data or []}
+
+    def _run_action(self, arguments: dict) -> dict:
+        result = self.profiles.run_action(str(arguments.get("id") or ""))
+        return {"ok": result.success, "message": result.message}
 
 
     # ── palette (Rust CLI via PaletteCore) ─────────────────────────────
