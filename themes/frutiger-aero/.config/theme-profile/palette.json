@@ -1,0 +1,25 @@
+{
+  "name": "Frutiger Aero",
+  "author": "theme-profile-kit",
+  "variant": "dark",
+  "base": [
+    "#0d1e2e",
+    "#132b40",
+    "#1f4260",
+    "#557a98",
+    "#a2c6de",
+    "#e8f4fb",
+    "#f3faff",
+    "#ffffff",
+    "#ff6b6b",
+    "#ffb454",
+    "#ffe066",
+    "#8be05a",
+    "#40d4e8",
+    "#51a2da",
+    "#9fb4ff",
+    "#36b89a"
+  ],
+  "accent": "#51a2da",
+  "source": "manual"
+}

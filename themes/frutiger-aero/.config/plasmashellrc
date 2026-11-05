@@ -1,0 +1,56 @@
+[PlasmaViews][Panel 283]
+floating=1
+panelLengthMode=1
+panelOpacity=2
+panelVisibility=2
+shell=org.kde.plasma.desktop
+
+[PlasmaViews][Panel 283][Defaults]
+maxLength=1886
+minLength=1758
+offset=0
+thickness=36
+
+[PlasmaViews][Panel 283][Horizontal2048]
+alignment=132
+maxLength=1886
+minLength=1758
+
+[PlasmaViews][Panel 283][Horizontal2560]
+maxLength=1918
+minLength=1918
+
+[PlasmaViews][Panel 306]
+alignment=132
+floating=1
+panelLengthMode=2
+panelOpacity=2
+panelVisibility=2
+shell=org.kde.plasma.desktop
+
+[PlasmaViews][Panel 306][Defaults]
+maxLength=2165
+minLength=1701
+offset=0
+thickness=52
+
+[PlasmaViews][Panel 306][Horizontal2048]
+alignment=132
+maxLength=1619
+minLength=1428
+offset=210
+
+[PlasmaViews][Panel 306][Horizontal2560]
+maxLength=2165
+minLength=1701
+offset=0
+
+[PlasmaViews][Panel 461]
+alignment=132
+floating=1
+panelLengthMode=1
+panelVisibility=2
+shell=org.kde.plasma.desktop
+
+[PlasmaViews][Panel 461][Defaults]
+thickness=36
