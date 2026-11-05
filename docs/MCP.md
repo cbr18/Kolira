@@ -32,7 +32,7 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
         "python",
         "mcp/theme_profile_mcp.py"
       ],
-      "cwd": "/home/cbr/projects/kde_mods/theme-profile-kit"
+      "cwd": "/path/to/theme-profile-kit"
     }
   }
 }
