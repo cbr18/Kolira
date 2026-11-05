@@ -136,6 +136,10 @@ theme-profile deps NAME [--refresh] [--install[=all|0,2]] [--json]
   version of the theme → `backups/pre-save-<name>-…`), copies in local assets
   that are not tracked files, and writes `theme.json` (`appearance_only: true`).
   `--no-wallpaper` drops `wallpaper/`.
+  Licences: generated assets get theirs on every save (colour/Konsole schemes
+  MIT; a Kvantum recolour follows its base — see `docs/PALETTE.md`); marks set
+  with `theme-profile license` carry over across re-saves, including a hand
+  mark on a generated asset (Paper's Breeze-derived scheme).
 - **apply**:
   1. `--install-missing`: installs missing VS Code / Cursor / Zed themes from
      their official stores;
@@ -205,7 +209,9 @@ app never runs sudo). KDE's own assets (Breeze, Oxygen,
 2. **package** — `pacman -Qqo` on any installed copy (repo or AUR; a user copy
    shadowing a packaged one — Klassy's generated icons — is looked through);
 3. **editor stores** — the installed VS Code / Cursor extension or Zed
-   extension; VS Code and Cursor share extensions, so when one editor is not
+   extension (an editor that is not installed on this machine — no binary on
+   PATH, no Flatpak — gets nothing: its theme is neither listed by `deps`,
+   nor downloaded, nor reported missing by `check`/`apply`); VS Code and Cursor share extensions, so when one editor is not
    installed but names the same theme as the other, the other's extension id
    is used (VS Code Marketplace / Open VSX);
 4. **KDE Store, search** (`exact: false`) — the OCS API searched by name within

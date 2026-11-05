@@ -46,8 +46,8 @@ theme-profile palette set accent=#a7c080 base0F=#9da9a0
 theme-profile palette from-wallpaper [IMAGE] [--variant=dark|light] [--name=…]   # по умолчанию — текущие обои
 theme-profile palette from-colors JSON|-   # цвета от Kirigami.ImageColors (GUI)
 theme-profile palette generate kde|kitty|alacritty   # напечатать сгенерированное
-theme-profile palette apply [--targets=kde,kitty,alacritty,kvantum] [--kvantum-base=THEME]
-                                           # по умолчанию kde,kitty,alacritty
+theme-profile palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvantum-base=THEME] [--gtk-opacity=0.3-1]
+                                           # по умолчанию все цели, кроме gtk и kvantum
 ```
 
 `apply` пишет `$XDG_DATA_HOME/color-schemes/ThemeProfile<Имя>.colors` (имя с
@@ -112,6 +112,18 @@ theme-profile palette apply [--targets=kde,kitty,alacritty,kvantum] [--kvantum-b
 `gradient_color_1..4`), `foreground` — акцент; запущенный cava перечитывает
 конфиг по SIGUSR1.
 
+**GTK 4 / libadwaita** (цель `gtk`, включается явно — она меняет вид
+libadwaita-приложений вроде Mission Center). libadwaita не смотрит на
+`gtk-theme-name`, её цвета задаёт только `~/.config/gtk-4.0/gtk.css`. Цель пишет
+`gtk-4.0/theme-profile.css` (именованные цвета libadwaita: `window_bg_color`,
+`view_bg_color`, `headerbar_*`, `sidebar_*`, `card_*`, `popover_*`, `dialog_*`,
+`accent_*`, смысловые) и добавляет в конец `gtk.css` строку
+`@import 'theme-profile.css';` (импорт KDE `colors.css` остаётся).
+`--gtk-opacity` (0.3–1, по умолчанию 1 — непрозрачно) — альфа фона окна,
+шапки и боковой панели; списки и карточки чуть прозрачнее, всплывающие окна и
+диалоги — плотнее, чтобы текст читался. Сквозь прозрачный фон видно размытие
+композитора (Better Blur DX). Файл входит в тему (компонент `gtk4`).
+
 **Kvantum** (цель `kvantum`, включается явно — она переключает стиль виджетов на
 `kvantum`). Темы Kvantum — GPL-графика, поэтому в репозитории их нет: при
 применении берётся **установленная** базовая тема (по умолчанию `KvArcDark` для
@@ -125,8 +137,24 @@ OKLab:
   с тем же сдвигом яркости и относительной насыщенностью;
 - прочие насыщенные (смысловые красный/зелёный) не меняются; альфа сохраняется;
 - в `[GeneralColors]` ключи с понятной ролью выставляются явно (окно, списки,
-  кнопки, акцент, текст на выделении, ссылки); `text.press/toggle.color`,
+  кнопки, акцент, текст на выделении, ссылки, текст подсказок — иначе при
+  перекраске светлой базы в тёмную палитру белый текст подсказки становился
+  тёмным на тёмном); `text.press/toggle.color`,
   совпадающие с `highlight.text.color` базы, получают текст на выделении.
+
+Первая строка kvconfig — `; theme-profile: recoloured from <база>` (с пометкой
+`(ships with Kvantum)`, если база из `/usr/share/Kvantum`). По ней сохранение
+темы ставит лицензию: перекраска темы из самого Kvantum — GPL-3.0-or-later и
+может публиковаться; перекраска сторонней темы (KDE Store, лицензия неизвестна)
+— не публикуется (`redistributable: false`).
+
+Прозрачность и текстура — поля инспектора, пишутся в kvconfig активной темы:
+`kvantum_window_opacity` (`reduce_window_opacity`, 0–90 %),
+`kvantum_menu_opacity` (`reduce_menu_opacity`), `kvantum_transparent_views`
+(`[Hacks] transparent_dolphin_view` — стекло видно и в списке файлов Dolphin),
+`kvantum_no_texture` (`no_window_pattern`, убирает узор окна, напр. «зерно»
+KvRoughGlass). Перекраска заново создаёт каталог темы, поэтому эти поля
+выставляются после неё.
 
 Затем `kvantummanager --set ThemeProfile<Имя>` и `widgetStyle=kvantum`. Профили
 сохраняют **активную** пользовательскую тему Kvantum целиком (каталог из

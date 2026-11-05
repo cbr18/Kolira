@@ -572,8 +572,14 @@ pub fn detect(dir: &Path, values: &std::collections::BTreeMap<String, Value>, so
 }
 
 /// Dependencies not installed here, with their index in `deps`.
+/// Dependencies not installed here. Editor themes for an editor this machine
+/// does not have are left out — nothing to download, nothing to report.
 pub fn missing(deps: &[Dependency]) -> Vec<(usize, &Dependency)> {
-    deps.iter().enumerate().filter(|(_, d)| !installed(d)).collect()
+    deps.iter()
+        .enumerate()
+        .filter(|(_, d)| crate::stores::editor_of(&d.kind).is_none_or(crate::stores::editor_installed))
+        .filter(|(_, d)| !installed(d))
+        .collect()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -548,10 +548,11 @@ pub fn alacritty_with_palette(existing: &str, p: &Palette) -> Result<String> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Targets a palette can be applied to.
-pub const TARGETS: [&str; 10] = ["kde", "kitty", "alacritty", "konsole", "ghostty", "nvim", "discord", "spicetify", "cava", "kvantum"];
+pub const TARGETS: [&str; 11] = ["kde", "kitty", "alacritty", "konsole", "ghostty", "nvim", "discord", "spicetify", "cava", "gtk", "kvantum"];
 
 /// Targets used when none are given. `kvantum` is opt-in: it switches the Qt
 /// widget style, which the user may have chosen deliberately (e.g. Breeze).
+/// `gtk` is opt-in too: it overrides libadwaita's own look.
 pub const DEFAULT_TARGETS: [&str; 9] = ["kde", "kitty", "alacritty", "konsole", "ghostty", "nvim", "discord", "spicetify", "cava"];
 
 /// Extra knobs for [`apply`].
@@ -559,6 +560,9 @@ pub const DEFAULT_TARGETS: [&str; 9] = ["kde", "kitty", "alacritty", "konsole", 
 pub struct ApplyOptions {
     /// Installed Kvantum theme to recolour (default by variant: KvArcDark/KvArc).
     pub kvantum_base: Option<String>,
+    /// Background opacity for the `gtk` target (libadwaita), 0.3–1.0;
+    /// `None` = 1.0 (opaque).
+    pub gtk_opacity: Option<f64>,
 }
 
 fn no_apply() -> bool {
@@ -767,6 +771,12 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
             Some(path) => report.push(format!("cava: {} (gradient; running cava reloaded)", path.display())),
             None => report.push("cava: skipped, no ~/.config/cava/config".to_string()),
         }
+    }
+
+    if wants("gtk") {
+        let opacity = options.gtk_opacity.unwrap_or(1.0);
+        let path = crate::extras::gtk_apply_palette(p, opacity)?;
+        report.push(format!("gtk: {} (libadwaita apps, opacity {:.2}; reopen them)", path.display(), opacity.clamp(0.3, 1.0)));
     }
 
     if wants("kvantum") {

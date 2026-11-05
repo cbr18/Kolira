@@ -148,7 +148,11 @@ fn general_color(kvconfig: &str, key: &str) -> Option<Rgb> {
 /// Recolour a kvconfig: map every colour, then set role keys explicitly.
 pub fn recolor_kvconfig(kvconfig: &str, recolor: &Recolor, p: &Palette) -> String {
     let r = kde_roles(p);
-    let roles: [(&str, Rgb); 10] = [
+    // Tooltip text follows the palette text: recolouring a light base into a
+    // dark palette (or back) inverts lightness, and a base's white-on-dark
+    // tooltip text would land dark-on-dark.
+    let roles: [(&str, Rgb); 11] = [
+        ("tooltip.text.color", r.text),
         ("window.color", r.window),
         ("base.color", r.view),
         ("alt.base.color", r.view_alt),
@@ -197,6 +201,22 @@ pub fn recolor_kvconfig(kvconfig: &str, recolor: &Recolor, p: &Palette) -> Strin
         out.push('\n');
     }
     out
+}
+
+/// First line of a generated kvconfig: which theme it was recoloured from.
+/// Themes that ship with Kvantum itself are GPL-3.0-or-later, so their
+/// recolours may be redistributed; any other base keeps its own licence.
+pub const PROVENANCE: &str = "; theme-profile: recoloured from ";
+const SHIPPED_TAG: &str = " (ships with Kvantum)";
+const SHIPPED_ROOTS: &[&str] = &["/usr/share/Kvantum", "/usr/local/share/Kvantum"];
+
+/// (base theme, ships with Kvantum) of a generated kvconfig.
+pub fn provenance(kvconfig: &str) -> Option<(String, bool)> {
+    let rest = kvconfig.lines().next()?.strip_prefix(PROVENANCE)?;
+    Some(match rest.strip_suffix(SHIPPED_TAG) {
+        Some(base) => (base.to_string(), true),
+        None => (rest.to_string(), false),
+    })
 }
 
 /// Default base theme for a palette variant.
@@ -274,7 +294,9 @@ fn build_in(p: &Palette, base: &str, roots: &[PathBuf], out_root: &Path) -> Resu
         let dest = staging.join(&renamed);
         if file.ends_with(".kvconfig") {
             let text = std::fs::read_to_string(&path)?;
-            std::fs::write(&dest, recolor_kvconfig(&text, &recolor, p))?;
+            let shipped = SHIPPED_ROOTS.iter().any(|root| base_dir.starts_with(root));
+            let note = format!("{PROVENANCE}{base}{}\n", if shipped { SHIPPED_TAG } else { "" });
+            std::fs::write(&dest, note + &recolor_kvconfig(&text, &recolor, p))?;
         } else if file.ends_with(".svg") {
             let text = std::fs::read_to_string(&path)?;
             std::fs::write(&dest, recolor.map_text(&text))?;
@@ -349,13 +371,14 @@ mod tests {
     fn kvconfig_roles_are_explicit() {
         let p = everforest();
         let r = arc_dark(&p);
-        let kv = "[%General]\nauthor=x\n\n[GeneralColors]\nwindow.color=#383c4a\nbase.color=#404552\nhighlight.color=#5294e2\ntext.color=#ffffffc8\ndark.color=black\nhighlight.text.color=white\n\n[Hacks]\nx=1\n";
+        let kv = "[%General]\nauthor=x\n\n[GeneralColors]\nwindow.color=#383c4a\nbase.color=#404552\nhighlight.color=#5294e2\ntext.color=#ffffffc8\ndark.color=black\nhighlight.text.color=white\ntooltip.text.color=white\n\n[Hacks]\nx=1\n";
         let out = recolor_kvconfig(kv, &r, &p);
         let roles = kde_roles(&p);
         assert!(out.contains(&format!("window.color={}\n", roles.window.hex())));
         assert!(out.contains(&format!("base.color={}\n", roles.view.hex())));
         assert!(out.contains("highlight.color=#a7c080\n"));
         assert!(out.contains(&format!("highlight.text.color={}\n", roles.selection_text.hex())));
+        assert!(out.contains(&format!("tooltip.text.color={}\n", roles.text.hex())) || !kv.contains("tooltip.text.color"));
         assert!(out.contains("text.color=#") && out.contains("c8\n"), "alpha kept: {out}");
         assert!(!out.contains("dark.color=black"), "named colours mapped");
         assert!(out.contains("[%General]\nauthor=x\n") && out.contains("[Hacks]\nx=1\n"));
@@ -382,7 +405,10 @@ mod tests {
         assert_eq!(id, "ThemeProfileEverforest");
         let svg = std::fs::read_to_string(dir.join("ThemeProfileEverforest.svg")).unwrap();
         assert!(svg.contains("#a7c080") && !svg.contains("#5294e2"));
-        assert!(dir.join("ThemeProfileEverforest.kvconfig").is_file());
+        let kv = std::fs::read_to_string(dir.join("ThemeProfileEverforest.kvconfig")).unwrap();
+        assert_eq!(provenance(&kv), Some(("FakeBase".to_string(), false)), "a base outside Kvantum's own themes is not marked GPL");
+        assert_eq!(provenance("; theme-profile: recoloured from KvRoughGlass (ships with Kvantum)\n[x]\n"), Some(("KvRoughGlass".to_string(), true)));
+        assert_eq!(provenance("[%General]\n"), None);
         assert!(dir.join("preview.png").is_file());
         assert!(build_in(&p, "../etc", &roots, &roots[0]).is_err());
         // Rebuilding replaces the previous output cleanly.

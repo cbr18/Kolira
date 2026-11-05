@@ -1921,6 +1921,39 @@ else
   fail "own install record ignored: $(cat "$GM/.config/theme-profile/profiles/seven/theme.json" 2>/dev/null | head -c 600)"
 fi
 
+# Editor themes: no editor here → nothing to fetch, nothing reported.
+ED="$TMP_ROOT/editor-absent"; mkdir -p "$ED/.config/theme-profile/profiles/ed" "$ED/bin"
+cat >"$ED/.config/theme-profile/profiles/ed/theme.json" <<'JSON'
+{"schema": "theme-profile/theme@2", "name": "ed", "values": {"vscode_theme": "Night Owl"}, "assets": [], "appearance_only": true,
+ "sources": {"vscode_theme": {"store": "vscode-marketplace", "id": "sdras.night-owl", "url": ""}},
+ "dependencies": [{"kind": "vscode", "name": "Night Owl", "source": "vscode-marketplace", "id": "sdras.night-owl", "title": "", "url": "https://marketplace.visualstudio.com/items?itemName=sdras.night-owl", "exact": true}]}
+JSON
+ed_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$ED" PATH="$ED/bin" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+if [ "$(ed_cli deps ed)" = "All dependencies are installed." ] && ed_cli check ed | grep -q "^Everything this theme needs"; then
+  ok "a theme for an editor that is not installed is neither listed nor reported missing"
+else
+  fail "absent editor still reported: $(ed_cli deps ed; ed_cli check ed)"
+fi
+printf '#!/bin/sh\nexit 0\n' >"$ED/bin/code"; chmod +x "$ED/bin/code"
+if ed_cli deps ed | grep -q "vscode Night Owl" && ed_cli check ed | grep -q "missing=vscode_theme=Night Owl"; then
+  ok "with VS Code installed its missing theme is listed with the source"
+else
+  fail "installed editor's theme not listed: $(ed_cli deps ed; ed_cli check ed)"
+fi
+
+# Palette → libadwaita: translucent colours in gtk-4.0/theme-profile.css,
+# imported last from gtk.css (KDE's colors.css import kept).
+GP="$TMP_ROOT/gtk-palette"; mkdir -p "$GP/.config/gtk-4.0"; printf "@import 'colors.css';\n" >"$GP/.config/gtk-4.0/gtk.css"
+gp() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$GP" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+gp palette import gallery:dracula >/dev/null 2>&1
+gp palette apply --targets=gtk --gtk-opacity=0.6 >/dev/null 2>&1; gp palette apply --targets=gtk --gtk-opacity=0.6 >/dev/null 2>&1
+if grep -q "@define-color window_bg_color alpha(#[0-9a-f]*, 0.60);" "$GP/.config/gtk-4.0/theme-profile.css" 2>/dev/null &&
+  [ "$(cat "$GP/.config/gtk-4.0/gtk.css")" = "$(printf "@import 'colors.css';\n@import 'theme-profile.css';")" ]; then
+  ok "palette gtk target writes translucent libadwaita colours and imports them once"
+else
+  fail "gtk target: $(cat "$GP/.config/gtk-4.0/gtk.css" "$GP/.config/gtk-4.0/theme-profile.css" 2>&1 | head -5)"
+fi
+
 # --- Summary ------------------------------------------------------------------
 echo ""
 echo "═══════════════════════════════════════"

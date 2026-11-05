@@ -289,6 +289,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
                 ".config/gtk-4.0/settings.ini".to_string(),
                 ".config/gtk-4.0/gtk.css".to_string(),
                 ".config/gtk-4.0/colors.css".to_string(),
+                ".config/gtk-4.0/theme-profile.css".to_string(),
             ],
             detect_command: None,
             flatpak_id: None,

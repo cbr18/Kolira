@@ -199,6 +199,32 @@ pub fn install_zed_archive(archive: &[u8], id: &str, out_dir: &Path) -> Result<V
     Ok(names)
 }
 
+/// Whether editor `app` (`vscode`, `cursor`, `zed`) is installed here — its
+/// binary on PATH or its Flatpak. Themes for an editor that is not installed
+/// are neither downloaded nor reported.
+pub fn editor_installed(app: &str) -> bool {
+    let (bins, flatpaks): (&[&str], &[&str]) = match app {
+        "cursor" => (&["cursor"], &[]),
+        "zed" => (&["zeditor", "zed", "zedit"], &["dev.zed.Zed"]),
+        _ => (&["code", "code-oss", "codium", "vscodium"], &["com.visualstudio.code", "com.vscodium.codium"]),
+    };
+    let home = crate::paths::home_dir();
+    bins.iter().any(|b| which::which(b).is_ok())
+        || flatpaks.iter().any(|id| {
+            std::path::Path::new("/var/lib/flatpak/app").join(id).is_dir() || home.join(".local/share/flatpak/app").join(id).is_dir()
+        })
+}
+
+/// The editor a theme field / dependency kind belongs to.
+pub fn editor_of(field_or_kind: &str) -> Option<&'static str> {
+    match field_or_kind {
+        "vscode" | "vscode_theme" => Some("vscode"),
+        "cursor" | "cursor_ide_theme" => Some("cursor"),
+        "zed" | "zed_dark" | "zed_light" | "zed_mode" => Some("zed"),
+        _ => None,
+    }
+}
+
 /// Editor CLI binary for an Open VSX app.
 fn editor_cli(app: &str) -> Option<String> {
     let candidates: &[&str] = match app {

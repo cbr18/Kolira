@@ -1099,6 +1099,104 @@
    ]
   },
   {
+   "id": "kvantum_window_opacity",
+   "section": "assets",
+   "label": "Kvantum window transparency",
+   "type": "int",
+   "source": "kvantum",
+   "group": "%General",
+   "key": "reduce_window_opacity",
+   "apply": "cmd_config",
+   "command": [
+    "kvantummanager",
+    "--set",
+    "{theme}"
+   ],
+   "badge": "app",
+   "advanced": true,
+   "description": "How see-through Kvantum windows are, 0–90 % (needs translucent windows)",
+   "keywords": [
+    "kvantum",
+    "прозрачность",
+    "opacity"
+   ],
+   "min": 0,
+   "max": 90,
+   "step": 5
+  },
+  {
+   "id": "kvantum_menu_opacity",
+   "section": "assets",
+   "label": "Kvantum menu transparency",
+   "type": "int",
+   "source": "kvantum",
+   "group": "%General",
+   "key": "reduce_menu_opacity",
+   "apply": "cmd_config",
+   "command": [
+    "kvantummanager",
+    "--set",
+    "{theme}"
+   ],
+   "badge": "app",
+   "advanced": true,
+   "description": "How see-through Kvantum menus and popups are, 0–90 %",
+   "keywords": [
+    "kvantum",
+    "прозрачность",
+    "меню"
+   ],
+   "min": 0,
+   "max": 90,
+   "step": 5
+  },
+  {
+   "id": "kvantum_transparent_views",
+   "section": "assets",
+   "label": "Kvantum see-through file views",
+   "type": "bool",
+   "source": "kvantum",
+   "group": "Hacks",
+   "key": "transparent_dolphin_view",
+   "apply": "cmd_config",
+   "command": [
+    "kvantummanager",
+    "--set",
+    "{theme}"
+   ],
+   "badge": "app",
+   "advanced": true,
+   "description": "Let the window glass show through Dolphin's file view",
+   "keywords": [
+    "kvantum",
+    "dolphin",
+    "прозрачность"
+   ]
+  },
+  {
+   "id": "kvantum_no_texture",
+   "section": "assets",
+   "label": "Kvantum: no window texture",
+   "type": "bool",
+   "source": "kvantum",
+   "group": "%General",
+   "key": "no_window_pattern",
+   "apply": "cmd_config",
+   "command": [
+    "kvantummanager",
+    "--set",
+    "{theme}"
+   ],
+   "badge": "app",
+   "advanced": true,
+   "description": "Hide the theme's window background pattern (e.g. KvRoughGlass grain)",
+   "keywords": [
+    "kvantum",
+    "текстура",
+    "pattern"
+   ]
+  },
+  {
    "id": "kitty_opacity",
    "section": "apps",
    "label": "Kitty opacity",

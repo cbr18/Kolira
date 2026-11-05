@@ -62,8 +62,8 @@ Usage:
   theme-profile palette from-colors JSON|-    ({\"colors\":[{\"color\":\"#rrggbb\",\"ratio\":0.4},...]},
                               the shape of Kirigami.ImageColors.palette; - reads stdin)
   theme-profile palette generate <kde|kitty|alacritty>   (print the generated colours)
-  theme-profile palette apply [--targets=kde,kitty,alacritty,kvantum] [--kvantum-base=THEME]
-                              (default targets: kde,kitty,alacritty; kvantum switches the widget style)
+  theme-profile palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvantum-base=THEME] [--gtk-opacity=0.3-1]
+                              (default: all but kvantum and gtk; kvantum switches the widget style, gtk recolours libadwaita apps)
 
 Components: kwin, plasma_shell, kdeglobals, gtk3, gtk4, qt5ct,
             breeze, klassy, kvantum, alacritty, kitty, wofi, btop,
@@ -439,6 +439,10 @@ fn palette_cmd(args: &[String]) -> ExitCode {
                     .iter()
                     .find_map(|a| a.strip_prefix("--kvantum-base="))
                     .map(str::to_string),
+                gtk_opacity: args[1..]
+                    .iter()
+                    .find_map(|a| a.strip_prefix("--gtk-opacity="))
+                    .and_then(|v| v.parse::<f64>().ok()),
             };
             match palette::apply(&p, &targets, &options) {
                 Ok(lines) => {

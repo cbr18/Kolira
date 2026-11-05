@@ -90,6 +90,7 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
             ".config/gtk-4.0/settings.ini",
             ".config/gtk-4.0/gtk.css",
             ".config/gtk-4.0/colors.css",
+            ".config/gtk-4.0/theme-profile.css",
         ),
         description="GTK4 theme, custom CSS, colors",
         icon="preferences-desktop-theme-gtk",

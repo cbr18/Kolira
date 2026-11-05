@@ -45,7 +45,7 @@ SteamLibraryPath=file:$HOME/.local/share/Steam/steamapps/workshop/content/431960
 ActiveEffect=microscope
 
 [Containments][281][Wallpaper][org.kde.image][General]
-Image=file://$HOME/Изображения/Wallpaper/frutiger-aero-fish.jpg
+Image=file://$HOME/Изображения/Wallpaper/frutiger-aero-bubble.jpg
 SlidePaths=$HOME/.local/share/wallpapers/,/usr/share/wallpapers/
 
 [Containments][281][Wallpaper][org.kde.potd][General]
@@ -94,7 +94,7 @@ WallpaperSource[$e]=file:$HOME/.local/share/Steam/steamapps/workshop/content/431
 WallpaperWorkShopId=2120054900
 
 [Containments][282][Wallpaper][org.kde.image][General]
-Image=file://$HOME/Изображения/Wallpaper/frutiger-aero-fish.jpg
+Image=file://$HOME/Изображения/Wallpaper/frutiger-aero-bubble.jpg
 
 [Containments][283]
 activityId=

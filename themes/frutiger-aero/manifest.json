@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "created_at": "2026-11-05T13:22:36+10:00",
+  "created_at": "2026-11-05T14:10:29+10:00",
   "tool_version": "0.5.0",
   "name": "frutiger-aero",
   "description": "",
@@ -42,7 +42,8 @@
       "paths": [
         ".config/gtk-4.0/settings.ini",
         ".config/gtk-4.0/gtk.css",
-        ".config/gtk-4.0/colors.css"
+        ".config/gtk-4.0/colors.css",
+        ".config/gtk-4.0/theme-profile.css"
       ]
     },
     {
@@ -68,7 +69,7 @@
       "id": "kvantum",
       "paths": [
         ".config/Kvantum/kvantum.kvconfig",
-        ".config/Kvantum/KvGlass"
+        ".config/Kvantum/ThemeProfileFrutigerAero"
       ]
     },
     {

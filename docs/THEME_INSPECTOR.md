@@ -155,6 +155,9 @@ GTK-тема, «prefer dark», тема иконок и тема курсора 
 | Kvantum theme | `Kvantum/kvantum.kvconfig [General] theme` | enum c вариантами | `kvantummanager --set <theme>` | app |
 | Kvantum translucent windows | `<Theme>.kvconfig translucent_windows` | bool | atomic write | app |
 | Kvantum blurring / popup blurring | bool ×2 | то же | — |
+| Kvantum window / menu transparency | `reduce_window_opacity` / `reduce_menu_opacity` | int 0–90 | то же | app |
+| Kvantum see-through file views | `[Hacks] transparent_dolphin_view` | bool | то же | app |
+| Kvantum: no window texture | `no_window_pattern` | bool | то же | app |
 | Kvantum composite / animate / spacing / margins / shadows | advanced | app |
 
 **Applications** (ключевое на компонент)
