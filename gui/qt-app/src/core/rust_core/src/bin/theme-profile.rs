@@ -32,6 +32,7 @@ Usage:
                               (restores the theme; missing assets are reported,
                                --install-missing installs app themes from their stores)
   theme-profile check NAME [--json]           (what applying NAME would miss)
+  theme-profile prune NAME|--all              (drop what is not part of the theme; backup first)
   theme-profile deps NAME [--refresh] [--install[=all|0,2]] [--json]
                               (what the theme needs and where from; install from official sources)
   theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper]
@@ -791,6 +792,30 @@ fn main() -> ExitCode {
                 }
             }
             ExitCode::SUCCESS
+        }
+        "prune" => {
+            let names: Vec<String> = if args.iter().any(|a| a == "--all") {
+                match list_profiles() {
+                    Ok(list) => list.into_iter().map(|p| p.name).collect(),
+                    Err(e) => return fail(e),
+                }
+            } else {
+                args.iter().skip(1).filter(|a| !a.starts_with("--")).cloned().collect()
+            };
+            if names.is_empty() {
+                return fail("Usage error: prune NAME|--all");
+            }
+            let mut failed = false;
+            for name in names {
+                match theme::prune(&name) {
+                    Ok(n) => println!("Pruned {name}: {n} file(s) removed (backup in backups/pre-prune-{name}-…)"),
+                    Err(e) => {
+                        eprintln!("{name}: {e:#}");
+                        failed = true;
+                    }
+                }
+            }
+            if failed { ExitCode::FAILURE } else { ExitCode::SUCCESS }
         }
         "deps" => {
             let Some(name) = args.get(1).filter(|a| !a.starts_with("--")) else {

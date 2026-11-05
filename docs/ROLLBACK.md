@@ -36,7 +36,8 @@ the snapshots and the abandoned values-only packages of that day.)
 Converting the look of `kitty.conf`/`alacritty.toml` into their include files
 backs the originals up to `backups/pre-split-<app>-…`; `theme-profile migrate`
 reducing a stored theme to its look keeps the full theme in
-`backups/pre-normalize-<name>-…`.
+`backups/pre-normalize-<name>-…`; `theme-profile prune` keeps it in
+`backups/pre-prune-<name>-…` (copy it back into `profiles/` to undo).
 
 The pre-apply backup is the full tracked set (whole files, personal keys included):
 

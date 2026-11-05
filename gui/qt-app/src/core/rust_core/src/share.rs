@@ -133,8 +133,19 @@ pub fn home_to_token(text: &str, home: &str) -> String {
     replace_prefix(text, home.trim_end_matches('/'), HOME_TOKEN)
 }
 
+/// Expand `$HOME` back to this machine's home — except in KConfig entries
+/// marked `[$e]`, where KDE itself writes and expands a literal `$HOME`
+/// (e.g. `SteamLibraryPath[$e]=file:$HOME/…` in appletsrc).
 pub fn token_to_home(text: &str, home: &str) -> String {
-    replace_prefix(text, HOME_TOKEN, home.trim_end_matches('/'))
+    let home = home.trim_end_matches('/');
+    let mut out: Vec<String> = text
+        .split('\n')
+        .map(|line| if line.contains("[$e]=") { line.to_string() } else { replace_prefix(line, HOME_TOKEN, home) })
+        .collect();
+    if out.last().is_some_and(String::is_empty) && !text.ends_with('\n') {
+        out.pop();
+    }
+    out.join("\n")
 }
 
 fn is_text(bytes: &[u8]) -> bool {
@@ -168,7 +179,10 @@ fn walk(root: &Path, rel: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
 }
 
 /// The files of theme `dir` that belong in an export, `(relative path, bytes)`.
-fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(String, Vec<u8>)>> {
+/// The files that make up theme `dir`: manifests, tracked appearance files,
+/// its own assets (only those from library folders) and, optionally, its
+/// wallpaper. Shared by export and by pruning stored themes.
+pub(crate) fn theme_files(dir: &Path, include_wallpaper: bool) -> Result<Vec<PathBuf>> {
     let package = theme::load(dir)?;
     let mut rels: Vec<PathBuf> = Vec::new();
     for rel in ["manifest.json", "manifest.txt"] {
@@ -178,7 +192,7 @@ fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(
     }
     let mut roots: Vec<String> = resolve_cli_paths(None)?;
     roots.extend(package.assets.iter().filter(|a| a.kind != "wallpaper").map(|a| a.path.clone()));
-    if options.include_wallpaper && package.wallpaper.is_some() {
+    if include_wallpaper && package.wallpaper.is_some() {
         roots.push("wallpaper".into());
     }
     for rel in roots {
@@ -191,6 +205,11 @@ fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(
 
     let asset_paths: Vec<PathBuf> = package.assets.iter().map(|a| PathBuf::from(&a.path)).collect();
     rels.retain(|rel| exported(rel, &asset_paths));
+    Ok(rels)
+}
+
+fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(String, Vec<u8>)>> {
+    let rels = theme_files(dir, options.include_wallpaper)?;
 
     // Only the look leaves the machine, even from themes saved before the
     // appearance filters existed (appearance.rs).
@@ -470,6 +489,8 @@ mod tests {
         assert_eq!(out, "Image=file://$HOME/Pics/a.jpg\nother=/home/cbr18/x\nend=$HOME");
         assert_eq!(token_to_home(&out, "/home/anna/"), "Image=file:///home/anna/Pics/a.jpg\nother=/home/cbr18/x\nend=/home/anna");
         assert_eq!(token_to_home("$HOMEDIR stays", "/h"), "$HOMEDIR stays");
+        // KDE's own expanding entries keep their literal $HOME.
+        assert_eq!(token_to_home("A[$e]=file:$HOME/x\nB=file://$HOME/y\n", "/home/u"), "A[$e]=file:$HOME/x\nB=file:///home/u/y\n");
     }
 
     #[test]

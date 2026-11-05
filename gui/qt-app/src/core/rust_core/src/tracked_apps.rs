@@ -98,6 +98,103 @@ pub fn firefox_config_paths() -> Vec<String> {
         .collect()
 }
 
+/// Asset paths of what is *active* on this machine (2026-11-04: the registry
+/// used to hard-code one user's assets — Sandstone, glass/paper Look & Feel,
+/// noctalia/paper btop themes, a fastfetch image, every Zed theme and colour
+/// scheme — so every theme carried every other theme's assets). A theme
+/// carries only the assets it uses; applying restores them from its
+/// `theme.json` asset list (theme.rs).
+pub mod active_assets {
+    use crate::field::{field, read, value_str, Base};
+    use crate::paths::{config_home, data_home, home_dir};
+
+    fn rel(path: &std::path::Path) -> Option<String> {
+        path.strip_prefix(home_dir()).ok().map(|p| p.to_string_lossy().to_string())
+    }
+
+    fn live(id: &str) -> Option<String> {
+        field(id).and_then(|f| read(f, &Base::Live)).map(|v| value_str(&v)).filter(|v| !v.is_empty() && !v.contains('/'))
+    }
+
+    pub fn kvantum() -> Vec<String> {
+        let mut out = vec![".config/Kvantum/kvantum.kvconfig".to_string()];
+        if let Some(theme) = live("kvantum_theme") {
+            let root = config_home().join("Kvantum");
+            let dir = if root.join(&theme).join(format!("{theme}.kvconfig")).is_file() {
+                Some(root.join(&theme))
+            } else {
+                std::fs::read_dir(&root).ok().and_then(|it| {
+                    let mut dirs: Vec<_> = it.flatten().map(|e| e.path()).filter(|d| d.join(format!("{theme}.kvconfig")).is_file()).collect();
+                    dirs.sort();
+                    dirs.into_iter().next()
+                })
+            };
+            out.extend(dir.as_deref().and_then(rel));
+        }
+        out
+    }
+
+    pub fn btop() -> Vec<String> {
+        let mut out = vec![".config/btop/btop.conf".to_string()];
+        if let Some(theme) = live("btop_theme") {
+            let file = config_home().join("btop/themes").join(format!("{theme}.theme"));
+            if file.is_file() {
+                out.extend(rel(&file));
+            }
+        }
+        out
+    }
+
+    pub fn fastfetch() -> Vec<String> {
+        let mut out = vec![".config/fastfetch/config.jsonc".to_string()];
+        let config = config_home().join("fastfetch/config.jsonc");
+        if let Ok(text) = std::fs::read_to_string(&config) {
+            if let Some(source) = crate::field::json_get(&text, &["logo".to_string(), "source".to_string()]).map(|v| value_str(&v)) {
+                let home = home_dir().to_string_lossy().to_string();
+                let expanded = source.replacen('~', &home, 1).replace("$HOME", &home);
+                let path = std::path::PathBuf::from(expanded);
+                // Only a logo kept next to the config travels with a theme.
+                if path.is_file() && path.starts_with(config_home().join("fastfetch")) {
+                    out.extend(rel(&path));
+                }
+            }
+        }
+        out
+    }
+
+    pub fn zed() -> Vec<String> {
+        let mut out = vec![".config/zed/settings.json".to_string()];
+        for id in ["zed_dark", "zed_light"] {
+            if let Some(theme) = live(id) {
+                if let Some(file) = crate::theme::zed_theme_file_pub(&theme) {
+                    if let Some(r) = rel(&file).filter(|r| r.starts_with(".config/zed/themes/") && !out.contains(r)) {
+                        out.push(r);
+                    }
+                }
+            }
+        }
+        out
+    }
+
+    pub fn color_scheme() -> Vec<String> {
+        live("color_scheme")
+            .map(|name| data_home().join("color-schemes").join(format!("{name}.colors")))
+            .filter(|p| p.is_file())
+            .and_then(|p| rel(&p))
+            .into_iter()
+            .collect()
+    }
+
+    pub fn look_and_feel() -> Vec<String> {
+        live("look_and_feel")
+            .map(|name| data_home().join("plasma/look-and-feel").join(name))
+            .filter(|p| p.is_dir())
+            .and_then(|p| rel(&p))
+            .into_iter()
+            .collect()
+    }
+}
+
 /// Tracked application definition
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrackedAppDef {
@@ -246,10 +343,8 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             id: "kvantum".to_string(),
             name: "Kvantum".to_string(),
             category: "Window Decorations".to_string(),
-            config_paths: vec![
-                ".config/Kvantum/kvantum.kvconfig".to_string(),
-                ".config/Kvantum/Sandstone".to_string(),
-            ],
+            // The active theme's family dir only (active_assets).
+            config_paths: active_assets::kvantum(),
             detect_command: Some("kvantummanager".to_string()),
             flatpak_id: None,
             supports_live_reload: false,
@@ -282,7 +377,6 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             config_paths: vec![
                 ".config/alacritty/alacritty.toml".to_string(),
                 ".config/alacritty/theme-profile.toml".to_string(),
-                ".config/alacritty/themes/noctalia.toml".to_string(),
             ],
             detect_command: Some("alacritty".to_string()),
             flatpak_id: None,
@@ -310,11 +404,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             id: "btop".to_string(),
             name: "btop".to_string(),
             category: "Monitors".to_string(),
-            config_paths: vec![
-                ".config/btop/btop.conf".to_string(),
-                ".config/btop/themes/noctalia.theme".to_string(),
-                ".config/btop/themes/paper.theme".to_string(),
-            ],
+            config_paths: active_assets::btop(),
             detect_command: Some("btop".to_string()),
             flatpak_id: None,
             supports_live_reload: false,
@@ -326,11 +416,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             id: "fastfetch".to_string(),
             name: "Fastfetch".to_string(),
             category: "Sysinfo".to_string(),
-            config_paths: vec![
-                ".config/fastfetch/config.jsonc".to_string(),
-                ".config/fastfetch/logo".to_string(),
-                ".config/fastfetch/cat-source.jpg".to_string(),
-            ],
+            config_paths: active_assets::fastfetch(),
             detect_command: Some("fastfetch".to_string()),
             flatpak_id: None,
             supports_live_reload: false,
@@ -342,10 +428,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             id: "zed".to_string(),
             name: "Zed".to_string(),
             category: "Editors".to_string(),
-            config_paths: vec![
-                ".config/zed/settings.json".to_string(),
-                ".config/zed/themes".to_string(),
-            ],
+            config_paths: active_assets::zed(),
             detect_command: Some("zeditor|zed".to_string()),
             flatpak_id: None,
             supports_live_reload: false,
@@ -548,7 +631,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             id: "color_schemes".to_string(),
             name: "Color Schemes".to_string(),
             category: "System Profiles".to_string(),
-            config_paths: vec![".local/share/color-schemes".to_string()],
+            config_paths: active_assets::color_scheme(),
             detect_command: None,
             flatpak_id: None,
             supports_live_reload: false,
@@ -572,14 +655,11 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             id: "look_and_feel".to_string(),
             name: "Look & Feel".to_string(),
             category: "System Profiles".to_string(),
-            config_paths: vec![
-                ".local/share/plasma/look-and-feel/glass".to_string(),
-                ".local/share/plasma/look-and-feel/paper".to_string(),
-            ],
+            config_paths: active_assets::look_and_feel(),
             detect_command: None,
             flatpak_id: None,
             supports_live_reload: false,
-            description: "Plasma Look & Feel packages (glass/paper)".to_string(),
+            description: "The active Plasma Look & Feel package (user-installed)".to_string(),
             icon: "preferences-desktop-theme".to_string(),
             docs_url: "".to_string(),
         },

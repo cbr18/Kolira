@@ -289,6 +289,11 @@ const VSCODE_BUILTIN: &[&str] = &[
     "Solarized Dark", "Solarized Light", "Tomorrow Night Blue", "Red", "Quiet Light",
 ];
 
+/// The live Zed theme family file declaring `theme_name`.
+pub fn zed_theme_file_pub(theme_name: &str) -> Option<PathBuf> {
+    zed_theme_file(theme_name, &Base::Live)
+}
+
 /// Zed theme family file (user themes, live extensions) declaring `theme_name`.
 fn zed_theme_file(theme_name: &str, base: &Base) -> Option<PathBuf> {
     let mut roots = vec![base.resolve(".config/zed/themes")];
@@ -447,6 +452,17 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
         }
     }
 
+    // fastfetch logo kept next to its config.
+    if let Ok(config) = fs::read_to_string(dir.join(".config/fastfetch/config.jsonc")) {
+        if let Some(source) = field::json_get(&config, &["logo".to_string(), "source".to_string()]).map(|v| field::value_str(&v)) {
+            if let Some(rest) = source.strip_prefix("~/").or_else(|| source.strip_prefix("$HOME/")) {
+                if rest.starts_with(".config/fastfetch/") && !rest.contains("..") && dir.join(rest).is_file() {
+                    package.assets.push(Asset { kind: "fastfetch-logo".into(), name: rest.rsplit('/').next().unwrap_or(rest).into(), path: rest.into(), origin: "user".into(), redistributable: false });
+                }
+            }
+        }
+    }
+
     if let Ok(p) = palette::load(&snapshot.resolve(palette::LIVE_PALETTE_REL)) {
         if values.get("color_scheme").map(field::value_str).as_deref() == Some(palette::kde_scheme_id(&p).as_str()) {
             package.palette = Some(p);
@@ -516,6 +532,56 @@ pub fn save(name: &str, options: &SaveOptions) -> Result<Package> {
     }
     crate::profile::save_profile_cli(name, None)?;
     build(name, &target, &options)
+}
+
+/// Drop from stored theme `name` everything that is not part of it: files no
+/// longer tracked (QtProject.conf, Obsidian vault list…), the `metadata/`
+/// diagnostics, other themes' assets from library folders. `theme.json` is
+/// rebuilt first so its asset list names only what the theme uses. The whole
+/// theme is copied to `backups/pre-prune-<name>-…` before anything is removed.
+/// Returns the number of files removed.
+pub fn prune(name: &str) -> Result<usize> {
+    validate_profile_name(name)?;
+    let dir = profile_dir(name)?;
+    let old = load(&dir)?;
+    let backups = crate::paths::backups_dir();
+    fs::create_dir_all(&backups)?;
+    let backup = crate::profile::unique_dir(&backups, &format!("pre-prune-{name}"))?;
+    copy_tree(&dir, &backup).with_context(|| format!("back up {}", dir.display()))?;
+    let options = SaveOptions { description: Some(old.description.clone()), include_wallpaper: old.wallpaper.is_some() };
+    let mut package = build(name, &dir, &options)?;
+    package.created = old.created.clone();
+    write_manifest(&dir, &package)?;
+    let keep: std::collections::HashSet<PathBuf> = crate::share::theme_files(&dir, true)?.into_iter().collect();
+    let mut removed = 0;
+    let mut stack = vec![PathBuf::new()];
+    while let Some(rel) = stack.pop() {
+        let path = dir.join(&rel);
+        let Ok(entries) = fs::read_dir(&path) else { continue };
+        for e in entries.flatten() {
+            let child = rel.join(e.file_name());
+            let meta = fs::symlink_metadata(e.path())?;
+            if meta.is_dir() {
+                stack.push(child);
+            } else if child != Path::new(MANIFEST) && !keep.contains(&child) {
+                fs::remove_file(e.path())?;
+                removed += 1;
+            }
+        }
+    }
+    // Empty folders left behind.
+    fn drop_empty(p: &Path) {
+        if let Ok(entries) = fs::read_dir(p) {
+            for e in entries.flatten() {
+                if e.path().is_dir() {
+                    drop_empty(&e.path());
+                    let _ = fs::remove_dir(e.path());
+                }
+            }
+        }
+    }
+    drop_empty(&dir);
+    Ok(removed)
 }
 
 /// Add `theme.json` to a legacy snapshot profile. The snapshot itself is not
@@ -618,19 +684,15 @@ pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
     report.missing = check(name)?;
     report.dependencies = needed(name)?;
 
-    // Assets that live outside the tracked files (e.g. a user Plasma style).
-    let home = home_dir();
-    for asset in &package.assets {
-        if asset.kind == "wallpaper" || asset.path.contains("..") || asset.path.starts_with('/') {
-            continue;
-        }
-        let src = dir.join(&asset.path);
-        let dst = home.join(&asset.path);
-        if src.exists() && !dst.exists() {
-            copy_into(&src, &dst)?;
-            report.installed.push(format!("{} {}", asset.kind, asset.name));
-        }
-    }
+    // The theme's own assets (colour scheme, Kvantum family, Look & Feel,
+    // Plasma style, btop/Zed/Konsole themes, fastfetch logo) are restored with
+    // the tracked files — backed up first, like everything else.
+    let extras: Vec<String> = package
+        .assets
+        .iter()
+        .filter(|a| a.kind != "wallpaper" && dir.join(&a.path).exists())
+        .map(|a| a.path.clone())
+        .collect();
 
     let keep = (package.wallpaper.is_none() || options.keep_wallpaper)
         .then(|| plasma_wallpaper_from(&live_path(APPLETSRC_REL)))
@@ -638,7 +700,7 @@ pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
         .map(PathBuf::from)
         .filter(|p| p.is_file());
 
-    let backup = crate::profile::apply_profile_cli(name, None)?;
+    let backup = crate::profile::apply_profile_with(name, &extras)?;
     if dir.join(crate::spicetify::CONFIG).is_file() {
         crate::spicetify::refresh();
     }

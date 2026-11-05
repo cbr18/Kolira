@@ -120,10 +120,10 @@ Obsidian…), плюс `theme.json` (описание, значения для G
 ### Window Decorations (опционально)
 - `.config/breezerc` — стиль Breeze (компонент `breeze`; прозрачность меню `[Style] MenuOpacity`, поле инспектора «Breeze menu opacity»)
 - `.config/klassy/klassyrc`, `windecopresetsrc`
-- `.config/Kvantum/kvantum.kvconfig`, `Sandstone/`
+- `.config/Kvantum/kvantum.kvconfig` + папка семейства **активной** темы Kvantum
 
 ### Terminals (опционально)
-- `.config/alacritty/theme-profile.toml` (оформление; `alacritty.toml` только импортирует его), `themes/noctalia.toml`
+- `.config/alacritty/theme-profile.toml` (оформление; `alacritty.toml` только импортирует его)
 - `.config/kitty/theme-profile.conf` (оформление; `kitty.conf` только подключает его через `include`) — с live reload через `kitty @`
 
 Смешанные файлы (`kdeglobals`, `kwinrc`, `plasmarc`, `plasmashellrc`, GTK
@@ -138,10 +138,10 @@ Obsidian…), плюс `theme.json` (описание, значения для G
 - `.config/wofi/style.css`, `wallpaper.css`
 
 ### Monitors (опционально)
-- `.config/btop/btop.conf`, `themes/noctalia.theme`, `paper.theme`
+- `.config/btop/btop.conf` + файл **активной** темы из `themes/`
 
 ### Sysinfo (опционально)
-- `.config/fastfetch/config.jsonc`, `logo`, `cat-source.jpg`
+- `.config/fastfetch/config.jsonc` + логотип из `logo.source`, если он лежит рядом с конфигом
 
 ### Editors (опционально)
 - `.config/zed/settings.json`, `themes/`

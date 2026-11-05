@@ -78,11 +78,22 @@ ignores them.
 <profiles>/<name>/                 # ~/.config/theme-profile/profiles/<name>
 ├── theme.json                     # describes the theme (schema theme-profile/theme@2)
 ├── manifest.json, manifest.txt    # tracked paths, components, created
-├── metadata/kde/                  # KWin effects state at save time
 ├── wallpaper/<file> + source      # optional
 ├── .config/…, .local/share/…,     # the files themselves, at their
 └── .zen/…, obsidian/…             #   $HOME-relative paths
 ```
+
+**Only the theme's own assets.** From folders that collect many themes
+(colour schemes, Kvantum, Look & Feel, btop/Zed themes) a theme stores just
+what it uses — the active scheme, Kvantum family, Global Theme, btop/Zed theme
+file, the fastfetch logo next to its config — and applying restores exactly
+those (listed in `theme.json` `assets`), backed up like every other file. (Until
+2026-11-05 the registry hard-coded one user's assets, so every theme carried
+every other theme's Sandstone, glass/paper Look & Feel, noctalia/paper btop
+themes and all Zed themes; `theme-profile prune NAME|--all` removes such
+leftovers, plus files no longer tracked and old `metadata/` diagnostics, after
+copying the theme to `backups/pre-prune-<name>-…`.) Themes carry no
+`metadata/kde` diagnostics any more (pre-apply backups still do).
 
 Local assets the theme uses live inside the snapshot at their `$HOME`-relative
 path: `.local/share/color-schemes/<Name>.colors`, the active Kvantum family dir
@@ -114,6 +125,7 @@ theme-profile save NAME [--description=...] [--no-wallpaper]
 theme-profile apply NAME [--keep-wallpaper] [--install-missing] [--json]
 theme-profile check NAME [--json]          # what the theme references but this machine lacks
 theme-profile migrate NAME|--all           # add theme.json to a snapshot profile (files untouched)
+theme-profile prune NAME|--all             # drop what is not part of the theme (backup first)
 theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper]
 theme-profile import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
 theme-profile deps NAME [--refresh] [--install[=all|0,2]] [--json]
@@ -224,7 +236,8 @@ portable copy of a theme:
 
 Portability: in every text file the home directory becomes the literal `$HOME`
 (only as a whole path prefix: `/home/cbr18` is not `/home/cbr`), and import
-expands it to the receiver's home — KDE does not expand `$HOME` in appletsrc
+expands it to the receiver's home — except in KConfig entries marked `[$e]`,
+where KDE itself writes and expands a literal `$HOME` — KDE does not expand `$HOME` in appletsrc
 and similar files. A literal `$HOME` already in a file (a comment in
 `btop.conf`) is expanded too, which means the same thing. Desktop icon
 positions are removed from appletsrc.

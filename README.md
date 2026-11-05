@@ -147,6 +147,7 @@ theme-profile save my-profile    # save the current look as a theme
 theme-profile save my-profile --no-wallpaper # a theme that never changes the wallpaper
 theme-profile check glass        # what applying would miss + where to get it
 theme-profile migrate --all      # add theme.json to old snapshot profiles
+theme-profile prune --all        # drop leftovers that are not part of a theme (backup first)
 theme-profile export glass --out=glass.ktmtheme.zip  # portable copy ($HOME, no desktop icons)
 theme-profile import glass.ktmtheme.zip [--name=NEW] [--force] [--apply]
 theme-profile clone glass glass2 # duplicate a theme under a new name

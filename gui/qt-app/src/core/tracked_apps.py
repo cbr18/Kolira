@@ -134,7 +134,6 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         category="Window Decorations",
         config_paths=(
             ".config/Kvantum/kvantum.kvconfig",
-            ".config/Kvantum/Sandstone",
         ),
         detect_command="kvantummanager",
         description="SVG-based theme engine for Qt/KDE",
@@ -162,7 +161,6 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         config_paths=(
             ".config/alacritty/alacritty.toml",
             ".config/alacritty/theme-profile.toml",
-            ".config/alacritty/themes/noctalia.toml",
         ),
         detect_command="alacritty",
         description="GPU-accelerated terminal, TOML config",
@@ -192,8 +190,6 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         category="Monitors",
         config_paths=(
             ".config/btop/btop.conf",
-            ".config/btop/themes/noctalia.theme",
-            ".config/btop/themes/paper.theme",
         ),
         detect_command="btop",
         description="Resource monitor with themes",
@@ -209,7 +205,6 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         config_paths=(
             ".config/fastfetch/config.jsonc",
             ".config/fastfetch/logo",
-            ".config/fastfetch/cat-source.jpg",
         ),
         detect_command="fastfetch",
         description="System info tool with custom logo/config",
@@ -224,7 +219,6 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         category="Editors",
         config_paths=(
             ".config/zed/settings.json",
-            ".config/zed/themes",
         ),
         detect_command="zeditor|zed",
         description="Code editor with native themes",
@@ -407,6 +401,7 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         id="color_schemes",
         name="Color Schemes",
         category="System Profiles",
+        # The active scheme only is stored (Rust active_assets::color_scheme).
         config_paths=(".local/share/color-schemes",),
         description="KDE color scheme files",
         icon="preferences-desktop-color",
@@ -424,10 +419,10 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         name="Look & Feel",
         category="System Profiles",
         config_paths=(
-            ".local/share/plasma/look-and-feel/glass",
-            ".local/share/plasma/look-and-feel/paper",
+            # The active Global Theme only (Rust active_assets::look_and_feel).
+            ".local/share/plasma/look-and-feel",
         ),
-        description="Plasma Look & Feel packages (glass/paper)",
+        description="The active Plasma Look & Feel package (user-installed)",
         icon="preferences-desktop-theme",
     ),
 )

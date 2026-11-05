@@ -1140,6 +1140,20 @@ pub fn apply_profile_cli(profile: &str, components: Option<Vec<String>>) -> Resu
     apply_with_paths(profile, &rel_paths)
 }
 
+/// Apply every tracked file plus `extras` — the theme's own assets (its
+/// colour scheme, Kvantum family, Look & Feel, …) whose paths the receiver's
+/// live state does not name.
+pub fn apply_profile_with(profile: &str, extras: &[String]) -> Result<PathBuf> {
+    validate_profile_name(profile)?;
+    let mut rel_paths = resolve_cli_paths(None)?;
+    for e in extras {
+        if !e.contains("..") && !e.starts_with('/') && !rel_paths.contains(e) {
+            rel_paths.push(e.clone());
+        }
+    }
+    apply_with_paths(profile, &rel_paths)
+}
+
 /// Warn about unknown components, keep the known ones (bash CLI behaviour).
 pub fn resolve_cli_paths(components: Option<Vec<String>>) -> Result<Vec<String>> {
     let known = component_config_paths();
@@ -1427,7 +1441,8 @@ fn save_with_paths(profile: &str, rel_paths: &[String]) -> Result<()> {
         .and(capture_derived(&tmp, rel_paths))
         .and(capture_wallpaper(&tmp, rel_paths))
         .and(capture_active_kvantum_theme(&tmp, rel_paths))
-        .and(capture_kde_effects_state(&tmp))
+        // No metadata/kde diagnostics in a theme: they describe this machine
+        // (pre-apply backups still keep them for recovery).
         .and(write_manifest(&tmp, profile, rel_paths));
 
     if let Err(e) = built {

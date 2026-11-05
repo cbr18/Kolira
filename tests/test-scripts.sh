@@ -1829,6 +1829,48 @@ else
   fail "small-apps apply wrong:$bad"
 fi
 
+# --- 25. Only the theme's own assets; prune old themes safely ----------------
+echo "=== Section 25: own assets only / prune ==="
+PR="$TMP_ROOT/prune-home"
+mkdir -p "$PR/.config/Kvantum/Mine" "$PR/.config/Kvantum/Other" "$PR/.local/share/color-schemes"
+printf '[General]\ntheme=Mine\n' >"$PR/.config/Kvantum/kvantum.kvconfig"
+printf '[%%General]\n' >"$PR/.config/Kvantum/Mine/Mine.kvconfig"
+printf '[%%General]\n' >"$PR/.config/Kvantum/Other/Other.kvconfig"
+printf '[General]\nColorScheme=MyScheme\n\n[KDE]\nwidgetStyle=kvantum\n' >"$PR/.config/kdeglobals"
+printf '[General]\nName=MyScheme\n' >"$PR/.local/share/color-schemes/MyScheme.colors"
+printf '[General]\nName=Unused\n' >"$PR/.local/share/color-schemes/Unused.colors"
+pr() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$PR" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+pr save own >/dev/null 2>&1
+own="$PR/.config/theme-profile/profiles/own"
+if [ -f "$own/.config/Kvantum/Mine/Mine.kvconfig" ] && [ ! -e "$own/.config/Kvantum/Other" ] &&
+  [ -f "$own/.local/share/color-schemes/MyScheme.colors" ] && [ ! -e "$own/.local/share/color-schemes/Unused.colors" ]; then
+  ok "save carries only the theme's own Kvantum family and colour scheme"
+else
+  fail "save carried foreign assets: $(find "$own" -name '*.kvconfig' -o -name '*.colors' | sed "s|$own/||")"
+fi
+# An old-style theme with foreign assets and leftovers is pruned (backup first).
+cp -a "$PR/.config/Kvantum/Other" "$own/.config/Kvantum/"
+cp "$PR/.local/share/color-schemes/Unused.colors" "$own/.local/share/color-schemes/"
+mkdir -p "$own/metadata/kde"; printf 'diag\n' >"$own/metadata/kde/summary.txt"; printf '[FileDialog]\n' >"$own/.config/QtProject.conf"
+if pr prune own | grep -q "^Pruned own: 4 file" && [ ! -e "$own/.config/Kvantum/Other" ] && [ ! -e "$own/metadata" ] &&
+  [ ! -e "$own/.config/QtProject.conf" ] && [ -f "$own/.config/Kvantum/Mine/Mine.kvconfig" ] &&
+  compgen -G "$PR/.config/theme-profile/backups/pre-prune-own-*/.config/Kvantum/Other/Other.kvconfig" >/dev/null; then
+  ok "prune drops foreign assets, diagnostics and untracked leftovers (full backup first)"
+else
+  fail "prune wrong: $(find "$own" -type f | sed "s|$own/||" | sort | tr '\n' ' ')"
+fi
+# A receiver with another active scheme still gets the theme's own scheme restored.
+PR2="$TMP_ROOT/prune-recv"; mkdir -p "$PR2/.config"
+printf '[General]\nColorScheme=BreezeDark\n' >"$PR2/.config/kdeglobals"
+pr export own --out="$TMP_ROOT/own.zip" >/dev/null 2>&1
+env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$PR2" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" import "$TMP_ROOT/own.zip" --apply >/dev/null 2>&1
+if [ -f "$PR2/.local/share/color-schemes/MyScheme.colors" ] && [ -f "$PR2/.config/Kvantum/Mine/Mine.kvconfig" ] &&
+  grep -q "ColorScheme=MyScheme" "$PR2/.config/kdeglobals"; then
+  ok "applying restores the theme's own assets even where another scheme was active"
+else
+  fail "theme assets not restored: $(find "$PR2" -type f | sed "s|$PR2/||" | grep -v theme-profile)"
+fi
+
 # --- Summary ------------------------------------------------------------------
 echo ""
 echo "═══════════════════════════════════════"
