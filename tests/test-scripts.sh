@@ -1894,6 +1894,33 @@ else
   fail "theme assets not restored: $(find "$PR2" -type f | sed "s|$PR2/||" | grep -v theme-profile)"
 fi
 
+# --- 26. GTK follows icon/cursor/GTK fields; own store-install record -------
+echo "=== Section 26: GTK mirror and own install record ==="
+GM="$TMP_ROOT/gtk-mirror"; mkdir -p "$GM/.config/gtk-3.0" "$GM/.config/gtk-4.0"
+printf '[Settings]\ngtk-icon-theme-name=breeze\ngtk-xft-dpi=98304\n' >"$GM/.config/gtk-3.0/settings.ini"
+printf '[Settings]\ngtk-theme-name=Old\n' >"$GM/.config/gtk-4.0/settings.ini"
+gm() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$GM" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+gm field set icon_theme=Seven cursor_theme=aero gtk_theme=Glass gtk_dark=true >/dev/null 2>&1
+if grep -qx "gtk-icon-theme-name=Seven" "$GM/.config/gtk-4.0/settings.ini" && grep -qx "gtk-icon-theme-name=Seven" "$GM/.config/gtk-3.0/settings.ini" &&
+  grep -qx "gtk-cursor-theme-name=aero" "$GM/.config/gtk-4.0/settings.ini" && grep -qx "gtk-theme-name=Glass" "$GM/.config/gtk-4.0/settings.ini" &&
+  grep -qx "gtk-application-prefer-dark-theme=true" "$GM/.config/gtk-4.0/settings.ini" && grep -qx "gtk-xft-dpi=98304" "$GM/.config/gtk-3.0/settings.ini"; then
+  ok "icon/cursor/GTK fields are mirrored into GTK 3 and GTK 4 settings (other keys kept)"
+else
+  fail "GTK settings not mirrored: $(cat "$GM/.config/gtk-3.0/settings.ini" "$GM/.config/gtk-4.0/settings.ini" | tr '\n' ' ')"
+fi
+# A KDE Store item installed by `deps --install` is remembered with its id, so
+# a later save records the exact source (KNewStuff knows only its own installs).
+mkdir -p "$GM/.local/share/icons/Seven" "$GM/.config/theme-profile"
+printf '[Icon Theme]\nName=Seven\n' >"$GM/.local/share/icons/Seven/index.theme"
+printf '{"%s": {"store": "kde-store", "id": "1631627", "title": "Seven Icons"}}\n' "$GM/.local/share/icons/Seven" >"$GM/.config/theme-profile/installed-assets.json"
+gm save seven >/dev/null 2>&1
+if python3 -c 'import json,sys; d=json.load(open(sys.argv[1]))["dependencies"]; assert any(x["name"]=="Seven" and x["id"]=="1631627" and x["exact"] for x in d), d' \
+  "$GM/.config/theme-profile/profiles/seven/theme.json" 2>/dev/null; then
+  ok "save records the KDE Store id of assets that deps --install fetched"
+else
+  fail "own install record ignored: $(cat "$GM/.config/theme-profile/profiles/seven/theme.json" 2>/dev/null | head -c 600)"
+fi
+
 # --- Summary ------------------------------------------------------------------
 echo ""
 echo "═══════════════════════════════════════"

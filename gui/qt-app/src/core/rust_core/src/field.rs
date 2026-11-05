@@ -696,6 +696,30 @@ pub fn write(f: &FieldDef, value: &Value) -> Result<PathBuf> {
     Ok(path)
 }
 
+/// GTK reads its look from `gtk-3.0/settings.ini` and `gtk-4.0/settings.ini`.
+/// KDE's gtkconfig module keeps them in sync only for changes made through
+/// System Settings, so a field written here is mirrored into both files
+/// (field id → GTK key). Font sizes are personal, so `gtk_font` is not mirrored.
+const GTK_MIRROR: &[(&str, &str)] = &[
+    ("gtk_theme", "gtk-theme-name"),
+    ("gtk_dark", "gtk-application-prefer-dark-theme"),
+    ("icon_theme", "gtk-icon-theme-name"),
+    ("cursor_theme", "gtk-cursor-theme-name"),
+];
+const GTK_SETTINGS: &[&str] = &[".config/gtk-3.0/settings.ini", ".config/gtk-4.0/settings.ini"];
+
+fn mirror_to_gtk(id: &str, value: &Value) -> Result<()> {
+    let Some((_, key)) = GTK_MIRROR.iter().find(|(f, _)| *f == id) else { return Ok(()) };
+    for rel in GTK_SETTINGS {
+        let path = Base::Live.resolve(rel);
+        let text = read_text(&path).unwrap_or_default();
+        if ini_get(&text, "Settings", key).as_deref() != Some(value_str(value).as_str()) {
+            write_atomic(&path, &set_ini_text(&text, "Settings", key, &value_str(value)))?;
+        }
+    }
+    Ok(())
+}
+
 /// Whether two values of field `f` mean the same (colors compare as hex).
 fn same_value(f: &FieldDef, a: &Value, b: &Value) -> bool {
     if f.kind == "color" {
@@ -811,6 +835,9 @@ pub fn apply_with(values: &[(String, Value)], key_only: &[&str]) -> ApplyReport 
                 continue;
             }
         }
+        if let Err(e) = mirror_to_gtk(id, &raw) {
+            report.errors.push(format!("{id}: GTK settings: {e:#}"));
+        }
         if !f.hook.is_empty() && !hooks_seen.contains(&f.hook) {
             hooks_seen.push(f.hook.clone());
             run_hook(f);
@@ -846,7 +873,8 @@ mod tests {
         for id in ["accent_color", "color_scheme", "kvantum_theme", "blur_menus", "breeze_menu_opacity", "zen_window_scheme"] {
             assert!(ids.contains(&id), "{id}");
         }
-        assert!(!field("cursor_theme").unwrap().profile_tracked);
+        assert!(field("cursor_theme").unwrap().profile_tracked);
+        assert!(!field("cursor_size").unwrap().profile_tracked, "sizes are personal");
     }
 
     #[test]
@@ -928,6 +956,6 @@ mod tests {
         assert_eq!(get("color_scheme"), Some(json!("Nord")));
         assert_eq!(get("accent_color"), Some(json!("1,2,3")));
         assert_eq!(get("kitty_opacity"), Some(json!(0.8)));
-        assert_eq!(get("cursor_theme"), None, "untracked fields are not captured");
+        assert_eq!(get("cursor_size"), None, "untracked fields are not captured");
     }
 }

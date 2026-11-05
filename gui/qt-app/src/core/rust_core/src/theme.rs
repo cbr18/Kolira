@@ -445,6 +445,7 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
             }
         }
     }
+    share_editor_sources(&values, &mut package.sources);
 
     // Konsole colour schemes: the profile may name one the receiver lacks.
     if let Ok(entries) = fs::read_dir(dir.join(".local/share/konsole")) {
@@ -802,8 +803,39 @@ pub fn check(name: &str) -> Result<Vec<Missing>> {
         .collect())
 }
 
+/// VS Code and Cursor share the extension ecosystem: when one editor is not
+/// installed here, the same theme name in the other one tells which extension
+/// provides it (the id is the same in both galleries).
+fn share_editor_sources(values: &BTreeMap<String, Value>, sources: &mut BTreeMap<String, Source>) {
+    for (id, other, store) in [("vscode_theme", "cursor_ide_theme", "vscode-marketplace"), ("cursor_ide_theme", "vscode_theme", "open-vsx")] {
+        let same = values.get(id).map(field::value_str).is_some_and(|t| values.get(other).map(field::value_str) == Some(t));
+        if same && !sources.contains_key(id) {
+            if let Some(ext) = sources.get(other).map(|s| s.id.clone()) {
+                sources.insert(id.into(), Source { store: store.into(), id: ext, url: String::new() });
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn editors_share_extension_sources() {
+        let mut values = BTreeMap::new();
+        values.insert("vscode_theme".to_string(), Value::from("Night Owl"));
+        values.insert("cursor_ide_theme".to_string(), Value::from("Night Owl"));
+        let mut sources = BTreeMap::new();
+        sources.insert("cursor_ide_theme".to_string(), Source { store: "open-vsx".into(), id: "sdras.night-owl".into(), url: String::new() });
+        share_editor_sources(&values, &mut sources);
+        assert_eq!(sources["vscode_theme"].store, "vscode-marketplace");
+        assert_eq!(sources["vscode_theme"].id, "sdras.night-owl");
+        values.insert("vscode_theme".to_string(), Value::from("Other"));
+        let mut sources2 = BTreeMap::new();
+        sources2.insert("cursor_ide_theme".to_string(), sources["cursor_ide_theme"].clone());
+        share_editor_sources(&values, &mut sources2);
+        assert!(!sources2.contains_key("vscode_theme"), "a different theme name says nothing");
+    }
     use super::*;
 
     #[test]

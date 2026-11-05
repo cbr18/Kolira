@@ -935,8 +935,7 @@
     "{value}"
    ],
    "summary": true,
-   "profile_tracked": false,
-   "description": "Mouse cursor theme (live only — not stored in profiles)",
+   "description": "Mouse cursor theme (stored in themes; the cursor size stays personal)",
    "keywords": [
     "cursor",
     "курсор",

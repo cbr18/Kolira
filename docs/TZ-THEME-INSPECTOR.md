@@ -54,9 +54,10 @@
   `theme-profile status` парсит Zed/VS Code/Cursor/Obsidian без обрывков JSON;
   регрессионный тест в `tests/test-scripts.sh` (Section 13). Тесты дополнительно
   изолированы от `XDG_CONFIG_HOME` — раньше `HOME=...` не защищал реальный конфиг.
-- **Курсор (T0.4)**: остаётся вне профилей (`profile_tracked=False`), потому что
-  `kcminputrc` содержит не только тему курсора, но и скорость/инерцию мыши.
-  В инспекторе курсор и размер редактируются live.
+- **Курсор (T0.4)**: `kcminputrc` содержит не только тему курсора, но и
+  скорость/инерцию мыши, поэтому снимок берёт из него только `cursorTheme`
+  (политика appearance-only). Поле `cursor_theme` хранится в теме и попадает в
+  зависимости; `cursor_size` — личная настройка (`profile_tracked=False`).
 - **Phase 1**: схема на 69 полей, 5 секций + карточка Advanced; чтение KConfig,
   JSON/JSONC, TOML, kitty, user.js; choices из файловой системы; diff live↔profile;
   валидация (несуществующие схемы/темы/шрифты, битый L&F, конфликт blur);

@@ -215,6 +215,39 @@ fn knewstuff_entry(path: &Path) -> Option<(String, String, String)> {
     None
 }
 
+/// Our own record of what `install` fetched from the KDE Store (KDE's
+/// KNewStuff registry only knows its own "Get New…" installs): installed
+/// path → (store id, title), in `<theme-profile data>/installed-assets.json`.
+fn own_registry_path() -> PathBuf {
+    crate::paths::theme_root().join("installed-assets.json")
+}
+
+fn own_registry() -> serde_json::Map<String, Value> {
+    fs::read_to_string(own_registry_path())
+        .ok()
+        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
+        .and_then(|v| v.as_object().cloned())
+        .unwrap_or_default()
+}
+
+fn record_install(paths: &[PathBuf], id: &str, title: &str) {
+    let mut reg = own_registry();
+    for p in paths {
+        reg.insert(p.to_string_lossy().to_string(), serde_json::json!({"store": "kde-store", "id": id, "title": title}));
+    }
+    let path = own_registry_path();
+    if let Some(parent) = path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    let _ = fs::write(path, serde_json::to_string_pretty(&Value::Object(reg)).unwrap_or_default());
+}
+
+fn own_entry(path: &Path) -> Option<(String, String)> {
+    let reg = own_registry();
+    let e = reg.get(&path.to_string_lossy().to_string())?;
+    Some((e.get("id")?.as_str()?.to_string(), e.get("title").and_then(Value::as_str).unwrap_or("").to_string()))
+}
+
 fn package_owner(path: &Path) -> Option<(String, bool)> {
     if !path.starts_with("/usr") || which::which("pacman").is_err() {
         return None;
@@ -243,7 +276,7 @@ fn store_types(kind: &str) -> &'static [&'static str] {
         "plasma-theme" => &["Plasma Themes"],
         "look-and-feel" => &["Global Themes"],
         "color-scheme" => &["Color Schemes"],
-        "aurorae" => &["Aurorae"],
+        "aurorae" => &["Aurorae", "Window Decorations"],
         "plasmoid" => &["Plasma Widgets", "Plasma 6 Widgets", "Plasmoid"],
         _ => &[],
     }
@@ -331,7 +364,7 @@ fn match_score(name: &str, title: &str) -> i32 {
 fn describe(kind: &str, name: &str, paths: &[PathBuf]) -> Dependency {
     let mut d = Dependency { kind: kind.into(), name: name.into(), source: "none".into(), exact: true, ..Default::default() };
     for path in paths {
-        if let Some((_, id, title)) = knewstuff_entry(path) {
+        if let Some((_, id, title)) = knewstuff_entry(path).or_else(|| own_entry(path).map(|(i, t)| (String::new(), i, t))) {
             d.source = "kde-store".into();
             d.url = store_page(&id);
             d.id = id;
@@ -765,6 +798,9 @@ fn install_from_store(d: &Dependency) -> Result<String> {
         if !(run("--install") || run("--upgrade")) {
             bail!("kpackagetool6 could not install {file_name}");
         }
+        if let Some(p) = locate(&d.kind, &d.name) {
+            record_install(&[p], &d.id, &d.title);
+        }
         return Ok(format!("installed {} ({file_name}) with kpackagetool6", d.title));
     }
 
@@ -812,6 +848,7 @@ fn install_from_store(d: &Dependency) -> Result<String> {
             continue; // never overwrite the user's own copy
         }
         crate::profile::copy_tree(&dir, &dst)?;
+        record_install(std::slice::from_ref(&dst), &d.id, &d.title);
         placed.push(name);
     }
     Ok(format!("installed {} into {}: {}", d.title, root.display(), placed.join(", ")))

@@ -146,6 +146,12 @@
 | GTK theme | `gtk-3.0/settings.ini gtk-theme-name` | enum | atomic write | app |
 | GTK prefer dark | `gtk-application-prefer-dark-theme` | bool | то же | app |
 | GTK icons | `gtk-icon-theme-name` | enum | то же (или «синхронизировать с KDE») | app |
+
+GTK-тема, «prefer dark», тема иконок и тема курсора при записи зеркалируются в
+оба файла — `gtk-3.0/settings.ini` и `gtk-4.0/settings.ini` (`gtk-theme-name`,
+`gtk-application-prefer-dark-theme`, `gtk-icon-theme-name`,
+`gtk-cursor-theme-name`): модуль KDE gtkconfig синхронизирует GTK только при
+изменениях из «Параметров системы». GTK-шрифт не зеркалируется — размер личный.
 | Kvantum theme | `Kvantum/kvantum.kvconfig [General] theme` | enum c вариантами | `kvantummanager --set <theme>` | app |
 | Kvantum translucent windows | `<Theme>.kvconfig translucent_windows` | bool | atomic write | app |
 | Kvantum blurring / popup blurring | bool ×2 | то же | — |

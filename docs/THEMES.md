@@ -199,11 +199,15 @@ app never runs sudo). KDE's own assets (Breeze, Oxygen,
 
 1. **KDE Store, exact** — KDE's KNewStuff registries
    (`~/.local/share/knewstuff3/*.knsregistry`, written by *Get New…*) record the
-   store id of everything installed that way;
+   store id of everything installed that way; items fetched by `deps --install`
+   are recorded the same way in `<theme-profile data>/installed-assets.json`
+   (path → store id, title), so re-saving a theme keeps their exact source;
 2. **package** — `pacman -Qqo` on any installed copy (repo or AUR; a user copy
    shadowing a packaged one — Klassy's generated icons — is looked through);
 3. **editor stores** — the installed VS Code / Cursor extension or Zed
-   extension;
+   extension; VS Code and Cursor share extensions, so when one editor is not
+   installed but names the same theme as the other, the other's extension id
+   is used (VS Code Marketplace / Open VSX);
 4. **KDE Store, search** (`exact: false`) — the OCS API searched by name within
    the right category, ranked (exact title, acronym like YAMIS = *Yet Another
    Monochrome Icon Set*, KDE/Plasma builds over forks); shown for confirmation;
@@ -216,7 +220,8 @@ OCS API (`api.kde-look.org`) — Plasma styles, Global Themes and widgets with
 `kpackagetool6`, icons/cursors/GTK/Kvantum/Aurorae unpacked into the user's
 folders (zip via enclosed names, tarballs via `tar`; symlinks escaping the
 tree are dropped; an existing folder is never overwritten), colour schemes
-copied; editor themes via their stores. **System packages are never installed**
+copied; editor themes via their stores. Aurorae decorations are looked up in
+both the "Aurorae" and "Window Decorations" store categories. **System packages are never installed**
 (no sudo): the report carries `sudo pacman -S …` / `yay -S …`. Network access
 follows *Settings → Network* (`KTM_OFFLINE=1` turns it off); `--refresh`
 re-detects the dependencies of a theme saved earlier.
@@ -282,7 +287,7 @@ the store, an unmarked wallpaper or logo) become dependencies with their source
 the category word, e.g. "Orchis kvantum"), and Look & Feel preview screenshots
 (a picture of the author's desktop) are dropped.
 
-The ready themes in `themes/` (glass, Paper, everforest, dracula; licences and
+The ready themes in `themes/` (glass, Paper, everforest, dracula, frutiger-aero; licences and
 sources in `themes/README.md`) are added by the installer when a theme of that
 name does not exist yet (`--no-themes` skips; nothing is applied or replaced).
 
