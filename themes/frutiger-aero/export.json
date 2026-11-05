@@ -1,13 +1,13 @@
 {
   "format": "theme-profile/export@1",
   "theme": "frutiger-aero",
-  "exported": "2026-11-05T14:10:30+10:00",
+  "exported": "2026-11-05T15:34:18+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
     ".config/Code/User/settings.json": "722e5b5d5c3f385503426d027a497d5196b5c7a3011ee5a95bd1a15b22b7c6d3",
     ".config/Cursor/User/settings.json": "7da969869e6d628e2c7324c7a47cf3088b863e5b791cbc8474de2d1aec83225c",
-    ".config/Kvantum/ThemeProfileFrutigerAero/ThemeProfileFrutigerAero.kvconfig": "70d63f9a7ceeb617784a780b89ce9c41c4716433f536d56a30119b9990eea408",
+    ".config/Kvantum/ThemeProfileFrutigerAero/ThemeProfileFrutigerAero.kvconfig": "94cffeeaaef586baa6eda8704feec5a7756bee02eb29d75f7894a5cf25d5f661",
     ".config/Kvantum/ThemeProfileFrutigerAero/ThemeProfileFrutigerAero.svg": "e685df894f7532ab44ee90a167aa197a5632200ec8d290ac4b3726914e2e60d0",
     ".config/Kvantum/kvantum.kvconfig": "f99f898fb2068a20f44518a9b4fd934f270bb99c59da152da211b5928dd6cf09",
     ".config/Trolltech.conf": "8e6d90607817558301546745d6a73a23a580b85df6d0ddd60c8daa1119250174",
@@ -51,10 +51,10 @@
     ".zen/gp0y8wrv.Default (release)/chrome/userContent.css": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".zen/gp0y8wrv.Default (release)/chrome/zen-themes.css": "f7afe2bc7895408a82571ea975394c857a29a6184e2bd97babce51a22c017f46",
     ".zen/gp0y8wrv.Default (release)/user.js": "bc657830d7e5c732db0374176452db2fdc6133f01e9283aeeed09f984a147857",
-    "manifest.json": "88b820d9bf7f9351d836932a76b82184d1e64cc2324daa2065134eea1bb3ac54",
-    "manifest.txt": "7769cf62573963a8221016ff911ef08f3b276583f4c4b1abbcabc35bdff5bcea",
+    "manifest.json": "9e00973f00a9505a8586e1ad74572b33935e702485dab5a6948f54badf8ea472",
+    "manifest.txt": "3f7e6b68ba772862fddf7e86a8385a6edd3810d640e9af3238784d80c84a3028",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-    "theme.json": "2ab877091efc4be2f9c65744acf2407dde7fa34002273d2b6b4dec4024c17df8",
+    "theme.json": "4460063e2fbc03456fac69cf6c3ac8d574af10c8b77e7e35783a47da9f492fc3",
     "wallpaper/frutiger-aero-bubble.jpg": "3c3a5d0326bd889443cdbe00ba67472440d719f2283cc45b60fb6c95570b1d79",
     "wallpaper/source": "1c9fff0c108759b859903530aaa29e3a5c0b564a5f2d97bdab9d8fc0187b2a50"
   }

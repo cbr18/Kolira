@@ -86,6 +86,7 @@ link.color=#51a2da
 link.visited.color=#9fb4ff
 progress.indicator.text.color=#0d1e2e
 
+tooltip.base.color=#132b40
 [Hacks]
 transparent_dolphin_view=true
 transparent_ktitle_label=true
@@ -376,3 +377,13 @@ frame.expansion=0
 [Splitter]
 indicator.size=32
 frame.expansion=0
+
+[ToolTip]
+frame=true
+frame.element=menu
+interior=true
+interior.element=menu
+frame.top=3
+frame.bottom=3
+frame.left=3
+frame.right=3

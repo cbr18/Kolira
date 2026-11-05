@@ -151,7 +151,10 @@ pub fn recolor_kvconfig(kvconfig: &str, recolor: &Recolor, p: &Palette) -> Strin
     // Tooltip text follows the palette text: recolouring a light base into a
     // dark palette (or back) inverts lightness, and a base's white-on-dark
     // tooltip text would land dark-on-dark.
-    let roles: [(&str, Rgb); 11] = [
+    // Themes without tooltip artwork (KvRoughGlass) otherwise get a black
+    // tooltip base; set both so the pair always matches the palette.
+    let roles: [(&str, Rgb); 12] = [
+        ("tooltip.base.color", r.window_alt),
         ("tooltip.text.color", r.text),
         ("window.color", r.window),
         ("base.color", r.view),
@@ -200,6 +203,12 @@ pub fn recolor_kvconfig(kvconfig: &str, recolor: &Recolor, p: &Palette) -> Strin
         out.push_str(&mapped);
         out.push('\n');
     }
+    // Roles the base does not set at all get added (e.g. tooltip.base.color).
+    for (key, role) in roles {
+        if raw_general(&out, key).is_none() {
+            out = crate::field::set_ini_text(&out, "GeneralColors", key, &role.hex());
+        }
+    }
     out
 }
 
@@ -217,6 +226,20 @@ pub fn provenance(kvconfig: &str) -> Option<(String, bool)> {
         Some(base) => (base.to_string(), true),
         None => (rest.to_string(), false),
     })
+}
+
+/// Kvantum draws tooltips of a theme without a `[ToolTip]` section from its
+/// built-in default theme (a glossy black panel). Give such a theme the look
+/// of its own popup menus instead, when its SVG has them.
+fn with_tooltip_panel(kvconfig: &str, svg: &str) -> String {
+    if kvconfig.lines().any(|l| l.trim() == "[ToolTip]") || !svg.contains("id=\"menu-normal\"") {
+        return kvconfig.to_string();
+    }
+    let sep = if kvconfig.ends_with("\n\n") { "" } else if kvconfig.ends_with('\n') { "\n" } else { "\n\n" };
+    format!(
+        "{kvconfig}{sep}[ToolTip]\nframe=true\nframe.element=menu\ninterior=true\ninterior.element=menu\n\
+         frame.top=3\nframe.bottom=3\nframe.left=3\nframe.right=3\n"
+    )
 }
 
 /// Default base theme for a palette variant.
@@ -296,7 +319,9 @@ fn build_in(p: &Palette, base: &str, roots: &[PathBuf], out_root: &Path) -> Resu
             let text = std::fs::read_to_string(&path)?;
             let shipped = SHIPPED_ROOTS.iter().any(|root| base_dir.starts_with(root));
             let note = format!("{PROVENANCE}{base}{}\n", if shipped { SHIPPED_TAG } else { "" });
-            std::fs::write(&dest, note + &recolor_kvconfig(&text, &recolor, p))?;
+            let svg = std::fs::read_to_string(base_dir.join(format!("{base}.svg"))).unwrap_or_default();
+            let kv = with_tooltip_panel(&recolor_kvconfig(&text, &recolor, p), &svg);
+            std::fs::write(&dest, note + &kv)?;
         } else if file.ends_with(".svg") {
             let text = std::fs::read_to_string(&path)?;
             std::fs::write(&dest, recolor.map_text(&text))?;
@@ -378,7 +403,8 @@ mod tests {
         assert!(out.contains(&format!("base.color={}\n", roles.view.hex())));
         assert!(out.contains("highlight.color=#a7c080\n"));
         assert!(out.contains(&format!("highlight.text.color={}\n", roles.selection_text.hex())));
-        assert!(out.contains(&format!("tooltip.text.color={}\n", roles.text.hex())) || !kv.contains("tooltip.text.color"));
+        assert!(out.contains(&format!("tooltip.text.color={}\n", roles.text.hex())));
+        assert!(out.contains(&format!("tooltip.base.color={}\n", roles.window_alt.hex())), "missing role keys are added: {out}");
         assert!(out.contains("text.color=#") && out.contains("c8\n"), "alpha kept: {out}");
         assert!(!out.contains("dark.color=black"), "named colours mapped");
         assert!(out.contains("[%General]\nauthor=x\n") && out.contains("[Hacks]\nx=1\n"));
@@ -410,6 +436,10 @@ mod tests {
         assert_eq!(provenance("; theme-profile: recoloured from KvRoughGlass (ships with Kvantum)\n[x]\n"), Some(("KvRoughGlass".to_string(), true)));
         assert_eq!(provenance("[%General]\n"), None);
         assert!(dir.join("preview.png").is_file());
+        assert!(!kv.contains("[ToolTip]"), "no menu artwork, no tooltip section");
+        let with = with_tooltip_panel("[GeneralColors]\nx=1\n", "<g id=\"menu-normal\"/>");
+        assert!(with.ends_with("[ToolTip]\nframe=true\nframe.element=menu\ninterior=true\ninterior.element=menu\nframe.top=3\nframe.bottom=3\nframe.left=3\nframe.right=3\n"), "{with}");
+        assert_eq!(with_tooltip_panel("[ToolTip]\nframe=true\n", "<g id=\"menu-normal\"/>"), "[ToolTip]\nframe=true\n");
         assert!(build_in(&p, "../etc", &roots, &roots[0]).is_err());
         // Rebuilding replaces the previous output cleanly.
         build_in(&p, "FakeBase", &roots, &roots[0]).unwrap();
