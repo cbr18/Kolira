@@ -1,6 +1,6 @@
 # Опубликовать репозиторий вместе с темами
 
-Status: IN PROGRESS — темы в themes/ готовы (2026-11-05), осталось: push
+Status: DONE (2026-11-05) — темы в themes/, всё запушено (glass, Paper, everforest, dracula, frutiger-aero, frutiger-aero-light)
 
 Связано: [theme-export-import-zip](2026_11_04_10_05_theme-export-import-zip.md)
 

@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "frutiger-aero-light",
-  "exported": "2026-11-05T21:18:57+10:00",
+  "exported": "2026-11-05T21:41:53+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -60,7 +60,7 @@
     ".local/share/color-schemes/ThemeProfileFrutigerAeroLight.colors": "08c5d9f9d9b5104cf174fd693e74d62ada08f30575e5c369e8152107e6d58f4f",
     ".local/share/konsole/Theme Profile.profile": "453b0a9dc52d418280ea9d1753d385efa0613595c2e235467cb6de83dce10072",
     ".local/share/konsole/ThemeProfileFrutigerAeroLight.colorscheme": "6da38f908e957eca341df910386490bea1e942c283b1ae2b020ac77ec2bcfb7e",
-    ".zen/gp0y8wrv.Default (release)/chrome/userChrome.css": "78aaf11fe0a305aa854792e936bff510a0fdb5ae38bb7bbe0649cd91b46a7c43",
+    ".zen/gp0y8wrv.Default (release)/chrome/userChrome.css": "143f7f37009aeff8877011b4a75776fb5151b6239bc64c46ea07468fe03adee6",
     ".zen/gp0y8wrv.Default (release)/chrome/userContent.css": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".zen/gp0y8wrv.Default (release)/chrome/zen-themes.css": "f7afe2bc7895408a82571ea975394c857a29a6184e2bd97babce51a22c017f46",
     ".zen/gp0y8wrv.Default (release)/user.js": "47c3dfe01f574d9d4189cf57a9aa3ed7348e701dff0a483cf8e0dbad92cf29a5",
