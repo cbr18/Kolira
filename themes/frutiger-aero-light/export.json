@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "frutiger-aero-light",
-  "exported": "2026-11-05T18:46:24+10:00",
+  "exported": "2026-11-05T19:05:31+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -15,7 +15,7 @@
     ".config/breezerc": "e51c46eee9f6abc5ac94b2fa73c9b9ec49b89276aa31c5b0bd8af7b59d4ccf5c",
     ".config/btop/btop.conf": "1855fc19b5fa9272550fac3a520f81bc558f9377dd5cdc7f26651d81223046da",
     ".config/cava/config": "fb3e2a76eac74a17a08474468a9ed5b52f75a9d15f22fc4103f24596bb3f895d",
-    ".config/fastfetch/config.jsonc": "642c45d87db0555d80647a13301e5770505c8374b32b4a7c1c808a3de57305b6",
+    ".config/fastfetch/config.jsonc": "2aa7bddbcabccc5fdf515fd953893801b1b82b5946120288c93328adba222eae",
     ".config/fish/fish_variables": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".config/ghostty/theme-profile": "d83eafabf454c2c19655c42042021d6a07f68883459f3073c7d62d12f9f094c2",
     ".config/gtk-3.0/colors.css": "b5180f137d700bc1e11f080d73d1d97b9e986749c83588bc93adacd4c3c7ff60",
@@ -31,12 +31,12 @@
     ".config/kitty/theme-profile.conf": "c0c2f4345e302297fc7c5b3ebf7abe9554df403f6ca6be44a2a9bd30fe8172a5",
     ".config/klassy/klassyrc": "739d51772fedb173d90577d1a6ae097ce49063dea7998acec86598c06ff2af75",
     ".config/klassy/windecopresetsrc": "13b5785f30b83be185ce5e4c9e4b4c3b949d85395f80e71ba04b3e957064c853",
-    ".config/kwinrc": "e5172fab6a3a1bfdd089d3ce54f5f431dd713eca4fc62dabaf3582894795b3ed",
+    ".config/kwinrc": "f9c6d45d73890e1d98df97248c9286c3b04e0e082a6638ad03a5e8c350a1fee9",
     ".config/kwinrulesrc": "cb4b352bc3279e047113cf14f19e0d5479724762382eab74e12d8c810a6b287d",
     ".config/nvim/colors/theme-profile.lua": "d1942ace280a6de67e364488049db4827200ae392225d4db969b21c9849855df",
     ".config/nvim/lua/theme-profile.lua": "ebc889352074d943714ed81e3a3a574f069410a45705a75f7bd7742f3e715453",
     ".config/oh-my-posh/theme-profile.omp.json": "8c6275d69b4441c495c9ecf21ec08eff723c42d4138839165eb4b6958b1d7368",
-    ".config/plasma-org.kde.plasma.desktop-appletsrc": "a35321e0d636667fb9fc66ec0f5ae7b0c35eba0a71ea69434fc3037eb52006ba",
+    ".config/plasma-org.kde.plasma.desktop-appletsrc": "de50092cce5eab3a713d97bd3dd967afc3eb786782c18e38737392d964c26175",
     ".config/plasmarc": "39b8beb745703c17d0f44096c4d884b96cdb97507d097fe0a17c8fcf8ce833e2",
     ".config/plasmashellrc": "7054c4e9bcca1f72210370fbe330a29caf58803ea6a443206c6c98e0bbf1d5b4",
     ".config/theme-profile/palette.json": "eb80e1e27b270824e6f82363b5a40703c8abc0bc2dac55f86ea048a780057d01",
@@ -63,12 +63,10 @@
     ".zen/gp0y8wrv.Default (release)/chrome/userChrome.css": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".zen/gp0y8wrv.Default (release)/chrome/userContent.css": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".zen/gp0y8wrv.Default (release)/chrome/zen-themes.css": "f7afe2bc7895408a82571ea975394c857a29a6184e2bd97babce51a22c017f46",
-    ".zen/gp0y8wrv.Default (release)/user.js": "a6ce15976ad5b1cfc3383cfb6011b3957adee22ca2eab0dcbc81e394c0739fc2",
-    "manifest.json": "9e0686eb9897baf69a60199d71357fb73f3266b656f50a4d1f1cdc6673c11388",
-    "manifest.txt": "4abef3446edee0d2104a26d5d8967b5d7398d818ba17589ef2e4029f1bdd3e1f",
+    ".zen/gp0y8wrv.Default (release)/user.js": "47c3dfe01f574d9d4189cf57a9aa3ed7348e701dff0a483cf8e0dbad92cf29a5",
+    "manifest.json": "e7301acf2c73f42131d3797b8feeec2fa96feb6b607645203d2e4953f61f44c1",
+    "manifest.txt": "66c131e49f93841876e5c75df63a6f4e3c7a64f602b8c689dbbddab5494374db",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-    "theme.json": "4db257b10251ad89d5bde09b00f23b82ce54070ca3c79b10791329cb62ca3e9c",
-    "wallpaper/frutiger-aero-bubble.jpg": "3c3a5d0326bd889443cdbe00ba67472440d719f2283cc45b60fb6c95570b1d79",
-    "wallpaper/source": "1c9fff0c108759b859903530aaa29e3a5c0b564a5f2d97bdab9d8fc0187b2a50"
+    "theme.json": "df60bcc8e40ffe101a43a08d5d1c3e70deb7b3ce100dfbd0174507f4996b7cc7"
   }
 }

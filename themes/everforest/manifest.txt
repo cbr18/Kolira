@@ -29,7 +29,6 @@ timestamp=2026-11-05T11:16:46+10:00
 .config/wofi/wallpaper.css
 .config/btop/btop.conf
 .config/fastfetch/config.jsonc
-.config/fastfetch/logo
 .config/zed/settings.json
 .config/zed/themes/everforest--everforest-blur.json
 .config/Code/User/settings.json

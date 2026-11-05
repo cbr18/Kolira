@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "dracula",
-  "exported": "2026-11-05T18:46:24+10:00",
+  "exported": "2026-11-05T19:05:31+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -15,7 +15,7 @@
     ".config/breezerc": "f465296e62c4d1767a7c5c8c088bae3bee97cb133aac7c72c9acf1efedbbd677",
     ".config/btop/btop.conf": "58868c7e636bc3c8dd5b6ad30c5f96062687c81399ce89f1cba004fcb5da8675",
     ".config/cava/config": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
-    ".config/fastfetch/config.jsonc": "642c45d87db0555d80647a13301e5770505c8374b32b4a7c1c808a3de57305b6",
+    ".config/fastfetch/config.jsonc": "2aa7bddbcabccc5fdf515fd953893801b1b82b5946120288c93328adba222eae",
     ".config/fish/fish_variables": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".config/gtk-3.0/colors.css": "6b7e796f7c837c3d0f9da98c3eef46dc1b36f70c39de709d32237024fbe321f5",
     ".config/gtk-3.0/gtk.css": "39f53137010efbba8ccbbba7a5f9a744291bbb70f51fd743797d82dcceef62b7",
@@ -46,8 +46,8 @@
     ".zen/gp0y8wrv.Default (release)/chrome/userContent.css": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".zen/gp0y8wrv.Default (release)/chrome/zen-themes.css": "f7afe2bc7895408a82571ea975394c857a29a6184e2bd97babce51a22c017f46",
     ".zen/gp0y8wrv.Default (release)/user.js": "bc657830d7e5c732db0374176452db2fdc6133f01e9283aeeed09f984a147857",
-    "manifest.json": "7bddb8ebae4ca2c68d13a3f3f619e5a1133a0f3b94f2ce6370a728abc2aafa99",
-    "manifest.txt": "b637a4a7994cbbeaaf29435c2ce550743977ad1169d0ef4ea4dfd541e165982e",
+    "manifest.json": "c42908d94e70247271cc573fa6628d1a21c84f6c710a5619c663037699b3431b",
+    "manifest.txt": "a2fb692bc96c4d5cf74da0a4adefb4b6854e68ac8a99e9cbf4fd4acd711b00ed",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
     "theme.json": "0f979cf502128d7e47785723497c7d0df9ea865832af6850cd50aa1d17c73c69",
     "wallpaper/dracula-kde.png": "ea3b30412f97bc24c74707930253135d4b2ac247c43d4887ca00062cc5272d22",

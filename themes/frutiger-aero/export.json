@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "frutiger-aero",
-  "exported": "2026-11-05T18:46:24+10:00",
+  "exported": "2026-11-05T19:05:31+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -15,7 +15,7 @@
     ".config/breezerc": "f465296e62c4d1767a7c5c8c088bae3bee97cb133aac7c72c9acf1efedbbd677",
     ".config/btop/btop.conf": "7ff65150af12877f4bb87741dea309125f1973a31a697bd2b8f0daa3c7dd8f73",
     ".config/cava/config": "f30e32f960e0595176acc1e3b6b8c1eccc5ca8be6cebac1b55387afda94485c4",
-    ".config/fastfetch/config.jsonc": "642c45d87db0555d80647a13301e5770505c8374b32b4a7c1c808a3de57305b6",
+    ".config/fastfetch/config.jsonc": "2aa7bddbcabccc5fdf515fd953893801b1b82b5946120288c93328adba222eae",
     ".config/fish/fish_variables": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".config/ghostty/theme-profile": "2865426a5ff483c699b7945e954f0f5f200feac05bc1bbd559628d49ab4a46d0",
     ".config/gtk-3.0/colors.css": "387c33773d150fdb5cf7b032b1b82e69ddaee34eda1409456d1197bc6893bd09",
@@ -51,8 +51,8 @@
     ".zen/gp0y8wrv.Default (release)/chrome/userContent.css": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".zen/gp0y8wrv.Default (release)/chrome/zen-themes.css": "f7afe2bc7895408a82571ea975394c857a29a6184e2bd97babce51a22c017f46",
     ".zen/gp0y8wrv.Default (release)/user.js": "bc657830d7e5c732db0374176452db2fdc6133f01e9283aeeed09f984a147857",
-    "manifest.json": "9e00973f00a9505a8586e1ad74572b33935e702485dab5a6948f54badf8ea472",
-    "manifest.txt": "3f7e6b68ba772862fddf7e86a8385a6edd3810d640e9af3238784d80c84a3028",
+    "manifest.json": "88f48fd8c9c96661603e471c47fe99aff9153a70acf800c3194e514cc3f563f8",
+    "manifest.txt": "99285711505a8b070b35ea7fde7bbdc4a5ab3b01aa55f87afbffd980eb4f294c",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
     "theme.json": "0be635df82ffd7a7fe8ac462a36902d0288b6b265de3fc8192d1f92534cf900e",
     "wallpaper/frutiger-aero-bubble.jpg": "3c3a5d0326bd889443cdbe00ba67472440d719f2283cc45b60fb6c95570b1d79",

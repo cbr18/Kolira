@@ -30,7 +30,6 @@ timestamp=2026-11-05T11:16:19+10:00
 .config/btop/btop.conf
 .config/btop/themes/noctalia.theme
 .config/fastfetch/config.jsonc
-.config/fastfetch/logo
 .config/zed/settings.json
 .config/zed/themes/new-darcula--newdarcula.json
 .config/Code/User/settings.json

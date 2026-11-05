@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "glass",
-  "exported": "2026-11-05T18:46:22+10:00",
+  "exported": "2026-11-05T19:05:29+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -14,7 +14,7 @@
     ".config/btop/btop.conf": "64ee3b4a23917814ddec3f85fc5b0cf7142d1b827fa61497a5aac87791e2daab",
     ".config/btop/themes/noctalia.theme": "a476dc155661a3e074229d9388b9b12632c1663d9129b41c9150214a7472d1a2",
     ".config/cava/config": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
-    ".config/fastfetch/config.jsonc": "642c45d87db0555d80647a13301e5770505c8374b32b4a7c1c808a3de57305b6",
+    ".config/fastfetch/config.jsonc": "2aa7bddbcabccc5fdf515fd953893801b1b82b5946120288c93328adba222eae",
     ".config/fish/fish_variables": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".config/gtk-3.0/colors.css": "54a88fc812ddd1e209e2e07fc62f92a34b532e34e78d4dbb2ec246f32017ef16",
     ".config/gtk-3.0/gtk.css": "39f53137010efbba8ccbbba7a5f9a744291bbb70f51fd743797d82dcceef62b7",
@@ -45,8 +45,8 @@
     ".zen/gp0y8wrv.Default (release)/chrome/userContent.css": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".zen/gp0y8wrv.Default (release)/chrome/zen-themes.css": "f7afe2bc7895408a82571ea975394c857a29a6184e2bd97babce51a22c017f46",
     ".zen/gp0y8wrv.Default (release)/user.js": "bc657830d7e5c732db0374176452db2fdc6133f01e9283aeeed09f984a147857",
-    "manifest.json": "4155d1a22c18ba2c1dfceda8868e29c1275a50f1347032e07ca9dd1cf91681dc",
-    "manifest.txt": "f72cf8d125aecf139b1b2dd7316429bb4b6d42dece2f840ce2b21bd806990cf0",
+    "manifest.json": "ff7a8748f6ae9fb498577752eb9bc018ae9c0aa91523fbf4670d069b34e73735",
+    "manifest.txt": "d143f10afe8f2cd24eb6c23051d507b533519ea8fd09854bd06a60ad8612f48f",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
     "theme.json": "e0cefebb4452aa0c29799a704a1c6a6fb4795ad01b36425362164c9ba5d1636e",
     "wallpaper/glass-saturn-mono.jpg": "e80c120a94025dc4a4a28a08d3b4e90c58b66f291850d07953ca8e05df0ef30f",

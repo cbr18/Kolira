@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "Paper",
-  "exported": "2026-11-05T18:46:23+10:00",
+  "exported": "2026-11-05T19:05:30+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -14,7 +14,7 @@
     ".config/btop/btop.conf": "7ca7d7961f516706068339b713b11cc8b992a38c5f2f275520ccb4701ed55736",
     ".config/btop/themes/paper.theme": "fecbee343ff73c2376f7d3f7cad71106f531815f5de6839a9e72efd992f4a4bb",
     ".config/cava/config": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
-    ".config/fastfetch/config.jsonc": "2063c3a684c292b3bd2ad20a2cb0ed3dbc69964b03497cda90358f9ac6bb3007",
+    ".config/fastfetch/config.jsonc": "bf2998d2f681fdb8beea78cdf2d43f283dd342cd9d196e165da61f3be51bb9c0",
     ".config/fish/fish_variables": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".config/gtk-3.0/colors.css": "e306e174194533b5fc56412be3b43fe099dffcd4379ad6bcd81c0790510b384e",
     ".config/gtk-3.0/gtk.css": "39f53137010efbba8ccbbba7a5f9a744291bbb70f51fd743797d82dcceef62b7",
@@ -45,8 +45,8 @@
     ".zen/gp0y8wrv.Default (release)/chrome/userContent.css": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".zen/gp0y8wrv.Default (release)/chrome/zen-themes.css": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".zen/gp0y8wrv.Default (release)/user.js": "e71e407686892fd8546991d82e004db076f01336b65b7589fc44d6a5c424b91b",
-    "manifest.json": "2f9027f36bcd03e78cae495601b2bcb2f269db9ad9855f4b982d6379b790e0d7",
-    "manifest.txt": "084226f8064cb99e5a7195db0983b0b4e17ad4b41a11a429b20d027b2e0eb689",
+    "manifest.json": "ac72b0642399662d45fba5fce675cb5053befb47f9ca0c3dc17ce12004c46243",
+    "manifest.txt": "bf85039202697440d18773003c0bf93e8c3dd6ea0e546e7ac9b3d6ff9d95d00d",
     "obsidian/vault/.obsidian/appearance.json": "4eeaef8673657dc645e1cb3f5149b41ac895bc2bbc7c34db82f8441d1aa18867",
     "theme.json": "59dfeb208991e5e77c9a17d2b7a10037dca5b18f029af8522aa24dcf20723303",
     "wallpaper/paper-falat-sviciaz.jpg": "43945d0609075068ee770a3e2fac9375c958388045dfeb50942fa697fe256b6f",

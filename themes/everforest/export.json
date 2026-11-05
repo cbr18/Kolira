@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "everforest",
-  "exported": "2026-11-05T18:46:24+10:00",
+  "exported": "2026-11-05T19:05:31+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -13,7 +13,7 @@
     ".config/breezerc": "f465296e62c4d1767a7c5c8c088bae3bee97cb133aac7c72c9acf1efedbbd677",
     ".config/btop/btop.conf": "0d148eab9f2d04d8a276dbb2cf670db9532adabe3ed46ceb2d9a4403e4c4ce74",
     ".config/cava/config": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
-    ".config/fastfetch/config.jsonc": "642c45d87db0555d80647a13301e5770505c8374b32b4a7c1c808a3de57305b6",
+    ".config/fastfetch/config.jsonc": "2aa7bddbcabccc5fdf515fd953893801b1b82b5946120288c93328adba222eae",
     ".config/fish/fish_variables": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".config/gtk-3.0/colors.css": "e2fcf793ecc399bfcfab55033f2143ae1aafa28ec8da1ff501cf1b63a9cb08c9",
     ".config/gtk-3.0/gtk.css": "39f53137010efbba8ccbbba7a5f9a744291bbb70f51fd743797d82dcceef62b7",
@@ -44,8 +44,8 @@
     ".zen/gp0y8wrv.Default (release)/chrome/userContent.css": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".zen/gp0y8wrv.Default (release)/chrome/zen-themes.css": "f7afe2bc7895408a82571ea975394c857a29a6184e2bd97babce51a22c017f46",
     ".zen/gp0y8wrv.Default (release)/user.js": "bc657830d7e5c732db0374176452db2fdc6133f01e9283aeeed09f984a147857",
-    "manifest.json": "afaa9a7a18d86e8a09b803cc8e29a9f7ffc4a835a5d496cde61228fbab5ffb13",
-    "manifest.txt": "52039771a0d809e109ea759f9897529ad4b86cfb50d4ded40dc549073d5e325a",
+    "manifest.json": "15599060587bacfc4aa050e568ed09c14127d274ecf951262e36441a16926c34",
+    "manifest.txt": "4efb156490b8bf2c72416f4396d81af0c94a2c56d928de908a424b9567a09c49",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
     "theme.json": "e14b82a12d40a72ef0e13df0de9e2226ff8344375b397ee53cf0212dd8d76cb5",
     "wallpaper/everforest-misty-pines.jpg": "eaa504fb6526ae9d04e7a647944ecb9ea2ca867a3241064b66467fda288e4958",

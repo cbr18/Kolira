@@ -90,6 +90,14 @@ kwin4_effect_geometry_changeEnabled=false
 kwin6_effect_glitchEnabled=false
 glassEnabled=false
 
+[org.kde.kdecoration2]
+BorderSize=None
+BorderSizeAuto=false
+ButtonsOnLeft=MFS
+ButtonsOnRight=HIAX
+library=org.kde.kwin.aurorae
+theme=__aurorae__svg__Se7enAeroLight
+
 [Round-Corners]
 DisableRoundFullScreen=true
 DisableRoundMaximize=true
@@ -104,11 +112,3 @@ SecondOutlineThickness=0
 ShadowSize=45
 Size=10
 UseNativeDecorationShadows=false
-
-[org.kde.kdecoration2]
-BorderSize=None
-BorderSizeAuto=false
-ButtonsOnLeft=MFS
-ButtonsOnRight=HIAX
-library=org.kde.kwin.aurorae
-theme=__aurorae__svg__Se7enAeroLight
