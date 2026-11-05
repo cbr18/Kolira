@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "frutiger-aero-light",
-  "exported": "2026-11-05T20:39:41+10:00",
+  "exported": "2026-11-05T20:41:29+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -32,7 +32,7 @@
     ".config/klassy/klassyrc": "739d51772fedb173d90577d1a6ae097ce49063dea7998acec86598c06ff2af75",
     ".config/klassy/windecopresetsrc": "13b5785f30b83be185ce5e4c9e4b4c3b949d85395f80e71ba04b3e957064c853",
     ".config/kwinrc": "f9c6d45d73890e1d98df97248c9286c3b04e0e082a6638ad03a5e8c350a1fee9",
-    ".config/kwinrulesrc": "fc4dd302d489e273892b0261d62e02c309b7afdc1ab1a298c99a30fa0b59dbab",
+    ".config/kwinrulesrc": "6a0e810501df048aa80a4e897c7956adb1e17e4864e35e403429f54eef224a4a",
     ".config/nvim/colors/theme-profile.lua": "d1942ace280a6de67e364488049db4827200ae392225d4db969b21c9849855df",
     ".config/nvim/lua/theme-profile.lua": "ebc889352074d943714ed81e3a3a574f069410a45705a75f7bd7742f3e715453",
     ".config/oh-my-posh/theme-profile.omp.json": "8c6275d69b4441c495c9ecf21ec08eff723c42d4138839165eb4b6958b1d7368",
