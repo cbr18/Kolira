@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "dracula",
-  "exported": "2026-11-05T11:23:00+10:00",
+  "exported": "2026-11-05T13:29:22+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -31,7 +31,7 @@
     ".config/kwinrc": "752b96f7c4b9aeae9758bd537255cbe2e1cc745d0922ab6bacfa6aca20751a85",
     ".config/kwinrulesrc": "cb4b352bc3279e047113cf14f19e0d5479724762382eab74e12d8c810a6b287d",
     ".config/oh-my-posh/theme-profile.omp.json": "8c6275d69b4441c495c9ecf21ec08eff723c42d4138839165eb4b6958b1d7368",
-    ".config/plasma-org.kde.plasma.desktop-appletsrc": "761b719bb4dad4159fc07126503de6602e5e4dec84222485268de2fb4fcabbd9",
+    ".config/plasma-org.kde.plasma.desktop-appletsrc": "83c02f05480dca946efe01c5451791e48ef86b4d3e5984c9b8449ef955f99b14",
     ".config/plasmarc": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".config/plasmashellrc": "7054c4e9bcca1f72210370fbe330a29caf58803ea6a443206c6c98e0bbf1d5b4",
     ".config/theme-profile/palette.json": "a624e6cdceaa568bdb0f92dae80243dcc00febd0758a36adb04685817db0f676",

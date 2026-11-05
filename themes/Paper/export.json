@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "Paper",
-  "exported": "2026-11-05T11:41:03+10:00",
+  "exported": "2026-11-05T13:29:21+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -30,7 +30,7 @@
     ".config/kwinrc": "277e8796c4979ed5ba0c7a18cdd32cdfb2caedfc0d31d0c3f65e04ba172d4201",
     ".config/kwinrulesrc": "cb4b352bc3279e047113cf14f19e0d5479724762382eab74e12d8c810a6b287d",
     ".config/oh-my-posh/theme-profile.omp.json": "8c6275d69b4441c495c9ecf21ec08eff723c42d4138839165eb4b6958b1d7368",
-    ".config/plasma-org.kde.plasma.desktop-appletsrc": "11e6e4515fa4c5235ba032374de4bb3fe182706f177368b598c364b557d13ce4",
+    ".config/plasma-org.kde.plasma.desktop-appletsrc": "60772b7e8f3ac75d8ed9091b8b5bbeed23762284ebdf43f16b954c81c54b2677",
     ".config/plasmarc": "34f372063f2202b3ab41a3bf59e28065b12967dfa6b9ee17c0bda33cfe509925",
     ".config/plasmashellrc": "fc389257e628930d9c4a02ad622042b8b5c09e7e50827c83d0ea218a75bade84",
     ".config/theme-profile/palette.json": "a624e6cdceaa568bdb0f92dae80243dcc00febd0758a36adb04685817db0f676",
