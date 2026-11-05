@@ -299,6 +299,16 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         docs_url="https://spicetify.app/docs/customization/themes",
     ),
     TrackedAppDef(
+        id="telegram",
+        name="Telegram",
+        category="Communication",
+        config_paths=(".local/share/TelegramDesktop/theme-profile.tdesktop-palette",),
+        detect_command="Telegram",
+        description="Telegram palette (palette → .tdesktop-palette); applying opens a preview in Telegram",
+        icon="telegram",
+        docs_url="https://github.com/desktop-app/lib_ui/blob/master/ui/colors.palette",
+    ),
+    TrackedAppDef(
         id="oh-my-posh",
         name="oh-my-posh (prompt)",
         category="Shell",

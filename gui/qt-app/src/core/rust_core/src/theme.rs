@@ -809,6 +809,11 @@ pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
         .filter(|p| p.is_file());
 
     let backup = crate::profile::apply_profile_with(name, &extras)?;
+    // Telegram cannot be switched from outside: open the theme's palette, it
+    // shows a preview with Apply.
+    if dir.join(crate::telegram::PALETTE_FILE).is_file() {
+        crate::telegram::open_in_telegram(&crate::paths::home_dir().join(crate::telegram::PALETTE_FILE));
+    }
     if dir.join(crate::spicetify::CONFIG).is_file() {
         crate::spicetify::refresh();
     }

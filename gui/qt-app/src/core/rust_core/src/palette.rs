@@ -548,12 +548,12 @@ pub fn alacritty_with_palette(existing: &str, p: &Palette) -> Result<String> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Targets a palette can be applied to.
-pub const TARGETS: [&str; 11] = ["kde", "kitty", "alacritty", "konsole", "ghostty", "nvim", "discord", "spicetify", "cava", "gtk", "kvantum"];
+pub const TARGETS: [&str; 12] = ["kde", "kitty", "alacritty", "konsole", "ghostty", "nvim", "discord", "spicetify", "cava", "telegram", "gtk", "kvantum"];
 
 /// Targets used when none are given. `kvantum` is opt-in: it switches the Qt
 /// widget style, which the user may have chosen deliberately (e.g. Breeze).
 /// `gtk` is opt-in too: it overrides libadwaita's own look.
-pub const DEFAULT_TARGETS: [&str; 9] = ["kde", "kitty", "alacritty", "konsole", "ghostty", "nvim", "discord", "spicetify", "cava"];
+pub const DEFAULT_TARGETS: [&str; 10] = ["kde", "kitty", "alacritty", "konsole", "ghostty", "nvim", "discord", "spicetify", "cava", "telegram"];
 
 /// Extra knobs for [`apply`].
 #[derive(Debug, Default, Clone)]
@@ -770,6 +770,14 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
         match crate::extras::cava_apply_palette(p)? {
             Some(path) => report.push(format!("cava: {} (gradient; running cava reloaded)", path.display())),
             None => report.push("cava: skipped, no ~/.config/cava/config".to_string()),
+        }
+    }
+
+    if wants("telegram") {
+        match crate::telegram::apply_palette(p)? {
+            crate::telegram::Outcome::Written(path, true) => report.push(format!("telegram: {} (Telegram shows a preview — press Apply)", path.display())),
+            crate::telegram::Outcome::Written(path, false) => report.push(format!("telegram: {} (open it in Telegram to apply)", path.display())),
+            crate::telegram::Outcome::Skipped(why) => report.push(format!("telegram: skipped, {why}")),
         }
     }
 

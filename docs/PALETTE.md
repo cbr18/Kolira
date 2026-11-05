@@ -101,6 +101,20 @@ theme-profile palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvant
 `user.css`; в `config-xpui.ini` выставляются `current_theme`/`color_scheme`
 `ThemeProfile`, `inject_css`/`replace_colors` `1`, затем `spicetify apply -n`.
 
+**Telegram** (цель `telegram`, по умолчанию; пропускается без Telegram или без
+сети при первом запуске): `~/.local/share/TelegramDesktop/theme-profile.tdesktop-palette`
+— палитра Telegram (~590 цветов). База — стандартная палитра Telegram
+(`colors.palette` из desktop-app/lib_ui, GPL-3): её качает из официального
+репозитория и кэширует (`~/.cache/theme-profile/telegram-colors.palette`), в
+кит она не входит. Перекраска — как у Kvantum (OKLab): нейтральные идут по шкале
+«фон → текст» палитры, синий Telegram (`#40a7e3`) становится акцентом, зелёный
+исходящих сообщений — оттенком акцента (отдельная перекраска с якорем
+`#57b84c`); ссылки между ключами сохраняются; `windowFgActive` (текст на синем:
+кнопки, открытый чат) — «текст на акценте» палитры. Фон чата не трогается.
+Применить тему извне Telegram не даёт (она в его зашифрованных настройках):
+файл открывается в Telegram (`Telegram -- файл`), тот показывает предпросмотр с
+кнопкой *Применить*. То же при применении темы, которая несёт этот файл.
+
 **Ghostty** (цель `ghostty`, по умолчанию; пропускается без
 `~/.config/ghostty/config`): блок цветов (`background`, `foreground`,
 `palette = N=…`, курсор, выделение) в `~/.config/ghostty/theme-profile`; `config`

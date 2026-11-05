@@ -518,6 +518,20 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             docs_url: "https://spicetify.app/docs/customization/themes".to_string(),
         },
         TrackedAppDef {
+            id: "telegram".to_string(),
+            name: "Telegram".to_string(),
+            category: "Communication".to_string(),
+            // Telegram keeps the applied theme in its encrypted settings; the
+            // theme carries the palette file and applying opens it (telegram.rs).
+            config_paths: vec![crate::telegram::PALETTE_FILE.to_string()],
+            detect_command: Some("Telegram".to_string()),
+            flatpak_id: Some("org.telegram.desktop".to_string()),
+            supports_live_reload: false,
+            description: "Telegram palette (palette → .tdesktop-palette); applying opens a preview in Telegram".to_string(),
+            icon: "telegram".to_string(),
+            docs_url: "https://github.com/desktop-app/lib_ui/blob/master/ui/colors.palette".to_string(),
+        },
+        TrackedAppDef {
             id: "oh-my-posh".to_string(),
             name: "oh-my-posh (prompt)".to_string(),
             category: "Shell".to_string(),
