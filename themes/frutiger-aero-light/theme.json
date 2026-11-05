@@ -33,6 +33,15 @@
       "origin": "generated",
       "path": ".local/share/konsole/ThemeProfileFrutigerAeroLight.colorscheme",
       "redistributable": true
+    },
+    {
+      "kind": "wallpaper",
+      "license": "CC0-1.0 (leeviaho12, via Wikimedia Commons)",
+      "name": "frutiger-aero-bubble.jpg",
+      "origin": "user",
+      "path": "wallpaper/frutiger-aero-bubble.jpg",
+      "redistributable": true,
+      "source": "https://commons.wikimedia.org/wiki/File:Frutiger_Aero_(1).jpg"
     }
   ],
   "created": "2026-11-05T19:04:59+10:00",
@@ -283,5 +292,5 @@
     "zen_transparent": true,
     "zen_window_scheme": "1"
   },
-  "wallpaper": null
+  "wallpaper": "wallpaper/frutiger-aero-bubble.jpg"
 }

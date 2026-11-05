@@ -1,7 +1,7 @@
 {
   "format": "theme-profile/export@1",
   "theme": "frutiger-aero-light",
-  "exported": "2026-11-05T19:05:31+10:00",
+  "exported": "2026-11-05T19:06:11+10:00",
   "generator": "theme-profile 0.5.0",
   "home_token": "$HOME",
   "files": {
@@ -36,7 +36,7 @@
     ".config/nvim/colors/theme-profile.lua": "d1942ace280a6de67e364488049db4827200ae392225d4db969b21c9849855df",
     ".config/nvim/lua/theme-profile.lua": "ebc889352074d943714ed81e3a3a574f069410a45705a75f7bd7742f3e715453",
     ".config/oh-my-posh/theme-profile.omp.json": "8c6275d69b4441c495c9ecf21ec08eff723c42d4138839165eb4b6958b1d7368",
-    ".config/plasma-org.kde.plasma.desktop-appletsrc": "de50092cce5eab3a713d97bd3dd967afc3eb786782c18e38737392d964c26175",
+    ".config/plasma-org.kde.plasma.desktop-appletsrc": "a35321e0d636667fb9fc66ec0f5ae7b0c35eba0a71ea69434fc3037eb52006ba",
     ".config/plasmarc": "39b8beb745703c17d0f44096c4d884b96cdb97507d097fe0a17c8fcf8ce833e2",
     ".config/plasmashellrc": "7054c4e9bcca1f72210370fbe330a29caf58803ea6a443206c6c98e0bbf1d5b4",
     ".config/theme-profile/palette.json": "eb80e1e27b270824e6f82363b5a40703c8abc0bc2dac55f86ea048a780057d01",
@@ -67,6 +67,8 @@
     "manifest.json": "e7301acf2c73f42131d3797b8feeec2fa96feb6b607645203d2e4953f61f44c1",
     "manifest.txt": "66c131e49f93841876e5c75df63a6f4e3c7a64f602b8c689dbbddab5494374db",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-    "theme.json": "df60bcc8e40ffe101a43a08d5d1c3e70deb7b3ce100dfbd0174507f4996b7cc7"
+    "theme.json": "b55608825d3450a88a69dfa5d236ff31e59e6d125cfd35dbe3ce1b02fbcc1146",
+    "wallpaper/frutiger-aero-bubble.jpg": "3c3a5d0326bd889443cdbe00ba67472440d719f2283cc45b60fb6c95570b1d79",
+    "wallpaper/source": "1c9fff0c108759b859903530aaa29e3a5c0b564a5f2d97bdab9d8fc0187b2a50"
   }
 }
