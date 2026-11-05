@@ -9,9 +9,9 @@ decorationpolicyrule=3
 
 [1c7e2770-8fb5-420a-9ed7-dcde682faee7]
 Description=Steam glass (theme-profile)
-opacityactive=80
+opacityactive=60
 opacityactiverule=2
-opacityinactive=75
+opacityinactive=55
 opacityinactiverule=2
 wmclass=steam
 wmclasscomplete=false
