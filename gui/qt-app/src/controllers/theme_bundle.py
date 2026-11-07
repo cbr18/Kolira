@@ -14,6 +14,13 @@ from core.theme_bundle import ThemeBundleCore
 from .theme_inspector import _run
 
 
+def _reload_app_look() -> None:
+    """Show what the CLI just applied in this window too (late import: QML registers it)."""
+    from theme_controller import reload_app_look
+
+    reload_app_look()
+
+
 class ThemeBundleController(QObject):
     """Theme → component groups, application adapters and profile bundles."""
 
@@ -230,6 +237,8 @@ class ThemeBundleController(QObject):
 
         def done(success: bool, message: str) -> None:
             self._set_busy(False)
+            if success:
+                _reload_app_look()
             self.toast.emit(message, success)
             self.openLive()
             self.refresh()
@@ -260,6 +269,8 @@ class ThemeBundleController(QObject):
 
         def done(success: bool, message: str) -> None:
             self._set_busy(False)
+            if success:
+                _reload_app_look()
             self.toast.emit(message, success)
             self.refresh()
 

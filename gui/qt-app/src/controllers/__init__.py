@@ -83,6 +83,13 @@ class _StringWorker(QRunnable):
         self._signals.done.emit(text)
 
 
+def _reload_app_look() -> None:
+    """Show what the CLI just applied in this window too (late import: QML registers it)."""
+    from theme_controller import reload_app_look
+
+    reload_app_look()
+
+
 def _run_async_str(owner: QObject, func: Callable[[], str], on_done: Callable[[str], None]) -> None:
     """Start ``func`` on the thread pool, deliver its string via ``on_done``."""
     signals = _StringSignals(owner)
@@ -243,6 +250,7 @@ class ProfileController(QObject):
             self.operationFinished.emit(False, self.tr("Another operation is still running"))
             return
         self._set_busy(True)
+        self._operation = name
         self.operationStarted.emit(name)
         _run_async(self, func, self._on_operation_finished)
 
@@ -250,6 +258,8 @@ class ProfileController(QObject):
     def _on_operation_finished(self, success: bool, message: str) -> None:
         """Слот, вызываемый в главном потоке по завершении воркера."""
         self._set_busy(False)
+        if success and self._operation in ("apply", "new"):
+            _reload_app_look()
         self.operationFinished.emit(success, localize(message))
         if self._pending_missing is not None:
             profile, missing = self._pending_missing

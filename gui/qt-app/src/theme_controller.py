@@ -6,9 +6,11 @@ Theme Controller — Dogfooding: применяет активный профи�
 
 import os
 import subprocess
+import sys
 from typing import Optional
 from PySide6.QtCore import QObject, Signal, Slot, Property, QTimer, Qt
 from PySide6.QtGui import QGuiApplication, QWindow, QColor, QPalette
+from PySide6.QtWidgets import QApplication
 
 from core.paths import live_path
 
@@ -90,6 +92,20 @@ class ThemeController(QObject):
 
     def _schedule_apply(self) -> None:
         self._update_timer.start(50)
+
+    def reload_desktop_look(self) -> None:
+        """Pick up a theme just applied by the CLI, in another process.
+
+        Controls are drawn by the widget style, and Kvantum reads its theme once,
+        when the style is created: a changed ``kvantum.kvconfig`` or a new palette
+        leaves the buttons as they were. So the style is created anew, then the
+        colours are read again (the same light/dark scheme sends no signal).
+        ``QT_STYLE_OVERRIDE`` means the user fixed the style for this process.
+        """
+        app = QApplication.instance()
+        if isinstance(app, QApplication) and not os.environ.get("QT_STYLE_OVERRIDE"):
+            app.setStyle(_kde_widget_style())
+        self._apply_theme()
 
     @Slot()
     def _on_system_color_scheme_changed(self) -> None:
@@ -356,6 +372,26 @@ class ThemeController(QObject):
 
 def _luminance(color: QColor) -> float:
     return (0.299 * color.red() + 0.587 * color.green() + 0.114 * color.blue()) / 255
+
+
+def _kde_widget_style() -> str:
+    """``[KDE] widgetStyle`` of the live kdeglobals (KDE's default: Breeze)."""
+    import configparser
+
+    config = configparser.ConfigParser(interpolation=None, strict=False)
+    try:
+        config.read(live_path(".config/kdeglobals"), encoding="utf-8")
+    except (OSError, configparser.Error):
+        return "Breeze"
+    return config.get("KDE", "widgetStyle", fallback="").strip() or "Breeze"
+
+
+def reload_app_look() -> None:
+    """Best-effort :meth:`ThemeController.reload_desktop_look` for controllers."""
+    try:
+        ThemeController.instance().reload_desktop_look()
+    except Exception as exc:
+        print(f"Could not reload the app's look: {exc}", file=sys.stderr)
 
 
 def _kde_scheme_colors() -> Optional[dict]:

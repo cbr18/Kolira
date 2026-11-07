@@ -2985,3 +2985,47 @@ def test_compiled_catalogue_translates_data_texts(qapp) -> None:
         assert localize("✓ Vesktop restarted (vesktop)") == "✓ Vesktop перезапущен"
     finally:
         QCoreApplication.removeTranslator(translator)
+
+
+def test_applied_theme_recreates_the_widget_style(monkeypatch, tmp_path) -> None:
+    """Kvantum reads its theme once: buttons stay old unless the style is new."""
+    import theme_controller as tc
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
+    monkeypatch.delenv("QT_STYLE_OVERRIDE", raising=False)
+    (tmp_path / ".config").mkdir()
+    assert tc._kde_widget_style() == "Breeze"
+    (tmp_path / ".config/kdeglobals").write_text("[KDE]\nwidgetStyle=kvantum\n")
+    assert tc._kde_widget_style() == "kvantum"
+
+    styles: list[str] = []
+    app = mock.MagicMock(spec=tc.QApplication)
+    app.setStyle.side_effect = styles.append
+    monkeypatch.setattr(tc.QApplication, "instance", staticmethod(lambda: app))
+    controller = tc.ThemeController.instance()
+    applied: list[bool] = []
+    monkeypatch.setattr(controller, "_apply_theme", lambda: applied.append(True))
+    controller.reload_desktop_look()
+    assert styles == ["kvantum"] and applied == [True]
+
+    monkeypatch.setenv("QT_STYLE_OVERRIDE", "fusion")
+    controller.reload_desktop_look()
+    assert styles == ["kvantum"] and applied == [True, True]
+
+
+@pytest.mark.parametrize(
+    ("operation", "success", "reloads"),
+    [("apply", True, 1), ("new", True, 1), ("apply", False, 0), ("save", True, 0)],
+)
+def test_app_look_reloads_after_apply_only(monkeypatch, operation, success, reloads) -> None:
+    import controllers
+
+    calls: list[bool] = []
+    monkeypatch.setattr(controllers, "_reload_app_look", lambda: calls.append(True))
+    owner = mock.MagicMock()
+    owner._operation = operation
+    owner._pending_missing = None
+    owner._pending_actions = None
+    controllers.ProfileController._on_operation_finished(owner, success, "done")
+    assert len(calls) == reloads
