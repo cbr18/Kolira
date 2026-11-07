@@ -2298,6 +2298,44 @@ else
   fail "Neovim touched: $(find "$NV/.config/nvim" -type f)"
 fi
 
+# --- What a theme does not specify goes back to the program's default ----------------
+US="$TMP_ROOT/unspecified"
+mkdir -p "$US/.config/vesktop/settings" "$US/.config/vesktop/themes" "$US/.config/ghostty" "$US/.config/gtk-3.0" "$US/.local/share/konsole"
+printf '{\n  "minimizeToTray": true,\n  "enabledThemes": ["theme-profile.theme.css"],\n  "transparent": true\n}\n' >"$US/.config/vesktop/settings/settings.json"
+printf 'light css\n' >"$US/.config/vesktop/themes/theme-profile.theme.css"
+printf 'mine\n' >"$US/.config/vesktop/themes/my-own.theme.css"
+printf 'background = #ffffff\n' >"$US/.config/ghostty/theme-profile"
+printf 'window { }\n' >"$US/.config/gtk-3.0/theme-profile.css"
+printf '[Appearance]\nColorScheme=Light\n\n[General]\nName=Theme Profile\nParent=FALLBACK/\n' >"$US/.local/share/konsole/Theme Profile.profile"
+printf '[Desktop Entry]\nDefaultProfile=Theme Profile.profile\n\n[Other]\nkeep=1\n' >"$US/.config/konsolerc"
+us() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$US" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+us import "$SCRIPT_DIR/themes/dracula" --apply >/dev/null 2>&1
+VS="$US/.config/vesktop/settings/settings.json"
+if ! grep -q "enabledThemes\|transparent" "$VS" && grep -q "minimizeToTray" "$VS" && python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$VS" &&
+  [ ! -e "$US/.config/vesktop/themes/theme-profile.theme.css" ] && [ -f "$US/.config/vesktop/themes/my-own.theme.css" ]; then
+  ok "a theme without Vesktop turns ours off and keeps the user's settings and files"
+else
+  fail "Vesktop after a theme without it: $(cat "$VS"); $(ls "$US/.config/vesktop/themes")"
+fi
+if [ ! -e "$US/.config/ghostty/theme-profile" ] && [ ! -e "$US/.config/gtk-3.0/theme-profile.css" ]; then
+  ok "generated files a theme does not carry are removed"
+else
+  fail "generated files stayed: $(ls "$US/.config/ghostty" "$US/.config/gtk-3.0")"
+fi
+if [ ! -e "$US/.local/share/konsole/Theme Profile.profile" ] && ! grep -q DefaultProfile "$US/.config/konsolerc" && grep -q "keep=1" "$US/.config/konsolerc"; then
+  ok "a theme without Konsole removes the profile we made; Konsole is back to its default"
+else
+  fail "Konsole after a theme without it: $(cat "$US/.config/konsolerc")"
+fi
+printf '[Desktop Entry]\nDefaultProfile=Mine.profile\n' >"$US/.config/konsolerc"
+printf '[Appearance]\nColorScheme=Dark\n\n[General]\nCommand=/bin/fish\nName=Mine\n' >"$US/.local/share/konsole/Mine.profile"
+us apply dracula >/dev/null 2>&1
+if grep -q "DefaultProfile=Mine.profile" "$US/.config/konsolerc" && grep -q "Command=/bin/fish" "$US/.local/share/konsole/Mine.profile" && ! grep -q "ColorScheme" "$US/.local/share/konsole/Mine.profile"; then
+  ok "the user's own Konsole profile stays, without the look the theme does not specify"
+else
+  fail "own Konsole profile: $(cat "$US/.local/share/konsole/Mine.profile")"
+fi
+
 # --- Forced blur leaves panels and notifications their own area ---------------------
 BLUR_OK=1
 for theme in "$SCRIPT_DIR"/themes/*/; do

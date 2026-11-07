@@ -109,12 +109,20 @@ fn changed(dir: &Path, marker: &str, before: Option<&Path>) -> bool {
     false
 }
 
+fn had_ours(folder: &Path) -> bool {
+    std::fs::read_dir(folder).is_ok_and(|it| it.flatten().any(|e| e.file_name().to_string_lossy().starts_with("theme-profile")))
+}
+
 /// [`for_theme`] right after an apply: restarts only for programs whose
-/// files the apply changed (`before` = the pre-apply backup).
+/// files the apply changed (`before` = the pre-apply backup), including ones
+/// the theme does not carry that went back to their default.
 pub fn for_theme_since(dir: &Path, before: Option<&Path>) -> Vec<Action> {
     let mut out = Vec::new();
     for app in APPS {
-        if dir.join(app.marker).exists() && running(app.processes).is_some() && changed(dir, app.marker, before) {
+        let theme_changed = dir.join(app.marker).exists() && changed(dir, app.marker, before);
+        // The theme has none of it, and an earlier one left ours: it went back to stock.
+        let reset = !dir.join(app.marker).exists() && before.is_some_and(|b| had_ours(&b.join(app.marker)));
+        if (theme_changed || reset) && running(app.processes).is_some() {
             out.push(Action {
                 id: app.id.into(),
                 kind: "restart".into(),

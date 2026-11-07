@@ -56,6 +56,19 @@ pub fn config_paths() -> Vec<String> {
     out
 }
 
+/// A theme without Konsole: the profile we created is removed and Konsole goes
+/// back to its built-in default. A profile of the user's stays.
+pub fn reset_generated() -> Result<()> {
+    if default_profile().as_deref() != Some(THEME_PROFILE) {
+        return Ok(());
+    }
+    let _ = fs::remove_file(konsole_dir().join(THEME_PROFILE));
+    let text = fs::read_to_string(konsolerc())?;
+    let kept: Vec<&str> = text.lines().filter(|l| !l.trim_start().starts_with("DefaultProfile=")).collect();
+    fs::write(konsolerc(), kept.join("\n") + "\n")?;
+    Ok(())
+}
+
 /// After a profile was written from a theme: give a newly created profile a
 /// name and make it Konsole's default when none is set.
 pub fn finish_profile(rel: &str) -> Result<()> {

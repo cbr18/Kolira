@@ -57,6 +57,14 @@ Browser profile folders have a random name per install (`gp0y8wrv.Default
 folder, and apply maps them to the receiver's default profile (Zen, Firefox);
 the same for Konsole's default profile.
 
+**What a theme does not specify goes back to the program's default.** A theme
+without Vesktop files turns our Vesktop theme off (`enabledThemes` gone, our CSS
+removed), a theme without Konsole removes the profile we created, and so on: a
+mixed file loses its look keys, a generated `theme-profile*` file is removed. Only
+what we generate is removed, a program's other files are the user's. A running
+program that reads its look at start gets the usual offer to restart. Telegram
+keeps the applied palette in its own settings, so it stays until chosen there.
+
 Mixed files are **merged** on apply: the theme's allowed keys are written,
 allowed keys the theme lacks are removed (e.g. a fixed accent the theme does
 not have), every other key keeps the user's value. JSON-with-comments files are

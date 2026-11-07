@@ -1072,7 +1072,12 @@ fn restore_from_profile(profile: &str, rel_paths: &[String]) -> Result<()> {
                 }
             }
             policy => {
-                if !src.exists() || crate::tracked_apps::app_absent_for(rel, &dst) {
+                if !src.exists() {
+                    // Not in this theme: nothing of another theme stays.
+                    reset_unspecified(rel, &dst, &policy)?;
+                    continue;
+                }
+                if crate::tracked_apps::app_absent_for(rel, &dst) {
                     continue;
                 }
                 if let Some(parent) = dst.parent() {
@@ -1111,7 +1116,45 @@ fn restore_from_profile(profile: &str, rel_paths: &[String]) -> Result<()> {
             }
         }
     }
+    if !source.join(".local/share/konsole").is_dir() {
+        crate::konsole::reset_generated()?;
+    }
     write_active(profile)?;
+    Ok(())
+}
+
+/// What a theme does not specify goes back to the program's default. Mixed
+/// files lose their look keys (other keys stay the user's); of the files that
+/// are all look, only the ones we generate (`theme-profile*`) are removed: any
+/// other is the user's own. The prompt file stays, a shell config points at it.
+fn reset_unspecified(rel: &str, dst: &Path, policy: &appearance::Policy) -> Result<()> {
+    use appearance::Policy as P;
+    match policy {
+        P::Whole => {
+            let ours = |p: &Path| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with("theme-profile"));
+            if rel == crate::extras::OMP_THEME {
+                return Ok(());
+            }
+            if dst.is_dir() {
+                for entry in fs::read_dir(dst)?.flatten() {
+                    if entry.path().is_file() && ours(&entry.path()) {
+                        fs::remove_file(entry.path())?;
+                    }
+                }
+            } else if dst.is_file() && ours(dst) {
+                fs::remove_file(dst)?;
+            }
+        }
+        P::Ini(_) | P::Kv(_) | P::Jsonc(_) | P::Prefs(_) | P::Lines(_) | P::KwinRc => {
+            if let Ok(live) = fs::read_to_string(dst) {
+                let reset = appearance::applied(rel, "", Some(&live))?;
+                if reset != live && !reset.trim().is_empty() {
+                    write_text(dst, &reset)?;
+                }
+            }
+        }
+        _ => {}
+    }
     Ok(())
 }
 
