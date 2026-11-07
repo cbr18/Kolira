@@ -8,5 +8,3 @@ user_pref("mod.sameerasw.zen_bg_color_enabled", true);
 user_pref("mod.sameerasw.zen_bg_opacity", "0.55");
 user_pref("layout.css.prefers-color-scheme.content-override", 1);
 user_pref("zen.view.window.scheme", 1);
-user_pref("browser.theme.toolbar-theme", 1);
-user_pref("browser.theme.content-theme", 1);

@@ -9,7 +9,10 @@
 //!   styling). Applying merges just that into the live file: each live
 //!   desktop gets the wallpaper of the theme's desktop on the same screen
 //!   (else the first), each live launcher / Panel Colorizer gets the look keys
-//!   of the theme's n-th widget of that kind. Which widgets exist, where they
+//!   of the theme's n-th widget of that kind. A switched-off Panel Colorizer
+//!   styles nothing: the theme keeps only `isEnabled=false`, applying it turns
+//!   the user's widget off and leaves their styling alone, and the widget is
+//!   not a dependency. Which widgets exist, where they
 //!   sit, their behaviour settings, panels, desktop icons and activities are
 //!   never changed.
 //! * **`plasmashellrc`** — per panel only `floating` and `panelOpacity`;
@@ -102,6 +105,38 @@ fn look_keys(plugin: &str) -> Option<&'static [&'static str]> {
     LOOK_APPLETS.iter().find(|(p, _)| *p == plugin).map(|(_, k)| *k)
 }
 
+const COLORIZER: &str = "luisbocanegra.panel.colorizer";
+
+/// A `isEnabled=false` line among a Panel Colorizer's settings?
+fn colorizer_off(lines: &[String]) -> bool {
+    lines.iter().any(|l| key_of(l) == Some("isEnabled") && l.split_once('=').is_some_and(|(_, v)| v.trim() == "false"))
+}
+
+/// The keys of widget `plugin` that carry its look, given its settings.
+fn effective_look_keys(plugin: &str, lines: &[String]) -> Option<&'static [&'static str]> {
+    if plugin == COLORIZER && colorizer_off(lines) {
+        return Some(&["isEnabled"]);
+    }
+    look_keys(plugin)
+}
+
+/// Widgets a theme needs installed: those it styles, without a switched-off
+/// Panel Colorizer. `text` is an appletsrc, whole or as a theme stores it.
+pub fn needed_plasmoids(text: &str) -> Vec<String> {
+    let sections = parse_ini(&appletsrc_for_theme(text));
+    let mut out: Vec<String> = Vec::new();
+    for s in &sections {
+        let group = s.group();
+        let (["Containments", _, "Applets", _], Some(plugin)) = (segments(group).as_slice(), get(s, "plugin")) else { continue };
+        let config = format!("{group}][Configuration][General");
+        let off = plugin == COLORIZER && sections.iter().any(|c| c.group() == config && colorizer_off(&c.lines));
+        if !off && !out.iter().any(|p| p == plugin) {
+            out.push(plugin.to_string());
+        }
+    }
+    out
+}
+
 fn is_panel(s: &Section) -> bool {
     get(s, "plugin") == Some("org.kde.panel") || get(s, "location").is_some_and(|l| l != "0")
 }
@@ -155,7 +190,7 @@ pub fn appletsrc_for_theme(text: &str) -> String {
                 .any(|(ci, ai, _)| ci == c && ai == a)
                 .then(|| s.lines.iter().filter(|l| key_of(l) == Some("plugin")).cloned().collect()),
             ["Containments", c, "Applets", a, "Configuration", "General"] => {
-                applets.iter().find(|(ci, ai, _)| ci == c && ai == a).and_then(|(_, _, p)| look_keys(p)).map(|keys| {
+                applets.iter().find(|(ci, ai, _)| ci == c && ai == a).and_then(|(_, _, p)| effective_look_keys(p, &s.lines)).map(|keys| {
                     s.lines.iter().filter(|l| key_of(l).is_some_and(|k| keys.contains(&k))).cloned().collect()
                 })
             }
@@ -261,7 +296,9 @@ pub fn appletsrc_merge(theme: &str, live: &str) -> String {
         .collect();
     let mut seen: Vec<(String, usize)> = Vec::new();
     for (c, a, plugin) in &live_applets {
-        let Some(keys) = look_keys(plugin) else { continue };
+        if look_keys(plugin).is_none() {
+            continue;
+        }
         let n = match seen.iter_mut().find(|(p, _)| p == plugin) {
             Some((_, n)) => {
                 *n += 1;
@@ -275,6 +312,8 @@ pub fn appletsrc_merge(theme: &str, live: &str) -> String {
         let ours: Vec<&(String, String, String)> = theme_applets.iter().filter(|(_, _, p)| p == plugin).collect();
         let Some((tc, ta, _)) = ours.get(n).or_else(|| ours.first()) else { continue };
         let look = theme_look(tc, ta);
+        // Off in the theme: only the switch; the user's styling stays.
+        let Some(keys) = effective_look_keys(plugin, &look) else { continue };
         let group = format!("Containments][{c}][Applets][{a}][Configuration][General");
         match sections.iter_mut().find(|s| s.group() == group) {
             Some(s) => set_keys(s, keys, &look),
@@ -577,6 +616,28 @@ AppletOrder=22;21
         let live = "[Containments][5]\nformfactor=2\nlocation=4\nplugin=org.kde.panel\n";
         assert_eq!(appletsrc_merge(THEME, live), live);
         assert_eq!(appletsrc_merge("", LIVE), LIVE);
+    }
+
+    #[test]
+    fn a_switched_off_colorizer_keeps_only_the_switch() {
+        let theme = "[Containments][2]\nlocation=4\nplugin=org.kde.panel\n\n[Containments][2][Applets][3]\nplugin=luisbocanegra.panel.colorizer\n\n[Containments][2][Applets][3][Configuration][General]\nglobalSettings={big}\nhideWidget=true\nisEnabled=false\n\n[Containments][2][Applets][4]\nplugin=org.kde.plasma.kickoff\n";
+        let t = appletsrc_for_theme(theme);
+        assert!(t.contains("isEnabled=false") && !t.contains("globalSettings") && !t.contains("hideWidget"), "{t}");
+        assert_eq!(appletsrc_for_theme(&t), t);
+        assert_eq!(needed_plasmoids(&t), vec!["org.kde.plasma.kickoff"]);
+        assert_eq!(needed_plasmoids(theme), vec!["org.kde.plasma.kickoff"]);
+
+        let live = "[Containments][20]\nlocation=4\nplugin=org.kde.panel\n\n[Containments][20][Applets][21]\nplugin=luisbocanegra.panel.colorizer\n\n[Containments][20][Applets][21][Configuration][General]\nglobalSettings={mine}\nisEnabled=true\n";
+        let m = appletsrc_merge(theme, live);
+        assert!(m.contains("isEnabled=false") && !m.contains("isEnabled=true"), "{m}");
+        assert!(m.contains("globalSettings={mine}") && !m.contains("{big}"), "{m}");
+
+        // Switched on, its styling is the theme's look and it is needed.
+        let on = theme.replace("isEnabled=false", "isEnabled=true");
+        assert!(appletsrc_for_theme(&on).contains("globalSettings={big}"));
+        assert!(needed_plasmoids(&on).contains(&"luisbocanegra.panel.colorizer".to_string()));
+        let m = appletsrc_merge(&on, live);
+        assert!(m.contains("globalSettings={big}") && m.contains("isEnabled=true"), "{m}");
     }
 
     #[test]

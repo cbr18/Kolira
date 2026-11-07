@@ -530,12 +530,13 @@ pub fn detect(dir: &Path, values: &std::collections::BTreeMap<String, Value>, so
             add(describe("kwin-effect", &id, &paths));
         }
     }
-    // Panel widgets the user installed (system ones come with Plasma).
+    // Panel widgets the theme styles and the user installed (system ones come
+    // with Plasma); a switched-off Panel Colorizer styles nothing.
     if let Ok(text) = fs::read_to_string(dir.join(crate::wallpaper::APPLETSRC_REL)) {
-        for plugin in text.lines().filter_map(|l| l.strip_prefix("plugin=")).map(str::trim) {
-            let user = data_home().join("plasma/plasmoids").join(plugin);
-            if safe_name(plugin) && user.exists() {
-                add(describe("plasmoid", plugin, &[user]));
+        for plugin in crate::layout::needed_plasmoids(&text) {
+            let user = data_home().join("plasma/plasmoids").join(&plugin);
+            if safe_name(&plugin) && user.exists() {
+                add(describe("plasmoid", &plugin, &[user]));
             }
         }
     }

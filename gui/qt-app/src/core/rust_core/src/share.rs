@@ -221,6 +221,8 @@ fn theme_files_for(dir: &Path, include_wallpaper: bool, public: bool) -> Result<
     rels.retain(|rel| exported(rel, &asset_paths));
     // Look & Feel layout scripts would bring the author's panels (layout.rs).
     rels.retain(|rel| !crate::layout::is_laf_layout(rel));
+    let unused = crate::appearance::unused_files_in(dir);
+    rels.retain(|rel| !unused.iter().any(|u| rel == Path::new(u)));
     if public {
         let held: Vec<PathBuf> = withheld(&package).iter().map(|a| PathBuf::from(&a.path)).collect();
         rels.retain(|rel| !held.iter().any(|h| rel.starts_with(h)));

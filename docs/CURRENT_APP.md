@@ -104,7 +104,7 @@ Obsidian…), плюс `theme.json` (описание, значения для G
 - `.config/kwinrulesrc` — правила окон (только свойства оформления)
 - `.config/kdeglobals` — цвета, акцент, Look & Feel, цветовая схема
 - `.config/plasmarc` — настройки Plasma
-- `.config/plasma-org.kde.plasma.desktop-appletsrc` — только вид: обои рабочих столов, значок меню запуска, Panel Colorizer; раскладка панелей и виджетов остаётся пользовательской (`rust_core/src/layout.rs`)
+- `.config/plasma-org.kde.plasma.desktop-appletsrc` — только вид: обои рабочих столов, значок меню запуска, Panel Colorizer (выключенный — только сам выключатель); раскладка панелей и виджетов остаётся пользовательской (`rust_core/src/layout.rs`)
 - `.config/plasmashellrc` — только `floating`/`panelOpacity` панелей (размеры и автоскрытие — пользовательские)
 
 ### GTK
@@ -118,8 +118,8 @@ Obsidian…), плюс `theme.json` (описание, значения для G
 папка, вид), а не оформление — восстановление откатывало диалог.
 
 ### Window Decorations (опционально)
-- `.config/breezerc` — стиль Breeze (компонент `breeze`; прозрачность меню `[Style] MenuOpacity`, поле инспектора «Breeze menu opacity»)
-- `.config/klassy/klassyrc`, `windecopresetsrc`
+- `.config/breezerc` — стиль Breeze, хранится только если стиль приложений или оформление окон — Breeze (компонент `breeze`; прозрачность меню `[Style] MenuOpacity`, поле инспектора «Breeze menu opacity»)
+- `.config/klassy/klassyrc`, `windecopresetsrc` — хранятся только если стиль или оформление — Klassy
 - `.config/Kvantum/kvantum.kvconfig` + папка семейства **активной** темы Kvantum
 
 ### Terminals (опционально)

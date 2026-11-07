@@ -1205,6 +1205,8 @@ pub fn resolve_cli_paths(components: Option<Vec<String>>) -> Result<Vec<String>>
     Ok(out)
 }
 
+const GTK3_SETTINGS: &str = ".config/gtk-3.0/settings.ini";
+
 fn apply_with_paths(profile: &str, rel_paths: &[String]) -> Result<PathBuf> {
     let dir = safe_profile_dir(profile)?;
     if !dir.is_dir() {
@@ -1245,6 +1247,13 @@ fn apply_with_paths(profile: &str, rel_paths: &[String]) -> Result<PathBuf> {
             };
             if let Err(e) = restore_active_kvantum_theme(&dir, rel_paths) {
                 eprintln!("Warning: could not restore the Kvantum theme: {e}");
+            }
+            if rel_paths.iter().any(|p| p == GTK3_SETTINGS) {
+                let ini = dir.join(GTK3_SETTINGS);
+                crate::field::sync_gtk_desktop(
+                    ini_group_key(&ini, "Settings", "gtk-theme-name").as_deref(),
+                    ini_group_key(&ini, "Settings", "gtk-application-prefer-dark-theme").as_deref(),
+                );
             }
             apply_live_hooks(&dir);
             if let Some(path) = wallpaper {

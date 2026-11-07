@@ -8,9 +8,9 @@ already have a theme with that name (nothing is applied or overwritten);
 theme-profile import themes/glass        # then: theme-profile apply glass
 ```
 
-Themes style the user's own panels and never bring a layout: Panel Colorizer
-and the launcher (Simple Application Launcher) are listed because the theme
-styles them — a theme does not add them to a panel (`docs/THEMES.md`).
+Themes style the user's own panels and never bring a layout: the launcher
+(Simple Application Launcher) is listed because the theme sets its icon — a
+theme does not add it to a panel (`docs/THEMES.md`).
 
 Each folder is a public export (`theme-profile export NAME --dir=themes/NAME --public`):
 only the look (see `docs/THEMES.md`), the home folder written as `$HOME`, no desktop
@@ -47,7 +47,6 @@ Dark translucent glass: blur everywhere, OrchisDark Kvantum, accent from the mon
 | decoration | org.kde.klassy | AUR | [link](https://aur.archlinux.org/packages/klassy) |
 | widget-style | kvantum | Arch package | [link](https://archlinux.org/packages/?q=kvantum) |
 | kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
-| plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
 | plasmoid | Simple Application Launcher for Plasma 6 | KDE Store | [link](https://store.kde.org/p/2115883) |
 | sddm | sddm-astronaut-theme | AUR | [link](https://aur.archlinux.org/packages/sddm-astronaut-theme) |
 | oh-my-posh | oh-my-posh (prompts usually need a Nerd Font) | AUR | [link](https://ohmyposh.dev/docs/installation/linux) |
@@ -77,7 +76,6 @@ Light, flat and warm: Sandstone Kvantum, no transparency, watercolour wallpaper
 | widget-style | kvantum | Arch package | [link](https://archlinux.org/packages/?q=kvantum) |
 | kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
 | kwin-effect | glass | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-glass-git) |
-| plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
 | plasmoid | Simple Application Launcher for Plasma 6 | KDE Store | [link](https://store.kde.org/p/2115883) |
 | sddm | sddm-astronaut-theme | AUR | [link](https://aur.archlinux.org/packages/sddm-astronaut-theme) |
 | oh-my-posh | oh-my-posh (prompts usually need a Nerd Font) | AUR | [link](https://ohmyposh.dev/docs/installation/linux) |
@@ -102,7 +100,6 @@ Everforest Dark Medium: matte green palette, Breeze widgets/GTK, misty pine fore
 | icons | Yet Another Monochrome Icon Set For KDE Plasma | KDE Store (search match — confirm) | [link](https://store.kde.org/p/2303161) |
 | decoration | org.kde.klassy | AUR | [link](https://aur.archlinux.org/packages/klassy) |
 | kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
-| plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
 | plasmoid | Simple Application Launcher for Plasma 6 | KDE Store | [link](https://store.kde.org/p/2115883) |
 | sddm | sddm-astronaut-theme | AUR | [link](https://aur.archlinux.org/packages/sddm-astronaut-theme) |
 | oh-my-posh | oh-my-posh (prompts usually need a Nerd Font) | AUR | [link](https://ohmyposh.dev/docs/installation/linux) |
@@ -132,7 +129,6 @@ Dracula palette on glass: purple accent, recoloured Kvantum, blur
 | decoration | org.kde.klassy | AUR | [link](https://aur.archlinux.org/packages/klassy) |
 | widget-style | kvantum | Arch package | [link](https://archlinux.org/packages/?q=kvantum) |
 | kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
-| plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
 | plasmoid | Simple Application Launcher for Plasma 6 | KDE Store | [link](https://store.kde.org/p/2115883) |
 | sddm | sddm-astronaut-theme | AUR | [link](https://aur.archlinux.org/packages/sddm-astronaut-theme) |
 | oh-my-posh | oh-my-posh (prompts usually need a Nerd Font) | AUR | [link](https://ohmyposh.dev/docs/installation/linux) |
@@ -163,7 +159,6 @@ Frutiger Aero: Windows 7 glass titlebars (Se7en Aero), see-through Kvantum glass
 | aurorae | Se7en Aero Aurorae | KDE Store | [link](https://store.kde.org/p/1406638) |
 | widget-style | kvantum | Arch package | [link](https://archlinux.org/packages/?q=kvantum) |
 | kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
-| plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
 | plasmoid | Simple Application Launcher for Plasma 6 | KDE Store | [link](https://store.kde.org/p/2115883) |
 | discord-client | Vesktop (Discord with Vencord) — or install Vencord into Discord: https://vencord.dev/download/ | AUR | [link](https://vencord.dev/download/) |
 | sddm | sddm-astronaut-theme | AUR | [link](https://aur.archlinux.org/packages/sddm-astronaut-theme) |
@@ -197,7 +192,6 @@ Frutiger Aero Light — Windows 7 as it shipped: white windows with black text, 
 | widget-style | kvantum | Arch package | [link](https://archlinux.org/packages/?q=kvantum) |
 | kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
 | kwin-effect | kwin4_effect_shapecorners | AUR | [link](https://aur.archlinux.org/packages/kwin-effect-rounded-corners-git) |
-| plasmoid | Panel Colorizer | KDE Store | [link](https://store.kde.org/p/2130967) |
 | plasmoid | Simple Application Launcher for Plasma 6 | KDE Store | [link](https://store.kde.org/p/2115883) |
 | discord-client | Vesktop (Discord with Vencord) — or install Vencord into Discord: https://vencord.dev/download/ | AUR | [link](https://vencord.dev/download/) |
 | sddm | sddm-astronaut-theme | AUR | [link](https://aur.archlinux.org/packages/sddm-astronaut-theme) |

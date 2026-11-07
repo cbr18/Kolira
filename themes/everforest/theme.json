@@ -59,15 +59,6 @@
     },
     {
       "exact": true,
-      "id": "2130967",
-      "kind": "plasmoid",
-      "name": "luisbocanegra.panel.colorizer",
-      "source": "kde-store",
-      "title": "Panel Colorizer",
-      "url": "https://store.kde.org/p/2130967"
-    },
-    {
-      "exact": true,
       "id": "2115883",
       "kind": "plasmoid",
       "name": "org.kde.plasma.simplekickoff",
@@ -185,10 +176,6 @@
     "selection_text": "0,0,0",
     "text_color": "211,198,170",
     "tooltip_bg": "52,63,68",
-    "translucency_dialogs": 99,
-    "translucency_inactive": 97,
-    "translucency_menus": 96,
-    "translucency_popups": 97,
     "view_bg": "35,42,46",
     "vscode_theme": "dfd05a73-c189-4622-87c7-573fbb3a46b9",
     "widget_style": "Breeze",

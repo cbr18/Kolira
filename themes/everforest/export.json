@@ -26,10 +26,10 @@
     ".config/kitty/theme-profile.conf": "80d2f3fecc5397d60c2c23ac5ff952cc59d75991d88563310500142bf38981d9",
     ".config/klassy/klassyrc": "eff0f0384cd8e72dbf7d33526ebd0d02136bcf8a190ba108c45314bf6ae0250c",
     ".config/klassy/windecopresetsrc": "b6d07d0a648895c79deebbf53a9b9a506998a7ae6e89ae51594efcd4a2ff6d8b",
-    ".config/kwinrc": "752b96f7c4b9aeae9758bd537255cbe2e1cc745d0922ab6bacfa6aca20751a85",
+    ".config/kwinrc": "cea1c3a1f81d08fa1fdb6f36406d05c4f780507a416d4a89e3cb5839eebc8868",
     ".config/kwinrulesrc": "f72673fb198d76951b20290eb0d0e94d2e3e364c0d60b0df460e7f79d18ec788",
     ".config/oh-my-posh/theme-profile.omp.json": "8c6275d69b4441c495c9ecf21ec08eff723c42d4138839165eb4b6958b1d7368",
-    ".config/plasma-org.kde.plasma.desktop-appletsrc": "8dc6d74fd9d378e678ad3c8548141392c7827867e5e3924af9ed74e366e3e3c2",
+    ".config/plasma-org.kde.plasma.desktop-appletsrc": "465474b30dafb9f979da93271dfedc055c6ac9a1c534e7408cfb31cda81ff5dd",
     ".config/plasmarc": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".config/plasmashellrc": "0d2631c02c848f1692dd16c7f4619683ec959a498da0f46feafd5d6e61d393a8",
     ".config/theme-profile/palette.json": "a624e6cdceaa568bdb0f92dae80243dcc00febd0758a36adb04685817db0f676",
@@ -46,7 +46,7 @@
     "manifest.json": "15599060587bacfc4aa050e568ed09c14127d274ecf951262e36441a16926c34",
     "manifest.txt": "4efb156490b8bf2c72416f4396d81af0c94a2c56d928de908a424b9567a09c49",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-    "theme.json": "e14b82a12d40a72ef0e13df0de9e2226ff8344375b397ee53cf0212dd8d76cb5",
+    "theme.json": "961a07003814195197efdbe7c6986faf5667cdf82a33a62c45ec2689d5832854",
     "wallpaper/everforest-misty-pines.jpg": "eaa504fb6526ae9d04e7a647944ecb9ea2ca867a3241064b66467fda288e4958",
     "wallpaper/source": "90437a63f17675e4ed75072ee076622b2c650787a8f4336b3f9d4057f7445a5a"
   }

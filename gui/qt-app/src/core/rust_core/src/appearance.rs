@@ -15,6 +15,8 @@
 //!   the look lives in a separate file (`kitty/theme-profile.conf`,
 //!   `alacritty/theme-profile.toml`) that the user's config includes once;
 //!   the user's config itself is never stored and only gains the include line;
+//! * [`Policy::KwinRc`] — [`KWINRC`] without the settings of effects the theme
+//!   keeps off (those stay as the user has them);
 //! * [`Policy::KwinRules`] — window rules merged rule by rule, look
 //!   properties only;
 //! * [`Policy::Appletsrc`] / [`Policy::PanelViews`] — the Plasma shell's look
@@ -78,6 +80,8 @@ pub enum Policy {
     /// Lines selected by a predicate, merged by name (fish colours, bat theme).
     Lines(fn(&str) -> bool),
     KwinRules,
+    /// `kwinrc`: [`KWINRC`] without the settings of effects the theme keeps off.
+    KwinRc,
     /// `plasma-org.kde.plasma.desktop-appletsrc`: look merged into the live layout.
     Appletsrc,
     /// `plasmashellrc`: per-panel `floating` / `panelOpacity`.
@@ -171,7 +175,7 @@ pub fn policy(rel: &str) -> Policy {
     }
     match rel {
         ".config/kdeglobals" => Policy::Ini(KDEGLOBALS),
-        ".config/kwinrc" => Policy::Ini(KWINRC),
+        ".config/kwinrc" => Policy::KwinRc,
         ".config/kwinrulesrc" => Policy::KwinRules,
         ".config/plasmarc" => Policy::Ini(PLASMARC),
         ".config/kcminputrc" => Policy::Ini(KCMINPUTRC),
@@ -343,6 +347,93 @@ pub fn keep_live_size(key: &str, theme_value: &str, live_value: Option<&str>) ->
         }
     }
     theme.join(",")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Settings the look does not use
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Effects KWin keeps off unless `<id>Enabled=true` (no key = off).
+const EFFECTS_OFF_BY_DEFAULT: &[&str] = &["translucency", "blurplus"];
+
+fn ini_value(sections: &[Section], group: &str, key: &str) -> Option<String> {
+    sections
+        .iter()
+        .filter(|s| s.header.is_some() && s.group() == group)
+        .flat_map(|s| s.lines.iter())
+        .find(|l| base_key(l) == Some(key))
+        .and_then(|l| l.split_once('='))
+        .map(|(_, v)| v.trim().to_string())
+}
+
+/// Does `group` of a kwinrc hold the settings of an effect that is off in
+/// `sections`? Only clear cases: effects that are on by default (overview…)
+/// or not listed stay.
+fn effect_block_unused(group: &str, sections: &[Section]) -> bool {
+    let (id, default_off) = match group.strip_prefix("Effect-") {
+        Some(name) => {
+            let id = name.replace('-', "_");
+            let off = EFFECTS_OFF_BY_DEFAULT.contains(&id.as_str());
+            (id, off)
+        }
+        None if group == "Round-Corners" => ("kwin4_effect_shapecorners".to_string(), false),
+        None => return false,
+    };
+    match ini_value(sections, "Plugins", &format!("{id}Enabled")).as_deref() {
+        Some("false") => true,
+        Some(_) => false,
+        None => default_off,
+    }
+}
+
+fn kwinrc_filter(text: &str) -> String {
+    let sections = parse_ini(text);
+    let kept: Vec<Section> = parse_ini(&ini_filter(text, KWINRC))
+        .into_iter()
+        .filter(|s| s.header.is_some() && !effect_block_unused(s.group(), &sections))
+        .collect();
+    render_ini(&kept)
+}
+
+/// The theme's kwinrc look into the live one. The live settings of an effect
+/// the theme keeps off are not the theme's business: they stay.
+fn kwinrc_merge(theme: &str, live: &str) -> String {
+    let theme_sections = parse_ini(theme);
+    let keep: Vec<Section> = parse_ini(live)
+        .into_iter()
+        .filter(|s| s.header.is_some() && effect_block_unused(s.group(), &theme_sections))
+        .collect();
+    let mut merged = parse_ini(&ini_merge(&kwinrc_filter(theme), live, KWINRC));
+    merged.extend(keep);
+    render_ini(&merged)
+}
+
+/// Config files nothing in this theme reads: Breeze's and Klassy's settings
+/// when neither its widget style nor its window decoration is that one
+/// (absent keys mean KDE's default, Breeze).
+pub fn unused_files(kdeglobals: &str, kwinrc: &str) -> Vec<&'static str> {
+    let of = |text: &str, group: &str, key: &str, default: &str| {
+        ini_value(&parse_ini(text), group, key).filter(|v| !v.is_empty()).unwrap_or_else(|| default.to_string()).to_lowercase()
+    };
+    let style = of(kdeglobals, "KDE", "widgetStyle", "breeze");
+    let library = of(kwinrc, "org.kde.kdecoration2", "library", "org.kde.breeze");
+    let mut unused = Vec::new();
+    if style != "breeze" && library != "org.kde.breeze" {
+        unused.push(".config/breezerc");
+    }
+    if style != "klassy" && library != "org.kde.klassy" {
+        unused.extend([".config/klassy/klassyrc", ".config/klassy/windecopresetsrc"]);
+    }
+    unused
+}
+
+/// [`unused_files`] of theme folder `dir`; nothing when it cannot tell (a
+/// partial snapshot without `kdeglobals` or `kwinrc`).
+pub fn unused_files_in(dir: &std::path::Path) -> Vec<&'static str> {
+    match (std::fs::read_to_string(dir.join(".config/kdeglobals")), std::fs::read_to_string(dir.join(".config/kwinrc"))) {
+        (Ok(kdeglobals), Ok(kwinrc)) => unused_files(&kdeglobals, &kwinrc),
+        _ => Vec::new(),
+    }
 }
 
 /// `live` with its appearance keys replaced by the theme's: allowed keys the
@@ -880,6 +971,7 @@ fn non_empty(text: String) -> Option<String> {
 pub fn for_theme(rel: &str, text: &str) -> Option<String> {
     match policy(rel) {
         Policy::Whole => Some(text.to_string()),
+        Policy::KwinRc => Some(kwinrc_filter(text)),
         Policy::KwinRules => non_empty(crate::layout::kwinrules_for_theme(text)),
         Policy::Appletsrc => non_empty(crate::layout::appletsrc_for_theme(text)),
         Policy::PanelViews => non_empty(crate::layout::panel_views_for_theme(text)),
@@ -897,6 +989,7 @@ pub fn applied(rel: &str, theme_text: &str, live_text: Option<&str>) -> Result<S
     let live = live_text.unwrap_or("");
     Ok(match policy(rel) {
         Policy::Whole => theme_text.to_string(),
+        Policy::KwinRc => kwinrc_merge(theme_text, live),
         Policy::Ini(rules) => ini_merge(theme_text, live, rules),
         Policy::KwinRules => kwinrules_merge(&crate::layout::kwinrules_for_theme(theme_text), live),
         Policy::Appletsrc => crate::layout::appletsrc_merge(theme_text, live),
@@ -1033,6 +1126,44 @@ mod tests {
         let m = kwinrules_merge(theme, live);
         assert!(m.contains("count=2") && m.contains("rules=a,b") && m.contains("Description=mine") && m.contains("opacityactive=90"));
         assert!(!m.contains("Order="));
+    }
+
+    #[test]
+    fn kwinrc_drops_settings_of_effects_that_are_off() {
+        let theme = "[Effect-blur]\nBlurStrength=10\n\n[Effect-better-blur-dx]\nBlurStrength=5\n\n[Effect-blurplus]\nBlurStrength=14\n\n[Effect-translucency]\nMenus=96\n\n[Effect-overview]\nBorderActivate=9\n\n[Round-Corners]\nSize=10\n\n[Plugins]\nbetter_blur_dxEnabled=true\nblurEnabled=false\nkwin4_effect_shapecornersEnabled=false\n";
+        let t = kwinrc_filter(theme);
+        for gone in ["[Effect-blur]", "[Effect-blurplus]", "[Effect-translucency]", "[Round-Corners]"] {
+            assert!(!t.contains(gone), "{gone} stored:\n{t}");
+        }
+        assert!(t.contains("[Effect-better-blur-dx]") && t.contains("[Effect-overview]") && t.contains("blurEnabled=false"), "{t}");
+        assert_eq!(kwinrc_filter(&t), t);
+
+        // On in the theme, the theme's settings count.
+        let on = "[Effect-translucency]\nMenus=96\n\n[Plugins]\ntranslucencyEnabled=true\n";
+        assert!(kwinrc_filter(on).contains("Menus=96"));
+
+        // The user's settings of an effect the theme keeps off stay; on ones follow the theme.
+        let live = "[Effect-blur]\nBlurStrength=3\n\n[Effect-better-blur-dx]\nBlurStrength=9\n\n[Plugins]\nblurEnabled=true\n\n[Windows]\nFocusPolicy=mine\n";
+        let m = kwinrc_merge(&t, live);
+        assert!(m.contains("[Effect-blur]\nBlurStrength=3") && m.contains("BlurStrength=5") && !m.contains("BlurStrength=9"), "{m}");
+        assert!(m.contains("blurEnabled=false") && !m.contains("blurEnabled=true") && m.contains("FocusPolicy=mine"), "{m}");
+        assert_eq!(kwinrc_merge(&t, &m).lines().filter(|l| l.starts_with('[')).count(), m.lines().filter(|l| l.starts_with('[')).count());
+    }
+
+    #[test]
+    fn breeze_and_klassy_settings_go_with_their_use() {
+        let kv = "[KDE]\nwidgetStyle=kvantum\n";
+        let aurorae = "[org.kde.kdecoration2]\nlibrary=org.kde.kwin.aurorae\n";
+        let klassy = "[org.kde.kdecoration2]\nlibrary=org.kde.klassy\n";
+        let breeze = "[org.kde.kdecoration2]\nlibrary=org.kde.breeze\n";
+        let all = [".config/breezerc", ".config/klassy/klassyrc", ".config/klassy/windecopresetsrc"];
+        assert_eq!(unused_files(kv, aurorae), all);
+        assert_eq!(unused_files(kv, klassy), [".config/breezerc"]);
+        assert_eq!(unused_files(kv, breeze), &all[1..]);
+        assert_eq!(unused_files("[KDE]\nwidgetStyle=Breeze\n", klassy), Vec::<&str>::new());
+        assert_eq!(unused_files("[KDE]\nwidgetStyle=Klassy\n", aurorae), [".config/breezerc"]);
+        // No keys: KDE's default is Breeze.
+        assert_eq!(unused_files("", ""), &all[1..]);
     }
 
     #[test]

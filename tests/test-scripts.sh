@@ -42,7 +42,7 @@ run_silent() { "$@" >/dev/null 2>&1; }
 SAFE_BIN="$(mktemp -d)"
 for tool in plasma-apply-lookandfeel plasma-apply-colorscheme plasma-apply-desktoptheme \
   plasma-apply-cursortheme plasma-apply-wallpaperimage kvantummanager qdbus6 dbus-send \
-  systemctl kbuildsycoca6 kitty; do
+  systemctl kbuildsycoca6 kitty gsettings; do
   printf '#!/usr/bin/env bash\nexit 1\n' >"$SAFE_BIN/$tool"
   chmod +x "$SAFE_BIN/$tool"
 done
@@ -2152,6 +2152,84 @@ if grep -qx "Order=mine,r1" "$RULES" && ! grep -q "count=\|^rules=" "$RULES" && 
   ok "window rules: the theme's look rule joins the user's (KWin 6 Order= kept, behaviour not carried)"
 else
   fail "window rules: $(cat "$RULES")"
+fi
+
+# --- GTK theme reaches GSettings (Wayland GTK apps read it, not settings.ini) ---
+GS="$TMP_ROOT/gsettings-home"
+GS_MOCK="$TMP_ROOT/gsettings-mock"
+mkdir -p "$GS/.config/gtk-3.0" "$GS/.config/gtk-4.0" "$GS_MOCK"
+printf '#!/usr/bin/env bash\necho "$*" >>"%s/calls"\nexit 0\n' "$GS_MOCK" >"$GS_MOCK/gsettings"
+chmod +x "$GS_MOCK/gsettings"
+printf '[Settings]\ngtk-theme-name=LightOne\ngtk-application-prefer-dark-theme=false\n' >"$GS/.config/gtk-3.0/settings.ini"
+gs() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$GS" PATH="$GS_MOCK:$PATH" "$CLI_DIR/theme-profile" "$@"; }
+KTM_THEME_NO_APPLY=1 gs save gslight --no-wallpaper >/dev/null 2>&1
+printf '[Settings]\ngtk-theme-name=DarkOne\ngtk-application-prefer-dark-theme=true\n' >"$GS/.config/gtk-3.0/settings.ini"
+: >"$GS_MOCK/calls"
+gs apply gslight >/dev/null 2>&1
+if grep -qx "set org.gnome.desktop.interface gtk-theme LightOne" "$GS_MOCK/calls" &&
+  grep -qx "set org.gnome.desktop.interface color-scheme prefer-light" "$GS_MOCK/calls"; then
+  ok "apply writes the theme's GTK theme and colour scheme to GSettings"
+else
+  fail "apply did not update GSettings: $(cat "$GS_MOCK/calls")"
+fi
+: >"$GS_MOCK/calls"
+gs field set gtk_theme=Other gtk_dark=true >/dev/null 2>&1
+if grep -qx "set org.gnome.desktop.interface gtk-theme Other" "$GS_MOCK/calls" &&
+  grep -qx "set org.gnome.desktop.interface color-scheme prefer-dark" "$GS_MOCK/calls"; then
+  ok "field set mirrors the GTK theme and dark preference to GSettings"
+else
+  fail "field set did not update GSettings: $(cat "$GS_MOCK/calls")"
+fi
+: >"$GS_MOCK/calls"
+KTM_THEME_NO_APPLY=1 gs apply gslight >/dev/null 2>&1
+if [ ! -s "$GS_MOCK/calls" ]; then
+  ok "KTM_THEME_NO_APPLY keeps GSettings untouched"
+else
+  fail "GSettings written under KTM_THEME_NO_APPLY: $(cat "$GS_MOCK/calls")"
+fi
+
+# --- Settings the theme's look does not use are not carried -------------------
+UA="$TMP_ROOT/unused-author"
+UB="$TMP_ROOT/unused-user"
+COLORIZER=luisbocanegra.panel.colorizer
+mkdir -p "$UA/.config/klassy" "$UB/.config/klassy" "$UA/.local/share/plasma/plasmoids/$COLORIZER"
+printf '[KDE]\nwidgetStyle=kvantum\n' >"$UA/.config/kdeglobals"
+printf '[Effect-blur]\nBlurStrength=10\n\n[Effect-better-blur-dx]\nBlurStrength=5\n\n[Effect-translucency]\nMenus=96\n\n[Plugins]\nbetter_blur_dxEnabled=true\nblurEnabled=false\n\n[org.kde.kdecoration2]\nlibrary=org.kde.kwin.aurorae\ntheme=__aurorae__svg__Any\n' >"$UA/.config/kwinrc"
+printf '[Style]\nMenuOpacity=50\n' >"$UA/.config/breezerc"
+printf '[Windeco]\nWindowCornerRadius=4\n' >"$UA/.config/klassy/klassyrc"
+printf '[Containments][2]\nformfactor=2\nlocation=4\nplugin=org.kde.panel\n\n[Containments][2][Applets][3]\nplugin=%s\n\n[Containments][2][Applets][3][Configuration][General]\nglobalSettings={author}\nhideWidget=true\nisEnabled=false\n' "$COLORIZER" >"$UA/.config/plasma-org.kde.plasma.desktop-appletsrc"
+printf '[Effect-blur]\nBlurStrength=3\n\n[Effect-better-blur-dx]\nBlurStrength=9\n\n[Plugins]\nblurEnabled=true\n' >"$UB/.config/kwinrc"
+printf '[Style]\nMenuOpacity=77\n' >"$UB/.config/breezerc"
+printf '[Windeco]\nWindowCornerRadius=8\n' >"$UB/.config/klassy/klassyrc"
+printf '[Containments][20]\nformfactor=2\nlocation=4\nplugin=org.kde.panel\n\n[Containments][20][Applets][21]\nplugin=%s\n\n[Containments][20][Applets][21][Configuration][General]\nglobalSettings={mine}\nisEnabled=true\n' "$COLORIZER" >"$UB/.config/plasma-org.kde.plasma.desktop-appletsrc"
+ua() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$UA" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+ub() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$UB" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+ua save unused --no-wallpaper >/dev/null 2>&1
+UP="$UA/.config/theme-profile/profiles/unused"
+if [ ! -e "$UP/.config/breezerc" ] && [ ! -e "$UP/.config/klassy/klassyrc" ] &&
+  ! grep -q "Effect-blur\]\|Effect-translucency" "$UP/.config/kwinrc" && grep -q "Effect-better-blur-dx" "$UP/.config/kwinrc" &&
+  ! grep -q "globalSettings\|hideWidget" "$UP/.config/plasma-org.kde.plasma.desktop-appletsrc" &&
+  grep -q "isEnabled=false" "$UP/.config/plasma-org.kde.plasma.desktop-appletsrc"; then
+  ok "save leaves out Breeze/Klassy settings, off effects and a switched-off Panel Colorizer's styling"
+else
+  fail "save stored unused settings: $(ls "$UP/.config") // $(cat "$UP/.config/kwinrc")"
+fi
+if ! grep -q "$COLORIZER" "$UP/theme.json"; then
+  ok "a switched-off Panel Colorizer is not a dependency"
+else
+  fail "switched-off Panel Colorizer listed: $(grep -n "$COLORIZER" "$UP/theme.json")"
+fi
+UZIP="$TMP_ROOT/unused.ktmtheme.zip"
+ua export unused --out="$UZIP" >/dev/null 2>&1
+ub import "$UZIP" --apply >/dev/null 2>&1
+if grep -qx "MenuOpacity=77" "$UB/.config/breezerc" && grep -qx "WindowCornerRadius=8" "$UB/.config/klassy/klassyrc" &&
+  grep -A1 "^\[Effect-blur\]" "$UB/.config/kwinrc" | grep -qx "BlurStrength=3" &&
+  grep -qx "BlurStrength=5" "$UB/.config/kwinrc" && grep -qx "blurEnabled=false" "$UB/.config/kwinrc" &&
+  grep -q "globalSettings={mine}" "$UB/.config/plasma-org.kde.plasma.desktop-appletsrc" &&
+  grep -qx "isEnabled=false" "$UB/.config/plasma-org.kde.plasma.desktop-appletsrc"; then
+  ok "apply keeps the user's settings the theme does not use, and still follows its switches"
+else
+  fail "apply touched unused settings: $(cat "$UB/.config/kwinrc" "$UB/.config/breezerc")"
 fi
 
 # --- Summary ------------------------------------------------------------------

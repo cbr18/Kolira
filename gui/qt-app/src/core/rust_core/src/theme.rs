@@ -640,6 +640,9 @@ pub fn save(name: &str, options: &SaveOptions) -> Result<Package> {
     }
     let previous = load(&target).ok();
     crate::profile::save_profile_cli(name, None)?;
+    for rel in crate::appearance::unused_files_in(&target) {
+        let _ = fs::remove_file(target.join(rel));
+    }
     let mut package = build(name, &target, &options)?;
     if let Some(prev) = previous {
         carry_licences(&prev, &mut package);
@@ -689,7 +692,7 @@ pub fn set_licence(name: &str, asset: &str, licence: &str, source: &str, redistr
 }
 
 /// Files whose layout part a theme does not carry (`layout.rs`).
-const LAYOUT_FILES: &[&str] = &[crate::wallpaper::APPLETSRC_REL, ".config/plasmashellrc", ".config/kwinrulesrc"];
+const LAYOUT_FILES: &[&str] = &[crate::wallpaper::APPLETSRC_REL, ".config/plasmashellrc", ".config/kwinrulesrc", ".config/kwinrc"];
 
 /// Drop from stored theme `name` everything that is not part of it: files no
 /// longer tracked (QtProject.conf, Obsidian vault list…), the `metadata/`
@@ -705,13 +708,35 @@ pub fn prune(name: &str) -> Result<usize> {
     fs::create_dir_all(&backups)?;
     let backup = crate::profile::unique_dir(&backups, &format!("pre-prune-{name}"))?;
     copy_tree(&dir, &backup).with_context(|| format!("back up {}", dir.display()))?;
+    let mut removed = 0;
+    // First, so the description below (values, dependencies) sees the result.
+    // Layout files: only their look stays (themes saved before 2026-11-05
+    // carried the whole panel/widget layout, desktop icons, widget settings);
+    // kwinrc without the settings of effects that are off.
+    for rel in LAYOUT_FILES {
+        let path = dir.join(rel);
+        let Ok(text) = fs::read_to_string(&path) else { continue };
+        match crate::appearance::for_theme(rel, &text) {
+            Some(look) if look != text => fs::write(&path, look)?,
+            Some(_) => {}
+            None => {
+                fs::remove_file(&path)?;
+                removed += 1;
+            }
+        }
+    }
+    // Breeze / Klassy settings this theme's style and decoration do not read.
+    for rel in crate::appearance::unused_files_in(&dir) {
+        if fs::remove_file(dir.join(rel)).is_ok() {
+            removed += 1;
+        }
+    }
     let options = SaveOptions { description: Some(old.description.clone()), include_wallpaper: old.wallpaper.is_some() };
     let mut package = build(name, &dir, &options)?;
     package.created = old.created.clone();
     carry_licences(&old, &mut package);
     write_manifest(&dir, &package)?;
     let keep: std::collections::HashSet<PathBuf> = crate::share::theme_files(&dir, true)?.into_iter().collect();
-    let mut removed = 0;
     let mut stack = vec![PathBuf::new()];
     while let Some(rel) = stack.pop() {
         let path = dir.join(&rel);
@@ -723,20 +748,6 @@ pub fn prune(name: &str) -> Result<usize> {
                 stack.push(child);
             } else if child != Path::new(MANIFEST) && !keep.contains(&child) {
                 fs::remove_file(e.path())?;
-                removed += 1;
-            }
-        }
-    }
-    // Layout files: only their look stays (themes saved before 2026-11-05
-    // carried the whole panel/widget layout, desktop icons, widget settings).
-    for rel in LAYOUT_FILES {
-        let path = dir.join(rel);
-        let Ok(text) = fs::read_to_string(&path) else { continue };
-        match crate::appearance::for_theme(rel, &text) {
-            Some(look) if look != text => fs::write(&path, look)?,
-            Some(_) => {}
-            None => {
-                fs::remove_file(&path)?;
                 removed += 1;
             }
         }

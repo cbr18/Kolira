@@ -60,6 +60,9 @@ BACKUP="pre-apply-glass-20240115-103000"
 theme-profile apply "$BACKUP"          # if backup is in profiles/
 # OR manually copy back:
 cp -a ~/.config/theme-profile/backups/$BACKUP/.config/kwinrc ~/.config/kwinrc
+# A manual copy does not touch GSettings: set the GTK theme there as well
+# gsettings set org.gnome.desktop.interface gtk-theme NAME
+# gsettings set org.gnome.desktop.interface color-scheme prefer-dark   # or prefer-light
 cp -a ~/.config/theme-profile/backups/$BACKUP/.config/kdeglobals ~/.config/kdeglobals
 # ... repeat for each file you need to restore
 ```

@@ -715,8 +715,42 @@ const GTK_MIRROR: &[(&str, &str)] = &[
 ];
 const GTK_SETTINGS: &[&str] = &[".config/gtk-3.0/settings.ini", ".config/gtk-4.0/settings.ini"];
 
+/// The `org.gnome.desktop.interface` keys for a GTK theme name and dark
+/// preference (`gtk-application-prefer-dark-theme` as stored: `true`/`1`).
+pub fn gtk_desktop_keys(theme: Option<&str>, dark: Option<&str>) -> Vec<(&'static str, String)> {
+    let mut keys = Vec::new();
+    if let Some(theme) = theme.map(str::trim).filter(|t| !t.is_empty()) {
+        keys.push(("gtk-theme", theme.to_string()));
+    }
+    if let Some(dark) = dark.map(str::trim).filter(|d| !d.is_empty()) {
+        let scheme = if matches!(dark, "true" | "1") { "prefer-dark" } else { "prefer-light" };
+        keys.push(("color-scheme", scheme.to_string()));
+    }
+    keys
+}
+
+/// Under Wayland GTK 3 apps (Firefox and Zen included) take their theme from
+/// GSettings, not from `settings.ini`, and KDE's gtkconfig only updates it for
+/// changes made in System Settings. A stale dark theme there gave Zen's light
+/// panels white system text. Best-effort, like the other live hooks.
+pub fn sync_gtk_desktop(theme: Option<&str>, dark: Option<&str>) {
+    if no_apply() || cfg!(test) || which::which("gsettings").is_err() {
+        return;
+    }
+    for (key, value) in gtk_desktop_keys(theme, dark) {
+        if !run("gsettings", &["set", "org.gnome.desktop.interface", key, &value]) {
+            eprintln!("Warning: could not set GSettings {key}={value}");
+        }
+    }
+}
+
 fn mirror_to_gtk(id: &str, value: &Value) -> Result<()> {
     let Some((_, key)) = GTK_MIRROR.iter().find(|(f, _)| *f == id) else { return Ok(()) };
+    match id {
+        "gtk_theme" => sync_gtk_desktop(Some(&value_str(value)), None),
+        "gtk_dark" => sync_gtk_desktop(None, Some(&value_str(value))),
+        _ => {}
+    }
     for rel in GTK_SETTINGS {
         let path = Base::Live.resolve(rel);
         let text = read_text(&path).unwrap_or_default();
@@ -872,6 +906,16 @@ pub fn home() -> PathBuf {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn gtk_desktop_keys_follow_the_theme() {
+        assert_eq!(
+            gtk_desktop_keys(Some("Windows-7-2.1"), Some("false")),
+            vec![("gtk-theme", "Windows-7-2.1".to_string()), ("color-scheme", "prefer-light".to_string())]
+        );
+        assert_eq!(gtk_desktop_keys(None, Some("1")), vec![("color-scheme", "prefer-dark".to_string())]);
+        assert!(gtk_desktop_keys(Some(" "), None).is_empty());
+    }
 
     #[test]
     fn registry_loads_all_fields() {
