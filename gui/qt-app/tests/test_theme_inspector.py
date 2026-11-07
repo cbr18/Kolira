@@ -133,10 +133,10 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     put("obsidian/vault/.obsidian/appearance.json", "{}")
     (tmp_path / ".local/share/plasma/look-and-feel/glass/contents").mkdir(parents=True)
 
-    profile = tmp_path / ".config/theme-profile/profiles/glass/.config"
+    profile = tmp_path / ".config/kde-theme-profile/themes/glass/.config"
     profile.mkdir(parents=True, exist_ok=True)
     (profile / "kdeglobals").write_text(KDE_GLOBALS.replace("128,142,71", "10,20,30"))
-    (tmp_path / ".config/theme-profile/active-profile").write_text("glass\n")
+    (tmp_path / ".config/kde-theme-profile/active-profile").write_text("glass\n")
     return tmp_path
 
 
@@ -322,7 +322,7 @@ def test_revert_session(home: Path) -> None:
     assert core.get("kitty_opacity")["value"] == pytest.approx(0.5)
     # The snapshot directory keeps the originals.
     assert (home / ".config/kdeglobals").read_text() == original
-    backups = list((home / ".config/theme-profile/backups").glob("inspector-*"))
+    backups = list((home / ".config/kde-theme-profile/backups").glob("inspector-*"))
     assert backups, "revert must keep a backup of the session"
 
 

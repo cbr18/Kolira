@@ -149,6 +149,9 @@ class ProfileController(QObject):
     # A theme was applied but references assets this machine lacks:
     # profile name, [{field, name, source}].
     dependenciesMissing = Signal(str, list)
+    # Before applying: profile, what it lacks, keep the wallpaper.
+    dependenciesBeforeApply = Signal(str, list, bool)
+    dependencyProgress = Signal(str)
     actionsOffered = Signal(str, list)  # profile, follow-up actions (restart apps, Telegram…)
 
     def __init__(self, parent: Optional[QObject] = None):
@@ -156,6 +159,8 @@ class ProfileController(QObject):
         self._core: ProfileCore = CoreFactory.profile_core()
         self._pending_missing: tuple[str, list] | None = None
         self._pending_actions: tuple[str, list] | None = None
+        self._pending_before: tuple[str, list, bool] | None = None
+        self._cancelled = False
         self._profiles: list[ProfileInfo] = []
         self._profiles_model: list[dict] = []   # QML-ready cache (built once per refresh)
         self._active_profile: str = ""
@@ -258,6 +263,11 @@ class ProfileController(QObject):
     def _on_operation_finished(self, success: bool, message: str) -> None:
         """Слот, вызываемый в главном потоке по завершении воркера."""
         self._set_busy(False)
+        if self._pending_before is not None:
+            profile, missing, keep = self._pending_before
+            self._pending_before = None
+            self.dependenciesBeforeApply.emit(profile, missing, keep)
+            return
         if success and self._operation in ("apply", "new"):
             _reload_app_look()
         self.operationFinished.emit(success, localize(message))
@@ -298,14 +308,17 @@ class ProfileController(QObject):
             return None, "Select at least one component in Settings"
         return components, ""
 
-    @Slot(str, bool, bool)
+    @Slot(str, bool, bool, bool)
     def applyProfile(self, profile: str, keep_wallpaper: bool = False,
-                     install_missing: bool = False) -> None:
+                     install_missing: bool = False, ask_first: bool = False) -> None:
         """Применить тему (асинхронно).
 
         Theme packages apply everything they define (component settings do
-        not apply to them); missing assets are reported through
-        ``dependenciesMissing``. Legacy snapshots keep the component filter.
+        not apply to them). With ``ask_first`` (the window's Apply button) what
+        the theme lacks is offered *before* anything changes:
+        ``dependenciesBeforeApply``; the answer comes back as
+        ``installDependencies`` or ``applyProfileNow``. Legacy snapshots keep
+        the component filter.
         """
         try:
             profile = validate_profile_name(profile)
@@ -314,6 +327,11 @@ class ProfileController(QObject):
             return
         if self._is_package(profile):
             def _work() -> tuple[bool, str]:
+                if ask_first and not install_missing:
+                    pending = self._core.pending_dependencies(profile)
+                    if pending.success and pending.data:
+                        self._pending_before = (profile, list(pending.data), keep_wallpaper)
+                        return True, ""
                 result = self._core.apply(
                     profile, keep_wallpaper=keep_wallpaper, install_missing=install_missing
                 )
@@ -334,6 +352,28 @@ class ProfileController(QObject):
             return result.success, result.message
 
         self._start_operation("apply", _work)
+
+    @Slot(str, bool)
+    def applyProfileNow(self, profile: str, keep_wallpaper: bool = False) -> None:
+        """Apply without what is missing: the user already answered."""
+        try:
+            profile = validate_profile_name(profile)
+        except ValueError as exc:
+            self.operationFinished.emit(False, str(exc))
+            return
+
+        def _work() -> tuple[bool, str]:
+            result = self._core.apply(profile, keep_wallpaper=keep_wallpaper)
+            report = result.data if isinstance(result.data, dict) else {}
+            self._pending_actions = (profile, list(report.get("actions") or []))
+            return result.success, result.message
+
+        self._start_operation("apply", _work)
+
+    @Slot()
+    def cancelOperation(self) -> None:
+        """Stop a dependency download between two items (each has its own limit)."""
+        self._cancelled = True
 
     @Slot(str, str)
     def newTheme(self, name: str, base: str) -> None:
@@ -449,25 +489,51 @@ class ProfileController(QObject):
 
         self._start_operation("import", _work)
 
-    @Slot(str, list, bool)
-    def installDependencies(self, profile: str, indexes: list, reapply: bool) -> None:
-        """Install the chosen dependencies from their official sources, then
-        (optionally) apply the theme again so they take effect."""
+    @Slot(str, list, bool, bool)
+    def installDependencies(self, profile: str, indexes: list, reapply: bool, keep_wallpaper: bool = False) -> None:
+        """Download what was chosen, one item at a time so one that fails or
+        stalls costs only itself, then (optionally) apply the theme. System
+        packages go last, in one terminal the user types in."""
         try:
             profile = validate_profile_name(profile)
         except ValueError as exc:
             self.operationFinished.emit(False, str(exc))
             return
         chosen = [int(i) for i in indexes]
+        self._cancelled = False
 
         def _work() -> tuple[bool, str]:
-            result = self._core.install_dependencies(profile, chosen)
-            message = result.message
-            if reapply and any(i.get("ok") for i in (result.data or [])):
-                applied = self._core.apply(profile)
-                message += "\n" + applied.message.splitlines()[0] if applied.message else ""
-                self._pending_missing = (profile, _needed(applied.data))
-            return result.success, message
+            listed = self._core.dependencies(profile)
+            known = {d.get("index"): d for d in (listed.data or [])} if listed.success else {}
+            root = [i for i in chosen if known.get(i, {}).get("source") in ("package", "aur")]
+            store = [i for i in chosen if i not in root]
+            lines: list[str] = []
+            ok = True
+            total = len(store) + (1 if root else 0)
+            for step, index in enumerate(store, 1):
+                if self._cancelled:
+                    break
+                dep = known.get(index, {})
+                self.dependencyProgress.emit(f"{dep.get('title') or dep.get('name') or index} ({step}/{total})")
+                result = self._core.install_dependencies(profile, [index], timeout=300)
+                ok &= result.success
+                lines.append(result.message or f"✗ {index}")
+            if root and not self._cancelled:
+                self.dependencyProgress.emit(f"{self.tr('System packages: see the terminal')} ({total}/{total})")
+                result = self._core.install_dependencies(profile, root)
+                ok &= result.success
+                lines.append(result.message)
+            if reapply and not self._cancelled:
+                applied = self._core.apply(profile, keep_wallpaper=keep_wallpaper)
+                ok &= applied.success
+                if applied.message:
+                    lines.append(applied.message.splitlines()[0])
+                report = applied.data if isinstance(applied.data, dict) else {}
+                self._pending_actions = (profile, list(report.get("actions") or []))
+                self._operation = "apply"
+            elif self._cancelled:
+                lines.append(self.tr("Stopped: the theme was not applied"))
+            return ok, "\n".join(lines)
 
         self._start_operation("install", _work)
 
@@ -1257,7 +1323,7 @@ class MainController(QObject):
         # setting existed for a long time but was never read.
         if self._settings.autoApplyOnStartup and self._profile.activeProfile:
             profile = self._profile.activeProfile
-            QTimer.singleShot(0, lambda: self._profile.applyProfile(profile))
+            QTimer.singleShot(0, lambda: self._profile.applyProfileNow(profile))
 
 
 # ──────────────────────────────────────────────────────────────

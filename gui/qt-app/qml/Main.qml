@@ -105,7 +105,7 @@ Kirigami.ApplicationWindow {
             applyDialog.open()
             return
         }
-        profileController.applyProfile(profileName, false, false)
+        profileController.applyProfile(profileName, false, false, true)
     }
 
     // Last active profile we observed. Used to distinguish "the user changed
@@ -174,7 +174,20 @@ Kirigami.ApplicationWindow {
             missingDialog.targetProfile = profile
             missingDialog.missing = missing
             missingDialog.afterImport = root._lastOperation === "import"
+            missingDialog.beforeApply = false
             missingDialog.open()
+        }
+        function onDependenciesBeforeApply(profile, missing, keepWallpaper) {
+            missingDialog.targetProfile = profile
+            missingDialog.missing = missing
+            missingDialog.afterImport = false
+            missingDialog.beforeApply = true
+            missingDialog.keepWallpaper = keepWallpaper
+            missingDialog.open()
+        }
+        function onDependencyProgress(what) {
+            root.showPassiveNotification(qsTr("Downloading: %1").arg(what), 8000, qsTr("Stop"),
+                                         function() { profileController.cancelOperation() })
         }
         function onActionsOffered(profile, actions) {
             actionsDialog.targetProfile = profile
@@ -564,7 +577,7 @@ Kirigami.ApplicationWindow {
 
         onAccepted: {
             if (applyDialog.targetProfile !== "")
-                profileController.applyProfile(applyDialog.targetProfile, keepWallpaperBox.checked, false)
+                profileController.applyProfile(applyDialog.targetProfile, keepWallpaperBox.checked, false, true)
             keepWallpaperBox.checked = false
         }
     }
@@ -580,6 +593,9 @@ Kirigami.ApplicationWindow {
         property string targetProfile: ""
         property var missing: []
         property bool afterImport: false
+        // Nothing changed yet: the theme is applied after this dialog.
+        property bool beforeApply: false
+        property bool keepWallpaper: false
         property var chosen: ({})
         // System packages go to one terminal where the
         // user types their password — the app itself never runs sudo.
@@ -602,13 +618,23 @@ Kirigami.ApplicationWindow {
         standardButtons: Kirigami.Dialog.Close
         customFooterActions: [
             Kirigami.Action {
-                text: qsTr("Install selected")
+                text: missingDialog.beforeApply ? qsTr("Download and apply") : qsTr("Install selected")
                 icon.name: "download"
                 enabled: !profileController.busy && missingDialog.selection().length > 0
                 onTriggered: {
                     profileController.installDependencies(missingDialog.targetProfile,
                                                           missingDialog.selection(),
-                                                          reapplyBox.checked)
+                                                          missingDialog.beforeApply || reapplyBox.checked,
+                                                          missingDialog.keepWallpaper)
+                    missingDialog.close()
+                }
+            },
+            Kirigami.Action {
+                text: qsTr("Apply without them")
+                visible: missingDialog.beforeApply
+                enabled: !profileController.busy
+                onTriggered: {
+                    profileController.applyProfileNow(missingDialog.targetProfile, missingDialog.keepWallpaper)
                     missingDialog.close()
                 }
             }
@@ -627,7 +653,9 @@ Kirigami.ApplicationWindow {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
                 color: ThemeColors.fgColor(root.glassMode)
-                text: missingDialog.afterImport
+                text: missingDialog.beforeApply
+                      ? qsTr("Theme \"%1\" needs these, which are not installed here. Nothing has changed yet: download what you want, or apply without them (what is missing keeps your current look).").arg(missingDialog.targetProfile)
+                      : missingDialog.afterImport
                       ? qsTr("Theme \"%1\" was imported. It needs these, which are not installed here — install them?").arg(missingDialog.targetProfile)
                       : qsTr("Theme \"%1\" was applied without these parts — install them?").arg(missingDialog.targetProfile)
             }

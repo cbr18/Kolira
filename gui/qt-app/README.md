@@ -1,4 +1,4 @@
-# KDE Theme Manager — Qt/QML Application (v0.5.0)
+# KDE Theme Manager — Qt/QML Application (v0.6.0)
 
 Native KDE Plasma application for managing theme profiles and wallpapers.
 
@@ -192,7 +192,7 @@ scripts/uninstall-theme-profile-kit.sh --only-gui
 | launcher (`kde-theme-manager`) | `~/.local/bin/` |
 | desktop entry | `~/.local/share/applications/kde-theme-manager.desktop` |
 | icon | `~/.local/share/icons/hicolor/scalable/apps/ktm-theme-manager.svg` |
-| backups of replaced files | `~/.config/theme-profile/backups/deploy-kde-theme-manager-*/` |
+| backups of replaced files | `~/.config/kde-theme-profile/backups/deploy-kde-theme-manager-*/` |
 
 `~/.local/share` and `~/.local/bin` follow `XDG_DATA_HOME` / `XDG_BIN_HOME`.
 A venv is created inside the app copy **only** when the system Python cannot
@@ -203,7 +203,7 @@ somewhere else.
 Where the data lives (never touched by install/update):
 
 ```
-$XDG_CONFIG_HOME/theme-profile/   (default ~/.config/theme-profile/)
+$XDG_CONFIG_HOME/kde-theme-profile/   (default ~/.config/kde-theme-profile/)
 ├── profiles/<name>/     the profiles themselves (theme snapshots)
 ├── backups/             pre-apply + deploy backups
 ├── manifests/           what a profile covers
@@ -211,8 +211,8 @@ $XDG_CONFIG_HOME/theme-profile/   (default ~/.config/theme-profile/)
 └── app-preferences.json GUI settings (created when you first save settings)
 ```
 
-The data root is XDG-aware: an existing `$XDG_CONFIG_HOME/theme-profile` wins,
-then an existing legacy `~/.config/theme-profile`, then the XDG path. Profile
+The data root is XDG-aware: an existing `$XDG_CONFIG_HOME/kde-theme-profile` wins,
+then an existing legacy `~/.config/kde-theme-profile`, then the XDG path. Profile
 snapshots themselves always keep the historical `.config/...` layout, so
 profiles created before XDG support keep working unchanged.
 
@@ -369,7 +369,7 @@ The `core/protocol.py` defines **Abstract Base Classes** for:
 A single implementation exists — the core (`core/cli_core.py`): profiles and
 wallpapers go through the Rust CLI binaries (`theme-profile`, `wallpaper-*`),
 tracked apps through the Python registry (`core/tracked_apps.py`), settings
-through JSON in `~/.config/theme-profile/app-preferences.json`.
+through JSON in `~/.config/kde-theme-profile/app-preferences.json`.
 
 (The former second implementation — a `libkde_theme_core.so` shared library
 behind a C ABI — was removed; one core keeps behaviour and tests uniform.)
@@ -414,8 +414,8 @@ The kit installer copies those binaries into `~/.local/bin/`.
 
 ## Configuration
 
-Settings stored in `~/.config/theme-profile/app-preferences.json` (or
-`$XDG_CONFIG_HOME/theme-profile/`, see below):
+Settings stored in `~/.config/kde-theme-profile/app-preferences.json` (or
+`$XDG_CONFIG_HOME/kde-theme-profile/`, see below):
 
 ```json
 {

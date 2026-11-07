@@ -2,7 +2,7 @@
 //! tinted-theming catalogue (fetched only on request).
 //!
 //! * bundled — `data/base16/*.yaml`, compiled in, always available offline;
-//! * cached  — schemes downloaded before (`$XDG_CACHE_HOME/theme-profile/base16/`);
+//! * cached  — schemes downloaded before (`$XDG_CACHE_HOME/kde-theme-profile/base16/`);
 //! * online  — the catalogue index (GitHub tree API, cached for a week) and the
 //!   raw scheme files of `tinted-theming/schemes` (branch `spec-0.11`).
 //!
@@ -85,7 +85,7 @@ pub fn validate_id(id: &str) -> Result<()> {
 }
 
 pub fn cache_dir() -> PathBuf {
-    crate::paths::cache_home().join("theme-profile").join("base16")
+    crate::paths::cache_home().join("kde-theme-profile").join("base16")
 }
 
 fn source_label(id: &str) -> String {

@@ -2,9 +2,9 @@
 
 This document covers all rollback and recovery scenarios for `theme-profile-kit`.
 
-> **Path note.** Examples below use `~/.config/theme-profile/` for brevity. The
-> data root is XDG-aware: `$XDG_CONFIG_HOME/theme-profile/` is used when set,
-> with an existing legacy `~/.config/theme-profile/` kept as a fallback.
+> **Path note.** Examples below use `~/.config/kde-theme-profile/` for brevity. The
+> data root is XDG-aware: `$XDG_CONFIG_HOME/kde-theme-profile/` is used when set,
+> with an existing legacy `~/.config/kde-theme-profile/` kept as a fallback.
 > Profile snapshots themselves always keep the historical `.config/...` layout.
 
 ## Quick Summary
@@ -24,11 +24,11 @@ Every `theme-profile apply <name>` creates a timestamped backup **before**
 modifying anything:
 
 ```text
-~/.config/theme-profile/backups/pre-apply-<name>-<YYYYMMDD-HHMMSS>/
+~/.config/kde-theme-profile/backups/pre-apply-<name>-<YYYYMMDD-HHMMSS>/
 ```
 
 Saving over an existing theme moves the old one to
-`backups/pre-save-<name>-…` (move it back into `profiles/` to undo).
+`backups/pre-save-<name>-…` (move it back into `themes/` to undo).
 `theme-profile migrate` only adds `theme.json`; it changes no files. (Early
 `pre-migrate-<name>-…` / `package-<name>-…` directories from 2026-11-04 hold
 the snapshots and the abandoned values-only packages of that day.)
@@ -37,7 +37,7 @@ Converting the look of `kitty.conf`/`alacritty.toml` into their include files
 backs the originals up to `backups/pre-split-<app>-…`; `theme-profile migrate`
 reducing a stored theme to its look keeps the full theme in
 `backups/pre-normalize-<name>-…`; `theme-profile prune` keeps it in
-`backups/pre-prune-<name>-…` (copy it back into `profiles/` to undo).
+`backups/pre-prune-<name>-…` (copy it back into `themes/` to undo).
 
 The pre-apply backup is the full tracked set (whole files, personal keys included):
 
@@ -57,7 +57,7 @@ theme left. Backups are for when something went wrong.
 
 ```bash
 # List available backups
-ls ~/.config/theme-profile/backups/
+ls ~/.config/kde-theme-profile/backups/
 
 # Find the backup you want (note the timestamp)
 BACKUP="pre-apply-glass-20240115-103000"
@@ -65,11 +65,11 @@ BACKUP="pre-apply-glass-20240115-103000"
 # Restore all tracked files
 theme-profile apply "$BACKUP"          # if backup is in profiles/
 # OR manually copy back:
-cp -a ~/.config/theme-profile/backups/$BACKUP/.config/kwinrc ~/.config/kwinrc
+cp -a ~/.config/kde-theme-profile/backups/$BACKUP/.config/kwinrc ~/.config/kwinrc
 # A manual copy does not touch GSettings: set the GTK theme there as well
 # gsettings set org.gnome.desktop.interface gtk-theme NAME
 # gsettings set org.gnome.desktop.interface color-scheme prefer-dark   # or prefer-light
-cp -a ~/.config/theme-profile/backups/$BACKUP/.config/kdeglobals ~/.config/kdeglobals
+cp -a ~/.config/kde-theme-profile/backups/$BACKUP/.config/kdeglobals ~/.config/kdeglobals
 # ... repeat for each file you need to restore
 ```
 
@@ -77,7 +77,7 @@ Alternatively, if the backup is itself a valid profile, you can copy it
 into the profiles directory:
 
 ```bash
-cp -a ~/.config/theme-profile/backups/pre-apply-glass-20240115-103000 ~/.config/theme-profile/profiles/rollback-20240115
+cp -a ~/.config/kde-theme-profile/backups/pre-apply-glass-20240115-103000 ~/.config/kde-theme-profile/themes/rollback-20240115
 theme-profile apply rollback-20240115
 ```
 
@@ -89,14 +89,14 @@ When `install-theme-profile-kit.sh` replaces an existing `~/.local/bin/`
 script, the old version is backed up:
 
 ```text
-~/.config/theme-profile/backups/deploy-theme-profile-kit-<YYYYMMDD-HHMMSS>-<pid>/bin/
+~/.config/kde-theme-profile/backups/deploy-theme-profile-kit-<YYYYMMDD-HHMMSS>-<pid>/bin/
 ```
 
 The GUI installer backs up everything it replaces (the previous app copy, the
 launcher, the desktop entry) in a sibling directory:
 
 ```text
-~/.config/theme-profile/backups/deploy-kde-theme-manager-<YYYYMMDD-HHMMSS>/
+~/.config/kde-theme-profile/backups/deploy-kde-theme-manager-<YYYYMMDD-HHMMSS>/
 ├── app/                              previous ~/.local/share/kde-theme-manager
 ├── legacy-theme-profile-manager/     the old hand-made copy, if it was there
 ├── bin/kde-theme-manager             previous launcher
@@ -107,8 +107,8 @@ launcher, the desktop entry) in a sibling directory:
 ### To restore a previous installer backup:
 
 ```bash
-cp -a ~/.config/theme-profile/backups/deploy-theme-profile-kit-YYYYMMDD-HHMMSS/bin/. ~/.local/bin/
-cp -a ~/.config/theme-profile/backups/deploy-kde-theme-manager-YYYYMMDD-HHMMSS/app/. ~/.local/share/kde-theme-manager/
+cp -a ~/.config/kde-theme-profile/backups/deploy-theme-profile-kit-YYYYMMDD-HHMMSS/bin/. ~/.local/bin/
+cp -a ~/.config/kde-theme-profile/backups/deploy-kde-theme-manager-YYYYMMDD-HHMMSS/app/. ~/.local/share/kde-theme-manager/
 ```
 
 Then verify:
@@ -132,7 +132,7 @@ KTM_CORE=core kde-theme-manager    # or via the environment
 ```
 
 `--core core` is persisted too, so it survives restarts. The setting is stored
-in `~/.config/theme-profile/app-preferences.json` (`"core_backend": "core"`),
+in `~/.config/kde-theme-profile/app-preferences.json` (`"core_backend": "core"`),
 which can also be edited by hand while the app is closed:
 
 ```bash
@@ -226,11 +226,11 @@ echo '* { background-color: #1e1e1e; }' > ~/.config/wofi/style.css
 
 ### `theme-profile list` shows nothing
 
-Ensure `~/.config/theme-profile/profiles/` exists and contains profile
+Ensure `~/.config/kde-theme-profile/themes/` exists and contains profile
 directories:
 
 ```bash
-mkdir -p ~/.config/theme-profile/profiles
+mkdir -p ~/.config/kde-theme-profile/themes
 theme-profile save my-profile
 ```
 

@@ -132,12 +132,12 @@ TMP_ROOT="$(mktemp -d)"
 export TMP_ROOT
 trap 'rm -rf "$TMP_ROOT" "$SAFE_BIN"' EXIT
 
-# Bootstrap a fake ~/.config/theme-profile structure
+# Bootstrap a fake ~/.config/kde-theme-profile structure
 FAKE_HOME="$TMP_ROOT/fake-home"
-mkdir -p "$FAKE_HOME/.config/theme-profile"
+mkdir -p "$FAKE_HOME/.config/kde-theme-profile"
 
 # Create a real profile so we can test apply success and save
-mkdir -p "$FAKE_HOME/.config/theme-profile/profiles/test-profile"
+mkdir -p "$FAKE_HOME/.config/kde-theme-profile/themes/test-profile"
 if HOME="$FAKE_HOME" "$CLI_DIR/theme-profile" save test-profile >/dev/null 2>&1; then
   ok "save test-profile (valid name)"
 else
@@ -159,7 +159,7 @@ mkdir -p "$FAKE_HOME/.config"
 printf '[General]\nAccentColor=1,2,3\n' > "$FAKE_HOME/.config/kdeglobals"
 printf '[General]\nBorderSize=1\n' > "$FAKE_HOME/.config/kwinrc"
 HOME="$FAKE_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" save components-test >/dev/null 2>&1
-profile_root="$FAKE_HOME/.config/theme-profile/profiles/components-test"
+profile_root="$FAKE_HOME/.config/kde-theme-profile/themes/components-test"
 if grep -q '"accent_color": "1,2,3"' "$profile_root/theme.json" 2>/dev/null &&
   [ -f "$profile_root/.config/kdeglobals" ] && [ -f "$profile_root/.config/kwinrc" ]; then
   ok "save writes a full theme (whole config files + theme.json with the values)"
@@ -226,9 +226,9 @@ if [ -z "$rt_bad" ]; then
 else
   fail "apply overwrote personal settings:$rt_bad"
 fi
-if ! grep -q "TerminalApplication\|KScreen" "$RT_HOME/.config/theme-profile/profiles/rt/.config/kdeglobals" &&
-  [ ! -e "$RT_HOME/.config/theme-profile/profiles/rt/.config/kitty/kitty.conf" ] &&
-  ! grep -q "map ctrl" "$RT_HOME/.config/theme-profile/profiles/rt/.config/kitty/theme-profile.conf"; then
+if ! grep -q "TerminalApplication\|KScreen" "$RT_HOME/.config/kde-theme-profile/themes/rt/.config/kdeglobals" &&
+  [ ! -e "$RT_HOME/.config/kde-theme-profile/themes/rt/.config/kitty/kitty.conf" ] &&
+  ! grep -q "map ctrl" "$RT_HOME/.config/kde-theme-profile/themes/rt/.config/kitty/theme-profile.conf"; then
   ok "save stores only the look (no terminal choice, screen scale or key bindings)"
 else
   fail "save stored personal settings in the theme"
@@ -255,7 +255,7 @@ mkdir -p "$XDG_CONFIG" "$XDG_DATA"
 printf '[General]\nAccentColor=9,8,7\n' > "$XDG_CONFIG/kdeglobals"
 if HOME="$XDG_HOME" XDG_CONFIG_HOME="$XDG_CONFIG" XDG_DATA_HOME="$XDG_DATA" KTM_THEME_NO_APPLY=1 \
   "$CLI_DIR/theme-profile" save xdg-profile >/dev/null 2>&1 \
-  && grep -q '"accent_color": "9,8,7"' "$XDG_CONFIG/theme-profile/profiles/xdg-profile/theme.json"; then
+  && grep -q '"accent_color": "9,8,7"' "$XDG_CONFIG/kde-theme-profile/themes/xdg-profile/theme.json"; then
   ok "XDG_CONFIG_HOME is used for profiles and live config"
 else
   fail "XDG_CONFIG_HOME was ignored"
@@ -297,7 +297,7 @@ fi
 
 # --- 5a. Names differing only by case are rejected ---------------------------
 CASE_HOME="$TMP_ROOT/case-home"
-mkdir -p "$CASE_HOME/.config/theme-profile"
+mkdir -p "$CASE_HOME/.config/kde-theme-profile"
 case_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$CASE_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
 case_cli save Paper >/dev/null 2>&1
 if case_cli save paper >/dev/null 2>&1 || case_cli clone Paper PAPER >/dev/null 2>&1; then
@@ -315,7 +315,7 @@ fi
 echo "=== Section 5b: profile wallpaper copy ==="
 
 WP_HOME="$TMP_ROOT/wp-home"
-mkdir -p "$WP_HOME/.config/theme-profile" "$WP_HOME/Pictures/Wallpaper"
+mkdir -p "$WP_HOME/.config/kde-theme-profile" "$WP_HOME/Pictures/Wallpaper"
 printf 'jpeg' >"$WP_HOME/Pictures/Wallpaper/forest one.jpg"
 cat >"$WP_HOME/.config/plasma-org.kde.plasma.desktop-appletsrc" <<APPLETS
 [Containments][1]
@@ -339,15 +339,15 @@ else
 fi
 
 wp_cli save wp-test >/dev/null 2>&1
-saved="$WP_HOME/.config/theme-profile/profiles/wp-test"
+saved="$WP_HOME/.config/kde-theme-profile/themes/wp-test"
 if [ -f "$saved/wallpaper/forest one.jpg" ] && grep -q '"wallpaper": "wallpaper/forest one.jpg"' "$saved/theme.json"; then
   ok "save copies the wallpaper into the theme package"
 else
   fail "save did not copy the wallpaper"
 fi
 wp_cli save wp-nowall --no-wallpaper >/dev/null 2>&1
-if grep -q '"wallpaper": null' "$WP_HOME/.config/theme-profile/profiles/wp-nowall/theme.json" &&
-  [ ! -e "$WP_HOME/.config/theme-profile/profiles/wp-nowall/wallpaper" ]; then
+if grep -q '"wallpaper": null' "$WP_HOME/.config/kde-theme-profile/themes/wp-nowall/theme.json" &&
+  [ ! -e "$WP_HOME/.config/kde-theme-profile/themes/wp-nowall/wallpaper" ]; then
   ok "save --no-wallpaper keeps the wallpaper out (applying leaves it untouched)"
 else
   fail "save --no-wallpaper still stored a wallpaper"
@@ -396,7 +396,7 @@ else
 fi
 
 # Legacy snapshot profiles convert to packages; check reports what is missing.
-LEG="$WP_HOME/.config/theme-profile/profiles/legacy"
+LEG="$WP_HOME/.config/kde-theme-profile/themes/legacy"
 mkdir -p "$LEG/.config"
 printf '[General]\nColorScheme=NotInstalledScheme\nAccentColor=1,2,3\n' >"$LEG/.config/kdeglobals"
 printf '{"schema_version":1,"name":"legacy","description":"old one"}\n' >"$LEG/manifest.json"
@@ -416,7 +416,7 @@ fi
 echo "=== Section 5c: palette CLI ==="
 
 PAL_HOME="$TMP_ROOT/pal-home"
-mkdir -p "$PAL_HOME/.config/theme-profile"
+mkdir -p "$PAL_HOME/.config/kde-theme-profile"
 pal_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$PAL_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
 BASE16="$SCRIPT_DIR/gui/qt-app/src/core/rust_core/data/base16/everforest.yaml"
 
@@ -543,8 +543,8 @@ if grep -q 'opacity = 0.5 # mine' "$alacritty_theme" && grep -q 'background = "#
 else
   fail "alacritty unexpected: $(cat "$alacritty_toml") // $(cat "$alacritty_theme" 2>&1)"
 fi
-if compgen -G "$PAL_HOME/.config/theme-profile/backups/pre-split-kitty-*/.config/kitty/kitty.conf" >/dev/null &&
-  compgen -G "$PAL_HOME/.config/theme-profile/backups/palette-apply-*/theme-profile.conf" >/dev/null; then
+if compgen -G "$PAL_HOME/.config/kde-theme-profile/backups/pre-split-kitty-*/.config/kitty/kitty.conf" >/dev/null &&
+  compgen -G "$PAL_HOME/.config/kde-theme-profile/backups/palette-apply-*/theme-profile.conf" >/dev/null; then
   ok "the original kitty.conf and the previous theme file are backed up"
 else
   fail "no pre-split / palette-apply backup"
@@ -575,7 +575,7 @@ else
 fi
 printf '[General]\ntheme=ThemeProfileEverforest\n' >"$KV/kvantum.kvconfig"
 pal_cli save kv-test >/dev/null 2>&1
-if [ -f "$PAL_HOME/.config/theme-profile/profiles/kv-test/.config/Kvantum/ThemeProfileEverforest/ThemeProfileEverforest.svg" ]; then
+if [ -f "$PAL_HOME/.config/kde-theme-profile/themes/kv-test/.config/Kvantum/ThemeProfileEverforest/ThemeProfileEverforest.svg" ]; then
   ok "theme packages bundle the active user Kvantum theme"
 else
   fail "active Kvantum theme missing from the package"
@@ -591,7 +591,7 @@ fi
 # (KTM_THEME_NO_APPLY skips plasma-apply-colorscheme: set the scheme as it would.)
 printf '[General]\nColorScheme=ThemeProfileEverforest\n' >"$PAL_HOME/.config/kdeglobals"
 pal_cli save pal-test >/dev/null 2>&1
-pal_pkg="$PAL_HOME/.config/theme-profile/profiles/pal-test"
+pal_pkg="$PAL_HOME/.config/kde-theme-profile/themes/pal-test"
 if grep -q '"accent": "#a7c080"' "$pal_pkg/theme.json" 2>/dev/null &&
   [ -f "$pal_pkg/.local/share/color-schemes/ThemeProfileEverforest.colors" ]; then
   ok "theme packages carry the palette and its generated colour scheme"
@@ -871,7 +871,7 @@ if gui_install >/dev/null 2>&1; then
 else
   fail "re-install failed"
 fi
-backup_dir="$(compgen -G "$FAKE_HOME/.config/theme-profile/backups/deploy-kde-theme-manager-*" | tail -1)"
+backup_dir="$(compgen -G "$FAKE_HOME/.config/kde-theme-profile/backups/deploy-kde-theme-manager-*" | tail -1)"
 if [ -n "$backup_dir" ] && [ -f "$backup_dir/app/src/__main__.py" ]; then
   ok "re-install backs up the previous app directory"
 else
@@ -969,20 +969,20 @@ fi
 bundled_ok=1
 for dir in "$SCRIPT_DIR/themes"/*/; do
   name="$(basename "$dir")"
-  [ -f "$FAKE_HOME/.config/theme-profile/profiles/$name/theme.json" ] || bundled_ok=0
+  [ -f "$FAKE_HOME/.config/kde-theme-profile/themes/$name/theme.json" ] || bundled_ok=0
 done
 bundled_names="$(find "$SCRIPT_DIR/themes" -mindepth 1 -maxdepth 1 -type d -printf '%f ' | sort)"
 if [ "$bundled_ok" = 1 ] && [ -n "$bundled_names" ]; then
   ok "kit installer added the bundled themes ($bundled_names)"
 else
-  fail "bundled themes missing from $FAKE_HOME/.config/theme-profile/profiles"
+  fail "bundled themes missing from $FAKE_HOME/.config/kde-theme-profile/themes"
 fi
 first_theme="$(find "$SCRIPT_DIR/themes" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | head -1)"
-printf 'mine\n' >"$FAKE_HOME/.config/theme-profile/profiles/$first_theme/marker"
+printf 'mine\n' >"$FAKE_HOME/.config/kde-theme-profile/themes/$first_theme/marker"
 env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
   PATH="/usr/bin:/bin:$REAL_CARGO_BIN" CARGO_HOME="$REAL_CARGO_HOME" RUSTUP_HOME="$REAL_RUSTUP_HOME" \
   bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --only-cli >/dev/null 2>&1
-if [ -f "$FAKE_HOME/.config/theme-profile/profiles/$first_theme/marker" ]; then
+if [ -f "$FAKE_HOME/.config/kde-theme-profile/themes/$first_theme/marker" ]; then
   ok "re-installing never replaces an existing theme"
 else
   fail "re-install replaced the user's theme $first_theme"
@@ -1051,7 +1051,7 @@ if ! command -v kreadconfig6 >/dev/null 2>&1 || ! command -v kwriteconfig6 >/dev
   echo "  \u23ed  kreadconfig6/kwriteconfig6 not installed (KDE tooling) — skipping"
 else
   LF_HOME="$TMP_ROOT/lf-home"
-  mkdir -p "$LF_HOME/.config/theme-profile" "$LF_HOME/.config"
+  mkdir -p "$LF_HOME/.config/kde-theme-profile" "$LF_HOME/.config"
   # Themes only apply installed assets: provide the Look & Feel package.
   mkdir -p "$LF_HOME/.local/share/plasma/look-and-feel/paper"
   echo '{}' >"$LF_HOME/.local/share/plasma/look-and-feel/paper/metadata.json"
@@ -1112,7 +1112,7 @@ else
   ACC_HOME="$TMP_ROOT/accent-home"
   ACC_CALLS="$TMP_ROOT/accent-calls.log"
   export ACC_CALLS
-  mkdir -p "$ACC_HOME/.config/theme-profile" "$ACC_HOME/.config" "$ACC_HOME/.local/share/color-schemes"
+  mkdir -p "$ACC_HOME/.config/kde-theme-profile" "$ACC_HOME/.config" "$ACC_HOME/.local/share/color-schemes"
   printf '[General]\nName=Breeze1\n' >"$ACC_HOME/.local/share/color-schemes/Breeze1.colors"
   : > "$ACC_CALLS"
 
@@ -1208,7 +1208,7 @@ else
   STYLE_HOME="$TMP_ROOT/style-home"
   STYLE_CALLS="$TMP_ROOT/style-calls.log"
   export STYLE_CALLS
-  mkdir -p "$STYLE_HOME/.config/theme-profile" "$STYLE_HOME/.config/Kvantum/Sandstone"
+  mkdir -p "$STYLE_HOME/.config/kde-theme-profile" "$STYLE_HOME/.config/Kvantum/Sandstone"
   : >"$STYLE_HOME/.config/Kvantum/Sandstone/Sandstone.kvconfig"
   : > "$STYLE_CALLS"
   cat > "$STYLE_HOME/.config/kdeglobals" <<'EOF'
@@ -1269,7 +1269,7 @@ if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" save man-profile >/dev/null 2>&1; t
 else
   fail "save man-profile"
 fi
-man_root="$MAN_HOME/.config/theme-profile/profiles/man-profile"
+man_root="$MAN_HOME/.config/kde-theme-profile/themes/man-profile"
 if grep -q '"schema": "theme-profile/theme@2"' "$man_root/theme.json" 2>/dev/null \
   && grep -q '"name": "man-profile"' "$man_root/theme.json" \
   && grep -q '"accent_color": "5,6,7"' "$man_root/theme.json"; then
@@ -1311,7 +1311,7 @@ else
 fi
 
 # components CRUD: the registry lives in components.json next to the profiles.
-comp_file="$MAN_HOME/.config/theme-profile/components.json"
+comp_file="$MAN_HOME/.config/kde-theme-profile/components.json"
 comp_json='{"id":"myapp","name":"My App","category":"Custom","config_paths":[".config/myapp/settings.json"],"description":"test"}'
 if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" components add "$comp_json" >/dev/null 2>&1; then
   ok "components add"
@@ -1450,8 +1450,8 @@ if HOME="$CLONE_HOME" "$CLI_DIR/theme-profile" clone clone-src clone-dst >/dev/n
 else
   fail "clone failed"
 fi
-src_root="$CLONE_HOME/.config/theme-profile/profiles/clone-src"
-dst_root="$CLONE_HOME/.config/theme-profile/profiles/clone-dst"
+src_root="$CLONE_HOME/.config/kde-theme-profile/themes/clone-src"
+dst_root="$CLONE_HOME/.config/kde-theme-profile/themes/clone-dst"
 if [ -f "$dst_root/theme.json" ] && grep -q '"accent_color": "9,8,7"' "$dst_root/theme.json"; then
   ok "clone copied the theme package"
 else
@@ -1477,7 +1477,7 @@ fi
 
 # Source profile and the active marker must stay as they were.
 if [ -f "$src_root/theme.json" ] \
-  && [ "$(cat "$CLONE_HOME/.config/theme-profile/active-profile" 2>/dev/null)" = "clone-src" ]; then
+  && [ "$(cat "$CLONE_HOME/.config/kde-theme-profile/active-profile" 2>/dev/null)" = "clone-src" ]; then
   ok "clone leaves the source and the active marker untouched"
 else
   fail "clone disturbed the source or the active marker"
@@ -1544,8 +1544,8 @@ else
 fi
 
 if ex_b import "$ZIP" | grep -q "^Imported theme: sea" &&
-  grep -qF "@import \"$EX_B/.config/wofi/colors.css\"" "$EX_B/.config/theme-profile/profiles/sea/.config/wofi/style.css" &&
-  [ -f "$EX_B/.config/theme-profile/profiles/sea/wallpaper/sea.jpg" ]; then
+  grep -qF "@import \"$EX_B/.config/wofi/colors.css\"" "$EX_B/.config/kde-theme-profile/themes/sea/.config/wofi/style.css" &&
+  [ -f "$EX_B/.config/kde-theme-profile/themes/sea/wallpaper/sea.jpg" ]; then
   ok "import expands \$HOME to the receiver's home and brings the wallpaper"
 else
   fail "import did not restore the theme for the receiver"
@@ -1566,13 +1566,13 @@ else
   ok "import refuses an existing name without --force"
 fi
 if ex_b import "$ZIP" --force >/dev/null 2>&1 &&
-  compgen -G "$EX_B/.config/theme-profile/backups/pre-import-sea-*" >/dev/null; then
+  compgen -G "$EX_B/.config/kde-theme-profile/backups/pre-import-sea-*" >/dev/null; then
   ok "import --force replaces the theme and backs up the old one"
 else
   fail "import --force did not back up the replaced theme"
 fi
 if ex_b import "$EX_X" --name=sea-dir | grep -q "^Imported theme: sea-dir" &&
-  grep -q '"name": "sea-dir"' "$EX_B/.config/theme-profile/profiles/sea-dir/theme.json"; then
+  grep -q '"name": "sea-dir"' "$EX_B/.config/kde-theme-profile/themes/sea-dir/theme.json"; then
   ok "import accepts an unpacked theme directory and --name"
 else
   fail "directory import / --name failed"
@@ -1592,7 +1592,7 @@ if ex_b import "$EX_X" --name=tampered >/dev/null 2>&1; then
 else
   ok "import refuses files whose SHA-256 does not match export.json"
 fi
-if [ -e "$EX_B/.config/theme-profile/profiles/tampered" ] || compgen -G "$EX_B/.config/theme-profile/profiles/.import-*" >/dev/null; then
+if [ -e "$EX_B/.config/kde-theme-profile/themes/tampered" ] || compgen -G "$EX_B/.config/kde-theme-profile/themes/.import-*" >/dev/null; then
   fail "a refused import left files behind"
 else
   ok "a refused import leaves nothing behind"
@@ -1619,10 +1619,10 @@ dep_a() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$DEP_A" KTM_THEME_NO_APP
 dep_b() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$DEP_B" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
 dep_a save candy >/dev/null 2>&1
 if python3 -c 'import json,sys; d=json.load(open(sys.argv[1]))["dependencies"]; assert any(x["kind"]=="icons" and x["name"]=="Candy" and x["source"]=="kde-store" and x["id"]=="1305251" and x["exact"] for x in d), d' \
-  "$DEP_A/.config/theme-profile/profiles/candy/theme.json" 2>/dev/null; then
+  "$DEP_A/.config/kde-theme-profile/themes/candy/theme.json" 2>/dev/null; then
   ok "save records the KDE Store id of icons installed via Get New… (KNewStuff registry)"
 else
-  fail "dependency source not detected: $(cat "$DEP_A/.config/theme-profile/profiles/candy/theme.json")"
+  fail "dependency source not detected: $(cat "$DEP_A/.config/kde-theme-profile/themes/candy/theme.json")"
 fi
 if [ "$(dep_a deps candy)" = "All dependencies are installed." ]; then
   ok "deps lists nothing on the machine that has everything"
@@ -1653,7 +1653,7 @@ printf '[Background]\nColor=1,2,3\n\n[General]\nDescription=Night\nOpacity=0.8\n
 ko_a() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$KO_A" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
 ko_b() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$KO_B" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
 ko_a save night >/dev/null 2>&1
-ko_store="$KO_A/.config/theme-profile/profiles/night/.local/share/konsole"
+ko_store="$KO_A/.config/kde-theme-profile/themes/night/.local/share/konsole"
 if grep -q "ColorScheme=Night" "$ko_store/Mine.profile" && ! grep -q "Command\|HistorySize" "$ko_store/Mine.profile" &&
   grep -q "Opacity=0.8" "$ko_store/Night.colorscheme"; then
   ok "save stores the Konsole scheme and only the profile's [Appearance]"
@@ -1726,7 +1726,7 @@ else
   fail "Discord palette apply wrong: $(cat "$DC_A/.config/vesktop/settings/settings.json")"
 fi
 dc "$DC_A" save disc >/dev/null 2>&1
-dc_store="$DC_A/.config/theme-profile/profiles/disc/.config/vesktop"
+dc_store="$DC_A/.config/kde-theme-profile/themes/disc/.config/vesktop"
 if grep -q enabledThemes "$dc_store/settings/settings.json" && ! grep -q minimizeToTray "$dc_store/settings/settings.json" &&
   [ -f "$dc_store/themes/theme-profile.theme.css" ]; then
   ok "save stores the Discord themes and only enabledThemes/themeLinks"
@@ -1765,7 +1765,7 @@ else
   fail "Spicetify palette apply wrong: $(cat "$spa/config-xpui.ini")"
 fi
 sp "$SP_A" save spot >/dev/null 2>&1
-sp_store="$SP_A/.config/theme-profile/profiles/spot/.config/spicetify"
+sp_store="$SP_A/.config/kde-theme-profile/themes/spot/.config/spicetify"
 if grep -q "current_theme" "$sp_store/config-xpui.ini" && ! grep -q "spotify_path\|extensions" "$sp_store/config-xpui.ini"; then
   ok "save stores only the Spicetify theme keys"
 else
@@ -1794,7 +1794,7 @@ printf 'font-size = 12\nbackground = #282a36\nkeybind = ctrl+a=new_tab\n' >"$SA/
 printf -- '--theme="Dracula"\n--style=numbers\n' >"$SA/.config/bat/config"
 sh_cli() { local h="$1"; shift; env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$h" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
 sh_cli "$SA" save shells >/dev/null 2>&1
-st="$SA/.config/theme-profile/profiles/shells"
+st="$SA/.config/kde-theme-profile/themes/shells"
 if grep -q '"name":"aliens"' "$st/.config/oh-my-posh/theme-profile.omp.json" 2>/dev/null && [ ! -e "$st/.config/fish/config.fish" ] &&
   grep -q "fish_color_command" "$st/.config/fish/fish_variables" && ! grep -q "fish_user_paths" "$st/.config/fish/fish_variables" &&
   grep -q "gradient_color_1" "$st/.config/cava/config" && ! grep -q "framerate" "$st/.config/cava/config" &&
@@ -1839,7 +1839,7 @@ printf '[General]\nName=MyScheme\n' >"$PR/.local/share/color-schemes/MyScheme.co
 printf '[General]\nName=Unused\n' >"$PR/.local/share/color-schemes/Unused.colors"
 pr() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$PR" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
 pr save own >/dev/null 2>&1
-own="$PR/.config/theme-profile/profiles/own"
+own="$PR/.config/kde-theme-profile/themes/own"
 if [ -f "$own/.config/Kvantum/Mine/Mine.kvconfig" ] && [ ! -e "$own/.config/Kvantum/Other" ] &&
   [ -f "$own/.local/share/color-schemes/MyScheme.colors" ] && [ ! -e "$own/.local/share/color-schemes/Unused.colors" ]; then
   ok "save carries only the theme's own Kvantum family and colour scheme"
@@ -1852,7 +1852,7 @@ cp "$PR/.local/share/color-schemes/Unused.colors" "$own/.local/share/color-schem
 mkdir -p "$own/metadata/kde"; printf 'diag\n' >"$own/metadata/kde/summary.txt"; printf '[FileDialog]\n' >"$own/.config/QtProject.conf"
 if pr prune own | grep -q "^Pruned own: 4 file" && [ ! -e "$own/.config/Kvantum/Other" ] && [ ! -e "$own/metadata" ] &&
   [ ! -e "$own/.config/QtProject.conf" ] && [ -f "$own/.config/Kvantum/Mine/Mine.kvconfig" ] &&
-  compgen -G "$PR/.config/theme-profile/backups/pre-prune-own-*/.config/Kvantum/Other/Other.kvconfig" >/dev/null; then
+  compgen -G "$PR/.config/kde-theme-profile/backups/pre-prune-own-*/.config/Kvantum/Other/Other.kvconfig" >/dev/null; then
   ok "prune drops foreign assets, diagnostics and untracked leftovers (full backup first)"
 else
   fail "prune wrong: $(find "$own" -type f | sed "s|$own/||" | sort | tr '\n' ' ')"
@@ -1885,20 +1885,20 @@ else
 fi
 # A KDE Store item installed by `deps --install` is remembered with its id, so
 # a later save records the exact source (KNewStuff knows only its own installs).
-mkdir -p "$GM/.local/share/icons/Seven" "$GM/.config/theme-profile"
+mkdir -p "$GM/.local/share/icons/Seven" "$GM/.config/kde-theme-profile"
 printf '[Icon Theme]\nName=Seven\n' >"$GM/.local/share/icons/Seven/index.theme"
-printf '{"%s": {"store": "kde-store", "id": "1631627", "title": "Seven Icons"}}\n' "$GM/.local/share/icons/Seven" >"$GM/.config/theme-profile/installed-assets.json"
+printf '{"%s": {"store": "kde-store", "id": "1631627", "title": "Seven Icons"}}\n' "$GM/.local/share/icons/Seven" >"$GM/.config/kde-theme-profile/installed-assets.json"
 gm save seven >/dev/null 2>&1
 if python3 -c 'import json,sys; d=json.load(open(sys.argv[1]))["dependencies"]; assert any(x["name"]=="Seven" and x["id"]=="1631627" and x["exact"] for x in d), d' \
-  "$GM/.config/theme-profile/profiles/seven/theme.json" 2>/dev/null; then
+  "$GM/.config/kde-theme-profile/themes/seven/theme.json" 2>/dev/null; then
   ok "save records the KDE Store id of assets that deps --install fetched"
 else
-  fail "own install record ignored: $(cat "$GM/.config/theme-profile/profiles/seven/theme.json" 2>/dev/null | head -c 600)"
+  fail "own install record ignored: $(cat "$GM/.config/kde-theme-profile/themes/seven/theme.json" 2>/dev/null | head -c 600)"
 fi
 
 # Editor themes: no editor here → nothing to fetch, nothing reported.
-ED="$TMP_ROOT/editor-absent"; mkdir -p "$ED/.config/theme-profile/profiles/ed" "$ED/bin"
-cat >"$ED/.config/theme-profile/profiles/ed/theme.json" <<'JSON'
+ED="$TMP_ROOT/editor-absent"; mkdir -p "$ED/.config/kde-theme-profile/themes/ed" "$ED/bin"
+cat >"$ED/.config/kde-theme-profile/themes/ed/theme.json" <<'JSON'
 {"schema": "theme-profile/theme@2", "name": "ed", "values": {"vscode_theme": "Night Owl"}, "assets": [], "appearance_only": true,
  "sources": {"vscode_theme": {"store": "vscode-marketplace", "id": "sdras.night-owl", "url": ""}},
  "dependencies": [{"kind": "vscode", "name": "Night Owl", "source": "vscode-marketplace", "id": "sdras.night-owl", "title": "", "url": "https://marketplace.visualstudio.com/items?itemName=sdras.night-owl", "exact": true}]}
@@ -1936,18 +1936,18 @@ printf '[org.kde.kdecoration2]\nlibrary=org.kde.kwin.aurorae\ntheme=__aurorae__s
 au() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$AU" KTM_THEME_NO_APPLY=1 KTM_OFFLINE=1 "$CLI_DIR/theme-profile" "$@"; }
 au save deco >/dev/null 2>&1
 if python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert any(a["kind"]=="aurorae" and a["name"]=="MineAero" for a in d["assets"]), d["assets"]; assert not any(x["kind"]=="aurorae" for x in d["dependencies"]), d["dependencies"]' \
-  "$AU/.config/theme-profile/profiles/deco/theme.json" 2>/dev/null &&
-  [ -f "$AU/.config/theme-profile/profiles/deco/.local/share/aurorae/themes/MineAero/MineAerorc" ]; then
+  "$AU/.config/kde-theme-profile/themes/deco/theme.json" 2>/dev/null &&
+  [ -f "$AU/.config/kde-theme-profile/themes/deco/.local/share/aurorae/themes/MineAero/MineAerorc" ]; then
   ok "a user Aurorae decoration is carried as a theme asset, not a dependency"
 else
-  fail "aurorae not carried: $(cat "$AU/.config/theme-profile/profiles/deco/theme.json" 2>/dev/null | head -c 700)"
+  fail "aurorae not carried: $(cat "$AU/.config/kde-theme-profile/themes/deco/theme.json" 2>/dev/null | head -c 700)"
 fi
 
 # Rounded Corners keeps its settings in [Round-Corners]: part of the theme.
 RC="$TMP_ROOT/round-corners"; mkdir -p "$RC/.config"
 printf '[Plugins]\nkwin4_effect_shapecornersEnabled=true\n\n[Round-Corners]\nSize=10\nShadowSize=45\n\n[Desktops]\nNumber=4\n' >"$RC/.config/kwinrc"
 env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$RC" KTM_THEME_NO_APPLY=1 KTM_OFFLINE=1 "$CLI_DIR/theme-profile" save rc >/dev/null 2>&1
-snap="$RC/.config/theme-profile/profiles/rc/.config/kwinrc"
+snap="$RC/.config/kde-theme-profile/themes/rc/.config/kwinrc"
 if grep -q "^Size=10" "$snap" 2>/dev/null && grep -q "^kwin4_effect_shapecornersEnabled=true" "$snap" && ! grep -q "Desktops" "$snap"; then
   ok "rounded-corner settings and the effect switch travel with the theme (desktops do not)"
 else
@@ -1956,8 +1956,8 @@ fi
 
 # Follow-up actions: nothing for a theme without restart-worthy apps; an
 # unknown action is refused.
-AC="$TMP_ROOT/actions"; mkdir -p "$AC/.config/theme-profile/profiles/plain"
-printf '{"schema": "theme-profile/theme@2", "name": "plain", "values": {}, "assets": [], "dependencies": []}\n' >"$AC/.config/theme-profile/profiles/plain/theme.json"
+AC="$TMP_ROOT/actions"; mkdir -p "$AC/.config/kde-theme-profile/themes/plain"
+printf '{"schema": "theme-profile/theme@2", "name": "plain", "values": {}, "assets": [], "dependencies": []}\n' >"$AC/.config/kde-theme-profile/themes/plain/theme.json"
 ac() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$AC" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
 if [ "$(ac actions plain)" = "Nothing to do." ] && [ "$(ac actions plain --json)" = "[]" ] && ! ac action bogus >/dev/null 2>&1; then
   ok "actions lists nothing for a plain theme; unknown actions are refused"
@@ -1967,25 +1967,25 @@ fi
 
 # Automation choices are the user's (app-preferences.json), kept beside the
 # app's own settings; unknown keys and values are refused.
-AU2="$TMP_ROOT/automation"; mkdir -p "$AU2/.config/theme-profile"
-printf '{\n  "theme": "glass",\n  "network_enabled": false\n}\n' >"$AU2/.config/theme-profile/app-preferences.json"
+AU2="$TMP_ROOT/automation"; mkdir -p "$AU2/.config/kde-theme-profile"
+printf '{\n  "theme": "glass",\n  "network_enabled": false\n}\n' >"$AU2/.config/kde-theme-profile/app-preferences.json"
 au2() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$AU2" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
 if au2 automation --json | grep -q '"configured":false' &&
   au2 automation set store=always restart_zen=never &&
   au2 automation --json | grep -q '"configured":true' &&
   au2 automation | grep -qx "store=always  # .*" && au2 automation | grep -q "^restart_zen=never" &&
-  grep -q '"theme": "glass"' "$AU2/.config/theme-profile/app-preferences.json" &&
+  grep -q '"theme": "glass"' "$AU2/.config/kde-theme-profile/app-preferences.json" &&
   ! au2 automation set store=maybe 2>/dev/null && ! au2 automation set bogus=ask 2>/dev/null &&
   printf 'never\n\n\n\n\n\n' | au2 automation ask >/dev/null && au2 automation | grep -q "^store=never"; then
   ok "automation choices are stored per user beside the app settings; bad keys/values refused; ask reads answers"
 else
-  fail "automation: $(au2 automation 2>&1 | tr '\n' ' ') // $(cat "$AU2/.config/theme-profile/app-preferences.json")"
+  fail "automation: $(au2 automation 2>&1 | tr '\n' ' ') // $(cat "$AU2/.config/kde-theme-profile/app-preferences.json")"
 fi
 
 # Apply follows the choices: "never" drops a missing store dependency from
 # what is offered, "ask" keeps it.
-mkdir -p "$AU2/.config/theme-profile/profiles/needs"
-printf '{"schema": "theme-profile/theme@2", "name": "needs", "values": {}, "assets": [], "dependencies": [{"kind": "icons", "name": "NoSuchIcons", "source": "kde-store", "id": "999999999", "title": "No Such Icons", "url": "https://store.kde.org/p/999999999", "exact": true}]}\n' >"$AU2/.config/theme-profile/profiles/needs/theme.json"
+mkdir -p "$AU2/.config/kde-theme-profile/themes/needs"
+printf '{"schema": "theme-profile/theme@2", "name": "needs", "values": {}, "assets": [], "dependencies": [{"kind": "icons", "name": "NoSuchIcons", "source": "kde-store", "id": "999999999", "title": "No Such Icons", "url": "https://store.kde.org/p/999999999", "exact": true}]}\n' >"$AU2/.config/kde-theme-profile/themes/needs/theme.json"
 deps_offered() { au2 apply needs --json 2>/dev/null | python3 -c 'import json,sys; print(len(json.load(sys.stdin)["dependencies"]))'; }
 au2 automation set store=never >/dev/null; never_count="$(deps_offered)"
 au2 automation set store=ask >/dev/null; ask_count="$(deps_offered)"
@@ -2003,13 +2003,13 @@ nt() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$NT" KTM_THEME_NO_APPLY=1 K
 nt new fresh --from=neutral-dark >/dev/null 2>&1
 nt new copy --from=fresh >/dev/null 2>&1
 if python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); v=d["values"]; assert v.get("color_scheme")=="BreezeDark" and v.get("blur_enabled") is False, v' \
-     "$NT/.config/theme-profile/profiles/fresh/theme.json" 2>/dev/null &&
-  [ -f "$NT/.config/theme-profile/profiles/copy/theme.json" ] &&
-  [ "$(cat "$NT/.config/theme-profile/active-profile")" = copy ] &&
+     "$NT/.config/kde-theme-profile/themes/fresh/theme.json" 2>/dev/null &&
+  [ -f "$NT/.config/kde-theme-profile/themes/copy/theme.json" ] &&
+  [ "$(cat "$NT/.config/kde-theme-profile/active-profile")" = copy ] &&
   ! nt new fresh --from=neutral-light >/dev/null 2>&1 && ! nt new other --from=nosuch >/dev/null 2>&1; then
   ok "new: neutral template saved as a theme, a copy of a theme applied; names and bases checked"
 else
-  fail "new: $(cat "$NT/.config/theme-profile/profiles/fresh/theme.json" 2>/dev/null | head -c 400)"
+  fail "new: $(cat "$NT/.config/kde-theme-profile/themes/fresh/theme.json" 2>/dev/null | head -c 400)"
 fi
 nt look-and-feel copy >/dev/null 2>&1
 LAF="$NT/.local/share/plasma/look-and-feel/theme-profile-copy"
@@ -2095,10 +2095,10 @@ printf '[General]\nOrder=mine\n\n[mine]\nDescription=my rule\nwmclass=firefox\nw
 la() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$LA" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
 lu() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$LU" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
 la save dune >/dev/null 2>&1
-STORED="$LA/.config/theme-profile/profiles/dune/.config/plasma-org.kde.plasma.desktop-appletsrc"
+STORED="$LA/.config/kde-theme-profile/themes/dune/.config/plasma-org.kde.plasma.desktop-appletsrc"
 if grep -q "icon=author-logo" "$STORED" && ! grep -q "weather\|author home town\|favorites\|AppletOrder\|author-activity" "$STORED" &&
-  ! grep -q "thickness\|panelVisibility" "$LA/.config/theme-profile/profiles/dune/.config/plasmashellrc" &&
-  ! grep -q "pinned size\|position" "$LA/.config/theme-profile/profiles/dune/.config/kwinrulesrc"; then
+  ! grep -q "thickness\|panelVisibility" "$LA/.config/kde-theme-profile/themes/dune/.config/plasmashellrc" &&
+  ! grep -q "pinned size\|position" "$LA/.config/kde-theme-profile/themes/dune/.config/kwinrulesrc"; then
   ok "save keeps the shell's look only: no widgets, widget settings, panel sizes or behaviour rules"
 else
   fail "save stored layout: $(cat "$STORED")"
@@ -2132,7 +2132,7 @@ fi
 # --- GTK theme reaches GSettings (Wayland GTK apps read it, not settings.ini) ---
 GS="$TMP_ROOT/gsettings-home"
 GS_MOCK="$TMP_ROOT/gsettings-mock"
-mkdir -p "$GS/.config/gtk-3.0" "$GS/.config/gtk-4.0" "$GS_MOCK"
+mkdir -p "$GS/.config/gtk-3.0" "$GS/.config/gtk-4.0" "$GS_MOCK" "$GS/.local/share/themes/LightOne" "$GS/.local/share/themes/DarkOne" "$GS/.local/share/themes/Other"
 # Remembers values like the real one (a file per key).
 cat >"$GS_MOCK/gsettings" <<GSMOCK
 #!/usr/bin/env bash
@@ -2214,7 +2214,7 @@ printf '[Containments][20]\nformfactor=2\nlocation=4\nplugin=org.kde.panel\n\n[C
 ua() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$UA" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
 ub() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$UB" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
 ua save unused --no-wallpaper >/dev/null 2>&1
-UP="$UA/.config/theme-profile/profiles/unused"
+UP="$UA/.config/kde-theme-profile/themes/unused"
 if [ ! -e "$UP/.config/breezerc" ] && [ ! -e "$UP/.config/klassy/klassyrc" ] &&
   ! grep -q "Effect-blur\]\|Effect-translucency" "$UP/.config/kwinrc" && grep -q "Effect-better-blur-dx" "$UP/.config/kwinrc" &&
   ! grep -q "globalSettings\|hideWidget" "$UP/.config/plasma-org.kde.plasma.desktop-appletsrc" &&
@@ -2252,10 +2252,10 @@ na() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$NA" KTM_T
 nu() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$NU" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
 na save nowall --no-wallpaper >/dev/null 2>&1
 na save withwall >/dev/null 2>&1
-if ! grep -q "author.jpg\|wallpaperplugin" "$NA/.config/theme-profile/profiles/nowall/.config/plasma-org.kde.plasma.desktop-appletsrc"; then
+if ! grep -q "author.jpg\|wallpaperplugin" "$NA/.config/kde-theme-profile/themes/nowall/.config/plasma-org.kde.plasma.desktop-appletsrc"; then
   ok "a theme saved without a wallpaper does not name one"
 else
-  fail "no-wallpaper theme names: $(cat "$NA/.config/theme-profile/profiles/nowall/.config/plasma-org.kde.plasma.desktop-appletsrc")"
+  fail "no-wallpaper theme names: $(cat "$NA/.config/kde-theme-profile/themes/nowall/.config/plasma-org.kde.plasma.desktop-appletsrc")"
 fi
 na export nowall --out="$TMP_ROOT/nowall.zip" >/dev/null 2>&1
 na export withwall --no-wallpaper --out="$TMP_ROOT/withwall.zip" >/dev/null 2>&1
@@ -2271,7 +2271,7 @@ if grep -qx "wallpaperplugin=org.kde.potd" "$NRC" && grep -qx "Provider=apod" "$
 else
   fail "no-wallpaper theme changed the desktop: $(cat "$NRC")"
 fi
-cp "$NA/.config/theme-profile/profiles/withwall" -r "$NU/.config/theme-profile/profiles/withwall"
+cp "$NA/.config/kde-theme-profile/themes/withwall" -r "$NU/.config/kde-theme-profile/themes/withwall"
 nu apply withwall --keep-wallpaper >/dev/null 2>&1
 if grep -qx "wallpaperplugin=org.kde.potd" "$NRC" && ! grep -q "author.jpg" "$NRC"; then
   ok "--keep-wallpaper leaves any kind of wallpaper alone"
@@ -2336,6 +2336,52 @@ else
   fail "own Konsole profile: $(cat "$US/.local/share/konsole/Mine.profile")"
 fi
 
+# --- What this machine lacks stays as it is ------------------------------------------
+MS="$TMP_ROOT/missing-assets"
+mkdir -p "$MS/.config/gtk-3.0"
+printf '[Icons]\nTheme=breeze\n\n[KDE]\nwidgetStyle=Breeze\n' >"$MS/.config/kdeglobals"
+printf '[Mouse]\ncursorTheme=breeze_cursors\n' >"$MS/.config/kcminputrc"
+printf '[Theme]\nname=default\n' >"$MS/.config/plasmarc"
+printf '[org.kde.kdecoration2]\nlibrary=org.kde.breeze\ntheme=Breeze\n' >"$MS/.config/kwinrc"
+printf '[Settings]\ngtk-theme-name=Breeze\ngtk-icon-theme-name=breeze\n' >"$MS/.config/gtk-3.0/settings.ini"
+ms() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$MS" XDG_DATA_DIRS="$MS/none" PATH="$SAFE_BIN:/usr/bin:/bin" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+ms import "$SCRIPT_DIR/themes/frutiger-aero" >/dev/null 2>&1
+report="$(ms apply frutiger-aero --json 2>/dev/null)"
+if [ -d /usr/share/icons/Windows-7 ] || [ -d /usr/share/aurorae/themes/Se7enAero ]; then
+  echo "  ⏭️  the theme's assets are installed system-wide — skipping"
+elif grep -qx "Theme=breeze" "$MS/.config/kdeglobals" && grep -qx "library=org.kde.breeze" "$MS/.config/kwinrc" &&
+  grep -qx "name=default" "$MS/.config/plasmarc" &&
+  printf '%s' "$report" | grep -q "is not installed, kept"; then
+  ok "icons, cursor, window decoration and Plasma style a machine lacks keep the current ones, and the report says so"
+else
+  fail "theme switched to what is missing: $(grep -h "Theme=\|library=\|^name=\|cursorTheme=" "$MS/.config/kdeglobals" "$MS/.config/kwinrc" "$MS/.config/plasmarc" "$MS/.config/kcminputrc" | tr '\n' ' ')"
+fi
+if [ -s "$MS/.config/kde-theme-profile/apply.log" ] && grep -q "apply frutiger-aero: done" "$MS/.config/kde-theme-profile/apply.log"; then
+  ok "every apply leaves a step log to read after a freeze"
+else
+  fail "no apply log: $(ls "$MS/.config/kde-theme-profile")"
+fi
+if ! grep -rqi "simplekickoff\|Simple Application Launcher" "$SCRIPT_DIR/themes" "$SCRIPT_DIR/gui/qt-app/qml"; then
+  ok "the launcher widget is not named or required anywhere"
+else
+  fail "launcher widget still named: $(grep -rli "simplekickoff" "$SCRIPT_DIR/themes" | head -3)"
+fi
+
+# --- Data under the old folder names moves on the first run ---------------------------
+OL="$TMP_ROOT/old-names"
+mkdir -p "$OL/.config/theme-profile/profiles/mine/.config/theme-profile" "$OL/.config/theme-profile/backups/one"
+printf '{"schema":"theme-profile/theme@2","name":"mine","description":"","created":"2026-01-01T00:00:00Z","generator":"t","values":{},"assets":[],"sources":{},"appearance_only":true}\n' >"$OL/.config/theme-profile/profiles/mine/theme.json"
+printf 'palette' >"$OL/.config/theme-profile/profiles/mine/.config/theme-profile/palette.json"
+printf 'mine\n' >"$OL/.config/theme-profile/active-profile"
+ol() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$OL" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+if [ "$(ol list 2>/dev/null)" = "mine" ] && [ ! -e "$OL/.config/theme-profile" ] &&
+  [ -f "$OL/.config/kde-theme-profile/themes/mine/.config/kde-theme-profile/palette.json" ] &&
+  [ -d "$OL/.config/kde-theme-profile/backups/one" ] && [ "$(cat "$OL/.config/kde-theme-profile/active-profile")" = mine ]; then
+  ok "themes, backups and settings move from theme-profile/profiles to kde-theme-profile/themes"
+else
+  fail "old folders not moved: $(find "$OL/.config" -maxdepth 3)"
+fi
+
 # --- Forced blur leaves panels and notifications their own area ---------------------
 BLUR_OK=1
 for theme in "$SCRIPT_DIR"/themes/*/; do
@@ -2357,16 +2403,16 @@ oi() {
   env -i HOME="$home" PATH="$SAFE_BIN:$REAL_CARGO_BIN:/usr/bin:/bin" CARGO_HOME="$REAL_CARGO_HOME" RUSTUP_HOME="$REAL_RUSTUP_HOME" \
     bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --only-cli "$@"
 }
-OTHEME="$OH/.config/theme-profile/profiles/my-original-look"
+OTHEME="$OH/.config/kde-theme-profile/themes/my-original-look"
 if oi "$OH" >"$TMP_ROOT/original.log" 2>&1 && grep -q "ColorScheme=FriendScheme" "$OTHEME/.config/kdeglobals" && grep -q "no-original-theme" "$TMP_ROOT/original.log"; then
   ok "the first install saves the current look as my-original-look and says so"
 else
   fail "no original theme: $(tail -3 "$TMP_ROOT/original.log")"
 fi
-if [ -d "$OH/.config/theme-profile/profiles/glass" ] && [ -f "$OTHEME/theme.json" ]; then
+if [ -d "$OH/.config/kde-theme-profile/themes/glass" ] && [ -f "$OTHEME/theme.json" ]; then
   ok "the bundled themes are added next to it"
 else
-  fail "after the first install: $(ls "$OH/.config/theme-profile/profiles")"
+  fail "after the first install: $(ls "$OH/.config/kde-theme-profile/themes")"
 fi
 printf '[General]\nColorScheme=SomeTheme\n' >"$OH/.config/kdeglobals"
 if oi "$OH" >/dev/null 2>&1 && grep -q "ColorScheme=FriendScheme" "$OTHEME/.config/kdeglobals"; then
@@ -2377,7 +2423,7 @@ fi
 ON="$TMP_ROOT/original-none"
 mkdir -p "$ON/.config"
 if oi "$ON" --no-themes --no-original-theme >/dev/null 2>&1 &&
-  [ ! -e "$ON/.config/theme-profile/profiles/my-original-look" ]; then
+  [ ! -e "$ON/.config/kde-theme-profile/themes/my-original-look" ]; then
   ok "--no-original-theme skips it"
 else
   fail "--no-original-theme still saved a theme"
@@ -2388,7 +2434,7 @@ SD="$TMP_ROOT/sddm-home"
 mkdir -p "$SD/.config"
 sd() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$SD" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
 sd save old-theme --no-wallpaper >/dev/null 2>&1
-SDJ="$SD/.config/theme-profile/profiles/old-theme/theme.json"
+SDJ="$SD/.config/kde-theme-profile/themes/old-theme/theme.json"
 python3 - "$SDJ" <<'SDPY'
 import json, sys
 d = json.load(open(sys.argv[1]))
@@ -2464,14 +2510,14 @@ else
 fi
 # What the user changed after a theme stays theirs.
 rt apply dracula >/dev/null 2>&1
-printf 'my own edit\n' >"$RT/.config/fastfetch/config.jsonc"
+printf 'my own edit\n' >"$RT/.config/cava/config"
 rt apply my-look >/dev/null 2>&1
-if [ "$(cat "$RT/.config/fastfetch/config.jsonc" 2>/dev/null)" = "my own edit" ]; then
+if [ "$(cat "$RT/.config/cava/config" 2>/dev/null)" = "my own edit" ]; then
   ok "a file the user edited after a theme is not undone"
 else
   fail "the user's edit was lost"
 fi
-rm -f "$RT/.config/fastfetch/config.jsonc"
+rm -f "$RT/.config/cava/config"
 # A pref a theme set goes back through user.js (it stays in prefs.js otherwise).
 PREFS="$RT/.zen/xyz.Default (release)"
 rt apply frutiger-aero-light >/dev/null 2>&1

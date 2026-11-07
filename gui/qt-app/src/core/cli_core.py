@@ -218,8 +218,11 @@ class CliProfileCore(ProfileCore):
                 args.append("--keep-wallpaper")
             if install_missing:
                 args.append("--install-missing")
-            result = self._run(args, timeout=300 if install_missing else 60)
+            # The core limits every tool it runs; a limit here would kill it with
+            # plasmashell stopped and leave the user without a desktop.
+            result = self._run(args, timeout=3600)
             if not result.success:
+                self._bring_shell_back(result)
                 return result
             try:
                 report = json.loads(result.message or "{}")
@@ -233,7 +236,33 @@ class CliProfileCore(ProfileCore):
         args = ["apply", profile]
         if selected is not None:
             args.append(f"--components={selected}")
-        return self._run(args, timeout=60)
+        result = self._run(args, timeout=3600)
+        self._bring_shell_back(result)
+        return result
+
+    @staticmethod
+    def _bring_shell_back(result: Result) -> None:
+        """An apply that was stopped must not leave the desktop without a shell."""
+        if result.success or not result.message.startswith("Timeout") or os.environ.get("KTM_THEME_NO_APPLY") == "1":
+            return
+        try:
+            subprocess.run(["systemctl", "--user", "start", "plasma-plasmashell.service"], timeout=30, check=False)
+        except (OSError, subprocess.SubprocessError):
+            pass
+
+    def pending_dependencies(self, name: str) -> Result:
+        """What to ask about before applying: missing dependencies whose kind the
+        user left on "ask" (`always` installs in the apply, `never` skips)."""
+        result = self.dependencies(name)
+        if not result.success:
+            return result
+        policies = {i.get("key"): i.get("policy") for i in (CliSettingsCore().automation().get("items") or [])}
+        wanted = []
+        for dep in result.data or []:
+            key = "packages" if dep.get("source") in ("package", "aur") else "store"
+            if policies.get(key, "ask") == "ask":
+                wanted.append(dep)
+        return Result.ok(data=wanted)
 
     def save(self, name: str, components: Optional[list[str]] = None,
              description: str = "", include_wallpaper: bool = True) -> Result:
@@ -322,7 +351,7 @@ class CliProfileCore(ProfileCore):
         except ValueError:
             return Result.err("theme-profile deps returned invalid JSON")
 
-    def install_dependencies(self, name: str, indexes: Optional[list[int]] = None) -> Result:
+    def install_dependencies(self, name: str, indexes: Optional[list[int]] = None, timeout: int = 3600) -> Result:
         """`theme-profile deps NAME --install=… --json` (downloads from the
         official sources; packages are never installed — see their command)."""
         try:
@@ -332,7 +361,7 @@ class CliProfileCore(ProfileCore):
         spec = "all" if indexes is None else ",".join(str(int(i)) for i in indexes)
         if not spec:
             return Result.err("Nothing selected")
-        result = self._run(["deps", name, f"--install={spec}", "--json"], timeout=900)
+        result = self._run(["deps", name, f"--install={spec}", "--json"], timeout=timeout)
         try:
             items = json.loads(result.message or "[]")
         except ValueError:

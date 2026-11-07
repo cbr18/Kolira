@@ -34,8 +34,8 @@ fn ensure_allowed() -> Result<()> {
 /// downloading as long as bytes keep coming.
 fn agent() -> ureq::Agent {
     ureq::AgentBuilder::new()
-        .timeout_connect(Duration::from_secs(20))
-        .timeout_read(Duration::from_secs(60))
+        .timeout_connect(Duration::from_secs(15))
+        .timeout_read(Duration::from_secs(30))
         .timeout_write(Duration::from_secs(30))
         .build()
 }

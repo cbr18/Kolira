@@ -410,7 +410,7 @@ TRACKED_APPS: tuple[TrackedAppDef, ...] = (
         id="palette",
         name="Palette",
         category="System Profiles",
-        config_paths=(".config/theme-profile/palette.json",),
+        config_paths=(".config/kde-theme-profile/palette.json",),
         description="base16 palette the generated theme was built from",
         icon="color-management",
     ),

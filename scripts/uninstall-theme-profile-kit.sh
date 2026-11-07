@@ -12,9 +12,9 @@ APPSDIR="$DATADIR/applications"
 ICON="$DATADIR/icons/hicolor/scalable/apps/ktm-theme-manager.svg"
 LEGACY_ICON="$DATADIR/icons/hicolor/scalable/apps/kde-theme-manager.svg"
 MARKER=".installed-by-theme-profile-kit"
-THEMEDIR="$CONFIGDIR/theme-profile"
-if [ ! -d "$THEMEDIR" ] && [ -n "${XDG_CONFIG_HOME:-}" ] && [ -d "${HOME}/.config/theme-profile" ]; then
-  THEMEDIR="${HOME}/.config/theme-profile"
+THEMEDIR="$CONFIGDIR/kde-theme-profile"
+if [ ! -d "$THEMEDIR" ] && [ -n "${XDG_CONFIG_HOME:-}" ] && [ -d "${HOME}/.config/kde-theme-profile" ]; then
+  THEMEDIR="${HOME}/.config/kde-theme-profile"
 fi
 
 MODE="all" # all | cli | gui

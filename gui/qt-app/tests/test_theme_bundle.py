@@ -829,7 +829,7 @@ def test_new_theme_from_neutral_and_from_theme(cli_bundle_home):
     kdeglobals = (home / ".config/kdeglobals").read_text(encoding="utf-8")
     assert "ColorScheme=BreezeDark" in kdeglobals
     assert (profile_dir("plain")).is_dir()
-    assert (home / ".config/theme-profile/active-profile").read_text().strip() == "plain"
+    assert (home / ".config/kde-theme-profile/active-profile").read_text().strip() == "plain"
 
     copy = profiles.new_theme("plain2", "plain")
     assert copy.success, copy.message

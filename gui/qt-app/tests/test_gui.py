@@ -227,7 +227,7 @@ class TestCliProfileCore:
         assert args[0] == ["apply", "glass", "--components=kwin,kdeglobals"]
 
     def test_apply_package_uses_json_report(self) -> None:
-        package = self.home / ".config/theme-profile/profiles/night"
+        package = self.home / ".config/kde-theme-profile/themes/night"
         package.mkdir(parents=True)
         (package / "theme.json").write_text("{}", encoding="utf-8")
         core = self._make_core()
@@ -481,7 +481,7 @@ class TestCustomRegistryMerge:
 
         monkeypatch.setenv("HOME", str(tmp_path))
         monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
-        root = tmp_path / ".config" / "theme-profile"
+        root = tmp_path / ".config" / "kde-theme-profile"
         root.mkdir(parents=True)
         (root / "components.json").write_text(jsonlib.dumps({"schema_version": 1, "components": entries}))
 
@@ -2231,7 +2231,7 @@ class TestStaleActiveMarker:
     """Маркер активного профиля, указывающий на удалённый профиль, сбрасывается."""
 
     def _marker(self, tmp_path: Path) -> Path:
-        marker = tmp_path / ".config" / "theme-profile" / "active-profile"
+        marker = tmp_path / ".config" / "kde-theme-profile" / "active-profile"
         marker.parent.mkdir(parents=True, exist_ok=True)
         return marker
 
@@ -2637,9 +2637,9 @@ class TestSingleCore:
         saved = AppSettings(
             **{**AppSettings().to_dict(), "core_backend": "core", "theme": "paper"}
         )
-        target = tmp_path / "theme-profile" / "app-preferences.json"
+        target = tmp_path / "kde-theme-profile" / "app-preferences.json"
         # Pin the module-level path: SETTINGS_FILE resolves the *legacy*
-        # ~/.config/theme-profile first, so env overrides alone would write
+        # ~/.config/kde-theme-profile first, so env overrides alone would write
         # into the real user directory.
         with mock.patch("core.cli_core.SETTINGS_FILE", target):
             assert CliSettingsCore().save(saved).success
@@ -3027,6 +3027,7 @@ def test_app_look_reloads_after_apply_only(monkeypatch, operation, success, relo
     owner._operation = operation
     owner._pending_missing = None
     owner._pending_actions = None
+    owner._pending_before = None
     controllers.ProfileController._on_operation_finished(owner, success, "done")
     assert len(calls) == reloads
 
@@ -3091,3 +3092,85 @@ def test_fresh_plasma_without_colours_does_not_crash(tmp_path) -> None:
     )
     assert done.returncode == 0 and "opened" in done.stdout, done.stderr
     assert "Qt.ColorMode" not in (SRC_DIR / "theme_controller.py").read_text()  # no such enum
+
+
+def test_apply_asks_first_and_downloads_before_applying(monkeypatch, qtbot) -> None:
+    """Nothing changes until the user answered; one failed download costs only itself."""
+    import controllers
+    from core.protocol import Result
+
+    calls: list = []
+
+    class Core:
+        def pending_dependencies(self, name):
+            calls.append("pending")
+            return Result.ok(data=[{"index": 1, "name": "icons", "source": "kde-store"}])
+
+        def dependencies(self, name):
+            return Result.ok(data=[
+                {"index": 1, "name": "icons", "source": "kde-store"},
+                {"index": 2, "name": "gone", "source": "kde-store"},
+                {"index": 3, "name": "pkg", "source": "aur"},
+            ])
+
+        def install_dependencies(self, name, indexes, timeout=3600):
+            calls.append(("install", tuple(indexes)))
+            return Result(indexes != [2], f"item {indexes}")
+
+        def apply(self, name, **kw):
+            calls.append("apply")
+            return Result.ok("Applied", data={})
+
+    monkeypatch.setattr(controllers, "_reload_app_look", lambda: None)
+    monkeypatch.setattr(controllers.ProfileController, "_is_package", staticmethod(lambda p: True))
+    monkeypatch.setattr(controllers.CoreFactory, "profile_core", staticmethod(lambda *a: Core()))
+    c = controllers.ProfileController()
+    c._core = Core()
+    with qtbot.waitSignal(c.dependenciesBeforeApply, timeout=3000) as sig:
+        c.applyProfile("t", True, False, True)
+    assert sig.args[0] == "t" and sig.args[2] is True
+    assert calls == ["pending"] and not c.busy
+
+    calls.clear()
+    with qtbot.waitSignal(c.operationFinished, timeout=3000) as done:
+        c.installDependencies("t", [1, 2, 3], True, False)
+    assert calls == [("install", (1,)), ("install", (2,)), ("install", (3,)), "apply"]
+    assert done.args[0] is False and "item [2]" in done.args[1] and not c.busy
+
+
+def test_apply_timeout_brings_the_shell_back(monkeypatch) -> None:
+    """A stopped apply must not leave the desktop without plasmashell."""
+    from core import cli_core
+    from core.protocol import Result
+
+    ran: list = []
+    monkeypatch.delenv("KTM_THEME_NO_APPLY", raising=False)
+    monkeypatch.setattr(cli_core.subprocess, "run", lambda args, **kw: ran.append(args))
+    cli_core.CliProfileCore._bring_shell_back(Result.err("Timeout after 3600s"))
+    assert ran == [["systemctl", "--user", "start", "plasma-plasmashell.service"]]
+    ran.clear()
+    cli_core.CliProfileCore._bring_shell_back(Result.err("some other error"))
+    assert ran == []
+
+
+def test_old_folder_names_move(monkeypatch, tmp_path) -> None:
+    """Twin of the Rust migration: the GUI may start first."""
+    import core.paths as cp
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
+    old = tmp_path / ".config/theme-profile"
+    (old / "profiles/mine/.config/theme-profile").mkdir(parents=True)
+    (old / "profiles/mine/.config/theme-profile/palette.json").write_text("p")
+    (old / "backups/one").mkdir(parents=True)
+    (old / "app-preferences.json").write_text("old")
+    new = tmp_path / ".config/kde-theme-profile"
+    (new / "backups/deploy").mkdir(parents=True)
+    (new / "app-preferences.json").write_text("new")
+    cp._migrate_old_names([old], new)
+    assert cp.theme_root() == new and cp.profiles_dir() == new / "themes"
+    assert (new / "themes/mine/.config/kde-theme-profile/palette.json").is_file()
+    assert (new / "backups/one").is_dir() and (new / "backups/deploy").is_dir()
+    assert (new / "app-preferences.json").read_text() == "new"
+    assert (old / "app-preferences.json").read_text() == "old"
+    assert not (old / "profiles").exists()

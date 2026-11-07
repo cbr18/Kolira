@@ -647,12 +647,16 @@ pub fn root_command(deps: &[&Dependency]) -> Option<String> {
 /// alacritty, ghostty — the first installed); it stays open until Enter.
 /// Returns the terminal used.
 pub fn run_in_terminal(command: &str) -> Result<String> {
-    let script = format!("{command}; status=$?; echo; if [ $status -eq 0 ]; then echo 'Done.'; else echo \"Failed ($status).\"; fi; printf 'Press Enter to close… '; read _");
+    let script = format!(
+        "{command}; status=$?; echo; if [ $status -eq 0 ]; then echo 'Done.'; else echo \"Failed ($status).\"; \
+         echo 'If files were not found (404), the package database is out of date: sudo pacman -Syu, then try again.'; fi; \
+         printf 'Press Enter to close… '; read _; exit $status"
+    );
     if std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1") {
         return Ok("no terminal (KTM_THEME_NO_APPLY)".into());
     }
     let terminals: [(&str, &[&str]); 4] = [
-        ("konsole", &["-e", "sh", "-c"]),
+        ("konsole", &["--nofork", "-e", "sh", "-c"]),
         ("kitty", &["sh", "-c"]),
         ("alacritty", &["-e", "sh", "-c"]),
         ("ghostty", &["-e", "sh", "-c"]),
@@ -661,15 +665,22 @@ pub fn run_in_terminal(command: &str) -> Result<String> {
         if which::which(bin).is_err() {
             continue;
         }
-        std::process::Command::new(bin)
-            .args(args)
-            .arg(&script)
-            .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .spawn()
-            .with_context(|| format!("cannot start {bin}"))?;
-        return Ok(bin.to_string());
+        // Waits for the window: what is installed there counts before a theme
+        // is applied. An hour is the limit for someone away from the keyboard.
+        let status = crate::paths::output_bounded_for(
+            std::process::Command::new(bin)
+                .args(args)
+                .arg(&script)
+                .stdin(std::process::Stdio::null())
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null()),
+            std::time::Duration::from_secs(3600),
+        );
+        return match status {
+            Some((s, _)) if s.success() => Ok(bin.to_string()),
+            Some(_) => bail!("the install in {bin} did not finish. If files were not found (404), the package database is out of date: run sudo pacman -Syu and try again"),
+            None => bail!("the install in {bin} took too long and was stopped"),
+        };
     }
     bail!("no terminal found (konsole, kitty, alacritty, ghostty) — run: {command}")
 }
@@ -768,16 +779,17 @@ fn unpack(archive: &Path, dest: &Path) -> Result<()> {
             }
         }
     } else {
-        let ok = std::process::Command::new("tar")
-            .arg("-xf")
-            .arg(archive)
-            .arg("-C")
-            .arg(dest)
-            .arg("--no-same-owner")
-            .arg("--warning=no-unknown-keyword")
-            .status()
-            .with_context(|| "run tar")?
-            .success();
+        let ok = crate::paths::status_bounded(
+            std::process::Command::new("tar")
+                .arg("-xf")
+                .arg(archive)
+                .arg("-C")
+                .arg(dest)
+                .arg("--no-same-owner")
+                .arg("--warning=no-unknown-keyword")
+                .stderr(std::process::Stdio::null()),
+        )
+        .is_some_and(|s| s.success());
         if !ok {
             bail!("could not unpack {}", archive.display());
         }
@@ -872,12 +884,8 @@ fn install_from_store(d: &Dependency) -> Result<String> {
 
     if let Some(kind) = kpackage_type(&d.kind) {
         let run = |op: &str| {
-            std::process::Command::new("kpackagetool6")
-                .args(["--type", kind, op])
-                .arg(&archive)
-                .output()
-                .map(|o| o.status.success())
-                .unwrap_or(false)
+            crate::paths::status_bounded(std::process::Command::new("kpackagetool6").args(["--type", kind, op]).arg(&archive).stderr(std::process::Stdio::null()))
+                .is_some_and(|s| s.success())
         };
         if !(run("--install") || run("--upgrade")) {
             bail!("kpackagetool6 could not install {file_name}");

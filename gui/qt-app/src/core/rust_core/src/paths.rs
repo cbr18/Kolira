@@ -1,9 +1,9 @@
 //! XDG-aware paths and profile-name validation.
 //!
-//! Profiles keep the historical `.config/...` layout, but the live files they
-//! mirror must follow `XDG_CONFIG_HOME`/`XDG_DATA_HOME`.  `theme_root()` prefers
-//! the XDG location and falls back to `~/.config/theme-profile` only when that
-//! legacy directory already exists, mirroring the CLI core and the shell adapter.
+//! Themes keep the `.config/...` layout inside, but the live files they mirror
+//! must follow `XDG_CONFIG_HOME`/`XDG_DATA_HOME`. Data lives in
+//! `$XDG_CONFIG_HOME/kde-theme-profile`; the old `theme-profile` folder is moved
+//! there on start, by this module and its twin `core/paths.py`.
 
 use std::path::{Path, PathBuf};
 
@@ -25,20 +25,68 @@ pub fn data_home() -> PathBuf {
     dirs::data_dir().unwrap_or_else(|| home_dir().join(".local/share"))
 }
 
+/// The data folder's name; `theme-profile` before 0.6.0 (see [`migrate_old_names`]).
+const DATA_DIR: &str = "kde-theme-profile";
+const OLD_DATA_DIR: &str = "theme-profile";
+
 pub fn theme_root() -> PathBuf {
-    let preferred = config_home().join("theme-profile");
-    let legacy = home_dir().join(".config").join("theme-profile");
-    if preferred.exists() {
+    let preferred = config_home().join(DATA_DIR);
+    let in_dot_config = home_dir().join(".config").join(DATA_DIR);
+    // Unit tests read this path with the real HOME: they must not move real data.
+    if !cfg!(test) {
+        migrate_old_names(&[config_home().join(OLD_DATA_DIR), home_dir().join(".config").join(OLD_DATA_DIR)], &preferred);
+    }
+    if preferred.exists() || !in_dot_config.exists() {
         preferred
-    } else if legacy.exists() {
-        legacy
     } else {
-        preferred
+        in_dot_config
+    }
+}
+
+/// Move data from the old folder names: `theme-profile/` → `kde-theme-profile/`,
+/// `profiles/` → `themes/`, and inside each theme its own `.config/theme-profile`.
+/// Runs on every start and does nothing once done. It merges, because something
+/// may have created the new folder first (the installer's backups). Nothing is
+/// overwritten: an entry that exists in both places stays in the old folder.
+fn migrate_old_names(old_roots: &[PathBuf], new_root: &Path) {
+    for old in old_roots {
+        if !old.is_dir() || old == new_root {
+            continue;
+        }
+        move_children(old, new_root);
+        let _ = std::fs::remove_dir(old);
+    }
+    let (old_themes, themes) = (new_root.join("profiles"), new_root.join("themes"));
+    if old_themes.is_dir() {
+        move_children(&old_themes, &themes);
+        let _ = std::fs::remove_dir(&old_themes);
+    }
+    let Ok(entries) = std::fs::read_dir(&themes) else { return };
+    for entry in entries.flatten() {
+        let inner = entry.path().join(".config").join(OLD_DATA_DIR);
+        if inner.is_dir() {
+            move_children(&inner, &entry.path().join(".config").join(DATA_DIR));
+            let _ = std::fs::remove_dir(&inner);
+        }
+    }
+}
+
+fn move_children(from: &Path, to: &Path) {
+    let Ok(entries) = std::fs::read_dir(from) else { return };
+    let _ = std::fs::create_dir_all(to);
+    for entry in entries.flatten() {
+        let target = to.join(entry.file_name());
+        if !target.exists() {
+            let _ = std::fs::rename(entry.path(), &target);
+        } else if entry.path().is_dir() && target.is_dir() && entry.file_name() == "backups" {
+            move_children(&entry.path(), &target);
+            let _ = std::fs::remove_dir(entry.path());
+        }
     }
 }
 
 pub fn profiles_dir() -> PathBuf {
-    theme_root().join("profiles")
+    theme_root().join("themes")
 }
 
 pub fn backups_dir() -> PathBuf {
@@ -108,6 +156,22 @@ pub fn profile_dir(name: &str) -> Result<PathBuf> {
     Ok(profiles_dir().join(name))
 }
 
+/// One line in `<theme root>/apply.log`, on disk at once: if the machine freezes
+/// during an apply, the last line says which step it was. Best-effort.
+pub fn log_step(message: &str) {
+    use std::io::Write;
+    let path = theme_root().join("apply.log");
+    if std::fs::metadata(&path).is_ok_and(|m| m.len() > 256 * 1024) {
+        let _ = std::fs::rename(&path, theme_root().join("apply.log.old"));
+    }
+    let _ = std::fs::create_dir_all(theme_root());
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&path) {
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+        let _ = writeln!(f, "{now} {message}");
+        let _ = f.sync_data();
+    }
+}
+
 /// How long an external tool may take (`KTM_COMMAND_TIMEOUT`, seconds).
 fn command_timeout() -> std::time::Duration {
     let secs = std::env::var("KTM_COMMAND_TIMEOUT").ok().and_then(|v| v.parse().ok()).unwrap_or(60);
@@ -123,6 +187,12 @@ pub fn status_bounded(cmd: &mut std::process::Command) -> Option<std::process::E
 
 /// [`status_bounded`] that also returns what the command printed.
 pub fn output_bounded(cmd: &mut std::process::Command) -> Option<(std::process::ExitStatus, Vec<u8>)> {
+    output_bounded_for(cmd, command_timeout())
+}
+
+/// [`output_bounded`] with its own limit (a store's installer, a terminal the
+/// user is typing in).
+pub fn output_bounded_for(cmd: &mut std::process::Command, limit: std::time::Duration) -> Option<(std::process::ExitStatus, Vec<u8>)> {
     use std::io::Read;
     let mut child = cmd.spawn().ok()?;
     let mut stdout = child.stdout.take();
@@ -133,7 +203,7 @@ pub fn output_bounded(cmd: &mut std::process::Command) -> Option<(std::process::
         }
         out
     });
-    let deadline = std::time::Instant::now() + command_timeout();
+    let deadline = std::time::Instant::now() + limit;
     loop {
         match child.try_wait() {
             Ok(Some(status)) => return Some((status, reader.join().unwrap_or_default())),
@@ -146,6 +216,35 @@ pub fn output_bounded(cmd: &mut std::process::Command) -> Option<(std::process::
             }
             Err(_) => return None,
         }
+    }
+}
+
+#[cfg(test)]
+mod migration_tests {
+    use super::*;
+
+    #[test]
+    fn old_folder_names_move_and_nothing_is_overwritten() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (old, new) = (tmp.path().join("theme-profile"), tmp.path().join("kde-theme-profile"));
+        std::fs::create_dir_all(old.join("profiles/mine/.config/theme-profile")).unwrap();
+        std::fs::write(old.join("profiles/mine/.config/theme-profile/palette.json"), "p").unwrap();
+        std::fs::create_dir_all(old.join("backups/one")).unwrap();
+        std::fs::write(old.join("active-profile"), "mine").unwrap();
+        std::fs::write(old.join("app-preferences.json"), "old").unwrap();
+        // The installer got there first.
+        std::fs::create_dir_all(new.join("backups/deploy")).unwrap();
+        std::fs::write(new.join("app-preferences.json"), "new").unwrap();
+        migrate_old_names(std::slice::from_ref(&old), &new);
+        assert!(new.join("themes/mine/.config/kde-theme-profile/palette.json").is_file());
+        assert!(new.join("backups/one").is_dir() && new.join("backups/deploy").is_dir());
+        assert_eq!(std::fs::read_to_string(new.join("active-profile")).unwrap(), "mine");
+        assert_eq!(std::fs::read_to_string(new.join("app-preferences.json")).unwrap(), "new");
+        assert_eq!(std::fs::read_to_string(old.join("app-preferences.json")).unwrap(), "old");
+        assert!(!old.join("profiles").exists() && !new.join("profiles").exists());
+        // Done: a second run changes nothing.
+        migrate_old_names(std::slice::from_ref(&old), &new);
+        assert!(new.join("themes/mine").is_dir());
     }
 }
 

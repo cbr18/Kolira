@@ -43,7 +43,6 @@ pub fn is_laf_layout(rel: &Path) -> bool {
 pub const LOOK_APPLETS: &[(&str, &[&str])] = &[
     ("luisbocanegra.panel.colorizer", &["globalSettings", "configurationOverrides", "isEnabled", "hideWidget"]),
     ("org.kde.plasma.kickoff", LAUNCHER_LOOK),
-    ("org.kde.plasma.simplekickoff", LAUNCHER_LOOK),
     ("org.kde.plasma.kicker", LAUNCHER_LOOK),
     ("org.kde.plasma.kickerdash", LAUNCHER_LOOK),
 ];

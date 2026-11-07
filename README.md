@@ -81,7 +81,7 @@ Optional:
 
 Installs the command line scripts **and** the GUI (app copy, launcher, desktop
 entry). Creates timestamped backups of every replaced file in
-`~/.config/theme-profile/backups/`.
+`~/.config/kde-theme-profile/backups/`.
 
 | Installed | Where |
 |---|---|
@@ -108,10 +108,10 @@ ask`). Otherwise the app asks on its first start; change it later in
 *Settings → Automation* or with `theme-profile automation set KEY=POLICY`.
 
 **Data is separate from code** — profiles, backups and settings live in
-`$XDG_CONFIG_HOME/theme-profile/` (default `~/.config/theme-profile/`;
-`profiles/`, `backups/`, `manifests/`, `active-profile`,
+`$XDG_CONFIG_HOME/kde-theme-profile/` (default `~/.config/kde-theme-profile/`;
+`themes/`, `backups/`, `manifests/`, `active-profile`,
 `app-preferences.json`) and are never touched by an install. An existing legacy
-`~/.config/theme-profile/` is detected and kept, and profile snapshots always
+`~/.config/kde-theme-profile/` is detected and kept, and profile snapshots always
 use the historical `.config/...` layout, so pre-XDG profiles keep working.
 The applied theme itself is the usual KDE configuration (`kdeglobals`,
 `kwinrc`, `gtk-3.0/settings.ini`, …).
@@ -265,7 +265,7 @@ change the look and save over it. `theme-profile look-and-feel NAME` (or the
 Save dialog's checkbox) adds a Look & Feel package with the look and no panel
 layout.
 
-Profiles live in `~/.config/theme-profile/profiles/`. Old snapshot profiles keep
+Profiles live in `~/.config/kde-theme-profile/themes/`. Old snapshot profiles keep
 working until converted with `theme-profile migrate --all`.
 
 ## Theme bundles / Комплекты тем
@@ -282,7 +282,7 @@ a high-level theme builder rather than a raw config editor. A bundle combines:
 Installed themes are selected from lists wherever possible. Core KDE values are
 staged and applied as one batch; **Undo/Revert** remain available after Apply.
 Application adapters apply their own config updates immediately and copy the
-previous file to `~/.config/theme-profile/backups/app-theme-<timestamp>/`.
+previous file to `~/.config/kde-theme-profile/backups/app-theme-<timestamp>/`.
 Saving from the Theme page writes a theme package (`docs/THEMES.md`); old
 profiles with a `theme-bundle.json` beside a snapshot are still read as legacy.
 
@@ -341,8 +341,8 @@ too). Warns if you have uncommitted local changes.
 
 Removes the scripts from `~/.local/bin/`, the app from
 `~/.local/share/kde-theme-manager/`, its launcher, desktop entry and icon, and
-wipes the data directory (`$XDG_CONFIG_HOME/theme-profile/`, falling back to
-`~/.config/theme-profile/`). The confirmation prompt is shown **before** any
+wipes the data directory (`$XDG_CONFIG_HOME/kde-theme-profile/`, falling back to
+`~/.config/kde-theme-profile/`). The confirmation prompt is shown **before** any
 file is removed, so answering "no" leaves the installation untouched. Does
 **not** touch your KDE config files, wofi styles, or application settings —
 those must be reverted manually.
@@ -352,9 +352,9 @@ See [Rollback & Recovery](#rollback--восстановление).
 
 See [`docs/ROLLBACK.md`](docs/ROLLBACK.md) for full instructions. Quick summary:
 
-- **Undo profile apply**: pre-apply backups are at `~/.config/theme-profile/backups/pre-apply-<name>-<ts>/`
-- **Restore old scripts**: `cp -a ~/.config/theme-profile/backups/deploy-*/bin/. ~/.local/bin/`
-- **Restore the previous app**: `cp -a ~/.config/theme-profile/backups/deploy-kde-theme-manager-*/app/. ~/.local/share/kde-theme-manager/`
+- **Undo profile apply**: pre-apply backups are at `~/.config/kde-theme-profile/backups/pre-apply-<name>-<ts>/`
+- **Restore old scripts**: `cp -a ~/.config/kde-theme-profile/backups/deploy-*/bin/. ~/.local/bin/`
+- **Restore the previous app**: `cp -a ~/.config/kde-theme-profile/backups/deploy-kde-theme-manager-*/app/. ~/.local/share/kde-theme-manager/`
 - **Plasma won't start**: `systemctl --user start plasma-plasmashell.service`
 - **Full remove**: `uninstall-theme-profile-kit.sh --force`
 
@@ -365,7 +365,7 @@ See [`docs/ROLLBACK.md`](docs/ROLLBACK.md) for full instructions. Quick summary:
 | `command not found: kreadconfig6` | Install `plasma-workspace`: `sudo pacman -S plasma-workspace` |
 | `command not found: wofi` | Install: `sudo pacman -S wofi` |
 | wofi menu appears empty | Ensure `~/.config/wofi/style.css` exists |
-| `theme-profile list` shows nothing | `mkdir -p ~/.config/theme-profile/profiles && theme-profile save my-profile` |
+| `theme-profile list` shows nothing | `mkdir -p ~/.config/kde-theme-profile/themes && theme-profile save my-profile` |
 | Wallpaper picker shows no images | Check `theme-profile wallpaper dir` (XDG Pictures/Wallpaper by default). Override with `export WALLPAPER_DIR=...` or the GUI setting |
 | Plasma won't start after `apply` | `systemctl --user start plasma-plasmashell.service` |
 
@@ -379,7 +379,7 @@ See [`docs/ROLLBACK.md`](docs/ROLLBACK.md) for full instructions. Quick summary:
 
 - **Profile names** are validated (`[A-Za-z0-9][A-Za-z0-9._-]{0,63}`) in Rust
   and Python before touching the filesystem; `..`, separators and shell
-  metacharacters are rejected, and `diff` cannot traverse outside `profiles/`.
+  metacharacters are rejected, and `diff` cannot traverse outside `themes/`.
   `save`/`clone` also reject a name that differs from an existing profile only
   by case (`paper` next to `Paper`); the GUI save dialogs warn as you type.
 - **Custom component lists** are validated against the known component set; an

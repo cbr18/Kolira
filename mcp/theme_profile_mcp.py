@@ -288,7 +288,7 @@ class ThemeProfileMcpServer:
             },
             {
                 "name": "install_dependencies",
-                "description": "Install a theme's missing dependencies from their official sources (KDE Store via kpackagetool6 or unpacking, VS Code Marketplace / Open VSX / Zed). System packages open ONE terminal on the user's screen with the install command — the user types their password there; such results mean 'terminal opened', not 'installed'. Never runs sudo. Ask the user first; search results (exact=false) need their confirmation.",
+                "description": "Install a theme's missing dependencies from their official sources (KDE Store via kpackagetool6 or unpacking, VS Code Marketplace / Open VSX / Zed). System packages open ONE terminal on the user's screen with the install command — the user types their password there; the call waits until the terminal is closed and reports whether it worked. Never runs sudo. Ask the user first; search results (exact=false) need their confirmation.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {

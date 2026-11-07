@@ -730,10 +730,21 @@ pub fn gtk_desktop_keys(theme: Option<&str>, dark: Option<&str>) -> Vec<(&'stati
 /// changes made in System Settings. A stale dark theme there gave Zen's light
 /// panels white system text. Best-effort, like the other live hooks.
 pub fn sync_gtk_desktop(theme: Option<&str>, dark: Option<&str>) {
+    sync_gtk_desktop_full(theme, dark, None, None);
+}
+
+/// [`sync_gtk_desktop`] plus the icon and cursor themes GTK apps read there.
+pub fn sync_gtk_desktop_full(theme: Option<&str>, dark: Option<&str>, icons: Option<&str>, cursor: Option<&str>) {
     if no_apply() || cfg!(test) || which::which("gsettings").is_err() {
         return;
     }
-    for (key, value) in gtk_desktop_keys(theme, dark) {
+    let mut keys = gtk_desktop_keys(theme, dark);
+    for (key, value) in [("icon-theme", icons), ("cursor-theme", cursor)] {
+        if let Some(value) = value.map(str::trim).filter(|v| !v.is_empty()) {
+            keys.push((key, value.to_string()));
+        }
+    }
+    for (key, value) in keys {
         // `default` already means light: a light theme leaves it alone.
         if key == "color-scheme" && value == "prefer-light" && crate::undo::live_color_scheme().as_deref() == Some("default") {
             continue;

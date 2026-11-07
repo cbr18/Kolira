@@ -160,14 +160,14 @@
 - Если приложение **не установлено** — чекбокс disabled, иконка ⚠️, текст "Не установлен"
 - Никаких ошибок, кричащих в консоль — тихий skip
 - Можно развернуть группу → выбрать индивидуально
-- Пресеты настроек сохраняются в `~/.config/theme-profile/app-preferences.json`
+- Пресеты настроек сохраняются в `~/.config/kde-theme-profile/app-preferences.json`
 
 ---
 
 ### 4.3 Применение темы к самому приложению (Dogfooding)
 
 При запуске приложение:
-1. Читает активный профиль (`~/.config/theme-profile/active-profile`)
+1. Читает активный профиль (`~/.config/kde-theme-profile/active-profile`)
 2. Применяет **свою** цветовую схему через `Kirigami.Theme` / `QtQuick.Controls.Material`
 3. Для `glass` — включает прозрачность окна (`Qt::WA_TranslucentBackground` + KWin blur)
 4. Для `paper` — solide фон, светлая схема
@@ -363,7 +363,7 @@ class ProfileManager(QObject):
 
 ## 7. Настройки приложения (User Preferences)
 
-Файл: `~/.config/theme-profile/app-preferences.json`
+Файл: `~/.config/kde-theme-profile/app-preferences.json`
 
 ```json
 {

@@ -8,7 +8,7 @@ root, out = sys.argv[1:3]
 files = {}
 for folder, dirs, names in os.walk(root):
     rel = os.path.relpath(folder, root)
-    skip = (".config/theme-profile", ".cache", ".local/share/kde-theme-manager", ".cargo", ".rustup", "kde-theme-manager", ".shim", ".config/dconf", ".local/state", ".config/session", ".config/KDE")
+    skip = (".config/kde-theme-profile", ".cache", ".local/share/kde-theme-manager", ".cargo", ".rustup", "kde-theme-manager", ".shim", ".config/dconf", ".local/state", ".config/session", ".config/KDE")
     if rel.startswith(skip):
         dirs[:] = []
         continue

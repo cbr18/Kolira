@@ -655,7 +655,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             id: "palette".to_string(),
             name: "Palette".to_string(),
             category: "System Profiles".to_string(),
-            config_paths: vec![".config/theme-profile/palette.json".to_string()],
+            config_paths: vec![".config/kde-theme-profile/palette.json".to_string()],
             detect_command: None,
             flatpak_id: None,
             supports_live_reload: false,

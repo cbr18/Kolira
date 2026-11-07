@@ -25,7 +25,7 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("KTM_OFFLINE", "1")
     monkeypatch.setenv("KTM_THEME_NO_APPLY", "1")
-    (tmp_path / ".config/theme-profile").mkdir(parents=True)
+    (tmp_path / ".config/kde-theme-profile").mkdir(parents=True)
     return tmp_path
 
 

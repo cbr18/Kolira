@@ -31,7 +31,7 @@ takes the family from the theme and keeps the live size.
 | `kwinrulesrc` | rules with a look property, reduced to their match keys (`Description`, `wmclass*`, `title*`, `types`, …) and look properties (`opacityactive/inactive`, `noborder`, `decocolor`, `decorationpolicy` + their `…rule`); merged by id — a live rule with the same id keeps its behaviour keys. The rule list is written in the live file's format (KWin 6: `Order=`, older: `count`/`rules`) | the user's other rules; position, size, desktops, shortcuts and other behaviour properties |
 | `plasmarc` | `[Theme]` | `[Wallpapers]` list |
 | `plasmashellrc` | per panel `[PlasmaViews][Panel N]` `floating`, `panelOpacity`; a live panel takes the theme panel with the same id, else the one on the same screen edge, else the first | thickness, lengths, alignment, offsets, auto-hide (`panelVisibility`), `[Updates]` |
-| `plasma-org.kde.plasma.desktop-appletsrc` | per containment only `plugin`/`formfactor`/`location`/`lastScreen`/`wallpaperplugin` (to match, never restored); each desktop's active wallpaper plugin settings → the live desktop on the same screen (else the first); look keys of widgets the user already has — launcher (`kickoff`, `simplekickoff`, `kicker`, `kickerdash`) `icon`/`useCustomButtonImage`/`customButtonImage`, Panel Colorizer `globalSettings`/`configurationOverrides`/`isEnabled`/`hideWidget` — the n-th live widget of a kind takes the theme's n-th (else first). A Panel Colorizer switched off in the theme keeps only `isEnabled=false`: applying turns the user's off, keeps their styling, and it is not a dependency | which panels and widgets exist, their order and place, every other widget setting (favourites, weather location, clock format…), activities, desktop icons; a theme never adds a widget — a styled one the user lacks is simply not styled |
+| `plasma-org.kde.plasma.desktop-appletsrc` | per containment only `plugin`/`formfactor`/`location`/`lastScreen`/`wallpaperplugin` (to match, never restored); each desktop's active wallpaper plugin settings → the live desktop on the same screen (else the first); look keys of widgets the user already has — launcher (`kickoff`, `kicker`, `kickerdash`) `icon`/`useCustomButtonImage`/`customButtonImage`, Panel Colorizer `globalSettings`/`configurationOverrides`/`isEnabled`/`hideWidget` — the n-th live widget of a kind takes the theme's n-th (else first). A Panel Colorizer switched off in the theme keeps only `isEnabled=false`: applying turns the user's off, keeps their styling, and it is not a dependency | which panels and widgets exist, their order and place, every other widget setting (favourites, weather location, clock format…), activities, desktop icons; a theme never adds a widget — a styled one the user lacks is simply not styled |
 | GTK `settings.ini` | theme, icons, cursor theme, font family (live size kept), dark preference, title-bar buttons, animations, font rendering; apply and `field set` also write `gtk-theme` and `color-scheme` to GSettings `org.gnome.desktop.interface` (Wayland GTK 3 apps, Firefox and Zen included, read the theme there, and a stale dark theme gives a light browser white system text) | cursor size, cursor blinking, sounds, `gtk-modules`, … |
 | `kcminputrc` | `[Mouse] cursorTheme` | cursor size, mouse settings |
 | `btop.conf` | `color_theme`, `theme_background`, `truecolor`, `rounded_corners`, `graph_symbol*` | ~70 behaviour keys |
@@ -56,6 +56,17 @@ Browser profile folders have a random name per install (`gp0y8wrv.Default
 (release)`): a theme made elsewhere stores its files under the author's
 folder, and apply maps them to the receiver's default profile (Zen, Firefox);
 the same for Konsole's default profile.
+
+**What this machine lacks stays as it is.** An icon theme, cursor, GTK theme, window
+decoration or Plasma style that is not installed is not switched to: the current one
+stays and `skipped` in the report says so. Applying it would leave blank icons or
+a KWin without its decoration.
+
+**Downloads come first.** The window's Apply lists what is missing before anything
+changes: *Download and apply* or *Apply without them*. Each item has its own limit
+and a failed one costs only itself; the terminal for system packages is waited for.
+Every external tool has a limit (`KTM_COMMAND_TIMEOUT`, 60 s) and each step goes to
+`<theme root>/apply.log` at once, so after a freeze its last line names the step.
 
 **What a theme does not specify goes back to the program's default.** A theme
 without Vesktop files turns our Vesktop theme off (`enabledThemes` gone, our CSS
@@ -117,7 +128,7 @@ with a real KWin and plasmashell (see `tests/e2e/Dockerfile`).
 > applying each theme and diffing the live files against its snapshot.
 
 ```
-<profiles>/<name>/                 # ~/.config/theme-profile/profiles/<name>
+<themes>/<name>/                 # ~/.config/kde-theme-profile/themes/<name>
 ├── theme.json                     # describes the theme (schema theme-profile/theme@2)
 ├── manifest.json, manifest.txt    # tracked paths, components, created
 ├── wallpaper/<file> + source      # optional
@@ -302,7 +313,7 @@ OCS API (`api.kde-look.org`) — Plasma styles, Global Themes and widgets with
 folders (zip via enclosed names, tarballs via `tar`; symlinks escaping the
 tree are dropped; an existing folder is never overwritten), colour schemes
 copied; editor themes via their stores. **System packages**
-(they need root) go to one terminal the user sees — konsole, kitty, alacritty
+(they need root) go to one terminal the user sees, and the app waits for it — konsole, kitty, alacritty
 or ghostty, the first installed — running one command for all of them
 (`yay`/`paru -S --needed …`, or `sudo pacman -S --needed …` for repository-only
 packages without an AUR helper); the user types their

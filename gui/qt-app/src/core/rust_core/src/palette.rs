@@ -260,7 +260,7 @@ pub fn live_palette_path() -> std::path::PathBuf {
 }
 
 /// Profile-snapshot path of the live palette.
-pub const LIVE_PALETTE_REL: &str = ".config/theme-profile/palette.json";
+pub const LIVE_PALETTE_REL: &str = ".config/kde-theme-profile/palette.json";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // KDE colour scheme

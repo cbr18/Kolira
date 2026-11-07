@@ -17,7 +17,7 @@ Deployed copies live in `~/.local/bin/`, `~/.local/share/kde-theme-manager/`
 and `~/.local/share/applications/`. **Never edit deployed copies directly** —
 edit the kit and re-run the installer.
 
-The end-user data directory (`profiles/`, `backups/`, `manifests/`,
+The end-user data directory (`~/.config/kde-theme-profile/`: `themes/`, `backups/`, `manifests/`,
 `active-profile`, `app-preferences.json`) is separate from the code and is never
 touched by install/update.
 
@@ -71,6 +71,7 @@ A change is not done until the docs agree with the code. At minimum:
 | `docs/THEME_INSPECTOR.md` | Theme Inspector UX + architecture |
 | `docs/ROLLBACK.md` | Backup layout and recovery |
 | `docs/ROADMAP.md` | Direction and completed work |
+| `CHANGELOG.md` | What changed for users, per version: add every user-visible change under `Unreleased`; a release moves it under its version |
 | `docs/TZ-QT-APP.md`, `docs/TZ-THEME-INSPECTOR.md` | Original specifications |
 | `docs/TZ-THEME-REBUILD.md` | Target product/design spec for the theme-bundle rebuild |
 | `docs/MCP.md` | Local MCP server usage, tool contract and safety notes |
@@ -85,10 +86,11 @@ A change is not done until the docs agree with the code. At minimum:
   Rust CLI + core (`src/paths.rs`). Names are single
   path components; reject anything else (traversal, separators, leading dot).
 - **XDG-aware paths**: live files resolve through `XDG_CONFIG_HOME` /
-  `XDG_DATA_HOME` / `XDG_CACHE_HOME`. The data root prefers an existing
-  `$XDG_CONFIG_HOME/theme-profile`, then an existing legacy
-  `~/.config/theme-profile`, then the XDG path. Profile *snapshots* keep the
-  historical `.config/...` layout — do not change that without a migration.
+  `XDG_DATA_HOME` / `XDG_CACHE_HOME`. Data lives in
+  `$XDG_CONFIG_HOME/kde-theme-profile` (themes in `themes/`). Data under the
+  pre-0.6.0 names (`theme-profile/`, `profiles/`) is moved there on start, by
+  `paths.rs` and its twin `core/paths.py`: same moves, nothing overwritten. A
+  theme's *snapshot* keeps the `.config/...` layout inside.
 - **Wallpaper list ordering**: shared by the Rust CLI and the Python GUI core —
   follow symlinks, extensions `jpg jpeg png webp bmp` (case-insensitive),
   byte/code-point order (`Vec<String>::sort()` / `sorted()`). See the table in
@@ -110,10 +112,10 @@ A change is not done until the docs agree with the code. At minimum:
 # Build the Rust CLI first
 cd gui/qt-app/src/core/rust_core && cargo build --release && cargo test && cargo clippy --all-targets -- -D warnings
 
-# Python tests (offscreen Qt; 273 tests)
+# Python tests (offscreen Qt; 276 tests)
 cd gui/qt-app && QT_QPA_PLATFORM=offscreen uv run --project . --extra dev pytest tests -q
 
-# Bash + installer tests (~241 assertions) — from the repo root
+# Bash + installer tests (~245 assertions) — from the repo root
 bash tests/test-scripts.sh
 
 # A friend's whole story on a clean machine (real KWin + plasmashell; slow, needs Docker)

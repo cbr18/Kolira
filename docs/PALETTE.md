@@ -38,8 +38,8 @@
 - **variant** — `dark`/`light` (из файла; у старого формата — по яркости `base00`).
 - **source** — откуда палитра (`base16:<файл>`, `manual`, позже `gallery:`, `wallpaper:`).
 
-Живая палитра: `$XDG_CONFIG_HOME/theme-profile/palette.json`. Профили сохраняют
-её как компонент `palette` (`.config/theme-profile/palette.json` в снапшоте).
+Живая палитра: `$XDG_CONFIG_HOME/kde-theme-profile/palette.json`. Профили сохраняют
+её как компонент `palette` (`.config/kde-theme-profile/palette.json` в снапшоте).
 
 ## CLI
 
@@ -110,7 +110,7 @@ theme-profile palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvant
 сети при первом запуске): `~/.local/share/TelegramDesktop/theme-profile.tdesktop-palette`
 — палитра Telegram (~590 цветов). База — стандартная палитра Telegram
 (`colors.palette` из desktop-app/lib_ui, GPL-3): её качает из официального
-репозитория и кэширует (`~/.cache/theme-profile/telegram-colors.palette`), в
+репозитория и кэширует (`~/.cache/kde-theme-profile/telegram-colors.palette`), в
 кит она не входит. Перекраска — как у Kvantum (OKLab): нейтральные идут по шкале
 «фон → текст» палитры, синий Telegram (`#40a7e3`) становится акцентом, зелёный
 исходящих сообщений — оттенком акцента (отдельная перекраска с якорем
@@ -269,7 +269,7 @@ KvRoughGlass). Перекраска заново создаёт каталог �
 | origin | Откуда | Сеть |
 |---|---|---|
 | `bundled` | 15 схем, вкомпилированы из `rust_core/data/base16/*.yaml` (Everforest, Gruvbox ×2, Nord, Catppuccin ×2, Tokyo Night, Rosé Pine ×2, Dracula, Solarized ×2, OneDark, One Light, Kanagawa) | нет |
-| `cached` | ранее скачанные, `$XDG_CACHE_HOME/theme-profile/base16/<id>.yaml` | нет |
+| `cached` | ранее скачанные, `$XDG_CACHE_HOME/kde-theme-profile/base16/<id>.yaml` | нет |
 | `online` | каталог tinted-theming (`spec-0.11`, ~360 схем): индекс через GitHub tree API, кэш на 7 дней (`index.json`), `--refresh` — обновить | только с `--online`/`--refresh` |
 
 `palette import gallery:<id>` берёт схему из встроенных → кэша → скачивает

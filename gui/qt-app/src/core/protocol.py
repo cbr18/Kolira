@@ -155,6 +155,10 @@ class ProfileCore(ABC):
         """Create a Look & Feel package for the live look."""
         return Result.err("Look & Feel packages are not supported by this core")
 
+    def pending_dependencies(self, name: str) -> Result:
+        """Missing dependencies to ask about before applying."""
+        return Result.ok(data=[])
+
     def run_action(self, action_id: str) -> Result:
         """Do one follow-up action after an apply (restart a program, …)."""
         return Result.err("Actions are not supported by this core")

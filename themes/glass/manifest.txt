@@ -54,5 +54,5 @@ timestamp=2026-11-05T11:16:19+10:00
 .mozilla/firefox/l48zutsk.default-release-1788951816985/chrome/userContent.css
 obsidian/vault/.obsidian/appearance.json
 .local/share/color-schemes/Breeze1.colors
-.config/theme-profile/palette.json
+.config/kde-theme-profile/palette.json
 .local/share/plasma/look-and-feel/glass

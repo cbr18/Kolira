@@ -202,7 +202,7 @@
         {
             "id": "palette",
             "paths": [
-                ".config/theme-profile/palette.json"
+                ".config/kde-theme-profile/palette.json"
             ]
         },
         {

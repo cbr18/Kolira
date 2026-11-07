@@ -57,4 +57,4 @@ timestamp=2026-11-05T15:34:16+10:00
 .mozilla/firefox/l48zutsk.default-release-1788951816985/chrome/userContent.css
 obsidian/vault/.obsidian/appearance.json
 .local/share/color-schemes/ThemeProfileFrutigerAero.colors
-.config/theme-profile/palette.json
+.config/kde-theme-profile/palette.json

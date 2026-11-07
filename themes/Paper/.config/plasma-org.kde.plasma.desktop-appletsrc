@@ -32,24 +32,12 @@ plugin=luisbocanegra.panel.colorizer
 [Containments][283][Applets][305][Configuration][General]
 isEnabled=false
 
-[Containments][283][Applets][437]
-plugin=org.kde.plasma.simplekickoff
-
-[Containments][283][Applets][437][Configuration][General]
-icon=cachyos-pi
-
 [Containments][306]
 formfactor=3
 lastScreen=0
 location=5
 plugin=org.kde.panel
 wallpaperplugin=org.kde.image
-
-[Containments][306][Applets][436]
-plugin=org.kde.plasma.simplekickoff
-
-[Containments][306][Applets][436][Configuration][General]
-icon=cachyos-pi
 
 [Containments][461]
 formfactor=2

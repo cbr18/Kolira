@@ -42,7 +42,7 @@ const BASE_BLUE: Rgb = Rgb(0x40, 0xa7, 0xe3);
 const BASE_OUT_GREEN: Rgb = Rgb(0x57, 0xb8, 0x4c);
 
 fn cache_file() -> PathBuf {
-    crate::paths::cache_home().join("theme-profile/telegram-colors.palette")
+    crate::paths::cache_home().join("kde-theme-profile/telegram-colors.palette")
 }
 
 /// Telegram's default palette: the cached copy, else downloaded.

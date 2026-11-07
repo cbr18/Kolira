@@ -79,8 +79,8 @@ Components: kwin, plasma_shell, kdeglobals, gtk3, gtk4, qt5ct,
 
 Use --components=all for all (default).
 
-Profiles live in $XDG_CONFIG_HOME/theme-profile/profiles
-(default: ~/.config/theme-profile/profiles).
+Themes live in $XDG_CONFIG_HOME/kde-theme-profile/themes
+(default: ~/.config/kde-theme-profile/themes).
 ";
 
 /// Pull `--components=...` and optional `--description=...` out of the
@@ -1102,7 +1102,7 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         "--version" => {
-            println!("theme-profile 0.5.0");
+            println!("theme-profile {}", env!("CARGO_PKG_VERSION"));
             ExitCode::SUCCESS
         }
         _ => {

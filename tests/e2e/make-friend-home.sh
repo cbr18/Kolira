@@ -1,6 +1,6 @@
 #!/bin/bash
 # A friend's plain Plasma home (stock Breeze, some apps configured).
-H=$1; mkdir -p "$H"/.config/{gtk-3.0,gtk-4.0,kitty,alacritty,fish,btop,Code/User,zed,wofi,klassy} "$H/.mozilla/firefox/abc.default-release/chrome" "$H/.zen/xyz.Default (release)" "$H/Pictures/Wallpapers" "$H/.local/share/konsole"
+H=$1; mkdir -p "$H"/.config/{fastfetch,gtk-3.0,gtk-4.0,kitty,alacritty,fish,btop,Code/User,zed,wofi,klassy} "$H/.mozilla/firefox/abc.default-release/chrome" "$H/.zen/xyz.Default (release)" "$H/Pictures/Wallpapers" "$H/.local/share/konsole"
 printf 'jpeg-of-friend' >"$H/Pictures/Wallpapers/my wall.jpg"
 cat >"$H/.config/kdeglobals" <<E
 [General]
@@ -118,3 +118,8 @@ printf '[AAA]\nDefault=xyz.Default (release)\nLocked=1\n' >"$H/.zen/installs.ini
 printf 'user_pref("zen.view.window.scheme", 2);\nuser_pref("browser.startup.page", 3);\n' >"$H/.zen/xyz.Default (release)/prefs.js"
 printf '[Appearance]\nColorScheme=Breeze\nFont=Hack,12,-1,5,400,0,0,0,0,0\n\n[General]\nCommand=/bin/fish\nName=Mine\n' >"$H/.local/share/konsole/Mine.profile"
 printf '[Desktop Entry]\nDefaultProfile=Mine.profile\n' >"$H/.config/konsolerc"
+printf '{\n  // my fastfetch\n  "logo": {"source": "arch_small"},\n  "modules": ["os", "kernel"]\n}\n' >"$H/.config/fastfetch/config.jsonc"
+mkdir -p "$H/.local/share/icons/MyIcons/apps"
+printf '[Icon Theme]\nName=MyIcons\nInherits=breeze\nDirectories=apps\n\n[apps]\nSize=48\n' >"$H/.local/share/icons/MyIcons/index.theme"
+sed -i 's/^Theme=breeze$/Theme=MyIcons/' "$H/.config/kdeglobals"
+sed -i 's/^gtk-icon-theme-name=breeze$/gtk-icon-theme-name=MyIcons/' "$H/.config/gtk-3.0/settings.ini" "$H/.config/gtk-4.0/settings.ini"

@@ -307,9 +307,19 @@
 </context><context>
     <name>ProfileController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="250" />
+        <location filename="../src/controllers/__init__.py" line="255" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
+    </message>
+    <message>
+        <location filename="../src/controllers/__init__.py" line="522" />
+        <source>System packages: see the terminal</source>
+        <translation>Системные пакеты: смотрите терминал</translation>
+    </message>
+    <message>
+        <location filename="../src/controllers/__init__.py" line="535" />
+        <source>Stopped: the theme was not applied</source>
+        <translation>Остановлено: тема не применена</translation>
     </message>
 </context><context>
     <name>SystemTray</name>
@@ -1563,7 +1573,7 @@
 </context><context>
     <name>WallpaperController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="607" />
+        <location filename="../src/controllers/__init__.py" line="673" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>

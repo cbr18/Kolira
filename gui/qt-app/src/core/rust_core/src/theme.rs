@@ -215,7 +215,7 @@ pub fn install_dependencies(name: &str, indexes: Option<&[usize]>) -> Result<Vec
     // command for all of them — the user sees it and types the password.
     let root: Vec<&crate::deps::Dependency> = chosen.iter().filter(|(_, d)| crate::deps::needs_root(d)).map(|(_, d)| *d).collect();
     let root_result = (!root.is_empty()).then(|| match crate::deps::root_command(&root) {
-        Some(cmd) => crate::deps::run_in_terminal(&cmd).map(|term| format!("opened {term}: {cmd}")),
+        Some(cmd) => crate::deps::run_in_terminal(&cmd).map(|term| format!("installed in {term}: {cmd}")),
         None => Err(anyhow!("AUR packages need an AUR helper (yay or paru): install one first")),
     });
     for (i, d) in chosen {
@@ -243,8 +243,9 @@ pub fn load(dir: &Path) -> Result<Package> {
     if package.schema != SCHEMA {
         return Err(anyhow!("unsupported theme schema {:?}", package.schema));
     }
-    // The login screen is not the app's business: older themes listed it.
-    package.dependencies.retain(|d| d.kind != "sddm");
+    // Not the app's business any more, older themes listed them: the login
+    // screen, and a launcher widget nobody should need for a theme.
+    package.dependencies.retain(|d| d.kind != "sddm" && d.name != "org.kde.plasma.simplekickoff");
     Ok(package)
 }
 
@@ -870,6 +871,9 @@ fn store_app(field_id: &str, store: &str) -> Option<&'static str> {
 /// outside the tracked files, store installs, the missing-parts report and the
 /// wallpaper rule (no wallpaper in the theme, or `keep_wallpaper` → the
 /// current wallpaper stays).
+/// Fields whose value must exist on this machine to be used.
+const KEPT_WHEN_MISSING: &[&str] = &["icon_theme", "cursor_theme", "gtk_theme", "plasma_theme", "decoration_theme", "widget_style"];
+
 pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
     validate_profile_name(name)?;
     let dir = profile_dir(name)?;
@@ -909,7 +913,13 @@ pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
         .map(PathBuf::from)
         .filter(|p| p.is_file());
 
-    let backup = crate::profile::apply_profile_keeping(name, &extras, package.wallpaper.is_none() || options.keep_wallpaper)?;
+    // What this machine lacks stays as it is: an icon theme or a window
+    // decoration that is not here would leave blank icons or a broken KWin.
+    let keep_fields: Vec<String> = report.missing.iter().filter(|m| KEPT_WHEN_MISSING.contains(&m.field.as_str())).map(|m| m.field.clone()).collect();
+    for m in report.missing.iter().filter(|m| KEPT_WHEN_MISSING.contains(&m.field.as_str())) {
+        report.skipped.push(format!("{}: {} is not installed, kept the current one", m.field, m.name));
+    }
+    let backup = crate::profile::apply_profile_keeping(name, &extras, package.wallpaper.is_none() || options.keep_wallpaper, &keep_fields)?;
     // Telegram: nothing to run — once the user chose the palette file in
     // Telegram, it watches the file and re-applies it after the restore.
     if dir.join(crate::spicetify::CONFIG).is_file() {

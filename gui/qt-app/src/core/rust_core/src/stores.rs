@@ -295,12 +295,14 @@ pub fn install(app: &str, id: &str) -> Result<InstallReport> {
                 .ok_or_else(|| anyhow!("network is disabled"))?;
             let cli = editor_cli(app).ok_or_else(|| anyhow!("{app} is not installed (no CLI found)"))?;
             if std::env::var("KTM_THEME_NO_APPLY").as_deref() != Ok("1") {
-                let status = std::process::Command::new(&cli)
-                    .args(["--install-extension", id, "--force"])
-                    .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::null())
-                    .status()
-                    .with_context(|| format!("cannot run {cli}"))?;
+                let (status, _) = crate::paths::output_bounded_for(
+                    std::process::Command::new(&cli)
+                        .args(["--install-extension", id, "--force"])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null()),
+                    std::time::Duration::from_secs(180),
+                )
+                .ok_or_else(|| anyhow!("{cli} did not install {id} in time"))?;
                 if !status.success() {
                     return Err(anyhow!("{cli} --install-extension {id} failed"));
                 }

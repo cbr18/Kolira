@@ -17,7 +17,7 @@ LEGACY_APPDIR="$DATADIR/theme-profile-manager"
 APPSDIR="$DATADIR/applications"
 ICONDIR="$DATADIR/icons/hicolor/scalable/apps"
 MARKER=".installed-by-theme-profile-kit"
-BACKUP_ROOT="$CONFIGDIR/theme-profile/backups"
+BACKUP_ROOT="$CONFIGDIR/kde-theme-profile/backups"
 CLI_BACKUP_DIR="$BACKUP_ROOT/deploy-theme-profile-kit-$(date +%Y%m%d-%H%M%S)-$$"
 GUI_BACKUP_DIR="$BACKUP_ROOT/deploy-kde-theme-manager-$(date +%Y%m%d-%H%M%S)"
 [ -e "$CLI_BACKUP_DIR" ] && CLI_BACKUP_DIR="$CLI_BACKUP_DIR-$$"
@@ -377,7 +377,7 @@ LAUNCHER
 
   say "Done."
   say "Запуск: kde-theme-manager  (или ярлык «KDE Theme Manager» в меню)"
-  say "Данные профилей остались в $CONFIGDIR/theme-profile/"
+  say "Данные профилей остались в $CONFIGDIR/kde-theme-profile/"
   if [ -d "$GUI_BACKUP_DIR" ]; then
     say "Бэкап заменённых GUI-файлов: $GUI_BACKUP_DIR"
   fi

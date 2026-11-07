@@ -309,6 +309,7 @@ fn run_external(cmd: &str, args: &[&str]) {
     if no_apply() {
         return;
     }
+    crate::paths::log_step(&format!("run {cmd} {}", args.join(" ")));
     let _ = crate::paths::status_bounded(Command::new(cmd).args(args).stderr(std::process::Stdio::null()));
 }
 
@@ -900,7 +901,15 @@ fn apply_live_hooks(source: &Path) {
     // Running apps reload icons only on KIconLoader's signal (what
     // plasma-changeicons emits); the copied kdeglobals alone changes nothing
     // until they restart.
-    run_external("dbus-send", &["--session", "--type=signal", "/KIconLoader", "org.kde.KIconLoader.iconChanged", "int32:0"]);
+    // One signal per icon group, as plasma-changeicons sends: a single one left
+    // toolbars and panels of running apps with the old icons. The icon cache is
+    // per theme name but can outlive a theme of the same name.
+    if !no_apply() {
+        let _ = fs::remove_file(crate::paths::cache_home().join("icon-cache.kcache"));
+    }
+    for group in 0..6 {
+        run_external("dbus-send", &["--session", "--type=signal", "/KIconLoader", "org.kde.KIconLoader.iconChanged", &format!("int32:{group}")]);
+    }
     run_external("systemctl", &["--user", "stop", "swaync.service"]);
     run_external("qdbus6", &["org.kde.KWin", "/KWin", "reconfigure"]);
 
@@ -927,6 +936,13 @@ pub(crate) fn theme_file(theme: &Path, rel: &str) -> PathBuf {
     let direct = theme.join(rel);
     if direct.exists() {
         return direct;
+    }
+    // Themes exported before 0.6.0 keep the palette under the old folder name.
+    if let Some(name) = rel.strip_prefix(".config/kde-theme-profile/") {
+        let old = theme.join(".config/theme-profile").join(name);
+        if old.exists() {
+            return old;
+        }
     }
     // Konsole: the receiver's default profile ← the theme's profile.
     if rel.starts_with(".local/share/konsole/") && rel.ends_with(".profile") {
@@ -1186,11 +1202,12 @@ pub fn apply_profile_cli(profile: &str, components: Option<Vec<String>>) -> Resu
 /// colour scheme, Kvantum family, Look & Feel, …) whose paths the receiver's
 /// live state does not name.
 pub fn apply_profile_with(profile: &str, extras: &[String]) -> Result<PathBuf> {
-    apply_profile_keeping(profile, extras, false)
+    apply_profile_keeping(profile, extras, false, &[])
 }
 
-/// [`apply_profile_with`]; `keep_wallpaper`: the desktop keeps what it shows.
-pub fn apply_profile_keeping(profile: &str, extras: &[String], keep_wallpaper: bool) -> Result<PathBuf> {
+/// [`apply_profile_with`]; `keep_wallpaper`: the desktop keeps what it shows;
+/// `keep_fields`: fields that keep their live value (what this machine lacks).
+pub fn apply_profile_keeping(profile: &str, extras: &[String], keep_wallpaper: bool, keep_fields: &[String]) -> Result<PathBuf> {
     validate_profile_name(profile)?;
     let mut rel_paths = resolve_cli_paths(None)?;
     for e in extras {
@@ -1198,7 +1215,7 @@ pub fn apply_profile_keeping(profile: &str, extras: &[String], keep_wallpaper: b
             rel_paths.push(e.clone());
         }
     }
-    apply_with_paths_keeping(profile, &rel_paths, keep_wallpaper)
+    apply_with_paths_keeping(profile, &rel_paths, keep_wallpaper, keep_fields)
 }
 
 /// Warn about unknown components, keep the known ones (bash CLI behaviour).
@@ -1235,10 +1252,34 @@ pub fn resolve_cli_paths(components: Option<Vec<String>>) -> Result<Vec<String>>
 const GTK3_SETTINGS: &str = ".config/gtk-3.0/settings.ini";
 
 fn apply_with_paths(profile: &str, rel_paths: &[String]) -> Result<PathBuf> {
-    apply_with_paths_keeping(profile, rel_paths, false)
+    apply_with_paths_keeping(profile, rel_paths, false, &[])
 }
 
-fn apply_with_paths_keeping(profile: &str, rel_paths: &[String], keep_wallpaper: bool) -> Result<PathBuf> {
+/// The live value of each field in `ids`, or KDE's default when it has none.
+fn live_values(ids: &[String]) -> Vec<(String, serde_json::Value)> {
+    let mut ids: Vec<String> = ids.to_vec();
+    if ids.iter().any(|i| i == "decoration_theme") {
+        ids.push("decoration_library".to_string());
+    }
+    ids.iter()
+        .map(|id| {
+            let live = crate::field::field(id).and_then(|f| crate::field::read(f, &crate::field::Base::Live));
+            let fallback = match id.as_str() {
+                "icon_theme" => "breeze",
+                "cursor_theme" => "breeze_cursors",
+                "gtk_theme" => "Breeze",
+                "plasma_theme" => "default",
+                "decoration_theme" => "Breeze",
+                "decoration_library" => "org.kde.breeze",
+                _ => "Breeze",
+            };
+            (id.clone(), live.unwrap_or_else(|| serde_json::Value::from(fallback)))
+        })
+        .collect()
+}
+
+fn apply_with_paths_keeping(profile: &str, rel_paths: &[String], keep_wallpaper: bool, keep_fields: &[String]) -> Result<PathBuf> {
+    crate::paths::log_step(&format!("apply {profile}: start"));
     let dir = safe_profile_dir(profile)?;
     if !dir.is_dir() {
         return Err(anyhow!("Profile not found: {profile}"));
@@ -1272,10 +1313,17 @@ fn apply_with_paths_keeping(profile: &str, rel_paths: &[String], keep_wallpaper:
     if let Ok(walls) = wallpaper_dir().strip_prefix(crate::paths::home_dir()) {
         journal_rels.push(walls.to_string_lossy().to_string());
     }
+    let kept = live_values(keep_fields);
+    crate::paths::log_step("undoing the previous theme");
     let journal = crate::undo::revert();
     let before = crate::undo::baseline(&journal_rels);
+    crate::paths::log_step("restoring files");
     match restore_from_profile(profile, rel_paths) {
         Ok(()) => {
+            if !kept.is_empty() {
+                let only: Vec<&str> = kept.iter().map(|(id, _)| id.as_str()).collect();
+                crate::field::apply_with(&kept, &only);
+            }
             if let (Some(live), Ok(restored)) = (live_appletsrc.as_deref(), fs::read_to_string(&appletsrc)) {
                 let _ = fs::write(&appletsrc, keep_desktop_icons(&restored, live));
                 if keep_wallpaper {
@@ -1303,13 +1351,18 @@ fn apply_with_paths_keeping(profile: &str, rel_paths: &[String], keep_wallpaper:
                 eprintln!("Warning: could not restore the Kvantum theme: {e}");
             }
             if rel_paths.iter().any(|p| p == GTK3_SETTINGS) {
-                let ini = dir.join(GTK3_SETTINGS);
-                let live_gtk = crate::theme::load(&dir).ok().and_then(|p| p.gsettings_gtk_theme);
-                crate::field::sync_gtk_desktop(
+                // From the live file: it holds what was really applied, a theme
+                // this machine lacks is not in it.
+                let ini = live_path(GTK3_SETTINGS);
+                let live_gtk = crate::theme::load(&dir).ok().and_then(|p| p.gsettings_gtk_theme).filter(|_| !keep_fields.iter().any(|f| f == "gtk_theme"));
+                crate::field::sync_gtk_desktop_full(
                     live_gtk.or_else(|| ini_group_key(&ini, "Settings", "gtk-theme-name")).as_deref(),
                     ini_group_key(&ini, "Settings", "gtk-application-prefer-dark-theme").as_deref(),
+                    ini_group_key(&ini, "Settings", "gtk-icon-theme-name").as_deref(),
+                    ini_group_key(&ini, "Settings", "gtk-cursor-theme-name").as_deref(),
                 );
             }
+            crate::paths::log_step("live hooks");
             apply_live_hooks(&dir);
             if let Some(path) = wallpaper {
                 let shown = plasma_wallpaper_from(&live_path(APPLETSRC_REL));
@@ -1322,6 +1375,7 @@ fn apply_with_paths_keeping(profile: &str, rel_paths: &[String], keep_wallpaper:
                 Ok(journal) => crate::undo::record(journal, &before).with_context(|| "apply journal")?,
                 Err(e) => eprintln!("Warning: could not undo the previous theme: {e:#}"),
             }
+            crate::paths::log_step(&format!("apply {profile}: done"));
             Ok(backup)
         }
         Err(e) => {

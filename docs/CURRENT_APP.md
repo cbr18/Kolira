@@ -1,6 +1,6 @@
-# Текущее приложение: theme-profile-kit (0.5.0)
+# Текущее приложение: theme-profile-kit (0.6.0)
 
-> **Статус**: 0.5.0 — Rust CLI + Qt/QML приложение KDE Theme Manager.
+> **Статус**: 0.6.0 — Rust CLI + Qt/QML приложение KDE Theme Manager.
 > **GUI**: устанавливается по умолчанию (см. [gui/qt-app/README.md](../gui/qt-app/README.md)).
 
 ---
@@ -29,7 +29,7 @@
 ~/theme-profile-kit/scripts/install-theme-profile-kit.sh
 ```
 
-Создаёт бэкап предыдущих версий в `~/.config/theme-profile/backups/`.
+Создаёт бэкап предыдущих версий в `~/.config/kde-theme-profile/backups/`.
 Деплоит скрипты в `~/.local/bin/` (должно быть в PATH) и GUI:
 
 | Что | Куда |
@@ -45,9 +45,9 @@
 быть установлен). Venv создаётся лишь если в системе нет PySide6.
 
 Данные (профили, бэкапы, настройки) живут отдельно, в
-`$XDG_CONFIG_HOME/theme-profile/` (по умолчанию `~/.config/theme-profile/`), и
+`$XDG_CONFIG_HOME/kde-theme-profile/` (по умолчанию `~/.config/kde-theme-profile/`), и
 установкой не затрагиваются. Существующий legacy-каталог
-`~/.config/theme-profile/` определяется и сохраняется; снимки профилей всегда
+`~/.config/kde-theme-profile/` определяется и сохраняется; снимки профилей всегда
 используют историческую раскладку `.config/...`, поэтому профили, созданные до
 поддержки XDG, продолжают работать.
 
@@ -79,8 +79,8 @@ wallpaper-prev                   # предыдущие обои
 - **glass** — полупрозрачные окна с размытием, KWin glass enabled, blur, better-blur-dx для выбранных классов окон (zen, code, kitty, zed)
 - **paper** — светлая/solid тема, без прозрачностей
 
-Профили хранятся в `$XDG_CONFIG_HOME/theme-profile/profiles/` (по умолчанию
-`~/.config/theme-profile/profiles/`).
+Профили хранятся в `$XDG_CONFIG_HOME/kde-theme-profile/themes/` (по умолчанию
+`~/.config/kde-theme-profile/themes/`).
 Активный профиль — маркер `theme-profile/active-profile` в том же корне.
 
 **Профиль = тема** (формат и поведение — `docs/THEMES.md`): полный снимок всех
@@ -203,7 +203,7 @@ plasmashell), так что смена темы не двигает значки
 Qt/QML-приложение (`gui/qt-app/`) ставится установщиком рядом с Rust CLI. Страница **Theme** теперь является конструктором комплекта тем:
 
 - **Страница «Палитра»** в GUI (Тема → Палитра): галерея, «Из обоев» (`Kirigami.ImageColors`), «Из обоев (подробно)» (k-means), правка цветов, применение по целям; настройка «Сетевые функции»;
-- **Палитра** (`rust_core/src/palette.rs`, `theme-profile palette …`): base16 + акцент → сгенерированная цветовая схема KDE `ThemeProfile<Имя>.colors`, блок цветов в `kitty.conf` (между маркерами, live-reload по сокетам `/tmp/kitty-theme-profile-<pid>`) и `[colors.*]` в `alacritty.toml`; по запросу — тема Kvantum, перекрашенная из установленной базовой (`KvArcDark`/`KvArc`) в `~/.config/Kvantum/ThemeProfile<Имя>/`; профили сохраняют и восстанавливают активную пользовательскую тему Kvantum целиком; живая палитра `$XDG_CONFIG_HOME/theme-profile/palette.json` сохраняется в профилях (компонент `palette`); подробности — `docs/PALETTE.md`;
+- **Палитра** (`rust_core/src/palette.rs`, `theme-profile palette …`): base16 + акцент → сгенерированная цветовая схема KDE `ThemeProfile<Имя>.colors`, блок цветов в `kitty.conf` (между маркерами, live-reload по сокетам `/tmp/kitty-theme-profile-<pid>`) и `[colors.*]` в `alacritty.toml`; по запросу — тема Kvantum, перекрашенная из установленной базовой (`KvArcDark`/`KvArc`) в `~/.config/Kvantum/ThemeProfile<Имя>/`; профили сохраняют и восстанавливают активную пользовательскую тему Kvantum целиком; живая палитра `$XDG_CONFIG_HOME/kde-theme-profile/palette.json` сохраняется в профилях (компонент `palette`); подробности — `docs/PALETTE.md`;
 - **ThemeBundleCore** (`src/core/theme_bundle.py`) собирает компоненты из установленных тем: KDE/Plasma (Global theme, Plasma Style, colors, decorations, icons, cursors, fonts), Desktop & Windows (обои, углы, blur, translucency, animations), Qt/Kvantum и GTK;
 - выбор компонента идёт из списков установленных ресурсов; core-поля сначала стейджатся и применяются одним батчом через `AppThemeCore`;
 - установленность приложения определяется по исполняемому файлу или Flatpak (`binaries`/`flatpak_ids` адаптера: Zed — `zeditor`/`zed`/`dev.zed.Zed`, VS Code — `code`/`code-oss`/`codium`/`vscodium`, …); только конфиг без программы — статус «не установлено — найден только старый конфиг»; компоненты профиля (`tracked_apps`) принимают альтернативы `a|b` в `detect_command`;
@@ -297,7 +297,7 @@ Zen-автодетект профиля, выбор ядра через `--core`
 ## Структура директорий
 
 ```
-$XDG_CONFIG_HOME/theme-profile/        # по умолчанию ~/.config/theme-profile/
+$XDG_CONFIG_HOME/kde-theme-profile/        # по умолчанию ~/.config/kde-theme-profile/
 ├── active-profile          # имя активного профиля
 ├── profiles/
 │   ├── glass/              # тема (docs/THEMES.md)

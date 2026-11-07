@@ -84,15 +84,6 @@
     },
     {
       "exact": true,
-      "id": "2115883",
-      "kind": "plasmoid",
-      "name": "org.kde.plasma.simplekickoff",
-      "source": "kde-store",
-      "title": "Simple Application Launcher for Plasma 6",
-      "url": "https://store.kde.org/p/2115883"
-    },
-    {
-      "exact": true,
       "id": "oh-my-posh-bin",
       "kind": "oh-my-posh",
       "name": "oh-my-posh",

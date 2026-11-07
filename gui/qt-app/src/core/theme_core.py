@@ -11,7 +11,7 @@ Design notes
 * JSON/JSONC files are patched by value position, so comments, ordering and
   trailing commas survive — nothing is re-serialized.
 * Every write is recorded in an in-memory undo stack and the first write of a
-  session copies the affected file to ``~/.config/theme-profile/backups/``.
+  session copies the affected file to ``~/.config/kde-theme-profile/backups/``.
 * External commands and D-Bus hooks are best-effort; a failed hook does not
   roll the config back, it is reported in the result message.
 * ``KTM_THEME_NO_APPLY=1`` disables external commands/hooks (tests, dry runs).
