@@ -992,7 +992,7 @@ pub fn applied(rel: &str, theme_text: &str, live_text: Option<&str>) -> Result<S
         Policy::KwinRc => kwinrc_merge(theme_text, live),
         Policy::Ini(rules) => ini_merge(theme_text, live, rules),
         Policy::KwinRules => kwinrules_merge(&crate::layout::kwinrules_for_theme(theme_text), live),
-        Policy::Appletsrc => crate::layout::appletsrc_merge(theme_text, live),
+        Policy::Appletsrc => crate::layout::appletsrc_merge_checked(theme_text, live, &crate::layout::icon_available),
         Policy::PanelViews => crate::layout::panel_views_merge(theme_text, live, None, None),
         Policy::Kv(keys) => kv_merge(theme_text, live, keys),
         Policy::Jsonc(keys) => jsonc_merge(theme_text, live, keys),

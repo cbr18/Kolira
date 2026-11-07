@@ -24,6 +24,7 @@ pub mod appearance;
 pub mod deps;
 pub mod kwin_effects;
 pub mod layout;
+pub mod undo;
 pub mod konsole;
 pub mod nvim;
 pub mod discord;

@@ -126,6 +126,9 @@ Obsidian…), плюс `theme.json` (описание, значения для G
 - `.config/alacritty/theme-profile.toml` (оформление; `alacritty.toml` только импортирует его)
 - `.config/kitty/theme-profile.conf` (оформление; `kitty.conf` только подключает его через `include`) — с live reload через `kitty @`
 
+Журнал применения (`<theme root>/apply-journal/`, `rust_core/src/undo.rs`): следующее
+применение откатывает то, что оставила предыдущая тема; см. `docs/THEMES.md`.
+
 Смешанные файлы (`kdeglobals`, `kwinrc`, `plasmarc`, `plasmashellrc`, GTK
 `settings.ini`, `btop.conf`, `settings.json` редакторов) сохраняются и
 применяются **только ключами оформления** со слиянием в живой файл — масштаб

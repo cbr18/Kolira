@@ -137,6 +137,57 @@ pub fn needed_plasmoids(text: &str) -> Vec<String> {
     out
 }
 
+/// `appletsrc` with every `org.kde.image` wallpaper whose file does not exist
+/// pointing at `path`.
+pub fn point_missing_wallpapers(text: &str, path: &Path) -> String {
+    let url = format!("file://{}", path.display());
+    let mut sections = parse_ini(text);
+    for s in sections.iter_mut() {
+        if !matches!(segments(s.group()).as_slice(), ["Containments", _, "Wallpaper", "org.kde.image", "General"]) {
+            continue;
+        }
+        for line in s.lines.iter_mut() {
+            if key_of(line) != Some("Image") {
+                continue;
+            }
+            let value = line.split_once('=').map(|(_, v)| v.trim()).unwrap_or_default();
+            let file = value.strip_prefix("file://").unwrap_or(value).replace("%20", " ");
+            if !Path::new(&file).exists() {
+                *line = format!("Image={url}");
+            }
+        }
+    }
+    let fixed = render_ini(&sections);
+    if fixed.lines().eq(text.lines()) {
+        text.to_string()
+    } else {
+        fixed
+    }
+}
+
+/// Can icon `name` be shown here? An absolute path, or an icon of that name in
+/// any icon theme (the launcher's button falls back to a blank otherwise).
+pub fn icon_available(name: &str) -> bool {
+    if name.starts_with('/') {
+        return Path::new(name).exists();
+    }
+    let home = crate::paths::home_dir();
+    let roots = [crate::paths::data_home().join("icons"), home.join(".icons"), "/usr/share/icons".into(), "/usr/share/pixmaps".into()];
+    let mut stack: Vec<std::path::PathBuf> = roots.to_vec();
+    while let Some(dir) = stack.pop() {
+        let Ok(entries) = std::fs::read_dir(&dir) else { continue };
+        for e in entries.flatten() {
+            let path = e.path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if path.file_stem().is_some_and(|s| s.to_string_lossy() == name) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 fn is_panel(s: &Section) -> bool {
     get(s, "plugin") == Some("org.kde.panel") || get(s, "location").is_some_and(|l| l != "0")
 }
@@ -216,6 +267,13 @@ struct ThemeDesktop {
 /// `live` with the theme's look merged in (see the module docs). A theme
 /// without an appletsrc look, or an empty live file, leaves `live` as it is.
 pub fn appletsrc_merge(theme: &str, live: &str) -> String {
+    appletsrc_merge_checked(theme, live, &|_| true)
+}
+
+/// [`appletsrc_merge`] where `icon_here` says whether a launcher icon can be
+/// shown: an author's distro logo is left out for receivers without it, so
+/// their launcher keeps its icon instead of showing a blank.
+pub fn appletsrc_merge_checked(theme: &str, live: &str, icon_here: &dyn Fn(&str) -> bool) -> String {
     if live.trim().is_empty() {
         return live.to_string();
     }
@@ -314,6 +372,9 @@ pub fn appletsrc_merge(theme: &str, live: &str) -> String {
         let look = theme_look(tc, ta);
         // Off in the theme: only the switch; the user's styling stays.
         let Some(keys) = effective_look_keys(plugin, &look) else { continue };
+        let icon_missing = plugin != COLORIZER && look.iter().any(|l| key_of(l) == Some("icon") && l.split_once('=').is_some_and(|(_, v)| !icon_here(v.trim())));
+        let kept: Vec<&str> = keys.iter().copied().filter(|k| !(icon_missing && *k == "icon")).collect();
+        let keys: &[&str] = &kept;
         let group = format!("Containments][{c}][Applets][{a}][Configuration][General");
         match sections.iter_mut().find(|s| s.group() == group) {
             Some(s) => set_keys(s, keys, &look),
@@ -608,6 +669,25 @@ AppletOrder=22;21
         assert!(!m.contains("[Containments][1]"));
         // Applying again changes nothing.
         assert_eq!(appletsrc_merge(THEME, &m), m);
+    }
+
+    #[test]
+    fn missing_wallpaper_files_point_at_this_machines_copy() {
+        let tmp = tempfile::tempdir().unwrap();
+        let here = tmp.path().join("my wall.jpg");
+        std::fs::write(&here, "x").unwrap();
+        let there = format!("file://{}", here.display()).replace(' ', "%20");
+        let text = format!("[Containments][1][Wallpaper][org.kde.image][General]\nImage=file:///author/gone.jpg\n\n[Containments][2][Wallpaper][org.kde.image][General]\nImage={there}\n");
+        let fixed = point_missing_wallpapers(&text, Path::new("/new/wall.jpg"));
+        assert!(fixed.contains("Image=file:///new/wall.jpg") && fixed.contains(&there) && !fixed.contains("gone.jpg"), "{fixed}");
+    }
+
+    #[test]
+    fn a_launcher_icon_this_machine_lacks_is_left_out() {
+        let m = appletsrc_merge_checked(THEME, LIVE, &|_| false);
+        assert!(m.contains("icon=start-here") && !m.contains("icon=theme-logo"), "{m}");
+        let m = appletsrc_merge_checked(THEME, LIVE, &|name| name == "theme-logo");
+        assert!(m.contains("icon=theme-logo"), "{m}");
     }
 
     #[test]

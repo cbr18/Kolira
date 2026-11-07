@@ -309,11 +309,7 @@ fn run_external(cmd: &str, args: &[&str]) {
     if no_apply() {
         return;
     }
-    let _ = Command::new(cmd)
-        .args(args)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status();
+    let _ = crate::paths::status_bounded(Command::new(cmd).args(args).stderr(std::process::Stdio::null()));
 }
 
 /// Run an external command and return its trimmed stdout (empty on failure).
@@ -321,11 +317,8 @@ fn run_external_capture(cmd: &str, args: &[&str]) -> String {
     if no_apply() {
         return String::new();
     }
-    Command::new(cmd)
-        .args(args)
-        .output()
-        .ok()
-        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+    crate::paths::output_bounded(Command::new(cmd).args(args).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::null()))
+        .map(|(_, out)| String::from_utf8_lossy(&out).trim().to_string())
         .unwrap_or_default()
 }
 
@@ -656,9 +649,7 @@ fn plasma_shell_active() -> bool {
     if no_apply() {
         return true;
     }
-    Command::new("systemctl")
-        .args(["--user", "is-active", "--quiet", "plasma-plasmashell.service"])
-        .status()
+    crate::paths::status_bounded(Command::new("systemctl").args(["--user", "is-active", "--quiet", "plasma-plasmashell.service"]))
         .map(|s| s.success())
         .unwrap_or(true)
 }
@@ -774,20 +765,13 @@ pub(crate) fn run_custom_reload_hooks(rel_paths: &[String]) {
             Ok(argv) => {
                 let mut iter = argv.into_iter();
                 let binary = iter.next().unwrap_or_default();
-                let status = Command::new(&binary)
-                    .args(iter.collect::<Vec<_>>())
-                    .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::null())
-                    .status();
+                let status = crate::paths::status_bounded(Command::new(&binary).args(iter.collect::<Vec<_>>()).stderr(std::process::Stdio::null()));
                 match status {
-                    Ok(s) if s.success() => {}
-                    Ok(s) => {
+                    Some(s) if s.success() => {}
+                    Some(s) => {
                         eprintln!("Warning: reload command for '{}' exited with {s}", component.id)
                     }
-                    Err(e) => eprintln!(
-                        "Warning: could not run reload command for '{}': {e}",
-                        component.id
-                    ),
+                    None => eprintln!("Warning: could not run reload command for '{}'", component.id),
                 }
             }
             Err(e) => eprintln!("Warning: invalid reload command for '{}': {e}", component.id),
@@ -886,6 +870,11 @@ fn reapply_widget_style(source: &Path) {
         return;
     };
     if theme.is_empty() {
+        return;
+    }
+    // Without the theme the tool waits on a dialog; the report lists it as missing.
+    if !["/usr/share/Kvantum".into(), live_path(".config/Kvantum")].iter().any(|root: &PathBuf| root.join(&theme).is_dir()) {
+        eprintln!("Warning: Kvantum theme {theme} is not installed");
         return;
     }
     run_external("kvantummanager", &["--set", &theme]);
@@ -1093,7 +1082,7 @@ fn restore_from_profile(profile: &str, rel_paths: &[String]) -> Result<()> {
                 }
             }
             policy => {
-                if !src.exists() {
+                if !src.exists() || crate::tracked_apps::app_absent_for(rel, &dst) {
                     continue;
                 }
                 if let Some(parent) = dst.parent() {
@@ -1233,6 +1222,16 @@ fn apply_with_paths(profile: &str, rel_paths: &[String]) -> Result<PathBuf> {
     // after plasmashell stopped — it writes its latest icon state on quit.
     let appletsrc = live_path(APPLETSRC_REL);
     let live_appletsrc = fs::read_to_string(&appletsrc).ok();
+    // What the previous theme left goes first, so this theme starts from the
+    // state before any theme (undo.rs). The journal covers the wallpaper folder
+    // too: a wallpaper a theme restored there goes with the theme.
+    let mut journal_rels: Vec<String> = rel_paths.to_vec();
+    journal_rels.push(".config/konsolerc".to_string()); // a theme may make its profile the default
+    if let Ok(walls) = wallpaper_dir().strip_prefix(crate::paths::home_dir()) {
+        journal_rels.push(walls.to_string_lossy().to_string());
+    }
+    let journal = crate::undo::revert();
+    let before = crate::undo::baseline(&journal_rels);
     match restore_from_profile(profile, rel_paths) {
         Ok(()) => {
             if let (Some(live), Ok(restored)) = (live_appletsrc.as_deref(), fs::read_to_string(&appletsrc)) {
@@ -1245,13 +1244,22 @@ fn apply_with_paths(profile: &str, rel_paths: &[String]) -> Result<PathBuf> {
             } else {
                 None
             };
+            // A theme from elsewhere names its author's path: plasmashell starts
+            // with this machine's copy instead of a blank desktop.
+            if let (Some(path), Ok(text)) = (&wallpaper, fs::read_to_string(&appletsrc)) {
+                let fixed = crate::layout::point_missing_wallpapers(&text, path);
+                if fixed != text {
+                    let _ = fs::write(&appletsrc, fixed);
+                }
+            }
             if let Err(e) = restore_active_kvantum_theme(&dir, rel_paths) {
                 eprintln!("Warning: could not restore the Kvantum theme: {e}");
             }
             if rel_paths.iter().any(|p| p == GTK3_SETTINGS) {
                 let ini = dir.join(GTK3_SETTINGS);
+                let live_gtk = crate::theme::load(&dir).ok().and_then(|p| p.gsettings_gtk_theme);
                 crate::field::sync_gtk_desktop(
-                    ini_group_key(&ini, "Settings", "gtk-theme-name").as_deref(),
+                    live_gtk.or_else(|| ini_group_key(&ini, "Settings", "gtk-theme-name")).as_deref(),
                     ini_group_key(&ini, "Settings", "gtk-application-prefer-dark-theme").as_deref(),
                 );
             }
@@ -1263,6 +1271,10 @@ fn apply_with_paths(profile: &str, rel_paths: &[String]) -> Result<PathBuf> {
                 }
             }
             run_custom_reload_hooks(rel_paths);
+            match journal {
+                Ok(journal) => crate::undo::record(journal, &before).with_context(|| "apply journal")?,
+                Err(e) => eprintln!("Warning: could not undo the previous theme: {e:#}"),
+            }
             Ok(backup)
         }
         Err(e) => {
@@ -1369,18 +1381,15 @@ pub(crate) fn apply_wallpaper_live(path: &Path) {
     if no_apply() {
         return;
     }
-    for attempt in 0..5 {
-        let applied = Command::new("plasma-apply-wallpaperimage")
-            .arg(path)
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status()
+    // plasmashell may take a while to come back on a slow machine.
+    for attempt in 0..20 {
+        let applied = crate::paths::status_bounded(Command::new("plasma-apply-wallpaperimage").arg(path).stderr(std::process::Stdio::null()))
             .map(|s| s.success())
             .unwrap_or(false);
         if applied {
             return;
         }
-        if attempt < 4 {
+        if attempt < 19 {
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
     }

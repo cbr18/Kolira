@@ -110,11 +110,15 @@ A change is not done until the docs agree with the code. At minimum:
 # Build the Rust CLI first
 cd gui/qt-app/src/core/rust_core && cargo build --release && cargo test && cargo clippy --all-targets -- -D warnings
 
-# Python tests (offscreen Qt; 271 tests)
+# Python tests (offscreen Qt; 273 tests)
 cd gui/qt-app && QT_QPA_PLATFORM=offscreen uv run --project . --extra dev pytest tests -q
 
-# Bash + installer tests (~213 assertions) — from the repo root
+# Bash + installer tests (~226 assertions) — from the repo root
 bash tests/test-scripts.sh
+
+# A friend's whole story on a clean machine (real KWin + plasmashell; slow, needs Docker)
+docker build -t ktm-friend tests/e2e && docker run --rm --cap-add SYS_NICE -v "$PWD:/src:ro" -u friend ktm-friend \
+  dbus-run-session -- bash /src/tests/e2e/friend-in-container.sh /src /tmp/out
 
 # Shell static analysis (installer scripts)
 shellcheck scripts/*.sh tests/test-scripts.sh

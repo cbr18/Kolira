@@ -575,11 +575,7 @@ fn run(cmd: &str, args: &[&str]) -> bool {
     if no_apply() {
         return true;
     }
-    std::process::Command::new(cmd)
-        .args(args)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
+    crate::paths::status_bounded(std::process::Command::new(cmd).args(args).stderr(std::process::Stdio::null()))
         .map(|s| s.success())
         .unwrap_or(false)
 }

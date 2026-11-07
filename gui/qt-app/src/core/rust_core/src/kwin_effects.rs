@@ -105,8 +105,8 @@ fn qdbus(args: &[&str]) -> Option<String> {
     if no_apply() {
         return None;
     }
-    let out = std::process::Command::new("qdbus6").args(args).stderr(std::process::Stdio::null()).output().ok()?;
-    out.status.success().then(|| String::from_utf8_lossy(&out.stdout).trim().to_string())
+    let (status, out) = crate::paths::output_bounded(std::process::Command::new("qdbus6").args(args).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::null()))?;
+    status.success().then(|| String::from_utf8_lossy(&out).trim().to_string())
 }
 
 /// Is `id` loaded in the running KWin? None when KWin cannot be asked.

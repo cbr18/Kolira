@@ -1,6 +1,6 @@
 //! Tracked Apps Core Implementation
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -9,37 +9,50 @@ use which;
 use crate::custom_components::merged_component_defs;
 use crate::paths::live_path;
 
-/// Auto-detect the Zen Browser profile directory name inside `~/.zen`.
-///
-/// The profile path used to be hardcoded (`.zen/gp0y8wrv.Default (release)/`),
-/// which broke after a profile rename or on other machines. Resolution rules
-/// (shared with the CLI adapter):
-///   * scan `~/.zen` for directories containing "Default" with a `user.js`;
-///   * pick the first one in byte order (deterministic);
-///   * fall back to the historical hardcoded name when nothing matches.
-pub fn zen_profile_dir() -> String {
-    let home = crate::paths::home_dir();
-    let zen_root = home.join(".zen");
-    let mut candidates: Vec<String> = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(&zen_root) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            let dir_name = entry.file_name().to_string_lossy().to_string();
-            if dir_name.contains("Default") && path.join("user.js").is_file() {
-                candidates.push(dir_name);
-            }
+/// The default Zen profile folder inside `~/.zen`: what the browser itself
+/// says (`installs.ini`, `profiles.ini`), else the first `*Default*` folder in
+/// byte order. `None` without a profile: nothing of Zen exists to theme, and a
+/// folder must not be made up (a fixed fallback name once put another user's
+/// profile name into receivers' `~/.zen`).
+pub fn zen_profile_dir() -> Option<String> {
+    let root = crate::paths::home_dir().join(".zen");
+    default_browser_profile(&root).filter(|d| root.join(d).is_dir()).or_else(|| {
+        let mut dirs: Vec<String> = std::fs::read_dir(&root)
+            .ok()?
+            .flatten()
+            .filter(|e| e.path().is_dir())
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .filter(|n| n.contains("Default"))
+            .collect();
+        dirs.sort();
+        dirs.into_iter().next()
+    })
+}
+
+/// `Default=` of `installs.ini`, else the `Default=1` profile of `profiles.ini`.
+fn default_browser_profile(root: &Path) -> Option<String> {
+    if let Ok(text) = std::fs::read_to_string(root.join("installs.ini")) {
+        if let Some(dir) = text.lines().find_map(|l| l.strip_prefix("Default=").map(|v| v.trim().to_string())).filter(|v| !v.is_empty()) {
+            return Some(dir);
         }
     }
-    candidates.sort();
-    candidates
-        .into_iter()
-        .next()
-        .unwrap_or_else(|| "gp0y8wrv.Default (release)".to_string())
+    let text = std::fs::read_to_string(root.join("profiles.ini")).ok()?;
+    let mut path = None;
+    for line in text.lines() {
+        if line.starts_with('[') {
+            path = None;
+        } else if let Some(p) = line.strip_prefix("Path=") {
+            path = Some(p.trim().to_string());
+        } else if line.trim() == "Default=1" && path.is_some() {
+            return path;
+        }
+    }
+    None
 }
 
 /// Relative config paths for the detected Zen profile.
 pub fn zen_config_paths() -> Vec<String> {
-    let dir = zen_profile_dir();
+    let Some(dir) = zen_profile_dir() else { return Vec::new() };
     let rel = |suffix: &str| format!(".zen/{dir}/{suffix}");
     vec![
         rel("user.js"),
@@ -715,6 +728,20 @@ fn detect_app_status(app: &TrackedAppDef) -> crate::types::AppStatus {
     } else {
         crate::types::AppStatus::Partial
     }
+}
+
+/// Should a theme's file for `rel` be skipped because its app is not here?
+/// Applying must not make config folders for programs the receiver does not
+/// have (`~/.config/Cursor`, `~/obsidian/vault`). The app counts as here when
+/// its command exists or its folder (`dst`'s parent) already does.
+pub fn app_absent_for(rel: &str, dst: &std::path::Path) -> bool {
+    if dst.parent().is_some_and(|p| p.exists()) {
+        return false;
+    }
+    get_tracked_apps()
+        .iter()
+        .find(|a| a.config_paths.iter().any(|p| p == rel))
+        .is_some_and(|a| a.detect_command.is_some() && matches!(detect_app_status(a), crate::types::AppStatus::NotInstalled))
 }
 
 /// Check if flatpak is installed

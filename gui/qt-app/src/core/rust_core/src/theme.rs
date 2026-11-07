@@ -96,6 +96,10 @@ pub struct Package {
     /// to install it from (deps.rs).
     #[serde(default)]
     pub dependencies: Vec<crate::deps::Dependency>,
+    /// GSettings' GTK theme when it differs from `settings.ini`: what Wayland
+    /// GTK apps really used when this theme was saved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gsettings_gtk_theme: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -647,8 +651,12 @@ pub fn save(name: &str, options: &SaveOptions) -> Result<Package> {
     if let Some(prev) = previous {
         carry_licences(&prev, &mut package);
         keep_known_titles(&prev.dependencies, &mut package.dependencies);
-        write_manifest(&target, &package)?;
     }
+    // What Wayland GTK apps really use can differ from settings.ini; returning
+    // to this theme must not change them, nor the file.
+    let ini = crate::config_parser::ini_group_key(&target.join(".config/gtk-3.0/settings.ini"), "Settings", "gtk-theme-name");
+    package.gsettings_gtk_theme = crate::undo::live_gtk_theme().filter(|live| ini.as_deref() != Some(live.as_str()));
+    write_manifest(&target, &package)?;
     Ok(package)
 }
 
@@ -734,6 +742,7 @@ pub fn prune(name: &str) -> Result<usize> {
     let options = SaveOptions { description: Some(old.description.clone()), include_wallpaper: old.wallpaper.is_some() };
     let mut package = build(name, &dir, &options)?;
     package.created = old.created.clone();
+    package.gsettings_gtk_theme = old.gsettings_gtk_theme.clone();
     carry_licences(&old, &mut package);
     write_manifest(&dir, &package)?;
     let keep: std::collections::HashSet<PathBuf> = crate::share::theme_files(&dir, true)?.into_iter().collect();

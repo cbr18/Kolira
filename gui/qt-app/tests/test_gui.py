@@ -3029,3 +3029,65 @@ def test_app_look_reloads_after_apply_only(monkeypatch, operation, success, relo
     owner._pending_actions = None
     controllers.ProfileController._on_operation_finished(owner, success, "done")
     assert len(calls) == reloads
+
+
+def test_look_signature_follows_style_and_colours_only(monkeypatch, tmp_path) -> None:
+    """The watcher must not recreate the style on unrelated config writes."""
+    import theme_controller as tc
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
+    kv = tmp_path / ".config/Kvantum"
+    (kv / "One").mkdir(parents=True)
+    (kv / "Two").mkdir()
+    (kv / "One/One.kvconfig").write_text("a")
+    (kv / "Two/Two.kvconfig").write_text("b")
+    (kv / "kvantum.kvconfig").write_text("[General]\ntheme=One\n")
+    globals_ = tmp_path / ".config/kdeglobals"
+    base = "[KDE]\nwidgetStyle=kvantum\nSingleClick=false\n\n[General]\nColorScheme=A\n\n[Colors:View]\nBackgroundNormal=1,1,1\n"
+    globals_.write_text(base)
+    first = tc._desktop_look_signature()
+    globals_.write_text(base.replace("SingleClick=false", "SingleClick=true"))
+    assert tc._desktop_look_signature() == first
+    globals_.write_text(base.replace("1,1,1", "2,2,2"))
+    assert tc._desktop_look_signature() != first
+    globals_.write_text(base)
+    assert tc._desktop_look_signature() == first
+    (kv / "kvantum.kvconfig").write_text("[General]\ntheme=Two\n")
+    assert tc._desktop_look_signature() != first
+    (kv / "kvantum.kvconfig").write_text("[General]\ntheme=One\n")
+    assert tc._desktop_look_signature() == first
+    os.utime(kv / "One/One.kvconfig", (1, 1))  # the palette rewrote the theme
+    assert tc._desktop_look_signature() != first
+    globals_.write_text(base.replace("widgetStyle=kvantum", "widgetStyle=Breeze"))
+    assert tc._desktop_look_signature()[0] == "Breeze"
+    assert str(globals_) in tc._desktop_look_paths()
+
+
+def test_fresh_plasma_without_colours_does_not_crash(tmp_path) -> None:
+    """A new Plasma user's kdeglobals has no [Colors:*]: the app must still open."""
+    code = (
+        "import sys; sys.path.insert(0, sys.argv[1])\n"
+        "from PySide6.QtWidgets import QApplication\n"
+        "app = QApplication([])\n"
+        "import theme_controller as tc\n"
+        "assert tc._kde_scheme_colors() is None\n"
+        "c = tc.ThemeController.instance()\n"
+        "c._current_theme = 'system'\n"
+        "assert c._system_is_dark() in (True, False)\n"
+        "assert c._resolve_theme() in ('dark', 'light')\n"
+        "c._apply_theme()\n"
+        "print('opened')\n"
+    )
+    env = {
+        **os.environ,
+        "HOME": str(tmp_path),
+        "XDG_CONFIG_HOME": str(tmp_path / ".config"),
+        "QT_QPA_PLATFORM": "offscreen",
+        "PYTHONPATH": "",
+    }
+    done = subprocess.run(
+        [sys.executable, "-c", code, str(SRC_DIR)], env=env, capture_output=True, text=True, timeout=60
+    )
+    assert done.returncode == 0 and "opened" in done.stdout, done.stderr
+    assert "Qt.ColorMode" not in (SRC_DIR / "theme_controller.py").read_text()  # no such enum

@@ -96,7 +96,7 @@ pub fn field(id: &str) -> Option<&'static FieldDef> {
     registry().iter().find(|f| f.id == id)
 }
 
-fn no_apply() -> bool {
+pub(crate) fn no_apply() -> bool {
     std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1")
 }
 
@@ -647,11 +647,7 @@ fn run(cmd: &str, args: &[&str]) -> bool {
     if no_apply() {
         return true;
     }
-    std::process::Command::new(cmd)
-        .args(args)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
+    crate::paths::status_bounded(std::process::Command::new(cmd).args(args).stderr(std::process::Stdio::null()))
         .map(|s| s.success())
         .unwrap_or(false)
 }
@@ -738,9 +734,21 @@ pub fn sync_gtk_desktop(theme: Option<&str>, dark: Option<&str>) {
         return;
     }
     for (key, value) in gtk_desktop_keys(theme, dark) {
-        if !run("gsettings", &["set", "org.gnome.desktop.interface", key, &value]) {
-            eprintln!("Warning: could not set GSettings {key}={value}");
+        // `default` already means light: a light theme leaves it alone.
+        if key == "color-scheme" && value == "prefer-light" && crate::undo::live_color_scheme().as_deref() == Some("default") {
+            continue;
         }
+        crate::undo::note_gsettings(key);
+        gsettings_set(key, &value);
+    }
+}
+
+pub(crate) fn gsettings_set(key: &str, value: &str) {
+    if no_apply() || cfg!(test) || which::which("gsettings").is_err() {
+        return;
+    }
+    if !run("gsettings", &["set", "org.gnome.desktop.interface", key, value]) {
+        eprintln!("Warning: could not set GSettings {key}={value}");
     }
 }
 

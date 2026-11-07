@@ -103,11 +103,13 @@ The application styles itself from the active profile:
 
 Implementation notes:
 
-- After a theme or palette is applied from the app, the **widget style is created
-  anew** (`ThemeController.reload_desktop_look`): Kvantum reads its theme once,
-  when the style is created, so buttons would keep the previous theme until a
-  restart. `QT_STYLE_OVERRIDE` turns this off. Live edits on the Theme Inspector
-  page do not trigger it.
+- When the desktop's look changes, the **widget style is created anew**
+  (`ThemeController.reload_desktop_look`): Kvantum reads its theme once, when the
+  style is created, so buttons would keep the previous theme until a restart. An
+  apply from the app does it at once; everything else (CLI, `theme-menu`, the
+  Theme Inspector, System Settings) is noticed by a watcher on `kdeglobals` and the
+  active Kvantum theme (`watch_desktop_look`), which reloads only when the style or
+  colours really changed. `QT_STYLE_OVERRIDE` keeps the style fixed.
 - The whole **application palette** is switched (`ThemeController._apply_palette`)
   so Qt Quick Controls (buttons, chips, check boxes…) match the custom QML
   colours. Without this the window looked "half dark".

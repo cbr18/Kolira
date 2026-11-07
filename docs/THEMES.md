@@ -77,6 +77,29 @@ whole `appletsrc`, `plasmashellrc` geometry, behaviour window rules and
 apply reads only the look from the mixed files (the same filter), and
 `theme-profile prune NAME|--all` reduces them on disk (backup first).
 
+**Switching back leaves nothing behind** (`rust_core/src/undo.rs`). A theme only
+says what it contains, so each apply first undoes what the previous one left, from
+a journal in `<theme root>/apply-journal/` (local state, never in a theme):
+
+- files that did not exist before the theme are removed;
+- whole files it replaced get their earlier content back;
+- `kwinrc` effect settings and `kwinrulesrc` rules it wrote go back to what they
+  were (a theme's rule does not stay in the user's rules);
+- GSettings `gtk-theme` / `color-scheme` go back to their earlier value;
+- browser prefs: a pref set in `user.js` stays in `prefs.js`, so the earlier value
+  (or, for known look prefs, the default) is written to `user.js` for the next start.
+
+Only what the theme left untouched is undone: a file or block edited since then
+stays. Applying also skips the config folder of a program this machine lacks (no
+`~/.config/Cursor`, no `~/obsidian`), writes Zen files to the receiver's default
+profile, keeps the receiver's launcher icon when the theme's icon does not exist
+here, and a save records the GTK theme GSettings really reports when it differs
+from `settings.ini` (`gsettings_gtk_theme` in `theme.json`). External tools cannot
+hang an apply: each is stopped after 60 s (`KTM_COMMAND_TIMEOUT`), and a Kvantum
+theme that is not installed is not handed to `kvantummanager`. Checked by
+`tests/e2e/`: `friend-in-container.sh` runs the whole story in a clean container
+with a real KWin and plasmashell (see `tests/e2e/Dockerfile`).
+
 > 2026-11-04: a short-lived values-only format (`theme@1`: only the 71 registry
 > fields) lost terminal colours, GTK4, wofi, Zen, KWin effect toggles and more.
 > Do not reintroduce it. Every change to theme storage must be verified by

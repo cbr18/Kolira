@@ -557,31 +557,53 @@ def _check_configs_exist(paths: tuple[str, ...]) -> bool:
 # ──────────────────────────────────────────────────────────────
 
 def zen_profile_dir() -> str:
-    """Имя профиля Zen внутри `~/.zen` (первый по byte-order с user.js).
+    """Имя профиля Zen внутри `~/.zen`, "" если профиля нет.
 
-    Раньше путь был хардкоднут (`.zen/gp0y8wrv.Default (release)/`), что
-    ломалось после переименования профиля. Правила зеркалят Rust:
-    `~/.zen/*Default*/user.js` → первый в byte-order → иначе legacy-имя.
+    Правила зеркалят Rust (`tracked_apps::zen_profile_dir`): `installs.ini`,
+    затем `Default=1` в `profiles.ini`, затем первый `*Default*` в byte-order.
+    Выдумывать имя нельзя: запасное имя создавало чужую папку в `~/.zen`.
     """
     import os
 
     zen_root = os.path.join(os.path.expanduser("~"), ".zen")
+
+    def read(name: str) -> list[str]:
+        try:
+            with open(os.path.join(zen_root, name), encoding="utf-8") as handle:
+                return handle.read().splitlines()
+        except (OSError, UnicodeDecodeError):
+            return []
+
+    for line in read("installs.ini"):
+        if line.startswith("Default="):
+            value = line.split("=", 1)[1].strip()
+            if value and os.path.isdir(os.path.join(zen_root, value)):
+                return value
+            break
+    path = None
+    for line in read("profiles.ini"):
+        if line.startswith("["):
+            path = None
+        elif line.startswith("Path="):
+            path = line.split("=", 1)[1].strip()
+        elif line.strip() == "Default=1" and path and os.path.isdir(os.path.join(zen_root, path)):
+            return path
     candidates = []
     try:
         for entry in os.scandir(zen_root):
             if entry.is_dir(follow_symlinks=False) and "Default" in entry.name:
-                if os.path.isfile(os.path.join(entry.path, "user.js")):
-                    candidates.append(entry.name)
+                candidates.append(entry.name)
     except OSError:
         pass
-    if candidates:
-        return sorted(candidates)[0]
-    return "gp0y8wrv.Default (release)"
+    return sorted(candidates)[0] if candidates else ""
 
 
 def zen_config_paths() -> tuple[str, ...]:
     """Относительные пути конфигов Zen для обнаруженного профиля."""
-    base = f".zen/{zen_profile_dir()}"
+    profile = zen_profile_dir()
+    if not profile:
+        return ()
+    base = f".zen/{profile}"
     return (
         f"{base}/user.js",
         f"{base}/chrome/userChrome.css",

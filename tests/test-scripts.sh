@@ -2049,7 +2049,8 @@ fi
 # --- Layouts stay the user's (layout.rs) ---------------------------------------
 LA="$TMP_ROOT/layout-author"
 LU="$TMP_ROOT/layout-user"
-mkdir -p "$LA/.config" "$LU/.config" "$LA/Pictures/Wallpaper"
+mkdir -p "$LA/.config" "$LU/.config" "$LA/Pictures/Wallpaper" "$LU/.local/share/icons/hicolor/64x64/apps"
+: >"$LU/.local/share/icons/hicolor/64x64/apps/author-logo.png" # the receiver has this launcher icon
 printf 'jpeg' >"$LA/Pictures/Wallpaper/dune.jpg"
 cat >"$LA/.config/plasma-org.kde.plasma.desktop-appletsrc" <<APPLETS
 [Containments][1]
@@ -2158,7 +2159,16 @@ fi
 GS="$TMP_ROOT/gsettings-home"
 GS_MOCK="$TMP_ROOT/gsettings-mock"
 mkdir -p "$GS/.config/gtk-3.0" "$GS/.config/gtk-4.0" "$GS_MOCK"
-printf '#!/usr/bin/env bash\necho "$*" >>"%s/calls"\nexit 0\n' "$GS_MOCK" >"$GS_MOCK/gsettings"
+# Remembers values like the real one (a file per key).
+cat >"$GS_MOCK/gsettings" <<GSMOCK
+#!/usr/bin/env bash
+echo "\$*" >>"$GS_MOCK/calls"
+case "\$1" in
+  set) printf "%s" "\$4" >"$GS_MOCK/value-\$3" ;;
+  get) [ -f "$GS_MOCK/value-\$3" ] && printf "'%s'\\n" "\$(cat "$GS_MOCK/value-\$3")" || exit 1 ;;
+esac
+exit 0
+GSMOCK
 chmod +x "$GS_MOCK/gsettings"
 printf '[Settings]\ngtk-theme-name=LightOne\ngtk-application-prefer-dark-theme=false\n' >"$GS/.config/gtk-3.0/settings.ini"
 gs() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$GS" PATH="$GS_MOCK:$PATH" "$CLI_DIR/theme-profile" "$@"; }
@@ -2186,6 +2196,31 @@ if [ ! -s "$GS_MOCK/calls" ]; then
   ok "KTM_THEME_NO_APPLY keeps GSettings untouched"
 else
   fail "GSettings written under KTM_THEME_NO_APPLY: $(cat "$GS_MOCK/calls")"
+fi
+
+# GSettings go back: a theme's values leave with it, `default` stays `default`.
+GR="$TMP_ROOT/gsettings-return"
+mkdir -p "$GR/.config/gtk-3.0"
+gr() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$GR" PATH="$GS_MOCK:$PATH" "$CLI_DIR/theme-profile" "$@"; }
+printf 'Adwaita' >"$GS_MOCK/value-gtk-theme"
+printf 'default' >"$GS_MOCK/value-color-scheme"
+printf '[Settings]\ngtk-theme-name=Breeze\ngtk-application-prefer-dark-theme=false\n' >"$GR/.config/gtk-3.0/settings.ini"
+gr save friend-look --no-wallpaper >/dev/null 2>&1
+printf '[Settings]\ngtk-theme-name=AuthorDark\ngtk-application-prefer-dark-theme=true\n' >"$GR/.config/gtk-3.0/settings.ini"
+gr save author-dark --no-wallpaper >/dev/null 2>&1
+printf 'Adwaita' >"$GS_MOCK/value-gtk-theme"
+printf 'default' >"$GS_MOCK/value-color-scheme"
+for round in 1 2; do
+  gr apply friend-look >/dev/null 2>&1
+  gr apply author-dark >/dev/null 2>&1
+  [ "$round" = 1 ] && dark_seen="$(cat "$GS_MOCK/value-color-scheme")"
+  gr apply friend-look >/dev/null 2>&1
+done
+if [ "$dark_seen" = prefer-dark ] && [ "$(cat "$GS_MOCK/value-color-scheme")" = default ] && [ "$(cat "$GS_MOCK/value-gtk-theme")" = Adwaita ] &&
+  grep -qx "gtk-theme-name=Breeze" "$GR/.config/gtk-3.0/settings.ini"; then
+  ok "back to a saved theme: GSettings and settings.ini are what they were, every time"
+else
+  fail "GSettings after return: $(cat "$GS_MOCK/value-gtk-theme") $(cat "$GS_MOCK/value-color-scheme"); $(cat "$GR/.config/gtk-3.0/settings.ini")"
 fi
 
 # --- Settings the theme's look does not use are not carried -------------------
@@ -2230,6 +2265,88 @@ if grep -qx "MenuOpacity=77" "$UB/.config/breezerc" && grep -qx "WindowCornerRad
   ok "apply keeps the user's settings the theme does not use, and still follows its switches"
 else
   fail "apply touched unused settings: $(cat "$UB/.config/kwinrc" "$UB/.config/breezerc")"
+fi
+
+# --- A tool that hangs must not leave the user without a desktop ------------------
+HANG="$TMP_ROOT/hang-home"
+HANG_MOCK="$TMP_ROOT/hang-mock"
+mkdir -p "$HANG/.config/Kvantum/Present" "$HANG/.config" "$HANG_MOCK"
+printf '#!/usr/bin/env bash\necho "$*" >>"%s/calls"\nsleep 300\n' "$HANG_MOCK" >"$HANG_MOCK/kvantummanager"
+chmod +x "$HANG_MOCK/kvantummanager"
+printf '#!/usr/bin/env bash\necho "$*" >>"%s/calls"\nexit 0\n' "$HANG_MOCK" >"$HANG_MOCK/systemctl"
+chmod +x "$HANG_MOCK/systemctl"
+printf '[KDE]\nwidgetStyle=kvantum\n' >"$HANG/.config/kdeglobals"
+printf '[General]\ntheme=Absent\n' >"$HANG/.config/Kvantum/kvantum.kvconfig"
+hang() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$HANG" PATH="$HANG_MOCK:$PATH" KTM_COMMAND_TIMEOUT=1 "$CLI_DIR/theme-profile" "$@"; }
+KTM_THEME_NO_APPLY=1 hang save absent --no-wallpaper >/dev/null 2>&1
+: >"$HANG_MOCK/calls"
+hang apply absent >/dev/null 2>&1
+if ! grep -q "^--set" "$HANG_MOCK/calls" && grep -q "start plasma-plasmashell" "$HANG_MOCK/calls"; then
+  ok "a missing Kvantum theme is not handed to kvantummanager (it would wait on a dialog)"
+else
+  fail "kvantummanager called for a missing theme: $(cat "$HANG_MOCK/calls")"
+fi
+printf '[General]\ntheme=Present\n' >"$HANG/.config/Kvantum/kvantum.kvconfig"
+KTM_THEME_NO_APPLY=1 hang save present --no-wallpaper >/dev/null 2>&1
+: >"$HANG_MOCK/calls"
+started=$SECONDS
+hang apply present >/dev/null 2>&1
+if grep -q "^--set Present" "$HANG_MOCK/calls" && grep -q "start plasma-plasmashell" "$HANG_MOCK/calls" && [ $((SECONDS - started)) -lt 60 ]; then
+  ok "a hanging tool is stopped and plasmashell still comes back"
+else
+  fail "hanging tool: $((SECONDS - started))s, $(cat "$HANG_MOCK/calls")"
+fi
+
+# --- A friend's round trip: own theme → a bundled theme → back = as it was ------
+RT="$TMP_ROOT/friend-home"
+rt() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u XDG_CACHE_HOME -u WALLPAPER_DIR HOME="$RT" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+bash "$SCRIPT_DIR/tests/e2e/make-friend-home.sh" "$RT"
+rt save my-look >/dev/null 2>&1
+python3 "$SCRIPT_DIR/tests/e2e/snapshot.py" "$RT" "$TMP_ROOT/rt-before.json"
+for theme in "$SCRIPT_DIR"/themes/*/; do
+  name="$(basename "$theme")"
+  rt import "$theme" >/dev/null 2>&1
+  rt apply "$name" >/dev/null 2>&1
+  rt apply my-look >/dev/null 2>&1
+  python3 "$SCRIPT_DIR/tests/e2e/snapshot.py" "$RT" "$TMP_ROOT/rt-after.json"
+  if diff_out="$(python3 "$SCRIPT_DIR/tests/e2e/compare.py" "$TMP_ROOT/rt-before.json" "$TMP_ROOT/rt-after.json")"; then
+    ok "round trip through $name leaves the friend's files as they were"
+  else
+    fail "round trip through $name: $diff_out"
+  fi
+done
+for name in Paper frutiger-aero-light glass dracula; do rt apply "$name" >/dev/null 2>&1; done
+rt apply my-look >/dev/null 2>&1
+python3 "$SCRIPT_DIR/tests/e2e/snapshot.py" "$RT" "$TMP_ROOT/rt-after.json"
+if diff_out="$(python3 "$SCRIPT_DIR/tests/e2e/compare.py" "$TMP_ROOT/rt-before.json" "$TMP_ROOT/rt-after.json")"; then
+  ok "a chain of themes and back leaves the friend's files as they were"
+else
+  fail "chain of themes: $diff_out"
+fi
+# What the user changed after a theme stays theirs.
+rt apply dracula >/dev/null 2>&1
+printf 'my own edit\n' >"$RT/.config/fastfetch/config.jsonc"
+rt apply my-look >/dev/null 2>&1
+if [ "$(cat "$RT/.config/fastfetch/config.jsonc" 2>/dev/null)" = "my own edit" ]; then
+  ok "a file the user edited after a theme is not undone"
+else
+  fail "the user's edit was lost"
+fi
+rm -f "$RT/.config/fastfetch/config.jsonc"
+# A pref a theme set goes back through user.js (it stays in prefs.js otherwise).
+PREFS="$RT/.zen/xyz.Default (release)"
+rt apply frutiger-aero-light >/dev/null 2>&1
+if grep -q 'zen.view.window.scheme", 1' "$PREFS/user.js" 2>/dev/null && [ ! -d "$RT/.zen/gp0y8wrv.Default (release)" ]; then
+  ok "the theme's Zen prefs go to the receiver's own profile"
+else
+  fail "Zen profile: $(ls "$RT/.zen")"
+fi
+sed -i 's/"zen.view.window.scheme", 2/"zen.view.window.scheme", 1/' "$PREFS/prefs.js" # what Zen stores when it runs
+rt apply my-look >/dev/null 2>&1
+if grep -q 'zen.view.window.scheme", 2' "$PREFS/user.js" 2>/dev/null; then
+  ok "a pref left in prefs.js is set back to its value before the theme"
+else
+  fail "Zen pref not restored: $(cat "$PREFS/user.js" 2>&1)"
 fi
 
 # --- Summary ------------------------------------------------------------------

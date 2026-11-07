@@ -7,8 +7,9 @@ Theme Controller — Dogfooding: применяет активный профи�
 import os
 import subprocess
 import sys
+from pathlib import Path
 from typing import Optional
-from PySide6.QtCore import QObject, Signal, Slot, Property, QTimer, Qt
+from PySide6.QtCore import QFileSystemWatcher, QObject, Signal, Slot, Property, QTimer, Qt
 from PySide6.QtGui import QGuiApplication, QWindow, QColor, QPalette
 from PySide6.QtWidgets import QApplication
 
@@ -44,6 +45,12 @@ class ThemeController(QObject):
         self._update_timer = QTimer(self)
         self._update_timer.setSingleShot(True)
         self._update_timer.timeout.connect(self._apply_theme)
+        self._look_signature = ()
+        self._look_watcher: Optional[QFileSystemWatcher] = None
+        self._look_timer = QTimer(self)
+        self._look_timer.setSingleShot(True)
+        self._look_timer.setInterval(400)
+        self._look_timer.timeout.connect(self._on_look_files_settled)
 
         # "System" must follow live changes instead of being resolved once at
         # startup.  colorSchemeChanged exists on Qt 6.5+.
@@ -102,10 +109,42 @@ class ThemeController(QObject):
         colours are read again (the same light/dark scheme sends no signal).
         ``QT_STYLE_OVERRIDE`` means the user fixed the style for this process.
         """
+        self._look_signature = _desktop_look_signature()
         app = QApplication.instance()
         if isinstance(app, QApplication) and not os.environ.get("QT_STYLE_OVERRIDE"):
             app.setStyle(_kde_widget_style())
         self._apply_theme()
+
+    def watch_desktop_look(self) -> None:
+        """Follow theme changes made outside this window (CLI, theme-menu, the
+        Theme Inspector, System Settings): the files that decide the look are
+        watched, and the style is only recreated when their content changed."""
+        if self._look_watcher is not None:
+            return
+        self._look_signature = _desktop_look_signature()
+        self._look_watcher = QFileSystemWatcher(self)
+        self._look_watcher.fileChanged.connect(self._on_look_files_changed)
+        self._look_watcher.directoryChanged.connect(self._on_look_files_changed)
+        self._rewatch_look_files()
+
+    def _rewatch_look_files(self) -> None:
+        # A file replaced atomically drops out of the watcher: add it again.
+        if self._look_watcher is None:
+            return
+        missing = [p for p in _desktop_look_paths() if p not in self._look_watcher.files() + self._look_watcher.directories()]
+        if missing:
+            self._look_watcher.addPaths(missing)
+
+    @Slot(str)
+    def _on_look_files_changed(self, _path: str = "") -> None:
+        if not self._look_timer.isActive():
+            self._look_timer.start()
+
+    @Slot()
+    def _on_look_files_settled(self) -> None:
+        self._rewatch_look_files()
+        if _desktop_look_signature() != self._look_signature:
+            self.reload_desktop_look()
 
     @Slot()
     def _on_system_color_scheme_changed(self) -> None:
@@ -163,7 +202,7 @@ class ThemeController(QObject):
     def _system_is_dark(self) -> bool:
         """Detected system color scheme (True = dark)."""
         hints = QGuiApplication.styleHints()
-        return hints is not None and hints.colorScheme() == Qt.ColorMode.Dark
+        return hints is not None and hints.colorScheme() == Qt.ColorScheme.Dark
 
     def _resolve_theme(self) -> str:
         """Разрешить тему с учётом системной."""
@@ -179,7 +218,7 @@ class ThemeController(QObject):
         if not bg.isValid():
             # Fallback: detect from platform theme hint
             theme = QGuiApplication.styleHints().colorScheme()
-            return "dark" if theme == Qt.ColorMode.Dark else "light"
+            return "dark" if theme == Qt.ColorScheme.Dark else "light"
         luminance = (0.299 * bg.red() + 0.587 * bg.green() + 0.114 * bg.blue()) / 255
         return "dark" if luminance < 0.5 else "light"
 
@@ -386,6 +425,57 @@ def _kde_widget_style() -> str:
     return config.get("KDE", "widgetStyle", fallback="").strip() or "Breeze"
 
 
+def _desktop_look_paths() -> list[str]:
+    """What to watch: the files, and their folders for atomic replacements."""
+    config = live_path(".config/kdeglobals").parent
+    kvantum = config / "Kvantum"
+    paths = [config, config / "kdeglobals", kvantum, kvantum / "kvantum.kvconfig"]
+    family = _kvantum_theme_dir()
+    if family is not None:
+        paths.append(family)
+    return [str(p) for p in paths if p.exists()]
+
+
+def _kvantum_theme_dir() -> Optional[Path]:
+    import configparser
+
+    kvantum = live_path(".config/Kvantum")
+    config = configparser.ConfigParser(interpolation=None, strict=False)
+    try:
+        config.read(kvantum / "kvantum.kvconfig", encoding="utf-8")
+    except (OSError, configparser.Error, UnicodeDecodeError):
+        return None
+    theme = config.get("General", "theme", fallback="").strip()
+    if not theme or "/" in theme:
+        return None
+    return kvantum / theme
+
+
+def _desktop_look_signature() -> tuple:
+    """Changes exactly when the widget style or the app's colours should."""
+    import configparser
+
+    config = configparser.ConfigParser(interpolation=None, strict=False)
+    try:
+        config.read(live_path(".config/kdeglobals"), encoding="utf-8")
+    except (OSError, configparser.Error, UnicodeDecodeError):
+        return ()
+    colours = tuple(
+        (section, tuple(sorted(config.items(section))))
+        for section in sorted(config.sections())
+        if section.startswith("Colors:")
+    )
+    style = config.get("KDE", "widgetStyle", fallback="")
+    scheme = config.get("General", "ColorScheme", fallback="")
+    kvantum: tuple = ()
+    family = _kvantum_theme_dir()
+    if style.casefold().startswith("kvantum") and family is not None and family.is_dir():
+        kvantum = (family.name,) + tuple(
+            (f.name, f.stat().st_mtime_ns, f.stat().st_size) for f in sorted(family.iterdir()) if f.is_file()
+        )
+    return (style, scheme, colours, kvantum)
+
+
 def reload_app_look() -> None:
     """Best-effort :meth:`ThemeController.reload_desktop_look` for controllers."""
     try:
@@ -429,4 +519,5 @@ def register_theme_controller(engine) -> ThemeController:
     """Зарегистрировать ThemeController в QML."""
     controller = ThemeController.instance()
     engine.rootContext().setContextProperty("themeController", controller)
+    controller.watch_desktop_look()
     return controller

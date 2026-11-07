@@ -96,11 +96,7 @@ pub fn refresh() {
     if std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1") || which::which("spicetify").is_err() {
         return;
     }
-    let _ = std::process::Command::new("spicetify")
-        .args(["apply", "-n"])
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status();
+    let _ = crate::paths::status_bounded(std::process::Command::new("spicetify").args(["apply", "-n"]).stderr(std::process::Stdio::null()));
 }
 
 #[cfg(test)]

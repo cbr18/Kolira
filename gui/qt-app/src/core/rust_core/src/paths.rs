@@ -108,6 +108,47 @@ pub fn profile_dir(name: &str) -> Result<PathBuf> {
     Ok(profiles_dir().join(name))
 }
 
+/// How long an external tool may take (`KTM_COMMAND_TIMEOUT`, seconds).
+fn command_timeout() -> std::time::Duration {
+    let secs = std::env::var("KTM_COMMAND_TIMEOUT").ok().and_then(|v| v.parse().ok()).unwrap_or(60);
+    std::time::Duration::from_secs(secs)
+}
+
+/// Run `cmd` and wait, but not forever: a tool that hangs is killed. An apply
+/// stops plasmashell first, so one stuck command (`kvantummanager --set` waits
+/// on a dialog when the theme is missing) would leave the user without a desktop.
+pub fn status_bounded(cmd: &mut std::process::Command) -> Option<std::process::ExitStatus> {
+    output_bounded(cmd.stdout(std::process::Stdio::null())).map(|(status, _)| status)
+}
+
+/// [`status_bounded`] that also returns what the command printed.
+pub fn output_bounded(cmd: &mut std::process::Command) -> Option<(std::process::ExitStatus, Vec<u8>)> {
+    use std::io::Read;
+    let mut child = cmd.spawn().ok()?;
+    let mut stdout = child.stdout.take();
+    let reader = std::thread::spawn(move || {
+        let mut out = Vec::new();
+        if let Some(pipe) = stdout.as_mut() {
+            let _ = pipe.read_to_end(&mut out);
+        }
+        out
+    });
+    let deadline = std::time::Instant::now() + command_timeout();
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => return Some((status, reader.join().unwrap_or_default())),
+            Ok(None) if std::time::Instant::now() < deadline => std::thread::sleep(std::time::Duration::from_millis(25)),
+            Ok(None) => {
+                eprintln!("Warning: {:?} did not finish in time; stopped it", cmd.get_program());
+                let _ = child.kill();
+                let _ = child.wait();
+                return None;
+            }
+            Err(_) => return None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
