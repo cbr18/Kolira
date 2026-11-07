@@ -1052,16 +1052,6 @@ fn restore_from_profile(profile: &str, rel_paths: &[String]) -> Result<()> {
                     write_text(&dst, &appearance::applied(rel, "", live.as_deref())?)?;
                 }
             }
-            appearance::Policy::NvimHost => {
-                // Load the theme's Neovim file when the theme has one and
-                // Neovim is set up here (init.vim users: left alone).
-                let has_theme = source.join(crate::nvim::THEME).is_file();
-                let nvim_dir = live_path(".config/nvim");
-                if has_theme && !nvim_dir.join("init.vim").exists() && (dst.is_file() || which::which("nvim").is_ok()) {
-                    let live = fs::read_to_string(&dst).ok();
-                    write_text(&dst, &appearance::applied(rel, "", live.as_deref())?)?;
-                }
-            }
             appearance::Policy::KittyHost | appearance::Policy::AlacrittyHost => {
                 let include = if rel == appearance::KITTY_HOST { appearance::KITTY_THEME } else { appearance::ALACRITTY_THEME };
                 let has_include = source.join(include).is_file();

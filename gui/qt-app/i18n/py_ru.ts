@@ -106,208 +106,208 @@
 </context><context>
     <name>Core</name>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="194" />
+        <location filename="../src/core/i18n_strings.py" line="193" />
         <source>Download missing themes, icons, widgets and editor themes from their official stores</source>
         <translation>Скачивать недостающие темы, значки, виджеты и темы редакторов из официальных магазинов</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="195" />
+        <location filename="../src/core/i18n_strings.py" line="194" />
         <source>downloads from the KDE Store, VS Code Marketplace / Open VSX, Zed</source>
         <translation>загрузка из KDE Store, VS Code Marketplace / Open VSX, Zed</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="196" />
+        <location filename="../src/core/i18n_strings.py" line="195" />
         <source>Install missing system packages (Kvantum, KWin effects, Klassy…) in a terminal</source>
         <translation>Ставить недостающие системные пакеты (Kvantum, эффекты KWin, Klassy…) в терминале</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="197" />
+        <location filename="../src/core/i18n_strings.py" line="196" />
         <source>opens a terminal with yay/pacman; you type your password there</source>
         <translation>откроется терминал с yay/pacman; пароль вводите там</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="198" />
+        <location filename="../src/core/i18n_strings.py" line="197" />
         <source>Restart Vesktop when a theme changed its look</source>
         <translation>Перезапускать Vesktop, если тема изменила его вид</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="199" />
+        <location filename="../src/core/i18n_strings.py" line="198" />
         <source>a voice call or screen share in Vesktop ends</source>
         <translation>звонок или демонстрация экрана в Vesktop прервутся</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="200" />
+        <location filename="../src/core/i18n_strings.py" line="199" />
         <source>Restart Discord (Vencord) when a theme changed its look</source>
         <translation>Перезапускать Discord (Vencord), если тема изменила его вид</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="201" />
+        <location filename="../src/core/i18n_strings.py" line="200" />
         <source>a voice call or screen share in Discord ends</source>
         <translation>звонок или демонстрация экрана в Discord прервутся</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="202" />
+        <location filename="../src/core/i18n_strings.py" line="201" />
         <source>Restart Zen Browser when a theme changed its look</source>
         <translation>Перезапускать Zen, если тема изменила его вид</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="203" />
+        <location filename="../src/core/i18n_strings.py" line="202" />
         <source>calls and downloads in Zen stop; tabs return with session restore</source>
         <translation>звонки и загрузки в Zen остановятся; вкладки вернутся, если включено восстановление сеанса</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="204" />
+        <location filename="../src/core/i18n_strings.py" line="203" />
         <source>Restart Firefox when a theme changed its look</source>
         <translation>Перезапускать Firefox, если тема изменила его вид</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="205" />
+        <location filename="../src/core/i18n_strings.py" line="204" />
         <source>calls and downloads in Firefox stop; tabs return with session restore</source>
         <translation>звонки и загрузки в Firefox остановятся; вкладки вернутся, если включено восстановление сеанса</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="206" />
+        <location filename="../src/core/i18n_strings.py" line="205" />
         <source>open calls and downloads in Zen stop; tabs come back if session restore is on</source>
         <translation>звонки и загрузки в Zen остановятся; вкладки вернутся, если включено восстановление сеанса</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="207" />
+        <location filename="../src/core/i18n_strings.py" line="206" />
         <source>open calls and downloads in Firefox stop; tabs come back if session restore is on</source>
         <translation>звонки и загрузки в Firefox остановятся; вкладки вернутся, если включено восстановление сеанса</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="208" />
+        <location filename="../src/core/i18n_strings.py" line="207" />
         <source>Telegram: choose the theme file once</source>
         <translation>Telegram: один раз выбрать файл темы</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="209" />
+        <location filename="../src/core/i18n_strings.py" line="208" />
         <source>Restart Vesktop</source>
         <translation>Перезапустить Vesktop</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="210" />
+        <location filename="../src/core/i18n_strings.py" line="209" />
         <source>Restart Discord (Vencord)</source>
         <translation>Перезапустить Discord (Vencord)</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="211" />
+        <location filename="../src/core/i18n_strings.py" line="210" />
         <source>Restart Zen Browser</source>
         <translation>Перезапустить Zen</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="212" />
+        <location filename="../src/core/i18n_strings.py" line="211" />
         <source>Restart Firefox</source>
         <translation>Перезапустить Firefox</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="213" />
+        <location filename="../src/core/i18n_strings.py" line="212" />
         <source>Vesktop reads the theme's look only when it starts</source>
         <translation>Vesktop читает вид темы только при запуске</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="214" />
+        <location filename="../src/core/i18n_strings.py" line="213" />
         <source>Discord (Vencord) reads the theme's look only when it starts</source>
         <translation>Discord (Vencord) читает вид темы только при запуске</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="215" />
+        <location filename="../src/core/i18n_strings.py" line="214" />
         <source>Zen Browser reads the theme's look only when it starts</source>
         <translation>Zen читает вид темы только при запуске</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="216" />
+        <location filename="../src/core/i18n_strings.py" line="215" />
         <source>Firefox reads the theme's look only when it starts</source>
         <translation>Firefox читает вид темы только при запуске</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="217" />
+        <location filename="../src/core/i18n_strings.py" line="216" />
         <source>Telegram → Settings → Chat Settings → Choose from file → ~/.local/share/TelegramDesktop/theme-profile.tdesktop-palette; afterwards Telegram follows it by itself</source>
         <translation>Telegram → Настройки → Настройки чатов → Выбрать из файла → ~/.local/share/TelegramDesktop/theme-profile.tdesktop-palette; дальше Telegram следит за ним сам</translation>
     </message>
 </context><context>
     <name>CoreMessages</name>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="218" />
+        <location filename="../src/core/i18n_strings.py" line="217" />
         <source>installed %1 into %2: %3</source>
         <translation>установлено: %1 в %2: %3</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="219" />
+        <location filename="../src/core/i18n_strings.py" line="218" />
         <source>installed %1 (%2)</source>
         <translation>установлено: %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="220" />
+        <location filename="../src/core/i18n_strings.py" line="219" />
         <source>installed %1 for %2 — themes: %3</source>
         <translation>установлено: %1 для %2 — темы: %3</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="221" />
+        <location filename="../src/core/i18n_strings.py" line="220" />
         <source>installed %1 for %2</source>
         <translation>установлено: %1 для %2</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="222" />
+        <location filename="../src/core/i18n_strings.py" line="221" />
         <source>%1 — opened %2 with: %3</source>
         <translation>%1 — открыт %2 с командой: %3</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="223" />
+        <location filename="../src/core/i18n_strings.py" line="222" />
         <source>AUR packages need an AUR helper (yay or paru): install one first</source>
         <translation>Для пакетов AUR нужен помощник (yay или paru): сначала установите его</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="224" />
+        <location filename="../src/core/i18n_strings.py" line="223" />
         <source>no terminal found — run: %1</source>
         <translation>терминал не найден — выполните: %1</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="225" />
+        <location filename="../src/core/i18n_strings.py" line="224" />
         <source>%1 restarted</source>
         <translation>%1 перезапущен</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="226" />
+        <location filename="../src/core/i18n_strings.py" line="225" />
         <source>%1 is not running</source>
         <translation>%1 не запущен</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="227" />
+        <location filename="../src/core/i18n_strings.py" line="226" />
         <source>it did not quit within %1 s — close it yourself</source>
         <translation>не закрылся за %1 с — закройте вручную</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="228" />
+        <location filename="../src/core/i18n_strings.py" line="227" />
         <source>%1, but "%2" is still not found — check %3</source>
         <translation>%1, но «%2» всё ещё не найдено — проверьте %3</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="229" />
+        <location filename="../src/core/i18n_strings.py" line="228" />
         <source>Applied profile: %1</source>
         <translation>Тема применена: %1</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="230" />
+        <location filename="../src/core/i18n_strings.py" line="229" />
         <source>All dependencies are installed.</source>
         <translation>Все зависимости установлены.</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="231" />
+        <location filename="../src/core/i18n_strings.py" line="230" />
         <source>Nothing to do.</source>
         <translation>Делать нечего.</translation>
     </message>
 </context><context>
     <name>PaletteController</name>
     <message>
-        <location filename="../src/controllers/palette.py" line="75" />
+        <location filename="../src/controllers/palette.py" line="82" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>
 </context><context>
     <name>ProfileController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="243" />
+        <location filename="../src/controllers/__init__.py" line="250" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>
@@ -605,12 +605,12 @@
 </context><context>
     <name>ThemeBundleController</name>
     <message>
-        <location filename="../src/controllers/theme_bundle.py" line="296" />
-        <location filename="../src/controllers/theme_bundle.py" line="278" />
+        <location filename="../src/controllers/theme_bundle.py" line="307" />
+        <location filename="../src/controllers/theme_bundle.py" line="289" />
+        <location filename="../src/controllers/theme_bundle.py" line="263" />
         <location filename="../src/controllers/theme_bundle.py" line="254" />
-        <location filename="../src/controllers/theme_bundle.py" line="245" />
-        <location filename="../src/controllers/theme_bundle.py" line="224" />
-        <location filename="../src/controllers/theme_bundle.py" line="201" />
+        <location filename="../src/controllers/theme_bundle.py" line="231" />
+        <location filename="../src/controllers/theme_bundle.py" line="208" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>
@@ -1483,88 +1483,87 @@
     </message>
     <message>
         <location filename="../src/core/i18n_strings.py" line="178" />
-        <source>Colour scheme generated from the palette (lua/theme-profile.lua + colors/)</source>
-        <translation>Цветовая схема из палитры (lua/theme-profile.lua и colors/)</translation>
-    </message>
-    <message>
-        <location filename="../src/core/i18n_strings.py" line="179" />
         <source>CSS themes of Vencord / Vesktop (palette → midnight-based theme)</source>
         <translation>CSS-темы Vencord / Vesktop (палитра → тема на основе midnight)</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="180" />
+        <location filename="../src/core/i18n_strings.py" line="179" />
         <source>Spicetify theme and colour scheme (palette → color.ini); runs spicetify apply</source>
         <translation>Тема и цветовая схема Spicetify (палитра → color.ini); запускает spicetify apply</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="181" />
+        <location filename="../src/core/i18n_strings.py" line="180" />
         <source>Telegram palette (palette → .tdesktop-palette); Telegram follows it once chosen in Settings → Chat Settings</source>
         <translation>Палитра Telegram (палитра → .tdesktop-palette); Telegram следит за ней, если один раз выбрать её в «Настройки → Настройки чатов»</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="182" />
+        <location filename="../src/core/i18n_strings.py" line="181" />
         <source>Prompt theme (.omp.json) used by the shell's oh-my-posh init line</source>
         <translation>Тема приглашения (.omp.json) из строки инициализации oh-my-posh</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="183" />
+        <location filename="../src/core/i18n_strings.py" line="182" />
         <source>fish_color_* / fish_pager_color_* universal variables only</source>
         <translation>Только универсальные переменные fish_color_* / fish_pager_color_*</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="184" />
+        <location filename="../src/core/i18n_strings.py" line="183" />
         <source>Look in ghostty/theme-profile, included by the config</source>
         <translation>Вид в ghostty/theme-profile, подключается из конфигурации</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="185" />
+        <location filename="../src/core/i18n_strings.py" line="184" />
         <source>[color] section (palette → gradient)</source>
         <translation>Секция [color] (палитра → градиент)</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="186" />
+        <location filename="../src/core/i18n_strings.py" line="185" />
         <source>theme.toml and flavors</source>
         <translation>theme.toml и варианты</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="187" />
+        <location filename="../src/core/i18n_strings.py" line="186" />
         <source>--theme line and custom themes (bat cache --build after apply)</source>
         <translation>Строка --theme и свои темы (bat cache --build после применения)</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="188" />
+        <location filename="../src/core/i18n_strings.py" line="187" />
         <source>Colour scheme (opacity, blur) and the profile's scheme/font family</source>
         <translation>Цветовая схема (непрозрачность, размытие) и схема/шрифт профиля</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="189" />
+        <location filename="../src/core/i18n_strings.py" line="188" />
         <source>userChrome.css / userContent.css and the appearance prefs of user.js</source>
         <translation>userChrome.css / userContent.css и настройки вида из user.js</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="190" />
+        <location filename="../src/core/i18n_strings.py" line="189" />
         <source>Markdown notes with theme/appearance settings</source>
         <translation>Заметки в Markdown с настройками темы и вида</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="191" />
+        <location filename="../src/core/i18n_strings.py" line="190" />
         <source>KDE color scheme files</source>
         <translation>Файлы цветовых схем KDE</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="192" />
+        <location filename="../src/core/i18n_strings.py" line="191" />
         <source>base16 palette the generated theme was built from</source>
         <translation>Палитра base16, из которой собрана тема</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="193" />
+        <location filename="../src/core/i18n_strings.py" line="192" />
         <source>The active Plasma Look &amp; Feel package (user-installed)</source>
         <translation>Активный пакет оформления Plasma (установленный пользователем)</translation>
+    </message>
+    <message>
+        <source>Colour scheme generated from the palette (lua/theme-profile.lua + colors/)</source>
+        <translation type="vanished">Цветовая схема из палитры (lua/theme-profile.lua и colors/)</translation>
     </message>
 </context><context>
     <name>WallpaperController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="597" />
+        <location filename="../src/controllers/__init__.py" line="607" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>

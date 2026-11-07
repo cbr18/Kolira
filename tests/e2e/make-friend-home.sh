@@ -1,6 +1,6 @@
 #!/bin/bash
 # A friend's plain Plasma home (stock Breeze, some apps configured).
-H=$1; mkdir -p "$H"/.config/{gtk-3.0,gtk-4.0,kitty,alacritty,fish,btop,Code/User,zed,wofi,klassy} "$H"/.config/nvim "$H/.mozilla/firefox/abc.default-release/chrome" "$H/.zen/xyz.Default (release)" "$H/Pictures/Wallpapers" "$H/.local/share/konsole"
+H=$1; mkdir -p "$H"/.config/{gtk-3.0,gtk-4.0,kitty,alacritty,fish,btop,Code/User,zed,wofi,klassy} "$H/.mozilla/firefox/abc.default-release/chrome" "$H/.zen/xyz.Default (release)" "$H/Pictures/Wallpapers" "$H/.local/share/konsole"
 printf 'jpeg-of-friend' >"$H/Pictures/Wallpapers/my wall.jpg"
 cat >"$H/.config/kdeglobals" <<E
 [General]
@@ -104,7 +104,6 @@ printf '@import "colors.css";\n' | tee "$H/.config/gtk-3.0/gtk.css" >"$H/.config
 printf '@define-color theme_bg_color #eff0f1;\n' | tee "$H/.config/gtk-3.0/colors.css" >"$H/.config/gtk-4.0/colors.css"
 printf 'font_size 14\nbackground #101010\nforeground #eeeeee\nmap ctrl+a new_tab\nscrollback_lines 5000\n' >"$H/.config/kitty/kitty.conf"
 printf '[font]\nsize = 13.0\n\n[colors.primary]\nbackground = "#101010"\n\n[keyboard]\nbindings = []\n' >"$H/.config/alacritty/alacritty.toml"
-printf 'set number\n' >"$H/.config/nvim/init.vim"
 printf 'SETUVAR fish_color_command:blue\nSETUVAR fish_user_paths:/opt/friend\n' >"$H/.config/fish/fish_variables"
 printf 'color_theme = "Default"\nupdate_ms = 1000\n' >"$H/.config/btop/btop.conf"
 printf '{\n  // my settings\n  "workbench.colorTheme": "Default Light Modern",\n  "editor.fontSize": 15,\n  "remote.SSH.remotePlatform": {"srv": "linux"}\n}\n' >"$H/.config/Code/User/settings.json"

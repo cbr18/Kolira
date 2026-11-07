@@ -175,7 +175,6 @@ STRINGS = [
     QT_TRANSLATE_NOOP('TrackedApps', 'VS Code settings (theme, font, etc.)'),
     QT_TRANSLATE_NOOP('TrackedApps', 'Cursor editor settings'),
     QT_TRANSLATE_NOOP('TrackedApps', 'Firefox-based browser with user.js + userChrome.css theming'),
-    QT_TRANSLATE_NOOP('TrackedApps', 'Colour scheme generated from the palette (lua/theme-profile.lua + colors/)'),
     QT_TRANSLATE_NOOP('TrackedApps', 'CSS themes of Vencord / Vesktop (palette → midnight-based theme)'),
     QT_TRANSLATE_NOOP('TrackedApps', 'Spicetify theme and colour scheme (palette → color.ini); runs spicetify apply'),
     QT_TRANSLATE_NOOP('TrackedApps', 'Telegram palette (palette → .tdesktop-palette); Telegram follows it once chosen in Settings → Chat Settings'),

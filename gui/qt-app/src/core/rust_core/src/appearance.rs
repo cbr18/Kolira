@@ -70,8 +70,6 @@ pub enum Policy {
     Prefs(&'static [&'static str]),
     KittyHost,
     AlacrittyHost,
-    /// Neovim init.lua: never stored, gains `pcall(require, "theme-profile")`.
-    NvimHost,
     /// Shell config with an `oh-my-posh init` line: never stored, only the
     /// `--config` path is pointed at the theme's prompt file.
     OmpHost,
@@ -195,7 +193,6 @@ pub fn policy(rel: &str) -> Policy {
         | ".config/Cursor/User/settings.json" => Policy::Jsonc(VSCODE),
         ".config/zed/settings.json" => Policy::Jsonc(ZED),
         KITTY_HOST => Policy::KittyHost,
-        crate::nvim::HOST => Policy::NvimHost,
         ALACRITTY_HOST => Policy::AlacrittyHost,
         _ => Policy::Whole,
     }
@@ -980,7 +977,7 @@ pub fn for_theme(rel: &str, text: &str) -> Option<String> {
         Policy::Jsonc(keys) => Some(jsonc_filter(text, keys)),
         Policy::Prefs(keys) => Some(prefs_filter(text, keys)),
         Policy::Lines(keep) => Some(crate::extras::lines_filter(text, keep)),
-        Policy::KittyHost | Policy::AlacrittyHost | Policy::NvimHost | Policy::OmpHost | Policy::GhosttyHost => None,
+        Policy::KittyHost | Policy::AlacrittyHost | Policy::OmpHost | Policy::GhosttyHost => None,
     }
 }
 
@@ -998,7 +995,6 @@ pub fn applied(rel: &str, theme_text: &str, live_text: Option<&str>) -> Result<S
         Policy::Jsonc(keys) => jsonc_merge(theme_text, live, keys),
         Policy::Prefs(keys) => prefs_merge(theme_text, live, keys),
         Policy::KittyHost => kitty_host(live),
-        Policy::NvimHost => crate::nvim::host(live),
         Policy::OmpHost => crate::extras::omp_host(live),
         Policy::GhosttyHost => crate::extras::ghostty_host(live),
         Policy::Lines(keep) => crate::extras::lines_merge(theme_text, live, keep),
@@ -1039,7 +1035,7 @@ pub fn include_of(host: &str) -> Option<&'static str> {
 pub fn normalize(rel: &str, text: &str, has_include: bool) -> Result<Vec<(String, String)>> {
     Ok(match policy(rel) {
         Policy::Whole => vec![(rel.to_string(), text.to_string())],
-        Policy::NvimHost | Policy::OmpHost => Vec::new(),
+        Policy::OmpHost => Vec::new(),
         Policy::GhosttyHost => {
             let (look, _) = crate::extras::ghostty_split(text);
             if look.trim().is_empty() || has_include {

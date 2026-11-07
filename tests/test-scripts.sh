@@ -1709,32 +1709,6 @@ else
   fail "Firefox apply wrong: $(find "$FF_B/.mozilla/firefox" | head -20) // $(cat "$ffb/user.js" 2>&1)"
 fi
 
-# --- 21. Neovim: generated scheme + theme file, init.lua only gains require --
-echo "=== Section 21: Neovim ==="
-NV_A="$TMP_ROOT/nv-a"; NV_B="$TMP_ROOT/nv-b"
-mkdir -p "$NV_A/.config/nvim" "$NV_B/.config/nvim"
-printf 'vim.opt.number = true\n' >"$NV_A/.config/nvim/init.lua"
-printf 'vim.opt.relativenumber = true\nvim.keymap.set("n", "Q", "<nop>")\n' >"$NV_B/.config/nvim/init.lua"
-nv() { local h="$1"; shift; env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$h" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
-nv "$NV_A" palette import "$BASE16" >/dev/null 2>&1
-nv "$NV_A" palette apply --targets=nvim >/dev/null 2>&1
-nv "$NV_A" save nvt >/dev/null 2>&1
-nv_store="$NV_A/.config/theme-profile/profiles/nvt/.config/nvim"
-if [ -f "$nv_store/colors/theme-profile.lua" ] && [ -f "$nv_store/lua/theme-profile.lua" ] && [ ! -e "$nv_store/init.lua" ] &&
-  grep -qx 'pcall(require, "theme-profile")' "$NV_A/.config/nvim/init.lua"; then
-  ok "Neovim: palette writes colors/ + lua/theme-profile.lua; the theme stores them, not init.lua"
-else
-  fail "Neovim save wrong: $(find "$nv_store" 2>&1 | head)"
-fi
-nv "$NV_A" export nvt --out="$TMP_ROOT/nvt.zip" >/dev/null 2>&1
-nv "$NV_B" import "$TMP_ROOT/nvt.zip" --apply >/dev/null 2>&1
-if grep -q 'vim.keymap.set("n", "Q"' "$NV_B/.config/nvim/init.lua" && [ "$(tail -1 "$NV_B/.config/nvim/init.lua")" = 'pcall(require, "theme-profile")' ] &&
-  [ -f "$NV_B/.config/nvim/colors/theme-profile.lua" ]; then
-  ok "Neovim: the receiver keeps their init.lua and gains the require line + scheme"
-else
-  fail "Neovim apply wrong: $(cat "$NV_B/.config/nvim/init.lua")"
-fi
-
 # --- 22. Discord (Vesktop/Vencord): generated CSS theme, only theme settings --
 echo "=== Section 22: Discord ==="
 DC_A="$TMP_ROOT/dc-a"; DC_B="$TMP_ROOT/dc-b"; DC_C="$TMP_ROOT/dc-c"
@@ -2309,6 +2283,19 @@ if grep -qx "wallpaperplugin=org.kde.image" "$NRC" && grep -q "Image=" "$NRC"; t
   ok "a theme with a wallpaper does apply it"
 else
   fail "theme wallpaper not applied: $(cat "$NRC")"
+fi
+
+# --- Neovim is not the app's business --------------------------------------------
+NV="$TMP_ROOT/nvim-untouched"
+mkdir -p "$NV/.config/nvim"
+printf 'vim.opt.number = true\n' >"$NV/.config/nvim/init.lua"
+nv() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$NV" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+nv import "$SCRIPT_DIR/themes/frutiger-aero-light" --apply >/dev/null 2>&1
+if [ "$(cat "$NV/.config/nvim/init.lua")" = 'vim.opt.number = true' ] && [ "$(find "$NV/.config/nvim" -type f | wc -l)" = 1 ] &&
+  ! nv palette apply --targets=nvim >/dev/null 2>&1; then
+  ok "themes and the palette leave Neovim alone"
+else
+  fail "Neovim touched: $(find "$NV/.config/nvim" -type f)"
 fi
 
 # --- Forced blur leaves panels and notifications their own area ---------------------

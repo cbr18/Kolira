@@ -38,9 +38,6 @@ timestamp=2026-11-05T11:16:19+10:00
 .zen/gp0y8wrv.Default (release)/chrome/userChrome.css
 .zen/gp0y8wrv.Default (release)/chrome/userContent.css
 .zen/gp0y8wrv.Default (release)/chrome/zen-themes.css
-.config/nvim/init.lua
-.config/nvim/lua/theme-profile.lua
-.config/nvim/colors/theme-profile.lua
 .config/fish/config.fish
 .config/oh-my-posh/theme-profile.omp.json
 .config/fish/fish_variables

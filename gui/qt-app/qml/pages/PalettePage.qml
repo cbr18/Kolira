@@ -48,7 +48,6 @@ Kirigami.ScrollablePage {
         if (kittyTarget.checked) t.push("kitty")
         if (alacrittyTarget.checked) t.push("alacritty")
         if (konsoleTarget.checked) t.push("konsole")
-        if (nvimTarget.checked) t.push("nvim")
         if (discordTarget.checked) t.push("discord")
         if (spicetifyTarget.checked) t.push("spicetify")
         if (ghosttyTarget.checked) t.push("ghostty")
@@ -367,7 +366,6 @@ Kirigami.ScrollablePage {
                     CheckBox { id: kittyTarget; text: qsTr("kitty"); checked: true }
                     CheckBox { id: alacrittyTarget; text: qsTr("Alacritty"); checked: true }
                     CheckBox { id: konsoleTarget; text: qsTr("Konsole"); checked: true }
-                    CheckBox { id: nvimTarget; text: qsTr("Neovim"); checked: true }
                     CheckBox { id: discordTarget; text: qsTr("Discord (Vencord / Vesktop)"); checked: true }
                     CheckBox { id: spicetifyTarget; text: qsTr("Spotify (Spicetify)"); checked: true }
                     CheckBox { id: ghosttyTarget; text: qsTr("Ghostty"); checked: true }

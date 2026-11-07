@@ -26,7 +26,6 @@ pub mod kwin_effects;
 pub mod layout;
 pub mod undo;
 pub mod konsole;
-pub mod nvim;
 pub mod discord;
 pub mod spicetify;
 pub mod telegram;

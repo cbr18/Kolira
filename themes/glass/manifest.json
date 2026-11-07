@@ -134,14 +134,6 @@
             ]
         },
         {
-            "id": "nvim",
-            "paths": [
-                ".config/nvim/init.lua",
-                ".config/nvim/lua/theme-profile.lua",
-                ".config/nvim/colors/theme-profile.lua"
-            ]
-        },
-        {
             "id": "oh-my-posh",
             "paths": [
                 ".config/fish/config.fish",
