@@ -25,7 +25,7 @@
     ".config/kcminputrc": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".config/kdeglobals": "03646b57d4451479e22a64fcfdcd752233ea8819e35e72b99931db0dc0021acf",
     ".config/kitty/theme-profile.conf": "a2a8aec6d2bcec2e7ba6cc1696002f91f3dfdcf93639452e7e19d41c0ca4ddb8",
-    ".config/kwinrc": "683f6199c8a8b418d0e98ed6586a8453ce48487bde4f9d6f186efd4952aa661d",
+    ".config/kwinrc": "dbe01dfcc7b85e83a7e1e9d717929d1a95d39f5cd3023d86db887f6e178c3e74",
     ".config/kwinrulesrc": "f72673fb198d76951b20290eb0d0e94d2e3e364c0d60b0df460e7f79d18ec788",
     ".config/oh-my-posh/theme-profile.omp.json": "8c6275d69b4441c495c9ecf21ec08eff723c42d4138839165eb4b6958b1d7368",
     ".config/plasma-org.kde.plasma.desktop-appletsrc": "b8a8294eed9bc040d3183a592a9428cf8401f92b2867a1c05f0dfd9e232912da",
@@ -45,7 +45,7 @@
     "manifest.json": "ac72b0642399662d45fba5fce675cb5053befb47f9ca0c3dc17ce12004c46243",
     "manifest.txt": "bf85039202697440d18773003c0bf93e8c3dd6ea0e546e7ac9b3d6ff9d95d00d",
     "obsidian/vault/.obsidian/appearance.json": "4eeaef8673657dc645e1cb3f5149b41ac895bc2bbc7c34db82f8441d1aa18867",
-    "theme.json": "e90a604b275ac3fae09f390ce8bed873710880b322df6bf405d00dc4ae37976c",
+    "theme.json": "078fb196665514ca98cc0c4a7c01b8ee787a00b1a81c97746fd353c093d07784",
     "wallpaper/paper-falat-sviciaz.jpg": "43945d0609075068ee770a3e2fac9375c958388045dfeb50942fa697fe256b6f",
     "wallpaper/source": "96496d5669804c8c3b73bd46935d27db6e9f258e38603ef0002b3e0c609a73a7"
   }

@@ -40,6 +40,8 @@ for tool in theme-profile theme-menu kde-theme-manager; do
   command -v "$tool" >/dev/null && pass "$tool is installed" || fail "$tool is missing"
 done
 
+theme-profile list 2>/dev/null | grep -qx my-original-look && pass "the installer saved the original look" || fail "no my-original-look theme"
+
 # systemd --user is not running in a container: only this service is needed.
 SHIM="$HOME/.shim"
 mkdir -p "$SHIM"

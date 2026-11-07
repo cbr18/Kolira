@@ -27,7 +27,7 @@
     ".config/kcminputrc": "9eb2729b6b7b18de39cfcab4ed0559fcc7e9795716cf8d693f2bb0dc8af279f4",
     ".config/kdeglobals": "36213da20c6980815401a8a37bb22b02ef1f13de3aa6d15a378bb291cd8758c7",
     ".config/kitty/theme-profile.conf": "9b6a2937e0ca47a85a9072c6bae6432346465628d0b74e0f9ca2d68f56b46019",
-    ".config/kwinrc": "612c3f193e0bca25d7a3fb5f7544f5bb06e1fdb553ce87286cee3aa3842b6f45",
+    ".config/kwinrc": "e799e2e6effbe2f888257abe42cc24c6f9b97a7363f5cb72d66faa27b97452eb",
     ".config/kwinrulesrc": "f72673fb198d76951b20290eb0d0e94d2e3e364c0d60b0df460e7f79d18ec788",
     ".config/nvim/colors/theme-profile.lua": "db70ac013c8686edeb94e623855f00252dd16d57d3cf4d836fc928a44018862f",
     ".config/nvim/lua/theme-profile.lua": "ebc889352074d943714ed81e3a3a574f069410a45705a75f7bd7742f3e715453",
@@ -51,7 +51,7 @@
     "manifest.json": "88f48fd8c9c96661603e471c47fe99aff9153a70acf800c3194e514cc3f563f8",
     "manifest.txt": "99285711505a8b070b35ea7fde7bbdc4a5ab3b01aa55f87afbffd980eb4f294c",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-    "theme.json": "ed70b094f929ee6c908160e836d66703141e607a4ecaa5bacbc45a26865fa1af",
+    "theme.json": "4e8ba713e5cb07646a8f2cd16b2e48c9fb161e22d8df1b0721e0f57e46eda523",
     "wallpaper/frutiger-aero-bubble.jpg": "3c3a5d0326bd889443cdbe00ba67472440d719f2283cc45b60fb6c95570b1d79",
     "wallpaper/source": "1c9fff0c108759b859903530aaa29e3a5c0b564a5f2d97bdab9d8fc0187b2a50"
   }

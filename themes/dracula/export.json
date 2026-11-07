@@ -27,7 +27,7 @@
     ".config/kitty/theme-profile.conf": "01e91705727006543143ef5e72f2e331b235dcd0e463d13e6e173a638b193b1f",
     ".config/klassy/klassyrc": "eff0f0384cd8e72dbf7d33526ebd0d02136bcf8a190ba108c45314bf6ae0250c",
     ".config/klassy/windecopresetsrc": "b6d07d0a648895c79deebbf53a9b9a506998a7ae6e89ae51594efcd4a2ff6d8b",
-    ".config/kwinrc": "cea1c3a1f81d08fa1fdb6f36406d05c4f780507a416d4a89e3cb5839eebc8868",
+    ".config/kwinrc": "2220c44e6741cefa45eb0b7cc12cabf32ac2095067657a2f77e22ccac8e2e42b",
     ".config/kwinrulesrc": "f72673fb198d76951b20290eb0d0e94d2e3e364c0d60b0df460e7f79d18ec788",
     ".config/oh-my-posh/theme-profile.omp.json": "8c6275d69b4441c495c9ecf21ec08eff723c42d4138839165eb4b6958b1d7368",
     ".config/plasma-org.kde.plasma.desktop-appletsrc": "804ba9eb1ea4cd92a4fe7f9e0b5e1d708f1b362e8f62fe6a6570de40149979e7",
@@ -47,7 +47,7 @@
     "manifest.json": "c42908d94e70247271cc573fa6628d1a21c84f6c710a5619c663037699b3431b",
     "manifest.txt": "a2fb692bc96c4d5cf74da0a4adefb4b6854e68ac8a99e9cbf4fd4acd711b00ed",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-    "theme.json": "01a58cecfa4d39f36e9e211b81a358d3660d02e3e0995b506c1312cd5a7d1371",
+    "theme.json": "0f2268e6ea2245be17173330926bd017ed5cfeb351bf25e4913d0ba6b18c1868",
     "wallpaper/dracula-kde.png": "ea3b30412f97bc24c74707930253135d4b2ac247c43d4887ca00062cc5272d22",
     "wallpaper/source": "47645aa7576ec3ce19752e66897b341efadf2ca961ba333cf85e1a6e417f2803"
   }

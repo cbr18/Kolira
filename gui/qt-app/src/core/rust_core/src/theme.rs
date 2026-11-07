@@ -211,7 +211,7 @@ pub fn install_dependencies(name: &str, indexes: Option<&[usize]>) -> Result<Vec
         .into_iter()
         .filter(|(i, _)| indexes.is_none_or(|ix| ix.contains(i)))
         .collect();
-    // System packages and the SDDM theme need root: one terminal with one
+    // System packages need root: one terminal with one
     // command for all of them — the user sees it and types the password.
     let root: Vec<&crate::deps::Dependency> = chosen.iter().filter(|(_, d)| crate::deps::needs_root(d)).map(|(_, d)| *d).collect();
     let root_result = (!root.is_empty()).then(|| match crate::deps::root_command(&root) {
@@ -239,10 +239,12 @@ pub fn is_package(dir: &Path) -> bool {
 
 pub fn load(dir: &Path) -> Result<Package> {
     let text = fs::read_to_string(dir.join(MANIFEST)).with_context(|| format!("no {MANIFEST} in {}", dir.display()))?;
-    let package: Package = serde_json::from_str(&text).context("invalid theme.json")?;
+    let mut package: Package = serde_json::from_str(&text).context("invalid theme.json")?;
     if package.schema != SCHEMA {
         return Err(anyhow!("unsupported theme schema {:?}", package.schema));
     }
+    // The login screen is not the app's business: older themes listed it.
+    package.dependencies.retain(|d| d.kind != "sddm");
     Ok(package)
 }
 
@@ -647,6 +649,9 @@ pub fn save(name: &str, options: &SaveOptions) -> Result<Package> {
     for rel in crate::appearance::unused_files_in(&target) {
         let _ = fs::remove_file(target.join(rel));
     }
+    if !options.include_wallpaper {
+        drop_stored_wallpaper(&target);
+    }
     let mut package = build(name, &target, &options)?;
     if let Some(prev) = previous {
         carry_licences(&prev, &mut package);
@@ -658,6 +663,14 @@ pub fn save(name: &str, options: &SaveOptions) -> Result<Package> {
     package.gsettings_gtk_theme = crate::undo::live_gtk_theme().filter(|live| ini.as_deref() != Some(live.as_str()));
     write_manifest(&target, &package)?;
     Ok(package)
+}
+
+/// A theme without a wallpaper names none: not the author's path, not a plugin.
+fn drop_stored_wallpaper(dir: &Path) {
+    let path = dir.join(crate::wallpaper::APPLETSRC_REL);
+    if let Ok(text) = fs::read_to_string(&path) {
+        let _ = fs::write(&path, crate::layout::without_wallpaper(&text));
+    }
 }
 
 /// Keep the author's licence marks (`theme-profile license`) across re-saves.
@@ -732,6 +745,9 @@ pub fn prune(name: &str) -> Result<usize> {
                 removed += 1;
             }
         }
+    }
+    if old.wallpaper.is_none() {
+        drop_stored_wallpaper(&dir);
     }
     // Breeze / Klassy settings this theme's style and decoration do not read.
     for rel in crate::appearance::unused_files_in(&dir) {
@@ -893,7 +909,7 @@ pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
         .map(PathBuf::from)
         .filter(|p| p.is_file());
 
-    let backup = crate::profile::apply_profile_with(name, &extras)?;
+    let backup = crate::profile::apply_profile_keeping(name, &extras, package.wallpaper.is_none() || options.keep_wallpaper)?;
     // Telegram: nothing to run — once the user chose the palette file in
     // Telegram, it watches the file and re-applies it after the restore.
     if dir.join(crate::spicetify::CONFIG).is_file() {

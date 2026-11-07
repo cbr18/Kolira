@@ -9,7 +9,7 @@ Contrast=80
 RefractionEdgeSize=13
 RefractionNormalPow=4
 RefractionStrength=4
-WindowClasses=gfd
+WindowClasses=plasmashell\nswaync
 
 [Effect-overview]
 BorderActivate=9

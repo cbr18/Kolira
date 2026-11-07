@@ -16,7 +16,7 @@ RefractionNormalPow=10
 RefractionRGBFringing=3
 RefractionStrength=19
 Saturation=100
-WindowClasses=321321
+WindowClasses=plasmashell\nswaync
 
 [Effect-overview]
 BorderActivate=9

@@ -382,7 +382,7 @@ set_live_wallpaper other.jpg
 wp_live apply wp-nowall >/dev/null 2>&1
 set_live_wallpaper other.jpg
 wp_live apply wp-test --keep-wallpaper >/dev/null 2>&1
-if [ "$(grep -c "other.jpg" "$WP_MOCK/calls")" = 2 ] && ! grep -q "forest" "$WP_MOCK/calls"; then
+if grep -q "other.jpg" "$WP_HOME/.config/plasma-org.kde.plasma.desktop-appletsrc" && ! grep -q "forest" "$WP_HOME/.config/plasma-org.kde.plasma.desktop-appletsrc" && ! grep -q "forest" "$WP_MOCK/calls"; then
   ok "no wallpaper in the theme, or --keep-wallpaper → the current wallpaper stays"
 else
   fail "wallpaper rule broken: $(cat "$WP_MOCK/calls")"
@@ -2265,6 +2265,120 @@ if grep -qx "MenuOpacity=77" "$UB/.config/breezerc" && grep -qx "WindowCornerRad
   ok "apply keeps the user's settings the theme does not use, and still follows its switches"
 else
   fail "apply touched unused settings: $(cat "$UB/.config/kwinrc" "$UB/.config/breezerc")"
+fi
+
+# --- A theme without a wallpaper: any kind of wallpaper stays, nothing of the author's --
+NA="$TMP_ROOT/nowall-author"
+NU="$TMP_ROOT/nowall-user"
+mkdir -p "$NA/.config" "$NA/Pictures" "$NU/.config"
+printf 'jpeg' >"$NA/Pictures/author.jpg"
+printf '[Containments][1]\nformfactor=0\nlastScreen=0\nlocation=0\nplugin=org.kde.plasma.folder\nwallpaperplugin=org.kde.image\n\n[Containments][1][Wallpaper][org.kde.image][General]\nImage=file://%s/Pictures/author.jpg\n' "$NA" >"$NA/.config/plasma-org.kde.plasma.desktop-appletsrc"
+printf '[Containments][7]\nformfactor=0\nlastScreen=0\nlocation=0\nplugin=org.kde.plasma.folder\nwallpaperplugin=org.kde.potd\n\n[Containments][7][Wallpaper][org.kde.potd][General]\nProvider=apod\n' >"$NU/.config/plasma-org.kde.plasma.desktop-appletsrc"
+na() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$NA" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+nu() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$NU" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+na save nowall --no-wallpaper >/dev/null 2>&1
+na save withwall >/dev/null 2>&1
+if ! grep -q "author.jpg\|wallpaperplugin" "$NA/.config/theme-profile/profiles/nowall/.config/plasma-org.kde.plasma.desktop-appletsrc"; then
+  ok "a theme saved without a wallpaper does not name one"
+else
+  fail "no-wallpaper theme names: $(cat "$NA/.config/theme-profile/profiles/nowall/.config/plasma-org.kde.plasma.desktop-appletsrc")"
+fi
+na export nowall --out="$TMP_ROOT/nowall.zip" >/dev/null 2>&1
+na export withwall --no-wallpaper --out="$TMP_ROOT/withwall.zip" >/dev/null 2>&1
+if ! python3 -c 'import sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); sys.exit(any(b"author.jpg" in z.read(n) for n in z.namelist()))' "$TMP_ROOT/withwall.zip"; then
+  fail "export --no-wallpaper still names the wallpaper"
+else
+  ok "export --no-wallpaper does not name it either"
+fi
+nu import "$TMP_ROOT/nowall.zip" --apply >/dev/null 2>&1
+NRC="$NU/.config/plasma-org.kde.plasma.desktop-appletsrc"
+if grep -qx "wallpaperplugin=org.kde.potd" "$NRC" && grep -qx "Provider=apod" "$NRC" && ! grep -q "author.jpg" "$NRC"; then
+  ok "a theme without a wallpaper leaves picture-of-the-day and any other kind alone"
+else
+  fail "no-wallpaper theme changed the desktop: $(cat "$NRC")"
+fi
+cp "$NA/.config/theme-profile/profiles/withwall" -r "$NU/.config/theme-profile/profiles/withwall"
+nu apply withwall --keep-wallpaper >/dev/null 2>&1
+if grep -qx "wallpaperplugin=org.kde.potd" "$NRC" && ! grep -q "author.jpg" "$NRC"; then
+  ok "--keep-wallpaper leaves any kind of wallpaper alone"
+else
+  fail "--keep-wallpaper changed the desktop: $(cat "$NRC")"
+fi
+nu apply withwall >/dev/null 2>&1
+if grep -qx "wallpaperplugin=org.kde.image" "$NRC" && grep -q "Image=" "$NRC"; then
+  ok "a theme with a wallpaper does apply it"
+else
+  fail "theme wallpaper not applied: $(cat "$NRC")"
+fi
+
+# --- Forced blur leaves panels and notifications their own area ---------------------
+BLUR_OK=1
+for theme in "$SCRIPT_DIR"/themes/*/; do
+  grep -qxF 'WindowClasses=plasmashell\nswaync' "$theme/.config/kwinrc" || BLUR_OK=0
+done
+if [ "$BLUR_OK" = 1 ]; then
+  ok "every bundled theme excludes plasmashell and swaync from forced blur"
+else
+  fail "a bundled theme lacks the blur exceptions"
+fi
+
+# --- The first install saves the current look -------------------------------------
+OH="$TMP_ROOT/original-home"
+mkdir -p "$OH/.config"
+printf '[General]\nColorScheme=FriendScheme\n' >"$OH/.config/kdeglobals"
+oi() {
+  local home="$1"
+  shift
+  env -i HOME="$home" PATH="$SAFE_BIN:$REAL_CARGO_BIN:/usr/bin:/bin" CARGO_HOME="$REAL_CARGO_HOME" RUSTUP_HOME="$REAL_RUSTUP_HOME" \
+    bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --only-cli "$@"
+}
+OTHEME="$OH/.config/theme-profile/profiles/my-original-look"
+if oi "$OH" >"$TMP_ROOT/original.log" 2>&1 && grep -q "ColorScheme=FriendScheme" "$OTHEME/.config/kdeglobals" && grep -q "no-original-theme" "$TMP_ROOT/original.log"; then
+  ok "the first install saves the current look as my-original-look and says so"
+else
+  fail "no original theme: $(tail -3 "$TMP_ROOT/original.log")"
+fi
+if [ -d "$OH/.config/theme-profile/profiles/glass" ] && [ -f "$OTHEME/theme.json" ]; then
+  ok "the bundled themes are added next to it"
+else
+  fail "after the first install: $(ls "$OH/.config/theme-profile/profiles")"
+fi
+printf '[General]\nColorScheme=SomeTheme\n' >"$OH/.config/kdeglobals"
+if oi "$OH" >/dev/null 2>&1 && grep -q "ColorScheme=FriendScheme" "$OTHEME/.config/kdeglobals"; then
+  ok "an update does not overwrite my-original-look"
+else
+  fail "my-original-look changed: $(grep ColorScheme= "$OTHEME/.config/kdeglobals")"
+fi
+ON="$TMP_ROOT/original-none"
+mkdir -p "$ON/.config"
+if oi "$ON" --no-themes --no-original-theme >/dev/null 2>&1 &&
+  [ ! -e "$ON/.config/theme-profile/profiles/my-original-look" ]; then
+  ok "--no-original-theme skips it"
+else
+  fail "--no-original-theme still saved a theme"
+fi
+
+# --- The login screen is not the app's business ------------------------------------
+SD="$TMP_ROOT/sddm-home"
+mkdir -p "$SD/.config"
+sd() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$SD" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+sd save old-theme --no-wallpaper >/dev/null 2>&1
+SDJ="$SD/.config/theme-profile/profiles/old-theme/theme.json"
+python3 - "$SDJ" <<'SDPY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+d["dependencies"].append({"kind": "sddm", "name": "astronaut", "source": "aur", "id": "astronaut", "title": "", "url": "", "exact": True})
+json.dump(d, open(sys.argv[1], "w"))
+SDPY
+if ! sd deps old-theme --json 2>/dev/null | grep -qi "astronaut\|sddm"; then
+  ok "a login-screen dependency in an old theme is ignored"
+else
+  fail "SDDM still offered: $(sd deps old-theme --json 2>&1 | head -c 300)"
+fi
+if ! grep -rqi "sddm" "$SCRIPT_DIR/gui/qt-app/qml" "$SCRIPT_DIR/mcp" "$SCRIPT_DIR/themes"; then
+  ok "nothing in the GUI, MCP or bundled themes mentions the login screen"
+else
+  fail "SDDM mentioned: $(grep -rli sddm "$SCRIPT_DIR/gui/qt-app/qml" "$SCRIPT_DIR/mcp" "$SCRIPT_DIR/themes")"
 fi
 
 # --- A tool that hangs must not leave the user without a desktop ------------------

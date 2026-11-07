@@ -27,7 +27,7 @@ takes the family from the theme and keeps the live size.
 | File | Stored and applied | Left alone |
 |---|---|---|
 | `kdeglobals` | `[Colors:*]`, `[ColorEffects:*]`, `[WM]`, `[Icons]`, font families (live sizes kept), `General` ColorScheme/Accent*, `KDE` LookAndFeelPackage/widgetStyle/contrast/AnimationDurationFactor | `[KScreen]` scaling, `TerminalApplication`, `[KFileDialog Settings]`, `[PreviewSettings]`, other `[KDE]` behaviour |
-| `kwinrc` | `[Effect-*]`, `[Round-Corners]` (Rounded Corners effect), `[org.kde.kdecoration2]`, effect switches in `[Plugins]`. The settings of an effect the theme keeps off are left out (`<id>Enabled=false`, or no key for `translucency`/`blurplus`, which are off by default) | `[Desktops]`, `[Tiling]`, `[Windows]`, `[Wayland]`, KWin *scripts* in `[Plugins]` (krohnkite, snapping…); the live settings of an effect the theme keeps off |
+| `kwinrc` | `[Effect-*]`, `[Round-Corners]` (Rounded Corners effect), `[org.kde.kdecoration2]`, effect switches in `[Plugins]`. Better Blur DX in the bundled themes blurs everything except `WindowClasses=plasmashell\\nswaync`: forced blur covers the whole surface, so panels and notifications, whose surfaces have transparent margins, use the exact area they request instead of getting a halo. The settings of an effect the theme keeps off are left out (`<id>Enabled=false`, or no key for `translucency`/`blurplus`, which are off by default) | `[Desktops]`, `[Tiling]`, `[Windows]`, `[Wayland]`, KWin *scripts* in `[Plugins]` (krohnkite, snapping…); the live settings of an effect the theme keeps off |
 | `kwinrulesrc` | rules with a look property, reduced to their match keys (`Description`, `wmclass*`, `title*`, `types`, …) and look properties (`opacityactive/inactive`, `noborder`, `decocolor`, `decorationpolicy` + their `…rule`); merged by id — a live rule with the same id keeps its behaviour keys. The rule list is written in the live file's format (KWin 6: `Order=`, older: `count`/`rules`) | the user's other rules; position, size, desktops, shortcuts and other behaviour properties |
 | `plasmarc` | `[Theme]` | `[Wallpapers]` list |
 | `plasmashellrc` | per panel `[PlasmaViews][Panel N]` `floating`, `panelOpacity`; a live panel takes the theme panel with the same id, else the one on the same screen edge, else the first | thickness, lengths, alignment, offsets, auto-hide (`panelVisibility`), `[Updates]` |
@@ -76,6 +76,10 @@ whole `appletsrc`, `plasmashellrc` geometry, behaviour window rules and
 (`breezerc`, `klassy/`, off effects, a switched-off Panel Colorizer's styling):
 apply reads only the look from the mixed files (the same filter), and
 `theme-profile prune NAME|--all` reduces them on disk (backup first).
+
+**The look before the app** is kept: the first install, with no themes yet, saves
+it as the theme `my-original-look` (`install-theme-profile-kit.sh
+--no-original-theme` skips it; offline, so it carries no store sources).
 
 **Switching back leaves nothing behind** (`rust_core/src/undo.rs`). A theme only
 says what it contains, so each apply first undoes what the previous one left, from
@@ -190,9 +194,11 @@ theme-profile automation [--json] | set KEY=ask|always|never … | ask   # the u
      and mixed files merged (above), the colour scheme / accent / widget style
      / KWin effects / kitty re-applied, plasmashell restarted (this is what
      repaints panels and running apps);
-  4. wallpaper: the theme's wallpaper comes with its restored desktop layout;
-     a theme without a wallpaper, or `--keep-wallpaper`, re-applies the
-     wallpaper that was on screen before;
+  4. wallpaper: the theme's wallpaper is written to the desktops and applied; a
+     theme without a wallpaper, or `--keep-wallpaper`, leaves the desktop's
+     wallpaper settings as they are, of any kind (slideshow, picture of the day).
+     Such a theme stores no wallpaper path or plugin, nor does `export
+     --no-wallpaper`;
   5. report: `missing` (field, name, where to get it: KDE Store search link,
      store URL or Zed extension id); `--json` prints `{applied, skipped,
      installed, missing, errors, backup}` (used by the GUI and MCP).
@@ -257,11 +263,9 @@ scripted effect), panel
 widgets the user installed, editor themes, the Firefox theme add-on
 (`amo`: link to addons.mozilla.org — add-ons are installed from inside
 Firefox), a Discord theming client (`discord-client`: Vesktop from the AUR or
-Vencord), oh-my-posh for a prompt theme, the login screen (`sddm`: SDDM's `[Theme] Current` lives in `/etc`
-and needs root — the dependency carries the commands to install the theme
-package and select it, e.g. `sudo kwriteconfig6 --file
-/etc/sddm.conf.d/kde_settings.conf --group Theme --key Current <theme>`; the
-app never runs sudo). KDE's own assets (Breeze, Oxygen,
+Vencord), oh-my-posh for a prompt theme. The login screen (SDDM) is not touched, read or
+listed: it is system-wide, outside what a theme can give back (older themes that
+list it are read without it). KDE's own assets (Breeze, Oxygen,
 `org.kde.*`) are never dependencies. Sources, in order:
 
 1. **KDE Store, exact** — KDE's KNewStuff registries
@@ -290,11 +294,11 @@ OCS API (`api.kde-look.org`) — Plasma styles, Global Themes and widgets with
 `kpackagetool6`, icons/cursors/GTK/Kvantum/Aurorae unpacked into the user's
 folders (zip via enclosed names, tarballs via `tar`; symlinks escaping the
 tree are dropped; an existing folder is never overwritten), colour schemes
-copied; editor themes via their stores. **System packages and the SDDM theme**
+copied; editor themes via their stores. **System packages**
 (they need root) go to one terminal the user sees — konsole, kitty, alacritty
 or ghostty, the first installed — running one command for all of them
 (`yay`/`paru -S --needed …`, or `sudo pacman -S --needed …` for repository-only
-packages without an AUR helper; then the SDDM selection); the user types their
+packages without an AUR helper); the user types their
 own password there, the app itself never runs sudo. Package names that are not
 plain package names never reach the shell. Aurorae decorations are looked up in
 both the "Aurorae" and "Window Decorations" store categories. An icon theme
@@ -322,7 +326,7 @@ What applying may do by itself is the **user's** choice, not the theme's
 | Key | Covers |
 |---|---|
 | `store` | downloading missing dependencies from the KDE Store and editor stores |
-| `packages` | system packages and the SDDM theme — one terminal, the user's password |
+| `packages` | system packages — one terminal, the user's password |
 | `restart_vesktop`, `restart_discord`, `restart_zen`, `restart_firefox` | restarting that program when an apply changed its look |
 
 Each is `ask` (default: offered in *This Theme Needs* / *Finish Applying*),

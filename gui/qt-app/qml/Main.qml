@@ -581,7 +581,7 @@ Kirigami.ApplicationWindow {
         property var missing: []
         property bool afterImport: false
         property var chosen: ({})
-        // System packages (and the SDDM theme) go to one terminal where the
+        // System packages go to one terminal where the
         // user types their password — the app itself never runs sudo.
         readonly property var installable: ["kde-store", "vscode-marketplace", "open-vsx", "zed", "package", "aur"]
         function selection() {

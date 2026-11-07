@@ -27,6 +27,8 @@ MODE="all" # all | cli | gui
 VENV_MODE="auto" # auto | yes | no
 RESTART="no"     # yes: restart a running KDE Theme Manager after install
 THEMES="yes"     # no: do not add the bundled themes (themes/)
+ORIGINAL="yes"   # no: do not save the current look on the first install
+ORIGINAL_THEME="my-original-look"
 
 usage() {
   cat <<'EOF'
@@ -47,6 +49,9 @@ Options:
   --no-themes   Do not add the bundled themes from themes/ (by default each
                 one is imported unless a theme with that name already exists;
                 existing themes are never changed, nothing is applied)
+  --no-original-theme
+                Do not save the current look as the theme "my-original-look"
+                (by default done on the first install, when you have no themes yet)
   -h, --help    Show this help message and exit.
 
 Binaries installed to ${XDG_BIN_HOME:-~/.local/bin}:
@@ -87,6 +92,9 @@ while [ $# -gt 0 ]; do
       ;;
     --no-themes)
       THEMES="no"
+      ;;
+    --no-original-theme)
+      ORIGINAL="no"
       ;;
     *)
       say "Unknown option: $1" >&2
@@ -186,6 +194,20 @@ install_cli() {
 
   say "Installed theme-profile-kit CLI to $BINDIR"
   say "Backup: $CLI_BACKUP_DIR"
+}
+
+# First install: the current look as a theme to come back to. Only when there
+# are no themes yet, so an update never overwrites it or saves another theme's
+# look under this name. A failure must not stop the installation.
+save_original_look() {
+  [ "$ORIGINAL" = "yes" ] || return 0
+  local cli="$BINDIR/theme-profile"
+  [ -x "$cli" ] || return 0
+  [ -z "$("$cli" list 2>/dev/null)" ] || return 0
+  say "Сохраняю текущий вид как тему «$ORIGINAL_THEME» — к ней можно вернуться (отказаться: --no-original-theme)"
+  if ! KTM_OFFLINE=1 "$cli" save "$ORIGINAL_THEME" --description="Как всё выглядело до установки KDE Theme Manager" >/dev/null; then
+    warn "Не удалось сохранить текущий вид. Сделайте это сами перед сменой темы: theme-profile save $ORIGINAL_THEME"
+  fi
 }
 
 # The ready themes shipped in themes/ (exports made with `export --public`).
@@ -365,6 +387,7 @@ LAUNCHER
 case "$MODE" in
   cli)
     install_cli
+    save_original_look
     install_bundled_themes
     ask_automation
     say "Skipped the GUI (--only-cli)."
@@ -375,6 +398,7 @@ case "$MODE" in
     ;;
   *)
     install_cli
+    save_original_look
     install_bundled_themes
     ask_automation
     install_gui

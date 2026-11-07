@@ -137,6 +137,40 @@ pub fn needed_plasmoids(text: &str) -> Vec<String> {
     out
 }
 
+/// A stored appletsrc without any wallpaper: for a theme saved or shared without
+/// one, which must neither carry its author's path nor change the receiver's.
+pub fn without_wallpaper(text: &str) -> String {
+    let mut sections = parse_ini(text);
+    sections.retain(|s| !matches!(segments(s.group()).as_slice(), ["Containments", _, "Wallpaper", ..]));
+    for s in sections.iter_mut() {
+        if matches!(segments(s.group()).as_slice(), ["Containments", _]) {
+            s.lines.retain(|l| key_of(l) != Some("wallpaperplugin"));
+        }
+    }
+    render_ini(&sections)
+}
+
+/// `restored` with the wallpaper settings of `live`: the desktop keeps what it
+/// shows (`--keep-wallpaper`; a theme without a wallpaper).
+pub fn keep_live_wallpaper(restored: &str, live: &str) -> String {
+    let live = parse_ini(live);
+    let mut sections = parse_ini(restored);
+    sections.retain(|s| !matches!(segments(s.group()).as_slice(), ["Containments", _, "Wallpaper", ..]));
+    for s in sections.iter_mut() {
+        let group = s.group().to_string();
+        if matches!(segments(&group).as_slice(), ["Containments", _]) {
+            let plugin: Vec<String> = live
+                .iter()
+                .find(|l| l.group() == group)
+                .map(|l| l.lines.iter().filter(|x| key_of(x) == Some("wallpaperplugin")).cloned().collect())
+                .unwrap_or_default();
+            set_keys(s, &["wallpaperplugin"], &plugin);
+        }
+    }
+    sections.extend(live.into_iter().filter(|s| matches!(segments(s.group()).as_slice(), ["Containments", _, "Wallpaper", ..])));
+    render_ini(&sections)
+}
+
 /// `appletsrc` with every `org.kde.image` wallpaper whose file does not exist
 /// pointing at `path`.
 pub fn point_missing_wallpapers(text: &str, path: &Path) -> String {
@@ -329,7 +363,8 @@ pub fn appletsrc_merge_checked(theme: &str, live: &str, icon_here: &dyn Fn(&str)
         let Some((_, d)) = desktops.iter().find(|(_, d)| &d.screen == screen).or_else(|| desktops.first()) else {
             continue;
         };
-        if d.plugin.is_empty() {
+        // No wallpaper in the theme: the desktop stays as it is.
+        if d.plugin.is_empty() || d.wallpaper.is_empty() {
             continue;
         }
         let own = format!("Containments][{c}]");
@@ -669,6 +704,18 @@ AppletOrder=22;21
         assert!(!m.contains("[Containments][1]"));
         // Applying again changes nothing.
         assert_eq!(appletsrc_merge(THEME, &m), m);
+    }
+
+    #[test]
+    fn a_theme_without_a_wallpaper_leaves_the_desktop_alone() {
+        let stored = without_wallpaper(&appletsrc_for_theme(THEME));
+        assert!(!stored.contains("author") && !stored.contains("wallpaperplugin") && !stored.contains("[Wallpaper]"), "{stored}");
+        let m = appletsrc_merge(&stored, LIVE);
+        assert!(m.contains("wallpaperplugin=org.kde.potd") && m.contains("Image=file:///home/me/old.jpg"), "{m}");
+        assert!(m.contains("icon=theme-logo"), "the rest of the look still applies: {m}");
+        let with_author = appletsrc_merge(THEME, LIVE);
+        let kept = keep_live_wallpaper(&with_author, LIVE);
+        assert!(kept.contains("wallpaperplugin=org.kde.potd") && kept.contains("old.jpg") && !kept.contains("theme.jpg") && kept.contains("icon=theme-logo"), "{kept}");
     }
 
     #[test]

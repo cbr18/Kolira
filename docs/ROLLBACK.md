@@ -47,7 +47,9 @@ This contains:
 - `metadata/kde/kwin-*.txt` — kwin support information
 - A full copy of every tracked path from `$HOME` (kwinrc, kdeglobals, GTK configs, etc.)
 
-Going back to a theme you saved is simply `theme-profile apply NAME`: the apply
+The first install saves your look as the theme `my-original-look`
+(`--no-original-theme` skips it). Going back to a theme you saved is simply
+`theme-profile apply NAME`: the apply
 journal (`apply-journal/`, see `docs/THEMES.md`) first removes what the current
 theme left. Backups are for when something went wrong.
 

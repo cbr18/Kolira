@@ -11,7 +11,7 @@ RefractionEdgeSize=14
 RefractionMode=1
 RefractionNormalPow=4
 RefractionStrength=14
-WindowClasses=321321
+WindowClasses=plasmashell\nswaync
 
 [Effect-overview]
 BorderActivate=9

@@ -26,7 +26,7 @@
     ".config/kitty/theme-profile.conf": "b79aa4286d26e0f77c0e20f92fdc439dc1ab6158c3e4533b4e9f31c13e36cdf2",
     ".config/klassy/klassyrc": "eff0f0384cd8e72dbf7d33526ebd0d02136bcf8a190ba108c45314bf6ae0250c",
     ".config/klassy/windecopresetsrc": "b6d07d0a648895c79deebbf53a9b9a506998a7ae6e89ae51594efcd4a2ff6d8b",
-    ".config/kwinrc": "cea1c3a1f81d08fa1fdb6f36406d05c4f780507a416d4a89e3cb5839eebc8868",
+    ".config/kwinrc": "2220c44e6741cefa45eb0b7cc12cabf32ac2095067657a2f77e22ccac8e2e42b",
     ".config/kwinrulesrc": "f72673fb198d76951b20290eb0d0e94d2e3e364c0d60b0df460e7f79d18ec788",
     ".config/oh-my-posh/theme-profile.omp.json": "8c6275d69b4441c495c9ecf21ec08eff723c42d4138839165eb4b6958b1d7368",
     ".config/plasma-org.kde.plasma.desktop-appletsrc": "0386d1c82aff62148f152f2f1cdb67007eb2f65b99c22c3df75a0b9f9e07711a",
@@ -46,7 +46,7 @@
     "manifest.json": "ff7a8748f6ae9fb498577752eb9bc018ae9c0aa91523fbf4670d069b34e73735",
     "manifest.txt": "d143f10afe8f2cd24eb6c23051d507b533519ea8fd09854bd06a60ad8612f48f",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-    "theme.json": "33333081f54274190c7427a90eb0c7a64104a4d614bf0edfdb4a74e05792654a",
+    "theme.json": "6003453c821e36860390636ebe87fde2afe1435601768899d43c6e702e5b2585",
     "wallpaper/glass-saturn-mono.jpg": "e80c120a94025dc4a4a28a08d3b4e90c58b66f291850d07953ca8e05df0ef30f",
     "wallpaper/source": "93a5954a983f672acf6551c460a5c5889bc225e3230250c9b38e0303b92207dc"
   }

@@ -93,6 +93,13 @@ entry). Creates timestamped backups of every replaced file in
 
 Install locations follow `XDG_BIN_HOME` / `XDG_DATA_HOME` when set.
 
+**Your current look is saved first.** On the first install, when you have no
+themes yet, the look you have now becomes the theme `my-original-look`, so you
+can always come back: `theme-profile apply my-original-look` or the app's theme
+list. An update never overwrites it; `--no-original-theme` skips it. Saving also
+moves kitty's and Alacritty's look into their own include file (the look does not
+change; the originals go to `backups/`).
+
 **Automation choices.** Run in a terminal, the installer asks once what
 applying a theme may do by itself — download from stores, install system
 packages in a terminal (you type the password), restart Vesktop / Discord /

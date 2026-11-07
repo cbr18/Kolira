@@ -1153,6 +1153,11 @@ pub fn apply_profile_cli(profile: &str, components: Option<Vec<String>>) -> Resu
 /// colour scheme, Kvantum family, Look & Feel, …) whose paths the receiver's
 /// live state does not name.
 pub fn apply_profile_with(profile: &str, extras: &[String]) -> Result<PathBuf> {
+    apply_profile_keeping(profile, extras, false)
+}
+
+/// [`apply_profile_with`]; `keep_wallpaper`: the desktop keeps what it shows.
+pub fn apply_profile_keeping(profile: &str, extras: &[String], keep_wallpaper: bool) -> Result<PathBuf> {
     validate_profile_name(profile)?;
     let mut rel_paths = resolve_cli_paths(None)?;
     for e in extras {
@@ -1160,7 +1165,7 @@ pub fn apply_profile_with(profile: &str, extras: &[String]) -> Result<PathBuf> {
             rel_paths.push(e.clone());
         }
     }
-    apply_with_paths(profile, &rel_paths)
+    apply_with_paths_keeping(profile, &rel_paths, keep_wallpaper)
 }
 
 /// Warn about unknown components, keep the known ones (bash CLI behaviour).
@@ -1197,6 +1202,10 @@ pub fn resolve_cli_paths(components: Option<Vec<String>>) -> Result<Vec<String>>
 const GTK3_SETTINGS: &str = ".config/gtk-3.0/settings.ini";
 
 fn apply_with_paths(profile: &str, rel_paths: &[String]) -> Result<PathBuf> {
+    apply_with_paths_keeping(profile, rel_paths, false)
+}
+
+fn apply_with_paths_keeping(profile: &str, rel_paths: &[String], keep_wallpaper: bool) -> Result<PathBuf> {
     let dir = safe_profile_dir(profile)?;
     if !dir.is_dir() {
         return Err(anyhow!("Profile not found: {profile}"));
@@ -1236,10 +1245,15 @@ fn apply_with_paths(profile: &str, rel_paths: &[String]) -> Result<PathBuf> {
         Ok(()) => {
             if let (Some(live), Ok(restored)) = (live_appletsrc.as_deref(), fs::read_to_string(&appletsrc)) {
                 let _ = fs::write(&appletsrc, keep_desktop_icons(&restored, live));
+                if keep_wallpaper {
+                    if let Ok(now) = fs::read_to_string(&appletsrc) {
+                        let _ = fs::write(&appletsrc, crate::layout::keep_live_wallpaper(&now, live));
+                    }
+                }
             }
             // Resolve (and if needed restore) the profile wallpaper while
             // plasmashell is stopped, so the restored appletsrc finds its file.
-            let wallpaper = if tracks_desktop_layout(rel_paths) {
+            let wallpaper = if tracks_desktop_layout(rel_paths) && !keep_wallpaper {
                 profile_wallpaper(&dir)
             } else {
                 None

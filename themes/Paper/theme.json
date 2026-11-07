@@ -94,15 +94,6 @@
     },
     {
       "exact": true,
-      "id": "sddm-astronaut-theme",
-      "kind": "sddm",
-      "name": "sddm-astronaut-theme",
-      "source": "aur",
-      "title": "",
-      "url": "https://aur.archlinux.org/packages/sddm-astronaut-theme"
-    },
-    {
-      "exact": true,
       "id": "oh-my-posh-bin",
       "kind": "oh-my-posh",
       "name": "oh-my-posh",

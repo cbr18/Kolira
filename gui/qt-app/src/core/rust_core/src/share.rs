@@ -262,6 +262,9 @@ fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(
             let mut text = String::from_utf8(bytes).unwrap_or_default();
             if key == APPLETSRC_REL {
                 text = keep_desktop_icons(&text, "");
+                if !include_wallpaper {
+                    text = crate::layout::without_wallpaper(&text);
+                }
             }
             if key == "manifest.txt" {
                 text = text.lines().filter(|l| !l.starts_with("user=")).collect::<Vec<_>>().join("\n") + "\n";

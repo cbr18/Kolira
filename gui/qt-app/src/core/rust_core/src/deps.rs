@@ -86,7 +86,6 @@ fn roots(kind: &str) -> Vec<PathBuf> {
         "color-scheme" => vec![data.join("color-schemes"), "/usr/share/color-schemes".into()],
         "aurorae" => vec![data.join("aurorae/themes"), "/usr/share/aurorae/themes".into()],
         "plasmoid" => vec![data.join("plasma/plasmoids"), "/usr/share/plasma/plasmoids".into()],
-        "sddm" => vec!["/usr/share/sddm/themes".into()],
         _ => Vec::new(),
     }
 }
@@ -157,27 +156,9 @@ fn widget_style_plugin(style: &str) -> Option<PathBuf> {
     })
 }
 
-/// SDDM's current theme (`[Theme] Current`): KDE writes it to
-/// `/etc/sddm.conf.d/kde_settings.conf`; `/etc/sddm.conf` is the fallback.
-pub fn sddm_current() -> Option<String> {
-    let mut files: Vec<PathBuf> = fs::read_dir("/etc/sddm.conf.d")
-        .map(|it| it.flatten().map(|e| e.path()).collect())
-        .unwrap_or_default();
-    files.sort();
-    files.insert(0, PathBuf::from("/etc/sddm.conf"));
-    // Later files win, as in SDDM itself.
-    files
-        .iter()
-        .rev()
-        .filter_map(|f| fs::read_to_string(f).ok())
-        .filter_map(|t| crate::field::ini_get(&t, "Theme", "Current"))
-        .find(|v| !v.is_empty())
-}
-
 /// Is dependency `d` satisfied on this machine?
 pub fn installed(d: &Dependency) -> bool {
     match d.kind.as_str() {
-        "sddm" => locate("sddm", &d.name).is_some() && sddm_current().as_deref() == Some(d.name.as_str()),
         "decoration" => decoration_plugin(&d.name).is_some(),
         "spicetify" => which::which("spicetify").is_ok(),
         "widget-style" => widget_style_plugin(&d.name).is_some(),
@@ -553,12 +534,6 @@ pub fn detect(dir: &Path, values: &std::collections::BTreeMap<String, Value>, so
             exact: true,
         });
     }
-    // Login screen: SDDM's theme lives in /etc (root) — recorded with its
-    // source; selecting it is a command for the user.
-    if let Some(name) = sddm_current().filter(|n| safe_name(n) && n != "breeze") {
-        let paths = locate_all("sddm", &name);
-        add(describe("sddm", &name, &paths));
-    }
     // A prompt theme needs oh-my-posh.
     if dir.join(crate::extras::OMP_THEME).is_file() {
         add(Dependency {
@@ -634,10 +609,10 @@ pub fn missing(deps: &[Dependency]) -> Vec<(usize, &Dependency)> {
 // Install
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Dependencies that need root (system packages, the SDDM theme): installed
+/// Dependencies that need root (system packages): installed
 /// in a terminal the user sees, where they type their own password.
 pub fn needs_root(d: &Dependency) -> bool {
-    d.kind == "sddm" || matches!(d.source.as_str(), "package" | "aur")
+    matches!(d.source.as_str(), "package" | "aur")
 }
 
 fn safe_package(name: &str) -> bool {
@@ -646,39 +621,26 @@ fn safe_package(name: &str) -> bool {
 
 /// One shell command for every root dependency in `deps`: one
 /// `yay/paru -S --needed …` (or `sudo pacman -S --needed …` when only repo
-/// packages and no AUR helper) and the SDDM selection. None when there is
+/// packages and no AUR helper). None when there is
 /// nothing to run or AUR packages need a helper that is missing.
 pub fn root_command(deps: &[&Dependency]) -> Option<String> {
     let mut packages: Vec<&str> = Vec::new();
     let mut aur = false;
-    let mut sddm: Vec<&str> = Vec::new();
     for d in deps {
-        if d.kind == "sddm" {
-            if safe_package(&d.name) {
-                sddm.push(&d.name);
-            }
-            if locate("sddm", &d.name).is_some() {
-                continue;
-            }
-        }
         if matches!(d.source.as_str(), "package" | "aur") && safe_package(&d.id) && !packages.contains(&d.id.as_str()) {
             packages.push(&d.id);
             aur |= d.source == "aur";
         }
     }
     let helper = ["yay", "paru"].into_iter().find(|h| which::which(h).is_ok());
-    let mut steps: Vec<String> = Vec::new();
-    if !packages.is_empty() {
-        match helper {
-            Some(h) => steps.push(format!("{h} -S --needed {}", packages.join(" "))),
-            None if !aur => steps.push(format!("sudo pacman -S --needed {}", packages.join(" "))),
-            None => return None,
-        }
+    if packages.is_empty() {
+        return None;
     }
-    for name in sddm {
-        steps.push(format!("sudo kwriteconfig6 --file /etc/sddm.conf.d/kde_settings.conf --group Theme --key Current {name}"));
+    match helper {
+        Some(h) => Some(format!("{h} -S --needed {}", packages.join(" "))),
+        None if !aur => Some(format!("sudo pacman -S --needed {}", packages.join(" "))),
+        None => None,
     }
-    (!steps.is_empty()).then(|| steps.join(" && "))
 }
 
 /// Run `command` in a terminal window the user sees (konsole, kitty,
@@ -714,21 +676,11 @@ pub fn run_in_terminal(command: &str) -> Result<String> {
 
 /// Command the user runs for a package dependency (we never sudo).
 pub fn package_command(d: &Dependency) -> Option<String> {
-    let install = match d.source.as_str() {
+    match d.source.as_str() {
         "package" => Some(format!("sudo pacman -S {}", d.id)),
         "aur" => Some(format!("yay -S {}", d.id)),
         _ => None,
-    };
-    if d.kind != "sddm" {
-        return install;
     }
-    // SDDM's theme is selected in /etc (root), the way the KDE settings page writes it.
-    let select = format!("sudo kwriteconfig6 --file /etc/sddm.conf.d/kde_settings.conf --group Theme --key Current {}", d.name);
-    let need_install = locate("sddm", &d.name).is_none();
-    Some(match install.filter(|_| need_install) {
-        Some(i) => format!("{i} && {select}"),
-        None => select,
-    })
 }
 
 fn kpackage_type(kind: &str) -> Option<&'static str> {
@@ -1036,7 +988,6 @@ fn store_message(r: &crate::stores::InstallReport) -> String {
 /// sudo): the error carries the command to run.
 pub fn install(d: &Dependency) -> Result<String> {
     let result = match d.source.as_str() {
-        _ if d.kind == "sddm" => bail!("SDDM themes need root — run: {} (or System Settings → Login Screen)", package_command(d).unwrap_or_default()),
         "kde-store" => install_from_store(d),
         "vscode-marketplace" | "open-vsx" => crate::stores::install(if d.kind == "cursor" { "cursor" } else { "vscode" }, &d.id).map(|r| store_message(&r)),
         "zed" => crate::stores::install("zed", &d.id).map(|r| store_message(&r)),
@@ -1138,15 +1089,3 @@ mod tests {
     }
 }
 
-#[cfg(test)]
-mod sddm_tests {
-    use super::*;
-
-    #[test]
-    fn sddm_dependency_carries_the_select_command() {
-        let d = Dependency { kind: "sddm".into(), name: "sddm-astronaut-theme".into(), source: "aur".into(), id: "sddm-astronaut-theme".into(), ..Default::default() };
-        let cmd = package_command(&d).unwrap();
-        assert!(cmd.contains("--group Theme --key Current sddm-astronaut-theme"), "{cmd}");
-        assert!(install(&d).unwrap_err().to_string().contains("need root"));
-    }
-}
