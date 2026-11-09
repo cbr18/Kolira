@@ -121,6 +121,12 @@ pub(crate) fn roots(kind: &str) -> Vec<PathBuf> {
             data.join("plasma/plasmoids"),
             "/usr/share/plasma/plasmoids".into(),
         ],
+        "font" => vec![
+            data.join("fonts"),
+            home.join(".fonts"),
+            home.join(".local/share/fonts"),
+            "/usr/share/fonts".into(),
+        ],
         _ => Vec::new(),
     }
 }
@@ -243,8 +249,49 @@ pub fn installed(d: &Dependency) -> bool {
             };
             crate::theme::available(field, &Value::from(d.name.clone()))
         }
+        "font" => font_installed(&d.name),
         kind => locate(kind, &d.name).is_some(),
     }
+}
+
+/// Is a font family installed on this machine? Checks via fontconfig (fc-list)
+/// and by looking for font files in the standard font directories.
+fn font_installed(family: &str) -> bool {
+    // Try fontconfig first
+    if let Some((status, bytes)) = crate::paths::output_bounded_for(
+        std::process::Command::new("fc-list")
+            .args([":", "family"])
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null()),
+        std::time::Duration::from_secs(10),
+    ) {
+        if status.success()
+            && String::from_utf8_lossy(&bytes)
+                .lines()
+                .any(|l| l.to_lowercase() == family.to_lowercase())
+        {
+            return true;
+        }
+    }
+    // Fallback: look for font files whose name contains the family
+    for root in roots("font") {
+        if let Ok(entries) = fs::read_dir(&root) {
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().to_lowercase();
+                if name.contains(&family.to_lowercase())
+                    && entry.path().extension().is_some_and(|e| {
+                        matches!(
+                            e.to_str(),
+                            Some("ttf") | Some("otf") | Some("ttc") | Some("woff") | Some("woff2")
+                        )
+                    })
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    false
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -758,6 +805,51 @@ pub fn detect(
                 id: src.id.clone(),
                 url,
                 exact: true,
+                ..Default::default()
+            });
+        }
+    }
+    // Font fields from the theme: UI, fixed, menu, toolbar, title, GTK fonts.
+    // A theme references font families; installing them is a system package job.
+    let font_fields = [
+        ("ui_font", "UI font"),
+        ("fixed_font", "Fixed font"),
+        ("small_font", "Smallest readable font"),
+        ("menu_font", "Menu font"),
+        ("toolbar_font", "Toolbar font"),
+        ("title_font", "Window title font"),
+    ];
+    for (field, title) in font_fields {
+        if let Some(name) = values.get(field).map(crate::field::value_str) {
+            let family = name.split(',').next().unwrap_or(&name).trim();
+            if !family.is_empty() && safe_name(family) {
+                add(Dependency {
+                    kind: "font".into(),
+                    name: family.into(),
+                    source: "package".into(),
+                    id: format!("ttf-{family}").to_lowercase(),
+                    title: title.into(),
+                    url: format!("https://archlinux.org/packages/?q=ttf-{family}").to_lowercase(),
+                    exact: true,
+                    optional: false,
+                    ..Default::default()
+                });
+            }
+        }
+    }
+    // GTK font: "Family, size" — extract family only.
+    if let Some(name) = values.get("gtk_font").map(crate::field::value_str) {
+        let family = name.split(',').next().unwrap_or(&name).trim();
+        if !family.is_empty() && safe_name(family) {
+            add(Dependency {
+                kind: "font".into(),
+                name: family.into(),
+                source: "package".into(),
+                id: format!("ttf-{family}").to_lowercase(),
+                title: "GTK font".into(),
+                url: format!("https://archlinux.org/packages/?q=ttf-{family}").to_lowercase(),
+                exact: true,
+                optional: false,
                 ..Default::default()
             });
         }
