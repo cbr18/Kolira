@@ -107,9 +107,9 @@ tabBarAlignment=center
 tabBarBaseColor=38,38,38
 tabBarBaseColorSelected=112,178,55
 tabBarBaseColorHover=85,85,85
-tabBarTextColor=240,240,240
+tabBarTextColor=204,204,204
 tabBarTextColorSelected=0,0,0
-tabBarTextColorHover=240,240,240
+tabBarTextColorHover=204,204,204
 tabBarBorderColor=116,116,116
 
 [Window]

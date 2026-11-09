@@ -1,6 +1,6 @@
 [colors.primary]
 background = "#252525"
-foreground = "#F0F0F0"
+foreground = "#CCCCCC"
 
 [colors.cursor]
 text = "#252525"
@@ -18,7 +18,7 @@ yellow = "#F6C453"
 blue = "#55D6D0"
 magenta = "#A98558"
 cyan = "#55D6D0"
-white = "#F0F0F0"
+white = "#CCCCCC"
 
 [colors.bright]
 black = "#404040"
@@ -28,7 +28,7 @@ yellow = "#F6C453"
 blue = "#55D6D0"
 magenta = "#A98558"
 cyan = "#55D6D0"
-white = "#F0F0F0"
+white = "#CCCCCC"
 
 [window]
 opacity = 1.0

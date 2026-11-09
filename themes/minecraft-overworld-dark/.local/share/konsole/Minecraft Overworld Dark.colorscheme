@@ -1,6 +1,6 @@
 [Appearance]
 background=#252525
-foreground=#F0F0F0
+foreground=#CCCCCC
 cursor=#70B237
 selection_background=#70B237
 selection_foreground=#000000
@@ -11,7 +11,7 @@ color3=#F6C453
 color4=#55D6D0
 color5=#A98558
 color6=#55D6D0
-color7=#F0F0F0
+color7=#CCCCCC
 color8=#404040
 color9=#C83C32
 color10=#70B237
@@ -19,5 +19,5 @@ color11=#F6C453
 color12=#55D6D0
 color13=#A98558
 color14=#55D6D0
-color15=#F0F0F0
+color15=#CCCCCC
 font=Monocraft 12

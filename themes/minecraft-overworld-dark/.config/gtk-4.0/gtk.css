@@ -1,11 +1,6 @@
 * {
-  color: #F0F0F0;
+  color: #CCCCCC;
   background-color: #252525;
-}
-
-*:focus {
-  background-color: #70B237;
-  color: #000000;
 }
 
 button {
@@ -13,21 +8,47 @@ button {
   border: 2px solid #747474;
 }
 
-button:hover {
-  background-color: #70B237;
-  color: #000000;
+.entry {
+  background-color: #404040;
+  color: #CCCCCC;
+  border: 1px solid #747474;
 }
 
-button:pressed {
+.treeview {
+  background-color: #383838;
+  color: #CCCCCC;
+}
+
+.menu {
+  background-color: #383838;
+  color: #CCCCCC;
+  border: 1px solid #747474;
+}
+
+.menuitem {
+  background-color: #383838;
+  color: #CCCCCC;
+}
+
+.toolbar {
   background-color: #383838;
 }
 
-*:selected {
-  background-color: #70B237;
-  color: #000000;
+.header-bar {
+  background-color: #383838;
+  color: #CCCCCC;
 }
 
-*:disabled {
-  color: #B8B8B8;
+.header-bar button {
   background-color: #383838;
+  border: none;
+}
+
+.scrollbar {
+  background-color: #383838;
+}
+
+.scrollbar slider {
+  background-color: #555555;
+  border: 1px solid #747474;
 }
