@@ -1,0 +1,40 @@
+[ColorScheme:Minecraft Overworld Dark]
+Name=Minecraft Overworld Dark
+Description=Minecraft Java Edition inspired dark theme
+
+[Colors:Window]
+BackgroundNormal=56,56,56
+ForegroundNormal=240,240,240
+ForegroundActive=255,255,255
+ForegroundInactive=184,184,184
+ForegroundLink=85,214,208
+ForegroundVisited=150,150,150
+
+[Colors:Button]
+BackgroundNormal=85,85,85
+ForegroundNormal=240,240,240
+ForegroundActive=255,255,255
+ForegroundInactive=184,184,184
+
+[Colors:Selection]
+BackgroundNormal=112,178,55
+ForegroundNormal=0,0,0
+
+[Colors:Input]
+BackgroundNormal=40,40,40
+ForegroundNormal=240,240,240
+
+[Colors:Tooltip]
+BackgroundNormal=40,40,40
+ForegroundNormal=240,240,240
+
+[Colors:View]
+BackgroundNormal=56,56,56
+ForegroundNormal=240,240,240
+ForegroundLink=85,214,208
+
+[Colors:Complementary]
+BackgroundNormal=128,128,128
+
+[Colors:ProgressItem]
+BackgroundNormal=112,178,55

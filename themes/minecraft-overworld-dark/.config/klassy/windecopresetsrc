@@ -1,0 +1,9 @@
+[DecoButtons]
+buttons=org.kde.breeze.buttons
+
+[Decoration]
+border=none
+
+[Titlebar]
+buttons=org.kde.breeze.buttons
+border=none

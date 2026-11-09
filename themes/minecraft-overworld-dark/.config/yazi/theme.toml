@@ -1,0 +1,26 @@
+[Theme]
+name=minecraft-overworld-dark
+author=Minecraft Overworld Dark Theme
+description=Minecraft Java Edition inspired dark theme
+
+[colors]
+background = "#252525"
+foreground = "#F0F0F0"
+accent = "#70B237"
+accent_bright = "#41A83B"
+wood = "#A98558"
+warning = "#F6C453"
+error = "#C83C32"
+info = "#55D6D0"
+text = "#F0F0F0"
+text_secondary = "#B8B8B8"
+
+[font]
+family = Monocraft
+size = 12
+
+[style]
+round_corners = false
+gradient = false
+blur = false
+pixelated = true

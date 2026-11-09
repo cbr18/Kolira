@@ -1,0 +1,10 @@
+{
+    "placeholder": "Майнкрафт тема",
+    "symbols": {
+        "error": "✕",
+        "warn": "⚠",
+        "info": "ℹ",
+        "hint": "💡",
+        "ok": "✓"
+    }
+}

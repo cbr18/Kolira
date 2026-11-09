@@ -1,0 +1,6 @@
+-- Minecraft Overworld Dark theme for bat
+-- Palette: #252525 background, #F0F0F0 text, #70B237 accent
+
+-- Syntax highlighting theme
+-- This is a placeholder; bat themes are compiled .theme files
+-- Save as ~/.config/bat/themes/minecraft-overworld-dark.theme and run: bat cache --build

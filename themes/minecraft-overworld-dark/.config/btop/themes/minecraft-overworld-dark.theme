@@ -1,0 +1,111 @@
+# Minecraft Overworld Dark btop theme
+
+color_background = "#252525"
+color_highlight = "#70B237"
+color_main = "#F0F0F0"
+color_second = "#B8B8B8"
+color_bad = "#C83C32"
+color_good = "#70B237"
+color_warning = "#F6C453"
+color_info = "#55D6D0"
+
+graph_border_color = "#747474"
+graph_background_color = "#383838"
+graph_half_color = "#454545"
+graph_left_border_color = "#747474"
+graph_right_border_color = "#747474"
+graph_top_border_color = "#747474"
+graph_bottom_border_color = "#747474"
+
+box_border_color = "#747474"
+box_left_border_color = "#747474"
+box_right_border_color = "#747474"
+box_top_border_color = "#747474"
+box_bottom_border_color = "#747474"
+
+color_text = "#F0F0F0"
+color_title = "#70B237"
+color_pulse = "#70B237"
+color_used = "#55D6D0"
+color_free = "#A98558"
+color_available = "#70B237"
+color_avg = "#F0F0F0"
+color_gradient1 = "#70B237"
+color_gradient2 = "#41A83B"
+color_gradient3 = "#555555"
+
+mem_used_color = "#55D6D0"
+mem_free_color = "#A98558"
+mem_buffers_color = "#55D6D0"
+mem_cache_color = "#F0F0F0"
+mem_available_color = "#F0F0F0"
+
+net_up_color = "#C83C32"
+net_down_color = "#70B237"
+net_total_color = "#F0F0F0"
+
+proc_running_color = "#C83C32"
+proc_sleeping_color = "#F6C453"
+proc_other_color = "#555555"
+proc_unknown_color = "#B8B8B8"
+proc_total_color = "#F0F0F0"
+
+disk_read_color = "#C83C32"
+disk_write_color = "#70B237"
+disk_total_color = "#F0F0F0"
+
+temp_warn_color = "#F6C453"
+temp_crit_color = "#C83C32"
+
+battery_low_color = "#C83C32"
+battery_charge_color = "#70B237"
+battery_discharge_color = "#F6C453"
+battery_full_color = "#F0F0F0"
+
+clock_color = "#F0F0F0"
+net_color = "#F0F0F0"
+
+left_border_color = "#747474"
+right_border_color = "#747474"
+top_border_color = "#747474"
+bottom_border_color = "#747474"
+
+corner_tl = "+"
+corner_tr = "+"
+corner_bl = "+"
+corner_br = "+"
+left_border = "|"
+right_border = "|"
+top_border = "-"
+bottom_border = "-"
+
+left_border_bold = "|"
+right_border_bold = "|"
+top_border_bold = "-"
+bottom_border_bold = "-"
+corner_tl_bold = "+"
+corner_tr_bold = "+"
+corner_bl_bold = "+"
+corner_br_bold = "+"
+
+separator = " "
+separator_reverse = " "
+
+block_color_gradient1 = "#70B237"
+block_color_gradient2 = "#41A83B"
+block_color_gradient3 = "#555555"
+
+filled_block_color_gradient1 = "#70B237"
+filled_block_color_gradient2 = "#41A83B"
+filled_block_color_gradient3 = "#555555"
+
+empty_block_color_gradient1 = "#383838"
+empty_block_color_gradient2 = "#383838"
+empty_block_color_gradient3 = "#383838"
+
+corner_block_color_gradient1 = "#70B237"
+corner_block_color_gradient2 = "#41A83B"
+corner_block_color_gradient3 = "#555555"
+
+graph_border_style = "default"
+box_border_style = "default"

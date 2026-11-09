@@ -1,0 +1,163 @@
+{
+  "schema": "kolira/theme@2",
+  "name": "minecraft-overworld-dark",
+  "description": "Minecraft Overworld Dark: pixel-art KDE Plasma 6 theme inspired by Minecraft Java Edition. Stone, grass, dirt and oak wood textures, square UI elements, volumetric buttons, pixel icons and Monocraft font.",
+  "created": "2026-11-09T14:00:00+10:00",
+  "generator": "kolira 0.6.0",
+  "values": {
+    "accent_color": "112,178,55",
+    "accent_from_wallpaper": false,
+    "alacritty_blur": false,
+    "alacritty_opacity": 1.0,
+    "animation_factor": 0.0,
+    "blur_contrast": 0,
+    "blur_decorations": false,
+    "blur_docks": false,
+    "blur_enabled": false,
+    "blur_menus": false,
+    "blur_strength": 0,
+    "border_size": "None",
+    "breeze_menu_opacity": 100,
+    "btop_rounded": false,
+    "btop_theme": "minecraft-overworld-dark",
+    "button_bg": "85,85,85",
+    "color_scheme": "Minecraft Overworld Dark",
+    "contrast": 0,
+    "contrast_enabled": false,
+    "cursor_ide_theme": "Cursor Dark Midnight",
+    "decoration_library": "org.kde.kwin.aurorae",
+    "decoration_theme": "Minecraft Overworld Dark",
+    "dim_text": "184,184,184",
+    "frame_contrast": 0.0,
+    "gtk_dark": true,
+    "gtk_font": "Monocraft, 10",
+    "gtk_theme": "Minecraft Overworld Dark",
+    "header_bg": "56,56,56",
+    "icon_theme": "minecraft-overworld-dark",
+    "kitty_blur": 0,
+    "kitty_opacity": 1.0,
+    "klassy_active_opacity": 100,
+    "klassy_inactive_opacity": 100,
+    "klassy_radius": 0,
+    "klassy_shadow": "ShadowNone",
+    "kvantum_blurring": false,
+    "kvantum_menu_opacity": 0,
+    "kvantum_no_texture": true,
+    "kvantum_popup_blurring": false,
+    "kvantum_theme": "Minecraft Overworld Dark",
+    "kvantum_translucent": false,
+    "kvantum_transparent_views": false,
+    "kvantum_window_opacity": 0,
+    "legacy_blur": false,
+    "link_color": "85,214,208",
+    "look_and_feel": "minecraft-overworld-dark",
+    "selection_bg": "112,178,55",
+    "selection_text": "0,0,0",
+    "text_color": "240,240,240",
+    "tooltip_bg": "40,40,40",
+    "view_bg": "56,56,56",
+    "vscode_theme": "dfd05a73-c189-4622-87c7-573fbb3a46b9",
+    "widget_style": "Breeze",
+    "window_bg": "56,56,56",
+    "zed_dark": "Minecraft Overworld Dark",
+    "zed_light": "Ayu Light",
+    "zed_mode": "dark",
+    "zen_opacity": 1.0,
+    "zen_sites_scheme": "0",
+    "zen_transparent": false,
+    "zen_window_scheme": "0"
+  },
+  "palette": null,
+  "wallpaper": "wallpaper/minecraft-overworld-night.jpg",
+  "assets": [
+    {
+      "kind": "color-scheme",
+      "name": "Minecraft Overworld Dark",
+      "path": ".local/share/color-schemes/Minecraft Overworld Dark.colors",
+      "origin": "generated",
+      "redistributable": true,
+      "license": "MIT",
+      "source": ""
+    },
+    {
+      "kind": "kvantum",
+      "name": "Minecraft Overworld Dark",
+      "path": ".config/Kvantum/MinecraftOverworld",
+      "origin": "generated",
+      "redistributable": true,
+      "license": "MIT",
+      "source": ""
+    },
+    {
+      "kind": "look-and-feel",
+      "name": "minecraft-overworld-dark",
+      "path": ".local/share/plasma/look-and-feel/minecraft-overworld-dark",
+      "origin": "generated",
+      "redistributable": true,
+      "license": "MIT",
+      "source": ""
+    },
+    {
+      "kind": "wallpaper",
+      "name": "minecraft-overworld-night.jpg",
+      "path": "wallpaper/minecraft-overworld-night.jpg",
+      "origin": "generated",
+      "redistributable": true,
+      "license": "CC0-1.0",
+      "source": "https://commons.wikimedia.org/wiki/File:Nature-forest-trees-fog.jpg"
+    }
+  ],
+  "sources": {
+    "vscode_theme": {
+      "store": "vscode-marketplace",
+      "id": "unthrottled.doki-theme",
+      "url": ""
+    },
+    "zed_dark": {
+      "store": "zed",
+      "id": "minecraft-overworld-dark",
+      "url": ""
+    }
+  },
+  "appearance_only": true,
+  "dependencies": [
+    {
+      "kind": "font",
+      "name": "Monocraft",
+      "source": "package",
+      "id": "ttf-monocraft",
+      "title": "Monocraft pixel font (Minecraft)",
+      "url": "https://github.com/IdreesInc/Monocraft",
+      "exact": true,
+      "optional": false
+    },
+    {
+      "kind": "oh-my-posh",
+      "name": "oh-my-posh",
+      "source": "aur",
+      "id": "oh-my-posh-bin",
+      "title": "oh-my-posh (prompts usually need a Nerd Font)",
+      "url": "https://ohmyposh.dev/docs/installation/linux",
+      "exact": true,
+      "optional": true
+    },
+    {
+      "kind": "vscode",
+      "name": "dfd05a73-c189-4622-87c7-573fbb3a46b9",
+      "source": "vscode-marketplace",
+      "id": "unthrottled.doki-theme",
+      "title": "",
+      "url": "https://marketplace.visualstudio.com/items?itemName=unthrottled.doki-theme",
+      "exact": true
+    },
+    {
+      "kind": "zed",
+      "name": "Minecraft Overworld Dark",
+      "source": "zed",
+      "id": "minecraft-overworld-dark",
+      "title": "",
+      "url": "https://zed.dev/extensions?query=minecraft",
+      "exact": true
+    }
+  ]
+}

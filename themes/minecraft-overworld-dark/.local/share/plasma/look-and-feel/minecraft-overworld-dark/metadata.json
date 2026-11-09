@@ -1,0 +1,19 @@
+{
+  "KPackageStructure": "Plasma/LookAndFeel",
+  "KPlugin": {
+    "Authors": [
+      {
+        "Email": "",
+        "Name": "Minecraft Overworld Dark Theme"
+      }
+    ],
+    "Description": "Minecraft Java Edition inspired dark theme for Plasma 6",
+    "Id": "minecraft-overworld-dark",
+    "License": "MIT",
+    "Name": "Minecraft Overworld Dark",
+    "Website": ""
+  },
+  "Keywords": "Desktop;Workspace;Appearance;Look and Feel;Minecraft;",
+  "X-Plasma-APIVersion": "2",
+  "X-Plasma-MainScript": "default"
+}

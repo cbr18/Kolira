@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- Clock -->
+  <circle cx="24" cy="24" r="16" fill="#FFD54F" stroke="#FBC02D" stroke-width="2"/>
+  <circle cx="24" cy="24" r="14" fill="#FFECB3"/>
+  <!-- Clock hands -->
+  <rect x="23" y="10" width="2" height="14" fill="#5D4037"/>
+  <rect x="18" y="23" width="12" height="2" fill="#5D4037"/>
+  <circle cx="24" cy="24" r="2" fill="#5D4037"/>
+  <!-- Hour marks -->
+  <rect x="23" y="4" width="2" height="4" fill="#5D4037"/>
+  <rect x="23" y="40" width="2" height="4" fill="#5D4037"/>
+  <rect x="4" y="23" width="4" height="2" fill="#5D4037"/>
+  <rect x="40" y="23" width="4" height="2" fill="#5D4037"/>
+</svg>

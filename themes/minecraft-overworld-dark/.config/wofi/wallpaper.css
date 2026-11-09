@@ -1,0 +1,9 @@
+* {
+  color: #F0F0F0;
+  background-color: #252525;
+}
+
+*:focus {
+  background-color: #70B237;
+  color: #000000;
+}
