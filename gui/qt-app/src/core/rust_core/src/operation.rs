@@ -112,10 +112,12 @@ fn records_unlocked() -> Result<Vec<Record>> {
     for entry in fs::read_dir(records_dir())? {
         let path = entry?.path();
         if path.extension().is_some_and(|e| e == "json") {
-            result.push(
-                serde_json::from_slice::<Record>(&fs::read(&path)?)
-                    .with_context(|| format!("Invalid operation record {}", path.display()))?,
-            );
+            let mut record = serde_json::from_slice::<Record>(&fs::read(&path)?)
+                .with_context(|| format!("Invalid operation record {}", path.display()))?;
+            if let Some(backup) = &record.backup {
+                record.backup = Some(paths::migrated_backup_path(backup));
+            }
+            result.push(record);
         }
     }
     result.sort_by(|a, b| b.started.cmp(&a.started));
@@ -155,7 +157,7 @@ impl MutationGuard {
         })?;
         if !allow_pending {
             if let Some(record) = records()?.into_iter().find(pending) {
-                bail!("Interrupted appearance operation {} requires recovery; run theme-profile operations recover {} (backup: {})",record.id,record.id,record.backup.as_deref().unwrap_or(Path::new("")).display());
+                bail!("Interrupted appearance operation {} requires recovery; run kolira operations recover {} (backup: {})",record.id,record.id,record.backup.as_deref().unwrap_or(Path::new("")).display());
             }
         }
         DEPTH.with(|depth| *depth.borrow_mut() = 1);

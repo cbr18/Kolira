@@ -181,13 +181,13 @@ TRACKED_APPS = {
     "VS Code settings (theme, font, etc.)": "Настройки VS Code (тема, шрифт и т. д.)",
     "Cursor editor settings": "Настройки редактора Cursor",
     "Firefox-based browser with user.js + userChrome.css theming": "Браузер на основе Firefox, темы через user.js и userChrome.css",
-    "Colour scheme generated from the palette (lua/theme-profile.lua + colors/)": "Цветовая схема из палитры (lua/theme-profile.lua и colors/)",
+    "Colour scheme generated from the palette (lua/kolira.lua + colors/)": "Цветовая схема из палитры (lua/kolira.lua и colors/)",
     "CSS themes of Vencord / Vesktop (palette → midnight-based theme)": "CSS-темы Vencord / Vesktop (палитра → тема на основе midnight)",
     "Spicetify theme and colour scheme (palette → color.ini); runs spicetify apply": "Тема и цветовая схема Spicetify (палитра → color.ini); запускает spicetify apply",
     "Telegram palette (palette → .tdesktop-palette); Telegram follows it once chosen in Settings → Chat Settings": "Палитра Telegram (палитра → .tdesktop-palette); Telegram следит за ней, если один раз выбрать её в «Настройки → Настройки чатов»",
     "Prompt theme (.omp.json) used by the shell's oh-my-posh init line": "Тема приглашения (.omp.json) из строки инициализации oh-my-posh",
     "fish_color_* / fish_pager_color_* universal variables only": "Только универсальные переменные fish_color_* / fish_pager_color_*",
-    "Look in ghostty/theme-profile, included by the config": "Вид в ghostty/theme-profile, подключается из конфигурации",
+    "Look in ghostty/kolira, included by the config": "Вид в ghostty/kolira, подключается из конфигурации",
     "[color] section (palette → gradient)": "Секция [color] (палитра → градиент)",
     "theme.toml and flavors": "theme.toml и варианты",
     "--theme line and custom themes (bat cache --build after apply)": "Строка --theme и свои темы (bat cache --build после применения)",
@@ -225,7 +225,7 @@ CORE = {
     "Discord (Vencord) reads the theme's look only when it starts": "Discord (Vencord) читает вид темы только при запуске",
     "Zen Browser reads the theme's look only when it starts": "Zen читает вид темы только при запуске",
     "Firefox reads the theme's look only when it starts": "Firefox читает вид темы только при запуске",
-    "Telegram → Settings → Chat Settings → Choose from file → ~/.local/share/TelegramDesktop/theme-profile.tdesktop-palette; afterwards Telegram follows it by itself": "Telegram → Настройки → Настройки чатов → Выбрать из файла → ~/.local/share/TelegramDesktop/theme-profile.tdesktop-palette; дальше Telegram следит за ним сам",
+    "Telegram → Settings → Chat Settings → Choose from file → ~/.local/share/TelegramDesktop/kolira.tdesktop-palette; afterwards Telegram follows it by itself": "Telegram → Настройки → Настройки чатов → Выбрать из файла → ~/.local/share/TelegramDesktop/kolira.tdesktop-palette; дальше Telegram следит за ним сам",
 }
 
 # Report lines rebuilt in the GUI (src/core/core_messages.py).
@@ -248,7 +248,7 @@ CORE_MESSAGES = {
 
 # Code literals (tr()) added after the last manual translation pass.
 APP_THEME_CORE = {
-    "theme-profile is not available: %s": "theme-profile недоступен: %s",
+    "kolira is not available: %s": "kolira недоступен: %s",
     "Unknown field: %s": "Неизвестное поле: %s",
     "Invalid value for %s: %r": "Недопустимое значение для %s: %r",
     "%s staged — press Apply": "%s: изменение подготовлено — нажмите «Применить»",
@@ -271,8 +271,8 @@ APP_THEME_CORE = {
 }
 
 PROFILE_RECOVERY = {
-    "Interrupted apply %1 requires recovery. Backup: %2. Run: theme-profile operations recover %1":
-        "Прерванное применение %1 требует восстановления. Резервная копия: %2. Команда: theme-profile operations recover %1",
+    "Interrupted apply %1 requires recovery. Backup: %2. Run: kolira operations recover %1":
+        "Прерванное применение %1 требует восстановления. Резервная копия: %2. Команда: kolira operations recover %1",
 }
 
 APPLY_PREVIEW = {

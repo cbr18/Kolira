@@ -24,7 +24,7 @@ pub fn install() -> Result<Value> {
     let mut results = vec![];
     for (name, text) in [
         ("AGENTS.md", include_str!("../data/theme-agents.md")),
-        ("CLAUDE.md", "# KDE Theme Manager workspace\n\n@AGENTS.md\n"),
+        ("CLAUDE.md", "# kolira workspace\n\n@AGENTS.md\n"),
     ] {
         let path = dir.join(name);
         if path.is_symlink() {

@@ -1,4 +1,4 @@
-# theme-profile-kit / Тема‑профиль‑кит
+# Kolira
 
 > **Save and switch KDE Plasma themes with one command.**
 > Переключайтесь между профилями оформления **glass** (полупрозрачное стекло) и **paper** (светлая/solid тема), сохраняя и восстанавливая десятки настроек.
@@ -40,7 +40,7 @@
 
 | Script | Purpose |
 |--------|---------|
-| `theme-profile` | Rust CLI: save/apply/list/diff/delete/status профилей |
+| `kolira` | Rust CLI: save/apply/list/diff/delete/status профилей |
 | `theme-menu` | wofi‑menu for applying, saving, restarting Plasma, status |
 | `wallpaper-picker` | Choose wallpaper via wofi with thumbnail preview |
 | `wallpaper-next` / `wallpaper-prev` | Cycle wallpapers |
@@ -49,14 +49,14 @@
 
 | Component | Purpose |
 |-----------|---------|
-| `gui/qt-app/` | **KDE Theme Manager** — native Qt/QML + Kirigami desktop app with profile cards, wallpaper picker, settings and system tray; one core: a Python adapter over the Rust CLI binaries |
+| `gui/qt-app/` | **kolira** — native Qt/QML + Kirigami desktop app with profile cards, wallpaper picker, settings and system tray; one core: a Python adapter over the Rust CLI binaries |
 
 Run from the source tree during development:
 
 ```bash
 cd gui/qt-app
 uv venv && uv pip install -e ".[dev]"
-uv run kde-theme-manager  # or: python -m src
+uv run kolira-gui  # or: python -m src
 ```
 
 For normal use install it once — see below.
@@ -90,26 +90,26 @@ Optional:
 ## Installation / Установка
 
 ```bash
-~/theme-profile-kit/scripts/install-theme-profile-kit.sh
+~/kolira/scripts/install-kolira.sh
 ```
 
 Installs the command line scripts **and** the GUI (app copy, launcher, desktop
 entry). Creates timestamped backups of every replaced file in
-`~/.config/kde-theme-profile/backups/`.
+`~/.config/kolira/backups/`.
 
 | Installed | Where |
 |---|---|
-| `theme-profile`, `theme-menu`, `wallpaper-picker`, `wallpaper-next`, `wallpaper-prev` | `~/.local/bin/` |
-| KDE Theme Manager (app copy) | `~/.local/share/kde-theme-manager/` |
-| `kde-theme-manager` launcher | `~/.local/bin/` |
-| desktop entry | `~/.local/share/applications/kde-theme-manager.desktop` |
-| app icon | `~/.local/share/icons/hicolor/scalable/apps/ktm-theme-manager.svg` |
+| `kolira`, `theme-menu`, `wallpaper-picker`, `wallpaper-next`, `wallpaper-prev` | `~/.local/bin/` |
+| kolira (app copy) | `~/.local/share/kolira/` |
+| `kolira-gui` launcher | `~/.local/bin/` |
+| desktop entry | `~/.local/share/applications/kolira.desktop` |
+| app icon | `~/.local/share/icons/hicolor/scalable/apps/kolira-icon.svg` |
 
 Install locations follow `XDG_BIN_HOME` / `XDG_DATA_HOME` when set.
 
 **Your current look is saved first.** On the first install, when you have no
 themes yet, the look you have now becomes the theme `my-original-look`, so you
-can always come back: `theme-profile apply my-original-look` or the app's theme
+can always come back: `kolira apply my-original-look` or the app's theme
 list. An update never overwrites it; `--no-original-theme` skips it. Saving also
 moves kitty's and Alacritty's look into their own include file (the look does not
 change; the originals go to `backups/`).
@@ -117,30 +117,31 @@ change; the originals go to `backups/`).
 **Automation choices.** Run in a terminal, the installer asks once what
 applying a theme may do by itself — download from stores, install system
 packages in a terminal (you type the password), restart Vesktop / Discord /
-Zen / Firefox — each *ask*, *always* or *never* (`theme-profile automation
+Zen / Firefox — each *ask*, *always* or *never* (`kolira automation
 ask`). Otherwise the app asks on its first start; change it later in
-*Settings → Automation* or with `theme-profile automation set KEY=POLICY`.
+*Settings → Automation* or with `kolira automation set KEY=POLICY`.
 
 **Data is separate from code** — profiles, backups and settings live in
-`$XDG_CONFIG_HOME/kde-theme-profile/` (default `~/.config/kde-theme-profile/`;
+`$XDG_CONFIG_HOME/kolira/` (default `~/.config/kolira/`;
 `themes/`, `backups/`, `manifests/`, `active-profile`,
-`app-preferences.json`) and are never touched by an install. An existing legacy
-`~/.config/kde-theme-profile/` is detected and kept, and profile snapshots always
-use the historical `.config/...` layout, so pre-XDG profiles keep working.
+`app-preferences.json`). Installation preserves user content. Rust migrates
+legacy `kde-theme-profile/` and `theme-profile/` data without overwriting
+conflicts; profile snapshots retain their `.config/...` layout.
+See [rename compatibility](docs/RENAMING.md).
 The applied theme itself is the usual KDE configuration (`kdeglobals`,
 `kwinrc`, `gtk-3.0/settings.ini`, …).
 
 Options:
 ```bash
-install-theme-profile-kit.sh --help       # show help
-install-theme-profile-kit.sh --only-cli   # Rust CLI only, no GUI
-install-theme-profile-kit.sh --only-gui   # GUI only (CLI must already be installed)
-install-theme-profile-kit.sh --no-venv    # use system PySide6, never build a venv
-install-theme-profile-kit.sh --with-venv  # always build a venv in the installed app
-install-theme-profile-kit.sh --restart    # restart a running KDE Theme Manager afterwards
+install-kolira.sh --help       # show help
+install-kolira.sh --only-cli   # Rust CLI only, no GUI
+install-kolira.sh --only-gui   # GUI only (CLI must already be installed)
+install-kolira.sh --no-venv    # use system PySide6, never build a venv
+install-kolira.sh --with-venv  # always build a venv in the installed app
+install-kolira.sh --restart    # restart a running kolira afterwards
 ```
 
-A running KDE Theme Manager keeps executing the old code after an update. The
+A running kolira keeps executing the old code after an update. The
 installer detects a copy running from the installed app directory and warns;
 with `--restart` it stops it (SIGTERM — unapplied staged edits are lost) and
 starts the new version.
@@ -154,20 +155,20 @@ distro); with a system PySide6 the copy stays ~650 KB.
 Profile application is serialized across GUI and CLI. Invalid preparation leaves
 appearance unchanged; a failed write or required external step restores backed-up
 files and reports recovery errors separately. Interrupted operations block new
-appearance changes until reviewed with `theme-profile operations list` and
-`theme-profile operations recover ID`. See [recovery rules and limits](docs/APPLY_PROTECTION.md).
+appearance changes until reviewed with `kolira operations list` and
+`kolira operations recover ID`. See [recovery rules and limits](docs/APPLY_PROTECTION.md).
 
 ### GUI core / Ядро GUI
 
 The app has a **single core** — a Python adapter (`core/cli_core.py`) that
-delegates to the Rust CLI binaries (`theme-profile`, `wallpaper-*`). There is
+delegates to the Rust CLI binaries (`kolira`, `wallpaper-*`). There is
 nothing to switch; `--core`/`KTM_CORE`/Settings → Core accept only `core` (or
 `auto`, which is the same):
 
 ```bash
-kde-theme-manager --core core      # core | auto — one and the same core
-kde-theme-manager --list-cores     # show the core and what it delegates to
-KTM_CORE=core kde-theme-manager    # per-run override
+kolira-gui --core core      # core | auto — one and the same core
+kolira-gui --list-cores     # show the core and what it delegates to
+KTM_CORE=core kolira-gui    # per-run override
 ```
 
 Inspector, application theme adapters, resource cloning, settings, registry and
@@ -175,27 +176,27 @@ wallpaper operations execute in Rust. Python handles Qt models and presentation.
 See the [local JSON API and session contract](docs/CORE_API.md); update the CLI
 and GUI together.
 
-(The former second core — the `libkde_theme_core.so` shared library — was
+(The former second core — the `libkolira_core.so` shared library — was
 removed; the app always starts on the single CLI-backed core.)
 
 ## Usage / Использование
 
 ```bash
-theme-profile list               # list available profiles
-theme-profile apply glass        # apply a theme (creates a pre-apply backup)
-theme-profile apply glass --keep-wallpaper   # …but leave the wallpaper alone
-theme-profile save my-profile    # save the current look as a theme
-theme-profile save my-profile --no-wallpaper # a theme that never changes the wallpaper
-theme-profile check glass        # what applying would miss + where to get it
-theme-profile migrate --all      # add theme.json to old snapshot profiles
-theme-profile prune --all        # drop leftovers that are not part of a theme (backup first)
-theme-profile export glass --out=glass.ktmtheme.zip  # portable copy ($HOME, no desktop icons)
-theme-profile import glass.ktmtheme.zip [--name=NEW] [--force] [--apply]
-theme-profile clone glass glass2 # duplicate a theme under a new name
-theme-profile save glass --description="Dark glass"   # with a card description
-theme-profile describe glass --set "New note"         # edit the description
-theme-profile diff glass paper   # show config differences
-theme-profile status             # diagnostic: dump 30+ config values
+kolira list               # list available profiles
+kolira apply glass        # apply a theme (creates a pre-apply backup)
+kolira apply glass --keep-wallpaper   # …but leave the wallpaper alone
+kolira save my-profile    # save the current look as a theme
+kolira save my-profile --no-wallpaper # a theme that never changes the wallpaper
+kolira check glass        # what applying would miss + where to get it
+kolira migrate --all      # add theme.json to old snapshot profiles
+kolira prune --all        # drop leftovers that are not part of a theme (backup first)
+kolira export glass --out=glass.ktmtheme.zip  # portable copy ($HOME, no desktop icons)
+kolira import glass.ktmtheme.zip [--name=NEW] [--force] [--apply]
+kolira clone glass glass2 # duplicate a theme under a new name
+kolira save glass --description="Dark glass"   # with a card description
+kolira describe glass --set "New note"         # edit the description
+kolira diff glass paper   # show config differences
+kolira status             # diagnostic: dump 30+ config values
 theme-menu                       # interactive wofi menu
 wallpaper-picker                 # pick wallpaper with thumbnails
 wallpaper-next                   # next wallpaper
@@ -223,16 +224,16 @@ The cached index is a *position* in that list, so a locale-aware sort
 the index to a different image than the one applied. All three scripts must keep
 enumerating identically — `tests/test-scripts.sh` (section 9) fails if they drift.
 
-**Wallpaper directory** (one Rust implementation, `theme-profile wallpaper dir`):
+**Wallpaper directory** (one Rust implementation, `kolira wallpaper dir`):
 `$WALLPAPER_DIR` → `wallpaper_directory` in `app-preferences.json` → `$(xdg-user-dir PICTURES)/Wallpaper` → `~/Pictures/Wallpaper`. On a Russian locale XDG Pictures is `~/Изображения`, so the
 default stays `~/Изображения/Wallpaper`; nothing is hard-coded to one language.
-`theme-profile wallpaper current` prints the wallpaper Plasma shows on the
+`kolira wallpaper current` prints the wallpaper Plasma shows on the
 primary screen (`lastScreen=0`, `org.kde.image` only — slideshow/POTD report
 nothing). One wallpaper is applied to all screens (`plasma-apply-wallpaperimage`).
 
-**Wallpaper in themes.** `theme-profile save` copies the current wallpaper into
+**Wallpaper in themes.** `kolira save` copies the current wallpaper into
 the theme (`wallpaper/<file>` + `source`) unless `--no-wallpaper` is given.
-`theme-profile apply` — CLI, `theme-menu`, GUI, MCP alike — sets the theme's
+`kolira apply` — CLI, `theme-menu`, GUI, MCP alike — sets the theme's
 wallpaper (putting the file back if it is gone; existing files are never
 overwritten). A theme without a wallpaper leaves the current wallpaper on
 screen, and `--keep-wallpaper` keeps it even when the theme has one. See
@@ -255,12 +256,12 @@ A generated theme starts from a **base16 palette + KDE accent** (any
 [tinted-theming](https://github.com/tinted-theming/schemes) scheme imports as-is):
 
 ```bash
-theme-profile palette gallery gruv      # 15 bundled schemes; --online for ~360 from tinted-theming
-theme-profile palette import gallery:gruvbox-dark-medium   # or: palette import everforest.yaml
-theme-profile palette from-wallpaper   # or build it from the current wallpaper
-theme-profile palette set accent=#a7c080
-theme-profile palette apply            # KDE scheme + kitty/Alacritty colours (backups first)
-theme-profile palette apply --targets=kvantum   # recolour an installed Kvantum theme (KvArcDark/KvArc)
+kolira palette gallery gruv      # 15 bundled schemes; --online for ~360 from tinted-theming
+kolira palette import gallery:gruvbox-dark-medium   # or: palette import everforest.yaml
+kolira palette from-wallpaper   # or build it from the current wallpaper
+kolira palette set accent=#a7c080
+kolira palette apply            # KDE scheme + kitty/Alacritty colours (backups first)
+kolira palette apply --targets=kvantum   # recolour an installed Kvantum theme (KvArcDark/KvArc)
 ```
 
 In the GUI: **Theme → Palette** (gallery, from wallpaper via Plasma's own
@@ -287,14 +288,14 @@ and dependencies: `themes/README.md`):
 - **`everforest`** — Everforest Dark Medium, misty pine forest
 - **`dracula`** — Dracula palette on glass, official Dracula wallpaper
 
-Start a new theme with `theme-profile new NAME --from=neutral-light`
+Start a new theme with `kolira new NAME --from=neutral-light`
 (or `neutral-dark`, or an existing theme to copy) — GUI: **New theme…** — then
-change the look and save over it. `theme-profile look-and-feel NAME` (or the
+change the look and save over it. `kolira look-and-feel NAME` (or the
 Save dialog's checkbox) adds a Look & Feel package with the look and no panel
 layout.
 
-Profiles live in `~/.config/kde-theme-profile/themes/`. Old snapshot profiles keep
-working until converted with `theme-profile migrate --all`.
+Profiles live in `~/.config/kolira/themes/`. Old snapshot profiles keep
+working until converted with `kolira migrate --all`.
 
 ## Theme bundles / Комплекты тем
 
@@ -310,7 +311,7 @@ a high-level theme builder rather than a raw config editor. A bundle combines:
 Installed themes are selected from lists wherever possible. Core KDE values are
 staged and applied as one batch; **Undo/Revert** remain available after Apply.
 Application adapters apply their own config updates immediately and copy the
-previous file to `~/.config/kde-theme-profile/backups/app-theme-<timestamp>/`.
+previous file to `~/.config/kolira/backups/app-theme-<timestamp>/`.
 Saving from the Theme page writes a theme package (`docs/THEMES.md`); old
 profiles with a `theme-bundle.json` beside a snapshot are still read as legacy.
 
@@ -330,7 +331,7 @@ config alone shows "not installed — only an old config was found". **Zed, VS
 Code and Cursor** have *Find in store…*: search the editor's theme store (Zed:
 `api.zed.dev`; VS Code/Cursor: Open VSX) and install a theme (Zed themes are
 copied to `~/.config/zed/themes/`, VS Code/Cursor use their own
-`--install-extension`). CLI: `theme-profile apps store-search|store-install`. Profile
+`--install-extension`). CLI: `kolira apps store-search|store-install`. Profile
 snapshots still include those config files when the apps are enabled in the
 tracked component list. Unsupported capabilities are shown as fallbacks with a
 button to open the app's native theme settings.
@@ -338,7 +339,7 @@ button to open the app's native theme settings.
 The repository also includes a local MCP server for AI agents:
 
 ```bash
-uv run --project gui/qt-app python mcp/theme_profile_mcp.py
+uv run --project gui/qt-app python mcp/kolira_profile_mcp.py
 ```
 
 It can enumerate installed themes, create user-owned derived color/Kvantum
@@ -351,12 +352,12 @@ commands (D-Bus, `plasma-apply-*`, `kvantummanager`) for dry runs.
 ## Update / Обновление
 
 ```bash
-~/theme-profile-kit/scripts/update-theme-profile-kit.sh
+~/kolira/scripts/update-kolira.sh
 ```
 
 Fetches latest from git (`--ff-only`), then reinstalls the scripts **and** the GUI
 (re-runs the installer, so the launcher, desktop entry and icon are refreshed
-too). Options go to the installer: `--restart` restarts a running KDE Theme Manager
+too). Options go to the installer: `--restart` restarts a running kolira
 on the new version. Warns if you have uncommitted local changes.
 
 The ready themes follow the kit: new ones are added, and ones the kit changed are
@@ -368,16 +369,16 @@ Nothing is applied.
 ## Uninstall / Удаление
 
 ```bash
-~/theme-profile-kit/scripts/uninstall-theme-profile-kit.sh            # interactive (confirms)
-~/theme-profile-kit/scripts/uninstall-theme-profile-kit.sh --force    # skip confirmation
-~/theme-profile-kit/scripts/uninstall-theme-profile-kit.sh --only-cli # remove CLI only, keep GUI/data
-~/theme-profile-kit/scripts/uninstall-theme-profile-kit.sh --only-gui # remove GUI only, keep CLI/data
+~/kolira/scripts/uninstall-kolira.sh            # interactive (confirms)
+~/kolira/scripts/uninstall-kolira.sh --force    # skip confirmation
+~/kolira/scripts/uninstall-kolira.sh --only-cli # remove CLI only, keep GUI/data
+~/kolira/scripts/uninstall-kolira.sh --only-gui # remove GUI only, keep CLI/data
 ```
 
 Removes the scripts from `~/.local/bin/`, the app from
-`~/.local/share/kde-theme-manager/`, its launcher, desktop entry and icon, and
-wipes the data directory (`$XDG_CONFIG_HOME/kde-theme-profile/`, falling back to
-`~/.config/kde-theme-profile/`). The confirmation prompt is shown **before** any
+`~/.local/share/kolira/`, its launcher, desktop entry and icon, and
+wipes the data directory (`$XDG_CONFIG_HOME/kolira/`, falling back to
+`~/.config/kolira/`). The confirmation prompt is shown **before** any
 file is removed, so answering "no" leaves the installation untouched. Does
 **not** touch your KDE config files, wofi styles, or application settings —
 those must be reverted manually.
@@ -387,11 +388,11 @@ See [Rollback & Recovery](#rollback--восстановление).
 
 See [`docs/ROLLBACK.md`](docs/ROLLBACK.md) for full instructions. Quick summary:
 
-- **Undo profile apply**: pre-apply backups are at `~/.config/kde-theme-profile/backups/pre-apply-<name>-<ts>/`
-- **Restore old scripts**: `cp -a ~/.config/kde-theme-profile/backups/deploy-*/bin/. ~/.local/bin/`
-- **Restore the previous app**: `cp -a ~/.config/kde-theme-profile/backups/deploy-kde-theme-manager-*/app/. ~/.local/share/kde-theme-manager/`
+- **Undo profile apply**: pre-apply backups are at `~/.config/kolira/backups/pre-apply-<name>-<ts>/`
+- **Restore old scripts**: `cp -a ~/.config/kolira/backups/deploy-*/bin/. ~/.local/bin/`
+- **Restore the previous app**: `cp -a ~/.config/kolira/backups/deploy-kolira-*/app/. ~/.local/share/kolira/`
 - **Plasma won't start**: `systemctl --user start plasma-plasmashell.service`
-- **Full remove**: `uninstall-theme-profile-kit.sh --force`
+- **Full remove**: `uninstall-kolira.sh --force`
 
 ## Troubleshooting / Устранение неполадок
 
@@ -400,14 +401,14 @@ See [`docs/ROLLBACK.md`](docs/ROLLBACK.md) for full instructions. Quick summary:
 | `command not found: kreadconfig6` | Install `plasma-workspace`: `sudo pacman -S plasma-workspace` |
 | `command not found: wofi` | Install: `sudo pacman -S wofi` |
 | wofi menu appears empty | Ensure `~/.config/wofi/style.css` exists |
-| `theme-profile list` shows nothing | `mkdir -p ~/.config/kde-theme-profile/themes && theme-profile save my-profile` |
-| Wallpaper picker shows no images | Check `theme-profile wallpaper dir` (XDG Pictures/Wallpaper by default). Override with `export WALLPAPER_DIR=...` or the GUI setting |
+| `kolira list` shows nothing | `mkdir -p ~/.config/kolira/themes && kolira save my-profile` |
+| Wallpaper picker shows no images | Check `kolira wallpaper dir` (XDG Pictures/Wallpaper by default). Override with `export WALLPAPER_DIR=...` or the GUI setting |
 | Plasma won't start after `apply` | `systemctl --user start plasma-plasmashell.service` |
 
 ## Editing Rule / Правило редактирования
 
-1. Edit `~/theme-profile-kit/gui/qt-app/src/core/rust_core/**` first.
-2. Re-run `scripts/install-theme-profile-kit.sh` (it builds the Rust CLI with cargo).
+1. Edit `~/kolira/gui/qt-app/src/core/rust_core/**` first.
+2. Re-run `scripts/install-kolira.sh` (it builds the Rust CLI with cargo).
 3. Do **not** edit `~/.local/bin/` directly — copy changes back into the kit immediately.
 
 ## Hardening / Безопасность
@@ -439,8 +440,8 @@ Simple Application Launcher не требуется и не устанавлив
 В GUI и трее Apply сначала открывает список изменений с diff, сбросами,
 зависимостями и перезапусками. Здесь можно сохранить текущее оформление и
 оставить обои. При изменении исходного состояния требуется новое подтверждение.
-CLI: `theme-profile preview Paper --json`, затем
-`theme-profile apply Paper --preview-token=TOKEN`.
+CLI: `kolira preview Paper --json`, затем
+`kolira apply Paper --preview-token=TOKEN`.
 [Подробности и границы предварительного расчёта](docs/APPLY_PREVIEW.md).
 
 ### Расписание и история смен
@@ -468,3 +469,5 @@ CLI: `theme-profile preview Paper --json`, затем
 Русский выбирается по системной локали и охватывает известные статусы ядра,
 историю/расписание и локальные форматы. Имена, пути и неизвестные внешние сообщения
 сохраняются без перевода.
+
+Переименование и совместимость старых данных/тем: [docs/RENAMING.md](docs/RENAMING.md).

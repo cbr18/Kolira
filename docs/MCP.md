@@ -1,4 +1,4 @@
-# MCP для theme-profile-kit
+# MCP для kolira
 
 Репозиторий содержит локальный MCP-сервер для нейронных агентов. Он позволяет быстро собирать темы и профили через тот же `ThemeBundleCore`, который использует GUI, вместо ручного редактирования конфигов. Python — протокол/представление;
 все операции выполняет единый Rust core через [API v1](CORE_API.md).
@@ -22,14 +22,14 @@
 Из корня репозитория:
 
 ```bash
-uv run --project gui/qt-app python mcp/theme_profile_mcp.py
+uv run --project gui/qt-app python mcp/kolira_profile_mcp.py
 ```
 
 Для отключения внешних команд и D-Bus hooks (файловые записи сохраняются;
 это не read-only режим):
 
 ```bash
-KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
+KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/kolira_profile_mcp.py
 ```
 
 Пример MCP-конфигурации:
@@ -37,16 +37,16 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 ```json
 {
   "mcpServers": {
-    "theme-profile": {
+    "kolira": {
       "command": "uv",
       "args": [
         "run",
         "--project",
         "gui/qt-app",
         "python",
-        "mcp/theme_profile_mcp.py"
+        "mcp/kolira_profile_mcp.py"
       ],
-      "cwd": "/path/to/theme-profile-kit"
+      "cwd": "/path/to/kolira"
     }
   }
 }
@@ -55,16 +55,16 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 ## Установленный сервер и произвольный cwd
 
 Полный установщик копирует сервер в
-`$XDG_DATA_HOME/kde-theme-manager/theme_profile_mcp.py` (по умолчанию
-`~/.local/share/kde-theme-manager/theme_profile_mcp.py`). Используйте абсолютные
+`$XDG_DATA_HOME/kolira/kolira_profile_mcp.py` (по умолчанию
+`~/.local/share/kolira/kolira_profile_mcp.py`). Используйте абсолютные
 пути к Python окружения GUI и серверу. Например, при установке с venv:
 
 ```json
 {
   "mcpServers": {
-    "theme-profile": {
-      "command": "/home/USER/.local/share/kde-theme-manager/.venv/bin/python",
-      "args": ["/home/USER/.local/share/kde-theme-manager/theme_profile_mcp.py"]
+    "kolira": {
+      "command": "/home/USER/.local/share/kolira/.venv/bin/python",
+      "args": ["/home/USER/.local/share/kolira/kolira_profile_mcp.py"]
     }
   }
 }
@@ -183,7 +183,7 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 
 ### `validate_profile`
 
-Проверяет, что всё, на что ссылается тема, есть в текущей системе (`theme-profile check`). Возвращает `valid`, `message` и `missing: [{field, name, source}]` — `source` подсказывает, где взять (ссылка KDE Store, магазин, id расширения Zed).
+Проверяет, что всё, на что ссылается тема, есть в текущей системе (`kolira check`). Возвращает `valid`, `message` и `missing: [{field, name, source}]` — `source` подсказывает, где взять (ссылка KDE Store, магазин, id расширения Zed).
 
 Аргументы:
 
@@ -250,7 +250,7 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 
 ### `export_theme`
 
-Экспортирует сохранённую тему в переносимый `.zip` (`theme-profile export`):
+Экспортирует сохранённую тему в переносимый `.zip` (`kolira export`):
 домашняя папка записана как `$HOME`, положения значков рабочего стола не
 попадают, у каждого файла SHA-256 в `export.json` (`docs/THEMES.md`).
 
@@ -259,7 +259,7 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 
 ### `import_theme`
 
-Импортирует тему из `.zip` или распакованной папки (`theme-profile import`), не
+Импортирует тему из `.zip` или распакованной папки (`kolira import`), не
 применяя её. Возвращает `name`, `files`, `replaced` (бэкап заменённой темы) и
 `missing: [{field, name, source}]`.
 
@@ -269,7 +269,7 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 
 ### `list_dependencies`
 
-Чего теме не хватает на этой машине (`theme-profile deps NAME --json`):
+Чего теме не хватает на этой машине (`kolira deps NAME --json`):
 `[{index, kind, name, source, id, title, url, exact, command}]`. `source`:
 `kde-store`, `package`/`aur` (`command` — команда; `install_dependencies`
 выполняет её в терминале пользователя), `vscode-marketplace`/`open-vsx`/`zed`,
@@ -289,7 +289,7 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 ### `get_automation` / `set_automation`
 
 Выбор пользователя — что применение темы может делать само
-(`theme-profile automation`): `store`, `packages`, `restart_vesktop`,
+(`kolira automation`): `store`, `packages`, `restart_vesktop`,
 `restart_discord`, `restart_zen`, `restart_firefox`; каждый `ask` | `always` |
 `never`, с описанием и предупреждением. `set_automation {"choices": {"store":
 "never"}}` — **только по явной просьбе пользователя**, не ради удобства
@@ -298,7 +298,7 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/theme_profile_mcp.py
 ### `list_actions` / `run_action`
 
 `list_actions {"name": …}` — шаги после применения темы
-(`theme-profile actions NAME --json`): перезапуск запущенных Vesktop / Discord /
+(`kolira actions NAME --json`): перезапуск запущенных Vesktop / Discord /
 Zen / Firefox, подсказка Telegram — с причиной и предупреждением.
 `run_action {"id": "zen"}` — выполнить один (программа закрывается обычным
 образом и запускается снова; звонок, демонстрация экрана, загрузки в ней
@@ -307,8 +307,8 @@ Zen / Firefox, подсказка Telegram — с причиной и преду
 
 ## Палитра и магазины тем
 
-Работают через тот же Rust CLI, что и GUI (`theme-profile palette …`,
-`theme-profile apps …`); подробности модели — `docs/PALETTE.md`.
+Работают через тот же Rust CLI, что и GUI (`kolira palette …`,
+`kolira apps …`); подробности модели — `docs/PALETTE.md`.
 
 | Инструмент | Аргументы | Что делает |
 |---|---|---|
@@ -350,7 +350,7 @@ Zen / Firefox, подсказка Telegram — с причиной и преду
 
 - Удаление профилей через MCP не экспонируется.
 - Системные установленные темы не перезаписываются.
-- Старые профили-снимки продолжают работать до `theme-profile migrate`; новые профили — темы-пакеты.
+- Старые профили-снимки продолжают работать до `kolira migrate`; новые профили — темы-пакеты.
 - Адаптеры приложений с неполной поддержкой возвращают `capabilities`; GUI и MCP должны показывать fallback вместо притворяться, что приложение управляется полностью.
 - `KTM_THEME_NO_APPLY=1` отключает внешние команды/hook-и ядра тем, но не отменяет явное применение значений адаптерами приложений.
 
@@ -359,7 +359,7 @@ Zen / Firefox, подсказка Telegram — с причиной и преду
 MCP использует ту же межпроцессную блокировку и восстановление Rust, что GUI/CLI.
 Второй Apply возвращает ошибку; rollback не превращается в успешный результат MCP.
 Диагностика содержит ID операции, бэкап и ошибки восстановления. После прерывания
-восстановление доступно через CLI `theme-profile operations`; отдельные MCP tools
+восстановление доступно через CLI `kolira operations`; отдельные MCP tools
 для списка/восстановления операций пока не добавлены. [Контракт](APPLY_PROTECTION.md).
 
 ### `preview_profile` и подтверждённый Apply

@@ -4,7 +4,7 @@
 //! Spotify.
 //!
 //! * a theme carries `Themes/` and only the theme keys of `config-xpui.ini`;
-//! * the palette generates `Themes/ThemeProfile/color.ini` (matugen's mapping)
+//! * the palette generates `Themes/Kolira/color.ini` (matugen's mapping)
 //!   and selects it;
 //! * applying a theme runs `spicetify apply` when Spicetify is installed.
 
@@ -21,7 +21,7 @@ use crate::paths::config_home;
 pub const DIR: &str = ".config/spicetify";
 pub const CONFIG: &str = ".config/spicetify/config-xpui.ini";
 pub const THEMES: &str = ".config/spicetify/Themes";
-pub const THEME_NAME: &str = "ThemeProfile";
+pub const THEME_NAME: &str = "Kolira";
 
 pub fn config_paths() -> Vec<String> {
     if config_home().join("spicetify").exists() || which::which("spicetify").is_ok() {
@@ -35,11 +35,11 @@ fn hex(c: Rgb) -> String {
     c.hex().trim_start_matches('#').to_string()
 }
 
-/// `color.ini` for the palette (section `[ThemeProfile]`).
+/// `color.ini` for the palette (section `[Kolira]`).
 pub fn color_ini(p: &Palette) -> String {
     let r = kde_roles(p);
     let mut out = format!(
-        "; theme-profile: palette \"{}\" (generated)\n[{THEME_NAME}]\n",
+        "; kolira: palette \"{}\" (generated)\n[{THEME_NAME}]\n",
         p.name.replace(['\n', '"'], "")
     );
     let mut key = |k: &str, c: Rgb| {
@@ -85,7 +85,7 @@ pub fn apply_palette(p: &Palette) -> Result<Option<PathBuf>> {
     if !dir.join("user.css").exists() {
         fs::write(
             dir.join("user.css"),
-            "/* theme-profile: colours only (color.ini) */\n",
+            "/* kolira: colours only (color.ini) */\n",
         )?;
     }
     let mut text = fs::read_to_string(&config)?;
@@ -128,7 +128,7 @@ mod tests {
         )
         .unwrap();
         let ini = color_ini(&p);
-        assert!(ini.contains("[ThemeProfile]"));
+        assert!(ini.contains("[Kolira]"));
         assert!(ini.contains("main               = 282a36"));
         assert!(!ini.contains('#'));
     }

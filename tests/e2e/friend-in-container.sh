@@ -24,23 +24,23 @@ export WAYLAND_DISPLAY=wayland-e2e QT_QPA_PLATFORM=wayland XDG_SESSION_TYPE=wayl
 export XDG_CURRENT_DESKTOP=KDE KDE_SESSION_VERSION=6 KDE_FULL_SESSION=true
 
 # --- download and install, as the README says --------------------------------
-git clone -q "$SOURCE" "$HOME/kde-theme-manager" || { fail "git clone"; exit 1; }
-if (cd "$HOME/kde-theme-manager" && bash scripts/install-theme-profile-kit.sh) >"$OUT/install.log" 2>&1; then
+git clone -q "$SOURCE" "$HOME/kolira" || { fail "git clone"; exit 1; }
+if (cd "$HOME/kolira" && bash scripts/install-kolira.sh) >"$OUT/install.log" 2>&1; then
   pass "installer finished"
 else
   fail "installer failed: $(tail -3 "$OUT/install.log")"
   exit 1
 fi
-KIT="$HOME/kde-theme-manager"
+KIT="$HOME/kolira"
 if [ "${E2E_POPULATED:-0}" = 1 ]; then
   bash "$KIT/tests/e2e/make-friend-home.sh" "$HOME"
   pass "started from a configured home"
 fi
-for tool in theme-profile theme-menu kde-theme-manager; do
+for tool in kolira theme-menu kolira; do
   command -v "$tool" >/dev/null && pass "$tool is installed" || fail "$tool is missing"
 done
 
-theme-profile list 2>/dev/null | grep -qx my-original-look && pass "the installer saved the original look" || fail "no my-original-look theme"
+kolira list 2>/dev/null | grep -qx my-original-look && pass "the installer saved the original look" || fail "no my-original-look theme"
 
 # systemd --user is not running in a container: only this service is needed.
 SHIM="$HOME/.shim"
@@ -80,12 +80,12 @@ crashes() { grep -lE 'Traceback|Segmentation|core dumped|Fatal|panicked' "$OUT"/
 
 # Plasma's first start writes its layout; this is the friend's real starting point.
 python3 "$KIT/tests/e2e/snapshot.py" "$HOME" "$OUT/first.json"
-QT_QUICK_CONTROLS_STYLE=org.kde.desktop nohup kde-theme-manager >"$OUT/app.log" 2>&1 &
+QT_QUICK_CONTROLS_STYLE=org.kde.desktop nohup kolira-gui >"$OUT/app.log" 2>&1 &
 sleep 8
-pgrep -f 'python.* -m src' >/dev/null && pass "KDE Theme Manager started" || fail "KDE Theme Manager did not start: $(tail -3 "$OUT/app.log")"
+pgrep -f 'python.* -m src' >/dev/null && pass "kolira started" || fail "kolira did not start: $(tail -3 "$OUT/app.log")"
 
 # --- the backup -----------------------------------------------------------------
-if theme-profile save my-look --description='before anything' >"$OUT/save.log" 2>&1; then
+if kolira save my-look --description='before anything' >"$OUT/save.log" 2>&1; then
   pass "own theme saved"
 else
   fail "save failed: $(tail -2 "$OUT/save.log")"
@@ -97,7 +97,7 @@ gtk_before="$(gsettings get org.gnome.desktop.interface gtk-theme) $(gsettings g
 themes=${E2E_THEMES:-"frutiger-aero-light frutiger-aero Paper dracula everforest glass"}
 for theme in $themes; do
   report="$OUT/apply-$theme.json"
-  if theme-profile apply "$theme" --json >"$report" 2>"$OUT/apply-$theme.err"; then
+  if kolira apply "$theme" --json >"$report" 2>"$OUT/apply-$theme.err"; then
     pass "apply $theme"
   else
     fail "apply $theme: $(tail -2 "$OUT/apply-$theme.err")"
@@ -116,7 +116,7 @@ PY
   alive && pass "$theme: kwin and plasmashell alive" || fail "$theme: the session died"
   pgrep -f 'python.* -m src' >/dev/null && pass "$theme: app alive" || fail "$theme: app died: $(tail -3 "$OUT/app.log")"
 
-  if theme-profile apply my-look --json >"$OUT/back-$theme.json" 2>"$OUT/back-$theme.err"; then
+  if kolira apply my-look --json >"$OUT/back-$theme.json" 2>"$OUT/back-$theme.err"; then
     pass "back from $theme"
   else
     fail "back from $theme: $(tail -2 "$OUT/back-$theme.err")"
@@ -150,7 +150,7 @@ else
   fail "after the app's controller: files differ:
 $diff_text"
 fi
-if KTM_THEME_NO_APPLY=1 theme-profile status >/dev/null 2>"$OUT/status.err"; then pass "theme-profile status"; else fail "status: $(cat "$OUT/status.err")"; fi
+if KTM_THEME_NO_APPLY=1 kolira status >/dev/null 2>"$OUT/status.err"; then pass "kolira status"; else fail "status: $(cat "$OUT/status.err")"; fi
 
 bad="$(crashes)"
 [ -z "$bad" ] && pass "no crash in the logs" || fail "crash messages in: $bad"

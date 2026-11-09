@@ -27,8 +27,8 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 os.environ.update(QT_QUICK_BACKEND="software", KTM_OFFLINE="1", KTM_THEME_NO_APPLY="1",
                   LANG="ru_RU.UTF-8", LC_ALL="ru_RU.UTF-8", LANGUAGE="ru_RU",
                   KTM_OPEN_THEME="1", KTM_THEME_PAGE="dependencies",
-                  KTM_THEME_PROFILE_BIN=str(root / "gui/qt-app/src/core/rust_core/target/release/theme-profile"))
-data = work / "config/kde-theme-profile"
+                  KTM_THEME_PROFILE_BIN=str(root / "gui/qt-app/src/core/rust_core/target/release/kolira"))
+data = work / "config/kolira"
 data.mkdir()
 (data / "app-preferences.json").write_text(json.dumps({"automation_configured": True}))
 dependencies = [
@@ -38,9 +38,9 @@ dependencies = [
 for name in ["first", "second"]:
     theme = data / "themes" / name
     theme.mkdir(parents=True)
-    (theme / "theme.json").write_text(json.dumps({"schema": "theme-profile/theme@2", "name": name, "dependencies": dependencies}))
+    (theme / "theme.json").write_text(json.dumps({"schema": "kolira/theme@2", "name": name, "dependencies": dependencies}))
 sys.path.insert(0, str(root / "gui/qt-app/src"))
-spec = importlib.util.spec_from_file_location("ktm_entry", root / "gui/qt-app/src/__main__.py")
+spec = importlib.util.spec_from_file_location("kolira_entry", root / "gui/qt-app/src/__main__.py")
 entry = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(entry)
 entry._acquire_single_instance = lambda *args: entry.SingleInstance.ACQUIRED
@@ -75,5 +75,5 @@ def screenshot(app, window):
 
 entry._setup_palette = setup_palette
 entry._maybe_setup_screenshot = screenshot
-sys.argv[:] = ["kde-theme-manager"]
+sys.argv[:] = ["kolira"]
 raise SystemExit(entry.main())

@@ -5,8 +5,8 @@
     <name>AppThemeCore</name>
     <message>
         <location filename="../src/core/i18n_strings.py" line="297" />
-        <source>theme-profile is not available: %s</source>
-        <translation>theme-profile недоступен: %s</translation>
+        <source>kolira is not available: %s</source>
+        <translation>kolira недоступен: %s</translation>
     </message>
     <message>
         <location filename="../src/core/i18n_strings.py" line="298" />
@@ -222,8 +222,8 @@
     </message>
     <message>
         <location filename="../src/core/i18n_strings.py" line="215" />
-        <source>Telegram → Settings → Chat Settings → Choose from file → ~/.local/share/TelegramDesktop/theme-profile.tdesktop-palette; afterwards Telegram follows it by itself</source>
-        <translation>Telegram → Настройки → Настройки чатов → Выбрать из файла → ~/.local/share/TelegramDesktop/theme-profile.tdesktop-palette; дальше Telegram следит за ним сам</translation>
+        <source>Telegram → Settings → Chat Settings → Choose from file → ~/.local/share/TelegramDesktop/kolira.tdesktop-palette; afterwards Telegram follows it by itself</source>
+        <translation>Telegram → Настройки → Настройки чатов → Выбрать из файла → ~/.local/share/TelegramDesktop/kolira.tdesktop-palette; дальше Telegram следит за ним сам</translation>
     </message>
 </context><context>
     <name>CoreMessages</name>
@@ -717,8 +717,8 @@
     <name>ProfileController</name>
     <message>
         <location filename="../src/controllers/__init__.py" line="294" />
-        <source>Interrupted apply %1 requires recovery. Backup: %2. Run: theme-profile operations recover %1</source>
-        <translation>Прерванное применение %1 требует восстановления. Резервная копия: %2. Команда: theme-profile operations recover %1</translation>
+        <source>Interrupted apply %1 requires recovery. Backup: %2. Run: kolira operations recover %1</source>
+        <translation>Прерванное применение %1 требует восстановления. Резервная копия: %2. Команда: kolira operations recover %1</translation>
     </message>
     <message>
         <location filename="../src/controllers/__init__.py" line="385" />
@@ -1935,8 +1935,8 @@
     </message>
     <message>
         <location filename="../src/core/i18n_strings.py" line="182" />
-        <source>Look in ghostty/theme-profile, included by the config</source>
-        <translation>Вид в ghostty/theme-profile, подключается из конфигурации</translation>
+        <source>Look in ghostty/kolira, included by the config</source>
+        <translation>Вид в ghostty/kolira, подключается из конфигурации</translation>
     </message>
     <message>
         <location filename="../src/core/i18n_strings.py" line="183" />
@@ -1988,8 +1988,8 @@
         <translation type="vanished">Сведения о системе со своим логотипом и конфигурацией</translation>
     </message>
     <message>
-        <source>Colour scheme generated from the palette (lua/theme-profile.lua + colors/)</source>
-        <translation type="vanished">Цветовая схема из палитры (lua/theme-profile.lua и colors/)</translation>
+        <source>Colour scheme generated from the palette (lua/kolira.lua + colors/)</source>
+        <translation type="vanished">Цветовая схема из палитры (lua/kolira.lua и colors/)</translation>
     </message>
 </context><context>
     <name>TrackedAppsController</name>

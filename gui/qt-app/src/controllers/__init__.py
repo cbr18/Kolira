@@ -291,7 +291,7 @@ class ProfileController(QObject):
             if record["id"] not in seen:
                 seen.add(record["id"])
                 self._reported_interrupted = seen
-                self.operationFinished.emit(False, self.tr("Interrupted apply %1 requires recovery. Backup: %2. Run: theme-profile operations recover %1")
+                self.operationFinished.emit(False, self.tr("Interrupted apply %1 requires recovery. Backup: %2. Run: kolira operations recover %1")
                     .replace("%1", record["id"]).replace("%2", str(record.get("backup") or "")))
         if stale:
             self.operationFinished.emit(
@@ -727,7 +727,7 @@ class ProfileController(QObject):
 
     @Slot(list)
     def runActions(self, ids: list) -> None:
-        """Do the follow-up actions the user ticked (restart programs…) — `theme-profile action ID` each, in the background."""
+        """Do the follow-up actions the user ticked (restart programs…) — `kolira action ID` each, in the background."""
         chosen = [str(i) for i in ids]
 
         def _work() -> tuple[bool, str]:
@@ -1256,7 +1256,7 @@ class SettingsController(QObject):
 
     @Property(list, notify=automationChanged)
     def automationItems(self) -> list:
-        """[{key, what, note, policy}] from `theme-profile automation --json`."""
+        """[{key, what, note, policy}] from `kolira automation --json`."""
         return list(self._automation().get("items") or [])
 
     @Property(bool, notify=automationChanged)

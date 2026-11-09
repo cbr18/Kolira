@@ -5,21 +5,21 @@
 
 ## Установка
 
-Штатный `scripts/install-theme-profile-kit.sh --restart --no-themes --no-original-theme`
+Штатный `scripts/install-kolira.sh --restart --no-themes --no-original-theme`
 обновил Rust CLI, Python/QML GUI и launcher. Перезапуск старого процесса выполнен,
 автозапуск временно отключён через `KTM_INSTALL_NO_LAUNCH=1` для проверки.
 Системный PySide6 6.12.0 используется без venv. Комплектные темы не синхронизировались,
 установщик не применял оформление.
 
-Бэкапы прежнего кода в `$XDG_CONFIG_HOME/kde-theme-profile/backups/`:
+Бэкапы прежнего кода в `$XDG_CONFIG_HOME/kolira/backups/`:
 
-- `deploy-theme-profile-kit-20261108-155611-86897` — CLI;
-- `deploy-kde-theme-manager-20261108-155611` — GUI, launcher и desktop entry.
+- `deploy-kolira-20261108-155611-86897` — CLI;
+- `deploy-kolira-20261108-155611` — GUI, launcher и desktop entry.
 
 ## Проверка в текущей Plasma/Wayland
 
-Запущена именно установленная копия `~/.local/share/kde-theme-manager/` с
-CLI `~/.local/bin/theme-profile`. Использован настоящий Qt window, QML и
+Запущена именно установленная копия `~/.local/share/kolira/` с
+CLI `~/.local/bin/kolira`. Использован настоящий Qt window, QML и
 асинхронные контроллеры; `KTM_THEME_NO_APPLY` отключён, сетевой поиск отключён.
 
 1. Главное окно успешно показано; страница темы отрисована и сохранён screenshot.

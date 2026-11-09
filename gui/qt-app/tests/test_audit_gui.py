@@ -212,7 +212,7 @@ def test_actual_main_shows_wallpaper_error_without_spinner(qml_page, tmp_path):
 import importlib.util, sys, os
 from PySide6.QtCore import QTimer, QObject
 from PySide6.QtQml import QQmlEngine, QQmlExpression
-spec = importlib.util.spec_from_file_location("ktm_app", sys.argv[1])
+spec = importlib.util.spec_from_file_location("kolira_app", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 module.SINGLE_INSTANCE_SOCKET = "ktm-audit-" + str(os.getpid())

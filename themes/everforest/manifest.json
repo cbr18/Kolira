@@ -75,14 +75,14 @@
             "id": "kitty",
             "paths": [
                 ".config/kitty/kitty.conf",
-                ".config/kitty/theme-profile.conf"
+                ".config/kitty/kolira.conf"
             ]
         },
         {
             "id": "alacritty",
             "paths": [
                 ".config/alacritty/alacritty.toml",
-                ".config/alacritty/theme-profile.toml"
+                ".config/alacritty/kolira.toml"
             ]
         },
         {
@@ -130,7 +130,7 @@
             "id": "oh-my-posh",
             "paths": [
                 ".config/fish/config.fish",
-                ".config/oh-my-posh/theme-profile.omp.json"
+                ".config/oh-my-posh/kolira.omp.json"
             ]
         },
         {
@@ -143,7 +143,7 @@
             "id": "ghostty",
             "paths": [
                 ".config/ghostty/config",
-                ".config/ghostty/theme-profile"
+                ".config/ghostty/kolira"
             ]
         },
         {
@@ -195,7 +195,7 @@
         {
             "id": "palette",
             "paths": [
-                ".config/kde-theme-profile/palette.json"
+                ".config/kolira/palette.json"
             ]
         },
         {

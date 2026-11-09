@@ -23,7 +23,7 @@ for key, rel in [("HOME", "home"), ("XDG_CONFIG_HOME", "config"),
     env[key] = str(path)
 for key in ("KTM_THEME_NO_APPLY", "KTM_OFFLINE", "KTM_DEP_OPERATION", "KTM_DEP_EVENTS"):
     env.pop(key, None)
-root = work / "config/kde-theme-profile"
+root = work / "config/kolira"
 
 
 def run(*args, ok=True):
@@ -68,7 +68,7 @@ else:
 for name in ("first", "second"):
     path = root / "themes" / name
     path.mkdir(parents=True)
-    (path / "theme.json").write_text(json.dumps({"schema": "theme-profile/theme@2", "name": name, "dependencies": [dependency]}))
+    (path / "theme.json").write_text(json.dumps({"schema": "kolira/theme@2", "name": name, "dependencies": [dependency]}))
 
 row = next(r for r in rows() if r["dependency"]["id"] == dependency["id"])
 resource_id = row["id"]

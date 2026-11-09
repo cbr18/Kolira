@@ -133,7 +133,7 @@ ForegroundPositive=47,138,47
 ForegroundVisited=107,79,187
 
 [General]
-ColorScheme=ThemeProfileFrutigerAeroLight
+ColorScheme=KoliraFrutigerAeroLight
 ColorSchemeHash=c7ee41ad3369cf0e8ac37d51f6e882a46a2b9cbe
 LastUsedCustomAccentColor=184,117,220
 accentColorFromWallpaper=false

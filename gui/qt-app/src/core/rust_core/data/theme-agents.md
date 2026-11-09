@@ -1,13 +1,13 @@
-# KDE Theme Manager — theme workspace instructions (v1)
+# kolira — theme workspace instructions (v1)
 
 This directory contains theme packages, not application source. Rust is the single
-core; Python/PySide6 is the GUI adapter. Use `theme-profile` or its MCP server.
-Resolve paths through XDG: `${XDG_CONFIG_HOME:-$HOME/.config}/kde-theme-profile/`
+core; Python/PySide6 is the GUI adapter. Use `kolira` or its MCP server.
+Resolve paths through XDG: `${XDG_CONFIG_HOME:-$HOME/.config}/kolira/`
 contains `themes/`, `backups/`, `operations/`, `schedule.json` and preferences.
 Inside a theme snapshots keep `.config/...` and `.local/share/...` paths.
 
 Names must match `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`. A theme has
-`theme.json` with schema `theme-profile/theme@2`, name, values, optional base16
+`theme.json` with schema `kolira/theme@2`, name, values, optional base16
 palette, assets and dependencies. Assets have origin, redistributable, license
 and source metadata. Do not publish third-party resources without permission.
 Select compatible installed components; report missing dependencies explicitly.
@@ -15,8 +15,8 @@ Select compatible installed components; report missing dependencies explicitly.
 ## Prepare a theme without changing the desktop
 
 1. Discover: MCP `get_capabilities`, `get_theme_schema`, `list_components`,
-   `list_installed_themes`. CLI fallback: `theme-profile core agent.capabilities`
-   and `theme-profile core agent.schema` with `{}` on stdin.
+   `list_installed_themes`. CLI fallback: `kolira core agent.capabilities`
+   and `kolira core agent.schema` with `{}` on stdin.
 2. Use MCP `palette_gallery` / `palette_import` / `palette_set` to prepare a
    palette. These save palette state but do not apply desktop appearance.
 3. MCP `prepare_theme` accepts name, field-id→value `values`, description and
@@ -25,19 +25,19 @@ Select compatible installed components; report missing dependencies explicitly.
 
    ```sh
    printf '%s\n' '{"name":"my-theme","values":{"widget_style":"Breeze"}}' |
-     theme-profile core agent.prepare
-   theme-profile check my-theme --json
-   theme-profile preview my-theme --json
-   theme-profile export my-theme --out=/tmp/my-theme.zip --json
+     kolira core agent.prepare
+   kolira check my-theme --json
+   kolira preview my-theme --json
+   kolira export my-theme --out=/tmp/my-theme.zip --json
    ```
 
 4. Verify returned package, missing references, dependencies and exported files.
    A successful exit alone does not prove a resource is installed.
 5. Apply ONLY when the user requests changing live appearance. Obtain a fresh
    `preview_profile` result, review it, then `apply_profile` with its previewToken.
-   If stale, rebuild and review. CLI: `theme-profile apply my-theme
+   If stale, rebuild and review. CLI: `kolira apply my-theme
    --preview-token=HASH --without-dependencies --json`.
-6. Inspect history with MCP `list_operations` or `theme-profile operations list`.
+6. Inspect history with MCP `list_operations` or `kolira operations list`.
    Interrupted operation: `operations recover ID`. Completed change restoration:
    `operations restore ID --confirm` creates a new safety backup first.
 

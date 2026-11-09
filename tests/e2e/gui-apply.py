@@ -3,7 +3,7 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.expanduser("~/.local/share/kde-theme-manager/src"))
+sys.path.insert(0, os.path.expanduser("~/.local/share/kolira/src"))
 from PySide6.QtCore import QTimer  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 

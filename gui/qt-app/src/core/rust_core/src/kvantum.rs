@@ -2,7 +2,7 @@
 //!
 //! Kvantum themes are GPL artwork, so the kit ships none: at apply time an
 //! *installed* base theme (default `KvArcDark` / `KvArc` by palette variant)
-//! is copied to `~/.config/Kvantum/ThemeProfile<Name>/` and every colour in its
+//! is copied to `~/.config/Kvantum/Kolira<Name>/` and every colour in its
 //! SVG and kvconfig is remapped in OKLab:
 //!
 //! * near-neutral colours keep their position on the base theme's
@@ -224,7 +224,7 @@ pub fn recolor_kvconfig(kvconfig: &str, recolor: &Recolor, p: &Palette) -> Strin
 /// First line of a generated kvconfig: which theme it was recoloured from.
 /// Themes that ship with Kvantum itself are GPL-3.0-or-later, so their
 /// recolours may be redistributed; any other base keeps its own licence.
-pub const PROVENANCE: &str = "; theme-profile: recoloured from ";
+pub const PROVENANCE: &str = "; kolira: recoloured from ";
 const SHIPPED_TAG: &str = " (ships with Kvantum)";
 const SHIPPED_ROOTS: &[&str] = &["/usr/share/Kvantum", "/usr/local/share/Kvantum"];
 
@@ -293,7 +293,7 @@ fn find_theme_in(name: &str, roots: &[PathBuf]) -> Option<PathBuf> {
         .find(|d| d.join(format!("{name}.kvconfig")).is_file())
 }
 
-/// Build `~/.config/Kvantum/ThemeProfile<Name>/` from `base` (an installed
+/// Build `~/.config/Kvantum/Kolira<Name>/` from `base` (an installed
 /// theme name) and return (theme id, directory).
 pub fn build(p: &Palette, base: &str) -> Result<(String, PathBuf)> {
     build_in(p, base, &search_roots(), &user_root())
@@ -321,7 +321,7 @@ fn build_in(
 
     let id = kde_scheme_id(p);
     let target = out_root.join(&id);
-    let staging = target.with_extension("tmp-theme-profile");
+    let staging = target.with_extension("tmp-kolira");
     if staging.exists() {
         std::fs::remove_dir_all(&staging)?;
     }
@@ -504,17 +504,17 @@ mod tests {
         let roots = vec![tmp.path().join("Kvantum")];
         let p = everforest();
         let (id, dir) = build_in(&p, "FakeBase", &roots, &roots[0]).unwrap();
-        assert_eq!(id, "ThemeProfileEverforest");
-        let svg = std::fs::read_to_string(dir.join("ThemeProfileEverforest.svg")).unwrap();
+        assert_eq!(id, "KoliraEverforest");
+        let svg = std::fs::read_to_string(dir.join("KoliraEverforest.svg")).unwrap();
         assert!(svg.contains("#a7c080") && !svg.contains("#5294e2"));
-        let kv = std::fs::read_to_string(dir.join("ThemeProfileEverforest.kvconfig")).unwrap();
+        let kv = std::fs::read_to_string(dir.join("KoliraEverforest.kvconfig")).unwrap();
         assert_eq!(
             provenance(&kv),
             Some(("FakeBase".to_string(), false)),
             "a base outside Kvantum's own themes is not marked GPL"
         );
         assert_eq!(
-            provenance("; theme-profile: recoloured from KvRoughGlass (ships with Kvantum)\n[x]\n"),
+            provenance("; kolira: recoloured from KvRoughGlass (ships with Kvantum)\n[x]\n"),
             Some(("KvRoughGlass".to_string(), true))
         );
         assert_eq!(provenance("[%General]\n"), None);
@@ -532,6 +532,6 @@ mod tests {
         assert!(build_in(&p, "../etc", &roots, &roots[0]).is_err());
         // Rebuilding replaces the previous output cleanly.
         build_in(&p, "FakeBase", &roots, &roots[0]).unwrap();
-        assert!(dir.join("ThemeProfileEverforest.svg").is_file());
+        assert!(dir.join("KoliraEverforest.svg").is_file());
     }
 }

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  App icon for kolira: a disc split into a dark and a light half
+  (the two shipped profiles: glass / paper), ringed with the Breeze accent
+  colour. Installed into ~/.local/share/icons/hicolor/scalable/apps/ and
+  referenced as Icon=kolira by the .desktop file.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>kolira</title>
+  <defs>
+    <clipPath id="disc">
+      <circle cx="128" cy="128" r="92"/>
+    </clipPath>
+  </defs>
+
+  <!-- light half (paper) -->
+  <circle cx="128" cy="128" r="92" fill="#eff0f1"/>
+
+  <!-- dark half (glass) -->
+  <g clip-path="url(#disc)">
+    <rect x="36" y="36" width="92" height="184" fill="#31363b"/>
+  </g>
+
+  <!-- accent ring -->
+  <circle cx="128" cy="128" r="92" fill="none" stroke="#3daee9" stroke-width="14"/>
+</svg>

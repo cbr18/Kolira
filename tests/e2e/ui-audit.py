@@ -39,15 +39,15 @@ runtime = os.environ.get('XDG_RUNTIME_DIR')
 for key, name in [('HOME','home'),('XDG_CONFIG_HOME','config'),('XDG_DATA_HOME','data'),('XDG_CACHE_HOME','cache'),('XDG_RUNTIME_DIR','runtime')]:
     path=Path(work.name)/name; path.mkdir(mode=0o700); os.environ[key]=str(path)
 if args.platform!='offscreen' and runtime: os.environ['XDG_RUNTIME_DIR']=runtime
-os.environ.update(QT_QPA_PLATFORM=args.platform,QT_QUICK_BACKEND='software',KTM_THEME_NO_APPLY='1',KTM_OFFLINE='1',LANG=args.locale,LC_ALL=args.locale,LANGUAGE=args.locale,KTM_THEME_PROFILE_BIN=str(root/'gui/qt-app/src/core/rust_core/target/release/theme-profile'))
+os.environ.update(QT_QPA_PLATFORM=args.platform,QT_QUICK_BACKEND='software',KTM_THEME_NO_APPLY='1',KTM_OFFLINE='1',LANG=args.locale,LC_ALL=args.locale,LANGUAGE=args.locale,KTM_THEME_PROFILE_BIN=str(root/'gui/qt-app/src/core/rust_core/target/release/kolira'))
 for key in ('KTM_SCREENSHOT','KTM_OPEN_THEME','KTM_THEME_PAGE'): os.environ.pop(key,None)
-data=Path(os.environ['XDG_CONFIG_HOME'])/'kde-theme-profile';data.mkdir()
+data=Path(os.environ['XDG_CONFIG_HOME'])/'kolira';data.mkdir()
 (data/'app-preferences.json').write_text(json.dumps({'automation_configured':True}))
 for i,name in enumerate(['Paper','dracula']):
     target=('Long-profile-'+str(i)+'-'+'x'*49) if args.long_names else name
     shutil.copytree(root/'themes'/name,data/'themes'/target)
 sys.path.insert(0,str(root/'gui/qt-app/src'))
-spec=importlib.util.spec_from_file_location('ktm_entry',root/'gui/qt-app/src/__main__.py')
+spec=importlib.util.spec_from_file_location('kolira_entry',root/'gui/qt-app/src/__main__.py')
 entry=importlib.util.module_from_spec(spec);spec.loader.exec_module(entry)
 entry._acquire_single_instance=lambda *unused:entry.SingleInstance.ACQUIRED
 original_palette=entry._setup_palette
@@ -184,5 +184,5 @@ def setup(app,window):
         print('PASS UI render:',output,flush=True);app.quit()
     QTimer.singleShot(700,prepare);QTimer.singleShot(1800,grab);QTimer.singleShot(12000,lambda:app.exit(3))
 entry._setup_palette=palette;entry._maybe_setup_screenshot=setup
-sys.argv[:]=['kde-theme-manager']
+sys.argv[:]=['kolira']
 raise SystemExit(entry.main())

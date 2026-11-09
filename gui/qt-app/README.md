@@ -1,4 +1,4 @@
-# KDE Theme Manager — Qt/QML Application (v0.6.0)
+# kolira — Qt/QML Application (v0.6.0)
 
 Native KDE Plasma application for managing theme profiles and wallpapers.
 
@@ -25,13 +25,13 @@ them or require Simple Application Launcher.
   appearance files + `theme.json`, `docs/THEMES.md`) through the Rust CLI
 - **Themes** — save dialog with *Include the current wallpaper*, apply dialog
   with *Keep the current wallpaper*, and a *Missing Theme Parts* dialog (links +
-  *Install from stores*) fed by `theme-profile apply --json`
+  *Install from stores*) fed by `kolira apply --json`
 - **Dependencies** — after apply/import a *This Theme Needs* dialog lists what
   is missing with its source (KDE Store / package command / editor store) and
-  installs the ticked items (`theme-profile deps --install`), then re-applies
+  installs the ticked items (`kolira deps --install`), then re-applies
 - **Export / import** — card menu → *Export…* (`.ktmtheme.zip`, optional
   wallpaper), *Import theme…* (name conflict → new name or replace); the
-  missing-parts dialog follows an import too (`theme-profile import --json`)
+  missing-parts dialog follows an import too (`kolira import --json`)
 - **Palette page** — Theme → Palette: base16 + accent, gallery, from wallpaper
   (`Kirigami.ImageColors`) or k-means, colour editing, apply to KDE /
   terminals / Kvantum (`controllers/palette.py` → Rust CLI)
@@ -43,7 +43,7 @@ them or require Simple Application Launcher.
   Doki UUID back to its label); Discord/Telegram provide safe partial
   integrations (Telegram shows no picker — its active theme lives in `tdata`); Kitty and Alacritty are config-only integrations with an “Open
   config” action via `xdg-open`
-- **MCP server** — `mcp/theme_profile_mcp.py` lets AI agents enumerate themes,
+- **MCP server** — `mcp/kolira_profile_mcp.py` lets AI agents enumerate themes,
   create derived color/Kvantum themes, build/validate profiles and explicitly
   apply them (see `../docs/MCP.md`)
 - **Applications page** — manage what is tracked: disable built-in apps with a
@@ -66,7 +66,7 @@ them or require Simple Application Launcher.
   `[Colors:*]` palette. `ThemeController.colors` publishes that palette to
   `ThemeColors.qml`, so cards, borders and dim text follow dark schemes too
 - **Single core** — a Python adapter (`core/cli_core.py`) shells out to the Rust
-  `theme-profile` / `wallpaper-*` binaries; every selector (`--core core|auto`,
+  `kolira` / `wallpaper-*` binaries; every selector (`--core core|auto`,
   `$KTM_CORE`, Settings → Core) names that one core
 
 ## System tray
@@ -90,8 +90,8 @@ Notifications go through `QSystemTrayIcon.showMessage`, not a hand-built
 D-Bus `i` while `Notify`'s `replaces_id` is `u`, so a hand-built call is
 rejected with *"No such method 'Notify'"* and dropped silently.
 
-The icon is installed as `ktm-theme-manager`: KDE's icon loader collapses
-`<existing-icon>-<suffix>` to the existing icon, so `kde-theme-manager`
+The icon is installed as `kolira-icon`: KDE's icon loader collapses
+`<existing-icon>-<suffix>` to the existing icon, so `kolira`
 resolved to the KDE logo (and `plasma-*` to the Plasma logo) instead of ours.
 
 ## Theming (dogfooding)
@@ -138,7 +138,7 @@ Implementation notes:
 
 ## Select, then Apply
 
-Switching a profile runs `theme-profile apply`, which touches dozens of config
+Switching a profile runs `kolira apply`, which touches dozens of config
 files and takes seconds. Two consequences shape the UI:
 
 - Clicking a profile card (or pressing Space while it has focus) only sets
@@ -166,7 +166,7 @@ files and takes seconds. Two consequences shape the UI:
 - **KDE Plasma 6** (Wayland or X11)
 - **Python 3.11+**
 - **PySide6 6.7+**
-- **Rust CLI tools** — `theme-profile`, `theme-menu`, `wallpaper-picker/next/prev`
+- **Rust CLI tools** — `kolira`, `theme-menu`, `wallpaper-picker/next/prev`
   (built from `src/core/rust_core`; the bash scripts were removed in 0.5.0)
 
 ## Installation
@@ -175,28 +175,28 @@ Normal use — one command installs the app, its launcher and the desktop entry
 (with a backup of whatever it replaces):
 
 ```bash
-# From the theme-profile-kit root: full install (CLI + GUI)
-scripts/install-theme-profile-kit.sh
+# From the kolira root: full install (CLI + GUI)
+scripts/install-kolira.sh
 
 # GUI only (CLI must already be installed)
-scripts/install-theme-profile-kit.sh --only-gui
+scripts/install-kolira.sh --only-gui
 
 # Options
-scripts/install-theme-profile-kit.sh --help       # paths and details
-scripts/install-theme-profile-kit.sh --no-venv    # never build a venv
-scripts/install-theme-profile-kit.sh --with-venv  # always build one
+scripts/install-kolira.sh --help       # paths and details
+scripts/install-kolira.sh --no-venv    # never build a venv
+scripts/install-kolira.sh --with-venv  # always build one
 
 # Remove only the GUI again (profiles and data are kept)
-scripts/uninstall-theme-profile-kit.sh --only-gui
+scripts/uninstall-kolira.sh --only-gui
 ```
 
 | Installed | Where |
 |---|---|
-| application copy | `~/.local/share/kde-theme-manager/` |
-| launcher (`kde-theme-manager`) | `~/.local/bin/` |
-| desktop entry | `~/.local/share/applications/kde-theme-manager.desktop` |
-| icon | `~/.local/share/icons/hicolor/scalable/apps/ktm-theme-manager.svg` |
-| backups of replaced files | `~/.config/kde-theme-profile/backups/deploy-kde-theme-manager-*/` |
+| application copy | `~/.local/share/kolira/` |
+| launcher (`kolira-gui`) | `~/.local/bin/` |
+| desktop entry | `~/.local/share/applications/kolira.desktop` |
+| icon | `~/.local/share/icons/hicolor/scalable/apps/kolira-icon.svg` |
+| backups of replaced files | `~/.config/kolira/backups/deploy-kolira-*/` |
 
 `~/.local/share` and `~/.local/bin` follow `XDG_DATA_HOME` / `XDG_BIN_HOME`.
 A venv is created inside the app copy **only** when the system Python cannot
@@ -207,7 +207,7 @@ somewhere else.
 Where the data lives (never touched by install/update):
 
 ```
-$XDG_CONFIG_HOME/kde-theme-profile/   (default ~/.config/kde-theme-profile/)
+$XDG_CONFIG_HOME/kolira/   (default ~/.config/kolira/)
 ├── profiles/<name>/     the profiles themselves (theme snapshots)
 ├── backups/             pre-apply + deploy backups
 ├── manifests/           what a profile covers
@@ -215,14 +215,14 @@ $XDG_CONFIG_HOME/kde-theme-profile/   (default ~/.config/kde-theme-profile/)
 └── app-preferences.json GUI settings (created when you first save settings)
 ```
 
-The data root is XDG-aware: an existing `$XDG_CONFIG_HOME/kde-theme-profile` wins,
-then an existing legacy `~/.config/kde-theme-profile`, then the XDG path. Profile
+The data root is XDG-aware: an existing `$XDG_CONFIG_HOME/kolira` wins,
+then an existing legacy `~/.config/kolira`, then the XDG path. Profile
 snapshots themselves always keep the historical `.config/...` layout, so
 profiles created before XDG support keep working unchanged.
 
 The theme itself is not stored by the app — applying a profile writes the usual
 KDE configuration (`~/.config/kdeglobals`, `kwinrc`, `gtk-3.0/settings.ini`, …).
-Wallpapers live in the directory reported by `theme-profile wallpaper dir`
+Wallpapers live in the directory reported by `kolira wallpaper dir`
 (`$WALLPAPER_DIR` → `wallpaper_directory` setting → XDG Pictures/Wallpaper →
 `~/Pictures/Wallpaper`) with the index cache in `~/.cache/wallpaper_index`.
 Profiles carry a copy of their wallpaper in `<profile>/wallpaper/`.
@@ -232,7 +232,7 @@ Profiles carry a copy of their wallpaper in `<profile>/wallpaper/`.
 ```bash
 cd gui/qt-app
 uv pip install -e ".[dev]"  # or pip install -e ".[dev]"
-./theme-profile-manager.sh  # sets QML import paths, prefers ./.venv, then python -m src
+./kolira-manager.sh  # sets QML import paths, prefers ./.venv, then python -m src
 ```
 
 ## Development
@@ -280,7 +280,7 @@ Known, harmless `qmllint` output:
 src/
 ├── core/
 │   ├── protocol.py            # Abstract Base Classes (CONTRACT)
-│   ├── cli_core.py            # CLI adapter (shells to theme-profile / wallpaper-*)
+│   ├── cli_core.py            # CLI adapter (shells to kolira / wallpaper-*)
 │   ├── tracked_apps.py        # App registry with detection
 │   ├── theme_core.py          # Qt view adapter for Rust Inspector sessions
 │   ├── app_theme_adapters.py  # Per-app theme detection/list/apply
@@ -349,7 +349,7 @@ makes them self-healing. Guarded by
 `tests/test_gui.py::TestWallpaperOrdering` (runs the real script and compares the
 walked order) and `tests/test-scripts.sh` sections 8–9.
 
-Directory and "current wallpaper" come from the Rust CLI (`theme-profile
+Directory and "current wallpaper" come from the Rust CLI (`kolira
 wallpaper dir|current`) — the GUI no longer parses the appletsrc itself. The app
 still passes `WALLPAPER_DIR` to the scripts so an unsaved explicit setting
 cannot diverge from what they enumerate. Tests point the GUI at the freshly
@@ -373,8 +373,8 @@ The `core/protocol.py` defines **Abstract Base Classes** for:
 A single Rust implementation owns profiles, wallpapers, Inspector parsing,
 staging/Undo/Revert, app theme adapters, resource cloning, preferences and the
 registry. Python view adapters call it through `core/cli_core.py`; preference
-data lives in `$XDG_CONFIG_HOME/kde-theme-profile/app-preferences.json`.
-The local JSON interface is `theme-profile core METHOD` ([API v1](../../docs/CORE_API.md)).
+data lives in `$XDG_CONFIG_HOME/kolira/app-preferences.json`.
+The local JSON interface is `kolira core METHOD` ([API v1](../../docs/CORE_API.md)).
 Update CLI and GUI together. There is no FFI or Python mutation fallback.
 
 Audit fixes preserve normal save/apply/Undo flows: failed Inspector changes
@@ -401,10 +401,10 @@ the existing store/package automation keys before applying. See
 There is nothing to switch — every selector names the single core:
 
 ```bash
-kde-theme-manager --core core      # core | auto (same core)
-kde-theme-manager --list-cores     # what the core delegates to
-KTM_CORE=core kde-theme-manager    # same as --core, for one run
-kde-theme-manager                 # Settings → Core (saved, applied on restart)
+kolira-gui --core core      # core | auto (same core)
+kolira-gui --list-cores     # what the core delegates to
+KTM_CORE=core kolira-gui    # same as --core, for one run
+kolira                 # Settings → Core (saved, applied on restart)
 ```
 
 Priority: `--core` → `$KTM_CORE` → saved setting → `core`.
@@ -413,7 +413,7 @@ Priority: `--core` → `$KTM_CORE` → saved setting → `core`.
 
 ```bash
 cd src/core/rust_core
-cargo build --release   # → target/release/theme-profile, wallpaper-*, theme-menu
+cargo build --release   # → target/release/kolira, wallpaper-*, theme-menu
 ```
 
 The kit installer copies those binaries into `~/.local/bin/`.
@@ -435,8 +435,8 @@ The kit installer copies those binaries into `~/.local/bin/`.
 
 ## Configuration
 
-Settings stored in `~/.config/kde-theme-profile/app-preferences.json` (or
-`$XDG_CONFIG_HOME/kde-theme-profile/`, see below):
+Settings stored in `~/.config/kolira/app-preferences.json` (or
+`$XDG_CONFIG_HOME/kolira/`, see below):
 
 ```json
 {
@@ -470,18 +470,18 @@ compatibility and are ignored by the GUI:
 
 ### Desktop Entry
 
-Installed by `theme-profile-kit/scripts/install-theme-profile-kit.sh` (GUI
+Installed by `kolira/scripts/install-kolira.sh` (GUI
 installation is included by default; use `--only-gui` for the app alone):
 
-- `~/.local/bin/kde-theme-manager` — launcher (execs the app's own
-  `theme-profile-manager.sh`, which sets the QML import paths)
-- `~/.local/share/kde-theme-manager/` — the app copy
-- `~/.local/share/applications/kde-theme-manager.desktop`
-- `~/.local/share/icons/hicolor/scalable/apps/ktm-theme-manager.svg`
+- `~/.local/bin/kolira-gui` — launcher (execs the app's own
+  `kolira-manager.sh`, which sets the QML import paths)
+- `~/.local/share/kolira/` — the app copy
+- `~/.local/share/applications/kolira.desktop`
+- `~/.local/share/icons/hicolor/scalable/apps/kolira-icon.svg`
 
 Both source files live in the repository, so edit them there:
-`resources/kde-theme-manager.desktop` and
-`resources/icons/ktm-theme-manager.svg` (icon = dark/light disc with the Breeze
+`resources/kolira.desktop` and
+`resources/icons/kolira-icon.svg` (icon = dark/light disc with the Breeze
 accent ring). After editing, re-run the installer to redeploy.
 
 ### Standalone Binary (future)
@@ -501,7 +501,7 @@ planned; the single core remains the Rust CLI binaries.)
 - [x] System tray: quick profile switching (active profile ticked, wallpaper
       next/prev/pick, notifications, Quit)
 - [x] Single CLI-backed core behind `--core` / `$KTM_CORE` / Settings (the
-      former `libkde_theme_core.so` second core was removed)
+      former `libkolira_core.so` second core was removed)
 - [ ] Auto-sync with system theme changes
 - [ ] Plasma applet version
 
@@ -519,7 +519,7 @@ MIT — see LICENSE in parent directory.
 Profile application shares a process lock with CLI, Inspector writes, app themes,
 palettes and wallpapers. A failed profile application restores its captured files;
 errors include an operation id, backup and recovery diagnostics. The profile page
-reports interrupted operations once; CLI `theme-profile operations recover ID`
+reports interrupted operations once; CLI `kolira operations recover ID`
 provides explicit recovery with conflict detection. Inspector keeps staged failures
 for retry. See [coverage and limits](../../docs/APPLY_PROTECTION.md).
 
@@ -598,3 +598,5 @@ The Docker friend harness emulates only `plasma-plasmashell.service` when no use
 systemd is available. Its service starts in a separate session with `setsid`,
 matching systemd's ownership rather than the core helper's process group. Service
 status excludes zombie processes. The core's timeout and child cleanup stay active.
+
+CLI/GUI command names and legacy compatibility: [renaming contract](../../docs/RENAMING.md).

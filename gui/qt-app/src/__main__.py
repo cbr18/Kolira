@@ -1,5 +1,5 @@
 """
-KDE Theme Profile Manager — Qt/QML Application Entry Point.
+Kolira — Qt/QML Application Entry Point.
 
 v0.6.0 — Native KDE UI with Kirigami, Clean Architecture, Rust core + CLI.
 """
@@ -33,10 +33,10 @@ from system_tray import register_system_tray
 def _show_help() -> int:
     """Print help to stdout (avoids QWidget/QApplication dependency)."""
     print(
-        """KDE Theme Profile Manager v0.6.0
+        """Kolira v0.6.0
 A Qt/QML-based theme profile manager for KDE Plasma.
 
-Usage: kde-theme-manager [options]
+Usage: kolira-gui [options]
 
 Options:
   --core NAME    Core implementation: core | auto
@@ -82,11 +82,11 @@ def _extract_core_arg() -> Optional[str]:
 
 def _list_cores() -> int:
     """Print the cores and whether they can be used."""
-    print("core     always available (delegates to the Rust CLI theme-profile / wallpaper-*; local settings)")
+    print("core     always available (delegates to the Rust CLI kolira / wallpaper-*; local settings)")
     return 0
 
 
-SINGLE_INSTANCE_SOCKET = "kde-theme-manager"
+SINGLE_INSTANCE_SOCKET = "kolira"
 
 
 class SingleInstance(enum.Enum):
@@ -277,7 +277,7 @@ def main() -> int:
 
     # Handle --version
     if "--version" in sys.argv:
-        print("KDE Theme Manager 0.6.0")
+        print("kolira 0.6.0")
         return 0
 
     if "--list-cores" in sys.argv:
@@ -287,10 +287,10 @@ def main() -> int:
     _select_core(_extract_core_arg())
 
     # Настройка приложения
-    QCoreApplication.setApplicationName("KDE Theme Manager")
+    QCoreApplication.setApplicationName("kolira")
     QCoreApplication.setApplicationVersion("0.6.0")
     QCoreApplication.setOrganizationName("cbr")
-    QCoreApplication.setOrganizationDomain("github.com/cbr18/kde-theme-manager")
+    QCoreApplication.setOrganizationDomain("github.com/cbr18/Kolira")
 
     # Включаем High DPI scaling
     QApplication.setHighDpiScaleFactorRoundingPolicy(
@@ -307,7 +307,7 @@ def main() -> int:
 
     i18n_dir = Path(__file__).resolve().parent.parent / "i18n"
     translator = QTranslator(app)
-    if translator.load(QLocale.system(), "kde-theme-manager", "_", str(i18n_dir)):
+    if translator.load(QLocale.system(), "kolira", "_", str(i18n_dir)):
         app.installTranslator(translator)
     # Стандартные строки Qt (кнопки диалогов и т.п.) — из системных переводов.
     qt_base = QTranslator(app)
@@ -320,7 +320,7 @@ def main() -> int:
     single_instance: Optional[QLocalServer] = QLocalServer(app)
     outcome = _acquire_single_instance(SINGLE_INSTANCE_SOCKET, single_instance)
     if outcome is SingleInstance.HANDED_OVER:
-        print("KDE Theme Manager is already running.", file=sys.stderr)
+        print("kolira is already running.", file=sys.stderr)
         return 0
     if outcome is SingleInstance.UNAVAILABLE:
         print(

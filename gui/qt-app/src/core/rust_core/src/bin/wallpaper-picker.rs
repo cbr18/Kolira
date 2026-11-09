@@ -2,14 +2,14 @@
 //!
 //! wofi grid with generated thumbnails; the whole picker flow (thumbnails,
 //! wofi, index caching) lives in `wallpaper.rs` and is shared with the library
-//! (`kde_theme_core_wallpaper_pick`). The binary only wires the environment and
+//! (`kolira_core_wallpaper_pick`). The binary only wires the environment and
 //! decides between a dry run and actually applying the wallpaper.
 
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use kde_theme_core::paths::{cache_home, config_home};
-use kde_theme_core::wallpaper::{pick_wallpaper_flow, wallpaper_dir, PickOutcome};
+use kolira_core::paths::{cache_home, config_home};
+use kolira_core::wallpaper::{pick_wallpaper_flow, wallpaper_dir, PickOutcome};
 
 fn env_or(key: &str, default: PathBuf) -> PathBuf {
     std::env::var_os(key).map(PathBuf::from).unwrap_or(default)
@@ -41,7 +41,7 @@ fn main() -> ExitCode {
         println!("{selected}");
         ExitCode::SUCCESS
     } else {
-        match kde_theme_core::wallpaper::apply_image(&selected) {
+        match kolira_core::wallpaper::apply_image(&selected) {
             Ok(()) => ExitCode::SUCCESS,
             _ => ExitCode::from(1),
         }

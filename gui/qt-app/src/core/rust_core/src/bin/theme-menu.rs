@@ -2,14 +2,14 @@
 //!
 //! Same menu text and actions: apply / save-as / open the profiles folder /
 //! restart Plasma Shell / status. Uses the library core directly instead of
-//! shelling out to `theme-profile`.
+//! shelling out to `kolira`.
 
 use std::path::PathBuf;
 use std::process::{Command, ExitCode, Stdio};
 
-use kde_theme_core::paths::{config_home, profiles_dir};
-use kde_theme_core::profile::{apply_profile_cli, list_profiles, save_profile_cli};
-use kde_theme_core::status::status;
+use kolira_core::paths::{config_home, profiles_dir};
+use kolira_core::profile::{apply_profile_cli, list_profiles, save_profile_cli};
+use kolira_core::status::status;
 
 fn style_path() -> PathBuf {
     config_home().join("wofi/style.css")

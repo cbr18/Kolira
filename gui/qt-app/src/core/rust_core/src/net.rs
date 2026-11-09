@@ -54,11 +54,7 @@ pub fn http_get_bytes(url: &str, limit: u64) -> Result<Vec<u8>> {
     // and retry twice — about a minute at worst, then a clear error.
     let mut attempt = 0;
     let response = loop {
-        match agent()
-            .get(url)
-            .set("User-Agent", "theme-profile-kit")
-            .call()
-        {
+        match agent().get(url).set("User-Agent", "kolira").call() {
             Ok(r) => break r,
             Err(ureq::Error::Status(429, r)) if attempt < 2 => {
                 let wait = r

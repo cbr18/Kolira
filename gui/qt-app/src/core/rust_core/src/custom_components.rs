@@ -1,6 +1,6 @@
 //! User-registered custom components.
 //!
-//! `~/.config/kde-theme-profile/components.json` holds applications the user has
+//! `~/.config/kolira/components.json` holds applications the user has
 //! added beyond the built-in 20 tracked apps. Each entry mirrors one entry of
 //! the built-in `TrackedAppDef` (id, name, category, paths, reload command, …).
 //!
@@ -247,7 +247,7 @@ mod tests {
     static LOCK: Mutex<()> = Mutex::new(());
 
     fn isolated_root(tmp: &tempfile::TempDir) -> PathBuf {
-        tmp.path().join("theme-profile")
+        tmp.path().join("kolira")
     }
 
     #[test]

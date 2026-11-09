@@ -134,7 +134,7 @@ ForegroundVisited=94,63,102
 
 [General]
 AccentColor=155,150,77
-ColorScheme=ThemeProfilePaper
+ColorScheme=KoliraPaper
 ColorSchemeHash=0338bcff9b0e99fc6d1c40d47ee84c571f97cea2
 LastUsedCustomAccentColor=88,109,71
 accentColorFromWallpaper=false

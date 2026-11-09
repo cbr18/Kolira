@@ -45,7 +45,7 @@
 
 ## Реестр и владение
 
-Один файл: `$XDG_CONFIG_HOME/kde-theme-profile/installed-assets.json`, схема 2.
+Один файл: `$XDG_CONFIG_HOME/kolira/installed-assets.json`, схема 2.
 Он содержит `sources` (происхождение ранее установленных путей), `resources`
 (требования, ссылки на темы/приложение, экземпляры, состояние и методы установки/
 удаления), выбранный Python для проверки runtime. Реестр не входит в экспорт темы.
@@ -113,18 +113,18 @@ Enter нет. Отмена не убивает привилегированну�
 ## CLI
 
 ```text
-theme-profile dependencies list [--theme=NAME|--app] [--json]
-theme-profile dependencies refresh [--json]
-theme-profile dependencies register-app --python=PATH [--json]
-theme-profile dependencies install ID... [--events=jsonl]
-theme-profile dependencies remove ID... --confirm-shared [--events=jsonl]
-theme-profile dependencies reinstall ID... --confirm-shared [--events=jsonl]
-theme-profile dependencies cancel OPERATION_ID
-theme-profile dependencies operation OPERATION_ID
-theme-profile dependencies remember --theme=NAME --policy=always|never \
+kolira dependencies list [--theme=NAME|--app] [--json]
+kolira dependencies refresh [--json]
+kolira dependencies register-app --python=PATH [--json]
+kolira dependencies install ID... [--events=jsonl]
+kolira dependencies remove ID... --confirm-shared [--events=jsonl]
+kolira dependencies reinstall ID... --confirm-shared [--events=jsonl]
+kolira dependencies cancel OPERATION_ID
+kolira dependencies operation OPERATION_ID
+kolira dependencies remember --theme=NAME --policy=always|never \
   --group=store|packages [--group=...] [--selected=RESOURCE_ID ...]
-theme-profile deps NAME --pending --json
-theme-profile apply NAME --without-dependencies [--json]
+kolira deps NAME --pending --json
+kolira apply NAME --without-dependencies [--json]
 ```
 
 Старая группа `deps NAME --json/--refresh/--install=...` сохраняется, имена тем
@@ -148,9 +148,9 @@ Rust unit/integration и `gui/qt-app/tests/test_dependencies.py` проверя�
 Реальные провайдеры проверяются отдельно от моков:
 
 ```bash
-python3 tests/e2e/dependency-cycle.py gui/qt-app/src/core/rust_core/target/release/theme-profile zed
+python3 tests/e2e/dependency-cycle.py gui/qt-app/src/core/rust_core/target/release/kolira zed
 # kde STORE_ID SCHEME_NAME — цветовая схема из KDE Store в изолированном HOME
-python3 tests/e2e/dependency-cycle.py gui/qt-app/src/core/rust_core/target/release/theme-profile kde 2380962 Redacted
+python3 tests/e2e/dependency-cycle.py gui/qt-app/src/core/rust_core/target/release/kolira kde 2380962 Redacted
 docker build -f tests/e2e/Dockerfile.dependencies -t ktm-dependencies tests/e2e
 docker run --rm -v "$PWD:/src:ro" ktm-dependencies
 ```

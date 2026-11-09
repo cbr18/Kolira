@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-scripts.sh — test suite for theme-profile-kit (Rust CLI + installers)
+# test-scripts.sh — test suite for kolira (Rust CLI + installers)
 # Run: bash tests/test-scripts.sh
 # Requires: the Rust CLI built (cargo build --release in gui/qt-app/src/core/rust_core)
 #           bash, shellcheck (optional but recommended)
@@ -56,7 +56,7 @@ export KTM_OFFLINE=1
 # --- 0. Precondition: the Rust CLI is built ----------------------------------
 echo "=== Section 0: Rust CLI binaries are built ==="
 
-for cli_bin in theme-profile theme-menu wallpaper-picker wallpaper-next wallpaper-prev; do
+for cli_bin in kolira theme-menu wallpaper-picker wallpaper-next wallpaper-prev; do
   if [ -x "$CLI_DIR/$cli_bin" ]; then
     ok "built: $cli_bin"
   else
@@ -68,9 +68,9 @@ done
 echo "=== Section 1: Syntax check (bash -n) ==="
 
 for script in \
-    "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" \
-    "$SCRIPT_DIR/scripts/uninstall-theme-profile-kit.sh" \
-    "$SCRIPT_DIR/scripts/update-theme-profile-kit.sh"; do
+    "$SCRIPT_DIR/scripts/install-kolira.sh" \
+    "$SCRIPT_DIR/scripts/uninstall-kolira.sh" \
+    "$SCRIPT_DIR/scripts/update-kolira.sh"; do
 
   if run_silent bash -n "$script"; then
     ok "bash -n: $script"
@@ -84,9 +84,9 @@ echo "=== Section 2: shellcheck (if installed) ==="
 
 if command -v shellcheck >/dev/null 2>&1; then
   for script in \
-      "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" \
-      "$SCRIPT_DIR/scripts/uninstall-theme-profile-kit.sh" \
-      "$SCRIPT_DIR/scripts/update-theme-profile-kit.sh"; do
+      "$SCRIPT_DIR/scripts/install-kolira.sh" \
+      "$SCRIPT_DIR/scripts/uninstall-kolira.sh" \
+      "$SCRIPT_DIR/scripts/update-kolira.sh"; do
 
     if shellcheck "$script" 2>/dev/null; then
       ok "shellcheck: $script"
@@ -98,22 +98,22 @@ else
   echo "  ⏭️  shellcheck not installed — skipping"
 fi
 
-# --- 3. theme-profile: --help exits 0 -----------------------------------------
+# --- 3. kolira: --help exits 0 -----------------------------------------
 echo "=== Section 3: --help flags ==="
 
-if "$CLI_DIR/theme-profile" --help >/dev/null 2>&1; then
-  ok "theme-profile --help exits 0"
+if "$CLI_DIR/kolira" --help >/dev/null 2>&1; then
+  ok "kolira --help exits 0"
 else
-  fail "theme-profile --help should exit 0"
+  fail "kolira --help should exit 0"
 fi
 
-if "$CLI_DIR/theme-profile" -h >/dev/null 2>&1; then
-  ok "theme-profile -h exits 0"
+if "$CLI_DIR/kolira" -h >/dev/null 2>&1; then
+  ok "kolira -h exits 0"
 else
-  fail "theme-profile -h should exit 0"
+  fail "kolira -h should exit 0"
 fi
 
-for installer in install-theme-profile-kit.sh uninstall-theme-profile-kit.sh; do
+for installer in install-kolira.sh uninstall-kolira.sh; do
   if "$SCRIPT_DIR/scripts/$installer" --help >/dev/null 2>&1; then
     ok "$installer --help exits 0"
   else
@@ -121,13 +121,13 @@ for installer in install-theme-profile-kit.sh uninstall-theme-profile-kit.sh; do
   fi
 done
 
-if "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --bogus >/dev/null 2>&1; then
-  fail "install-theme-profile-kit.sh should reject unknown options"
+if "$SCRIPT_DIR/scripts/install-kolira.sh" --bogus >/dev/null 2>&1; then
+  fail "install-kolira.sh should reject unknown options"
 else
-  ok "install-theme-profile-kit.sh rejects unknown options"
+  ok "install-kolira.sh rejects unknown options"
 fi
 
-# --- 4. theme-profile: invalid profile names rejected -------------------------
+# --- 4. kolira: invalid profile names rejected -------------------------
 echo "=== Section 4: Profile name validation ==="
 
 # Use a temporary HOME so save/apply don't touch the real profile dir
@@ -135,13 +135,13 @@ TMP_ROOT="$(mktemp -d)"
 export TMP_ROOT
 trap 'rm -rf "$TMP_ROOT" "$SAFE_BIN"' EXIT
 
-# Bootstrap a fake ~/.config/kde-theme-profile structure
+# Bootstrap a fake ~/.config/kolira structure
 FAKE_HOME="$TMP_ROOT/fake-home"
-mkdir -p "$FAKE_HOME/.config/kde-theme-profile"
+mkdir -p "$FAKE_HOME/.config/kolira"
 
 # Create a real profile so we can test apply success and save
-mkdir -p "$FAKE_HOME/.config/kde-theme-profile/themes/test-profile"
-if HOME="$FAKE_HOME" "$CLI_DIR/theme-profile" save test-profile >/dev/null 2>&1; then
+mkdir -p "$FAKE_HOME/.config/kolira/themes/test-profile"
+if HOME="$FAKE_HOME" "$CLI_DIR/kolira" save test-profile >/dev/null 2>&1; then
   ok "save test-profile (valid name)"
 else
   fail "save test-profile (valid name) — should succeed"
@@ -149,7 +149,7 @@ fi
 
 # Test invalid names → should exit non-zero
 for bad_name in "../x" "a b" "a/b" "a;b" "a|b" "a\$b" ""; do
-  if HOME="$FAKE_HOME" "$CLI_DIR/theme-profile" save "$bad_name" >/dev/null 2>&1; then
+  if HOME="$FAKE_HOME" "$CLI_DIR/kolira" save "$bad_name" >/dev/null 2>&1; then
     fail "save '$bad_name' should have been rejected"
   else
     ok "save '$bad_name' correctly rejected"
@@ -161,8 +161,8 @@ done
 mkdir -p "$FAKE_HOME/.config"
 printf '[General]\nAccentColor=1,2,3\n' > "$FAKE_HOME/.config/kdeglobals"
 printf '[General]\nBorderSize=1\n' > "$FAKE_HOME/.config/kwinrc"
-HOME="$FAKE_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" save components-test >/dev/null 2>&1
-profile_root="$FAKE_HOME/.config/kde-theme-profile/themes/components-test"
+HOME="$FAKE_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" save components-test >/dev/null 2>&1
+profile_root="$FAKE_HOME/.config/kolira/themes/components-test"
 if grep -q '"accent_color": "1,2,3"' "$profile_root/theme.json" 2>/dev/null &&
   [ -f "$profile_root/.config/kdeglobals" ] && [ -f "$profile_root/.config/kwinrc" ]; then
   ok "save writes a full theme (whole config files + theme.json with the values)"
@@ -170,7 +170,7 @@ else
   fail "save did not write a theme package: $(ls -A "$profile_root" 2>&1)"
 fi
 printf '[General]\nAccentColor=4,5,6\n' > "$FAKE_HOME/.config/kdeglobals"
-HOME="$FAKE_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" save components-test >/dev/null 2>&1
+HOME="$FAKE_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" save components-test >/dev/null 2>&1
 if grep -q '"accent_color": "4,5,6"' "$profile_root/theme.json" &&
   [ "$(find "$profile_root" -name '.save-*' | wc -l)" = 0 ]; then
   ok "re-saving replaces the package atomically"
@@ -189,7 +189,7 @@ rt_put ".config/gtk-4.0/settings.ini" '[Settings]\ngtk-theme-name=Light\ngtk-cur
 rt_put ".config/kdeglobals" '[General]\nColorScheme=Paper\nTerminalApplication=kitty\n\n[KScreen]\nScreenScaleFactors=eDP=1;\n'
 rt_put ".config/kwinrulesrc" '[General]\ncount=1\nrules=r1\n\n[r1]\nDescription=theme rule\nopacityactive=90\n'
 rt_put ".zen/abc.Default (release)/user.js" 'user_pref("zen.view.window.scheme", 1);\n'
-rt_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$RT_HOME" KTM_THEME_NO_APPLY=1 PATH="/usr/bin:/bin" "$CLI_DIR/theme-profile" "$@"; }
+rt_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$RT_HOME" KTM_THEME_NO_APPLY=1 PATH="/usr/bin:/bin" "$CLI_DIR/kolira" "$@"; }
 rt_cli save rt >/dev/null 2>&1
 # Someone else's look + their own personal settings.
 rt_put ".config/kitty/kitty.conf" 'background #282a36\nmap ctrl+b close_tab\n'
@@ -202,9 +202,9 @@ rt_cli apply rt >/dev/null 2>&1
 rt_has() { grep -qF -- "$2" "$RT_HOME/$1" || rt_bad="$rt_bad [$1: no '$2']"; }
 rt_not() { ! grep -qF -- "$2" "$RT_HOME/$1" || rt_bad="$rt_bad [$1: still '$2']"; }
 rt_bad=""
-rt_has .config/kitty/theme-profile.conf "background #fffbf4"
-rt_not .config/kitty/theme-profile.conf "font_size"
-rt_has .config/kitty/kitty.conf "include theme-profile.conf"
+rt_has .config/kitty/kolira.conf "background #fffbf4"
+rt_not .config/kitty/kolira.conf "font_size"
+rt_has .config/kitty/kitty.conf "include kolira.conf"
 rt_not .config/kitty/kitty.conf "background #282a36"
 rt_has .config/wofi/style.css "#fffbf4"
 rt_has .config/gtk-4.0/settings.ini "gtk-theme-name=Light"
@@ -229,20 +229,20 @@ if [ -z "$rt_bad" ]; then
 else
   fail "apply overwrote personal settings:$rt_bad"
 fi
-if ! grep -q "TerminalApplication\|KScreen" "$RT_HOME/.config/kde-theme-profile/themes/rt/.config/kdeglobals" &&
-  [ ! -e "$RT_HOME/.config/kde-theme-profile/themes/rt/.config/kitty/kitty.conf" ] &&
-  ! grep -q "map ctrl" "$RT_HOME/.config/kde-theme-profile/themes/rt/.config/kitty/theme-profile.conf"; then
+if ! grep -q "TerminalApplication\|KScreen" "$RT_HOME/.config/kolira/themes/rt/.config/kdeglobals" &&
+  [ ! -e "$RT_HOME/.config/kolira/themes/rt/.config/kitty/kitty.conf" ] &&
+  ! grep -q "map ctrl" "$RT_HOME/.config/kolira/themes/rt/.config/kitty/kolira.conf"; then
   ok "save stores only the look (no terminal choice, screen scale or key bindings)"
 else
   fail "save stored personal settings in the theme"
 fi
 
-if HOME="$FAKE_HOME" "$CLI_DIR/theme-profile" apply ../x >/dev/null 2>&1; then
+if HOME="$FAKE_HOME" "$CLI_DIR/kolira" apply ../x >/dev/null 2>&1; then
   fail "apply '../x' should have been rejected"
 else
   ok "apply '../x' correctly rejected"
 fi
-if HOME="$FAKE_HOME" "$CLI_DIR/theme-profile" diff test-profile ../x >/dev/null 2>&1; then
+if HOME="$FAKE_HOME" "$CLI_DIR/kolira" diff test-profile ../x >/dev/null 2>&1; then
   fail "diff '../x' should have been rejected"
 else
   ok "diff '../x' correctly rejected"
@@ -257,14 +257,14 @@ XDG_DATA="$XDG_HOME/data"
 mkdir -p "$XDG_CONFIG" "$XDG_DATA"
 printf '[General]\nAccentColor=9,8,7\n' > "$XDG_CONFIG/kdeglobals"
 if HOME="$XDG_HOME" XDG_CONFIG_HOME="$XDG_CONFIG" XDG_DATA_HOME="$XDG_DATA" KTM_THEME_NO_APPLY=1 \
-  "$CLI_DIR/theme-profile" save xdg-profile >/dev/null 2>&1 \
-  && grep -q '"accent_color": "9,8,7"' "$XDG_CONFIG/kde-theme-profile/themes/xdg-profile/theme.json"; then
+  "$CLI_DIR/kolira" save xdg-profile >/dev/null 2>&1 \
+  && grep -q '"accent_color": "9,8,7"' "$XDG_CONFIG/kolira/themes/xdg-profile/theme.json"; then
   ok "XDG_CONFIG_HOME is used for profiles and live config"
 else
   fail "XDG_CONFIG_HOME was ignored"
 fi
 
-# --- 5. theme-profile: apply nonexistent → fails fast (no side effects) ------
+# --- 5. kolira: apply nonexistent → fails fast (no side effects) ------
 echo "=== Section 5: apply nonexistent doesn't break Plasma ==="
 
 # We can't easily test the trap, but we can verify it exits 1 before
@@ -284,7 +284,7 @@ MOCK_CALLS="$TMP_ROOT/mock-calls.log"
 echo "" > "$MOCK_CALLS"
 
 # Pre-apply validation should reject before stop_plasma_shell_for_restore
-if HOME="$FAKE_HOME" PATH="$MOCK_BIN:$PATH" "$CLI_DIR/theme-profile" apply nonexistent-profile >/dev/null 2>&1; then
+if HOME="$FAKE_HOME" PATH="$MOCK_BIN:$PATH" "$CLI_DIR/kolira" apply nonexistent-profile >/dev/null 2>&1; then
   fail "apply nonexistent-profile should exit non-zero"
 else
   ok "apply nonexistent-profile correctly exits non-zero"
@@ -300,8 +300,8 @@ fi
 
 # --- 5a. Names differing only by case are rejected ---------------------------
 CASE_HOME="$TMP_ROOT/case-home"
-mkdir -p "$CASE_HOME/.config/kde-theme-profile"
-case_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$CASE_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+mkdir -p "$CASE_HOME/.config/kolira"
+case_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$CASE_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 case_cli save Paper >/dev/null 2>&1
 if case_cli save paper >/dev/null 2>&1 || case_cli clone Paper PAPER >/dev/null 2>&1; then
   fail "save/clone accepted a name differing only by case"
@@ -318,7 +318,7 @@ fi
 echo "=== Section 5b: profile wallpaper copy ==="
 
 WP_HOME="$TMP_ROOT/wp-home"
-mkdir -p "$WP_HOME/.config/kde-theme-profile" "$WP_HOME/Pictures/Wallpaper"
+mkdir -p "$WP_HOME/.config/kolira" "$WP_HOME/Pictures/Wallpaper"
 printf 'jpeg' >"$WP_HOME/Pictures/Wallpaper/forest one.jpg"
 cat >"$WP_HOME/.config/plasma-org.kde.plasma.desktop-appletsrc" <<APPLETS
 [Containments][1]
@@ -328,7 +328,7 @@ lastScreen=0
 Image=file://$WP_HOME/Pictures/Wallpaper/forest%20one.jpg
 APPLETS
 
-wp_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$WP_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+wp_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$WP_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 
 if [ "$(wp_cli wallpaper dir)" = "$WP_HOME/Pictures/Wallpaper" ]; then
   ok "wallpaper dir: no localised hard-coded folder (~/Pictures/Wallpaper)"
@@ -342,15 +342,15 @@ else
 fi
 
 wp_cli save wp-test >/dev/null 2>&1
-saved="$WP_HOME/.config/kde-theme-profile/themes/wp-test"
+saved="$WP_HOME/.config/kolira/themes/wp-test"
 if [ -f "$saved/wallpaper/forest one.jpg" ] && grep -q '"wallpaper": "wallpaper/forest one.jpg"' "$saved/theme.json"; then
   ok "save copies the wallpaper into the theme package"
 else
   fail "save did not copy the wallpaper"
 fi
 wp_cli save wp-nowall --no-wallpaper >/dev/null 2>&1
-if grep -q '"wallpaper": null' "$WP_HOME/.config/kde-theme-profile/themes/wp-nowall/theme.json" &&
-  [ ! -e "$WP_HOME/.config/kde-theme-profile/themes/wp-nowall/wallpaper" ]; then
+if grep -q '"wallpaper": null' "$WP_HOME/.config/kolira/themes/wp-nowall/theme.json" &&
+  [ ! -e "$WP_HOME/.config/kolira/themes/wp-nowall/wallpaper" ]; then
   ok "save --no-wallpaper keeps the wallpaper out (applying leaves it untouched)"
 else
   fail "save --no-wallpaper still stored a wallpaper"
@@ -376,7 +376,7 @@ WP_MOCK="$TMP_ROOT/wp-mock"
 mkdir -p "$WP_MOCK"
 printf '#!/usr/bin/env bash\necho "$*" >>"%s/calls"\nexit 0\n' "$WP_MOCK" >"$WP_MOCK/plasma-apply-wallpaperimage"
 chmod +x "$WP_MOCK/plasma-apply-wallpaperimage"
-wp_live() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$WP_HOME" PATH="$WP_MOCK:$PATH" "$CLI_DIR/theme-profile" "$@"; }
+wp_live() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$WP_HOME" PATH="$WP_MOCK:$PATH" "$CLI_DIR/kolira" "$@"; }
 # The theme's appletsrc names "forest one.jpg"; the desktop now shows another.
 printf 'jpeg2' >"$WP_HOME/Pictures/Wallpaper/other.jpg"
 set_live_wallpaper() { sed -i "s|^Image=.*|Image=file://$WP_HOME/Pictures/Wallpaper/$1|" "$WP_HOME/.config/plasma-org.kde.plasma.desktop-appletsrc"; }
@@ -399,7 +399,7 @@ else
 fi
 
 # Legacy snapshot profiles convert to packages; check reports what is missing.
-LEG="$WP_HOME/.config/kde-theme-profile/themes/legacy"
+LEG="$WP_HOME/.config/kolira/themes/legacy"
 mkdir -p "$LEG/.config"
 printf '[General]\nColorScheme=NotInstalledScheme\nAccentColor=1,2,3\n' >"$LEG/.config/kdeglobals"
 printf '{"schema_version":1,"name":"legacy","description":"old one"}\n' >"$LEG/manifest.json"
@@ -419,8 +419,8 @@ fi
 echo "=== Section 5c: palette CLI ==="
 
 PAL_HOME="$TMP_ROOT/pal-home"
-mkdir -p "$PAL_HOME/.config/kde-theme-profile"
-pal_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$PAL_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+mkdir -p "$PAL_HOME/.config/kolira"
+pal_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$PAL_HOME" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 BASE16="$SCRIPT_DIR/gui/qt-app/src/core/rust_core/data/base16/everforest.yaml"
 
 if pal_cli palette import "$BASE16" | grep -qx "base0B=#a7c080"; then
@@ -438,14 +438,14 @@ if pal_cli palette set base99=#000000 >/dev/null 2>&1; then
 else
   ok "palette set rejects unknown slots"
 fi
-if pal_cli palette generate kde | grep -q "^ColorScheme=ThemeProfileEverforest$"; then
+if pal_cli palette generate kde | grep -q "^ColorScheme=KoliraEverforest$"; then
   ok "palette generate kde prints a colour scheme"
 else
   fail "palette generate kde output unexpected"
 fi
 pal_cli palette apply --targets=kde >/dev/null 2>&1
-if grep -q "^Name=Everforest$" "$PAL_HOME/.local/share/color-schemes/ThemeProfileEverforest.colors" 2>/dev/null; then
-  ok "palette apply writes ThemeProfile*.colors (never a user scheme name)"
+if grep -q "^Name=Everforest$" "$PAL_HOME/.local/share/color-schemes/KoliraEverforest.colors" 2>/dev/null; then
+  ok "palette apply writes Kolira*.colors (never a user scheme name)"
 else
   fail "palette apply did not write the colour scheme"
 fi
@@ -455,7 +455,7 @@ else
   ok "palette apply rejects unknown targets"
 fi
 # Gallery (offline: never touches the network in tests).
-gal_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u XDG_CACHE_HOME HOME="$PAL_HOME" KTM_OFFLINE=1 KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+gal_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u XDG_CACHE_HOME HOME="$PAL_HOME" KTM_OFFLINE=1 KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 if [ "$(gal_cli palette gallery | grep -c "	bundled	")" -ge 15 ] &&
   gal_cli palette gallery rose | grep -q "^rose-pine-dawn	bundled	light	"; then
   ok "palette gallery lists the bundled schemes offline (with search)"
@@ -523,12 +523,12 @@ chmod 600 "$PAL_HOME/.config/kitty/kitty.conf"
 pal_cli palette apply >/dev/null 2>&1
 pal_cli palette apply >/dev/null 2>&1
 kitty_conf="$PAL_HOME/.config/kitty/kitty.conf"
-kitty_theme="$PAL_HOME/.config/kitty/theme-profile.conf"
-if [ "$(grep -c '^# BEGIN theme-profile palette' "$kitty_theme")" = 1 ] &&
+kitty_theme="$PAL_HOME/.config/kitty/kolira.conf"
+if [ "$(grep -c '^# BEGIN kolira palette' "$kitty_theme")" = 1 ] &&
   grep -qx "background #2d353b" "$kitty_theme" && ! grep -q "font_size" "$kitty_theme" &&
-  [ "$(grep -c '^include theme-profile.conf' "$kitty_conf")" = 1 ] && grep -qx "map ctrl+a new_tab" "$kitty_conf" &&
+  [ "$(grep -c '^include kolira.conf' "$kitty_conf")" = 1 ] && grep -qx "map ctrl+a new_tab" "$kitty_conf" &&
   grep -qx "font_size 11" "$kitty_conf" && ! grep -q "background" "$kitty_conf"; then
-  ok "palette apply writes kitty colours to theme-profile.conf; kitty.conf keeps keys, font size + one include"
+  ok "palette apply writes kitty colours to kolira.conf; kitty.conf keeps keys, font size + one include"
 else
   fail "kitty theme/include wrong: $(cat "$kitty_conf") // $(cat "$kitty_theme" 2>&1)"
 fi
@@ -538,16 +538,16 @@ else
   fail "kitty.conf permissions changed to $(stat -c %a "$kitty_conf")"
 fi
 alacritty_toml="$PAL_HOME/.config/alacritty/alacritty.toml"
-alacritty_theme="$PAL_HOME/.config/alacritty/theme-profile.toml"
+alacritty_theme="$PAL_HOME/.config/alacritty/kolira.toml"
 if grep -q 'opacity = 0.5 # mine' "$alacritty_theme" && grep -q 'background = "#2d353b"' "$alacritty_theme" &&
-  grep -q 'startup_mode' "$alacritty_toml" && grep -qF 'theme-profile.toml"' "$alacritty_toml" &&
+  grep -q 'startup_mode' "$alacritty_toml" && grep -qF 'kolira.toml"' "$alacritty_toml" &&
   ! grep -q 'opacity' "$alacritty_toml"; then
-  ok "palette apply sets Alacritty colours in theme-profile.toml (imported), keeps comments"
+  ok "palette apply sets Alacritty colours in kolira.toml (imported), keeps comments"
 else
   fail "alacritty unexpected: $(cat "$alacritty_toml") // $(cat "$alacritty_theme" 2>&1)"
 fi
-if compgen -G "$PAL_HOME/.config/kde-theme-profile/backups/pre-split-kitty-*/.config/kitty/kitty.conf" >/dev/null &&
-  compgen -G "$PAL_HOME/.config/kde-theme-profile/backups/palette-apply-*/theme-profile.conf" >/dev/null; then
+if compgen -G "$PAL_HOME/.config/kolira/backups/pre-split-kitty-*/.config/kitty/kitty.conf" >/dev/null &&
+  compgen -G "$PAL_HOME/.config/kolira/backups/palette-apply-*/kolira.conf" >/dev/null; then
   ok "the original kitty.conf and the previous theme file are backed up"
 else
   fail "no pre-split / palette-apply backup"
@@ -566,7 +566,7 @@ mkdir -p "$KV/FakeBase"
 printf '[GeneralColors]\nwindow.color=#383c4a\nwindow.text.color=#ffffff\nhighlight.color=#5294e2\n' >"$KV/FakeBase/FakeBase.kvconfig"
 printf '<rect style="fill:#5294e2"/>' >"$KV/FakeBase/FakeBase.svg"
 if pal_cli palette apply --targets=kvantum --kvantum-base=FakeBase | grep -q "recoloured from FakeBase" &&
-  grep -q "#a7c080" "$KV/ThemeProfileEverforest/ThemeProfileEverforest.svg"; then
+  grep -q "#a7c080" "$KV/KoliraEverforest/KoliraEverforest.svg"; then
   ok "palette apply --targets=kvantum recolours an installed base theme"
 else
   fail "Kvantum recolour failed"
@@ -576,27 +576,27 @@ if pal_cli palette apply --targets=kvantum --kvantum-base=Missing >/dev/null 2>&
 else
   ok "palette apply reports a missing Kvantum base"
 fi
-printf '[General]\ntheme=ThemeProfileEverforest\n' >"$KV/kvantum.kvconfig"
+printf '[General]\ntheme=KoliraEverforest\n' >"$KV/kvantum.kvconfig"
 pal_cli save kv-test >/dev/null 2>&1
-if [ -f "$PAL_HOME/.config/kde-theme-profile/themes/kv-test/.config/Kvantum/ThemeProfileEverforest/ThemeProfileEverforest.svg" ]; then
+if [ -f "$PAL_HOME/.config/kolira/themes/kv-test/.config/Kvantum/KoliraEverforest/KoliraEverforest.svg" ]; then
   ok "theme packages bundle the active user Kvantum theme"
 else
   fail "active Kvantum theme missing from the package"
 fi
-rm -rf "$KV/ThemeProfileEverforest"
+rm -rf "$KV/KoliraEverforest"
 pal_cli apply kv-test >/dev/null 2>&1
-if [ -f "$KV/ThemeProfileEverforest/ThemeProfileEverforest.kvconfig" ]; then
+if [ -f "$KV/KoliraEverforest/KoliraEverforest.kvconfig" ]; then
   ok "apply restores the profile's Kvantum theme"
 else
   fail "apply did not restore the Kvantum theme"
 fi
 
 # (KTM_THEME_NO_APPLY skips plasma-apply-colorscheme: set the scheme as it would.)
-printf '[General]\nColorScheme=ThemeProfileEverforest\n' >"$PAL_HOME/.config/kdeglobals"
+printf '[General]\nColorScheme=KoliraEverforest\n' >"$PAL_HOME/.config/kdeglobals"
 pal_cli save pal-test >/dev/null 2>&1
-pal_pkg="$PAL_HOME/.config/kde-theme-profile/themes/pal-test"
+pal_pkg="$PAL_HOME/.config/kolira/themes/pal-test"
 if grep -q '"accent": "#a7c080"' "$pal_pkg/theme.json" 2>/dev/null &&
-  [ -f "$pal_pkg/.local/share/color-schemes/ThemeProfileEverforest.colors" ]; then
+  [ -f "$pal_pkg/.local/share/color-schemes/KoliraEverforest.colors" ]; then
   ok "theme packages carry the palette and its generated colour scheme"
 else
   fail "palette/scheme missing from the package"
@@ -808,7 +808,7 @@ else
 fi
 
 # --- 11. GUI install/uninstall round trip in a throwaway HOME -----------------
-echo "=== Section 11: kde-theme-manager install / uninstall ==="
+echo "=== Section 11: kolira install / uninstall ==="
 
 FAKE_HOME="$TMP_ROOT/fake-home"
 mkdir -p "$FAKE_HOME"
@@ -816,7 +816,7 @@ mkdir -p "$FAKE_HOME"
 gui_install() {
   env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
     PATH="/usr/bin:/bin" \
-    bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --only-gui --no-venv
+    bash "$SCRIPT_DIR/scripts/install-kolira.sh" --only-gui --no-venv
 }
 
 if gui_install >/dev/null 2>&1; then
@@ -829,19 +829,19 @@ check_installed() { # path description
   if [ -e "$1" ]; then ok "$2"; else fail "$2 (missing: $1)"; fi
 }
 
-check_installed "$FAKE_HOME/.local/share/kde-theme-manager/src/__main__.py" \
+check_installed "$FAKE_HOME/.local/share/kolira/src/__main__.py" \
   "app copy installed"
-check_installed "$FAKE_HOME/.local/share/kde-theme-manager/qml/Main.qml" \
+check_installed "$FAKE_HOME/.local/share/kolira/qml/Main.qml" \
   "app QML shipped with the copy"
-check_installed "$FAKE_HOME/.local/share/kde-theme-manager/.installed-by-theme-profile-kit" \
+check_installed "$FAKE_HOME/.local/share/kolira/.installed-by-kolira" \
   "app copy carries the install marker"
-check_installed "$FAKE_HOME/.local/bin/kde-theme-manager" "launcher installed"
-check_installed "$FAKE_HOME/.local/share/applications/kde-theme-manager.desktop" \
+check_installed "$FAKE_HOME/.local/bin/kolira-gui" "launcher installed"
+check_installed "$FAKE_HOME/.local/share/applications/kolira.desktop" \
   "desktop entry installed"
-check_installed "$FAKE_HOME/.local/share/icons/hicolor/scalable/apps/ktm-theme-manager.svg" \
+check_installed "$FAKE_HOME/.local/share/icons/hicolor/scalable/apps/kolira-icon.svg" \
   "app icon installed"
 
-if [ -x "$FAKE_HOME/.local/bin/kde-theme-manager" ]; then
+if [ -x "$FAKE_HOME/.local/bin/kolira-gui" ]; then
   ok "launcher is executable"
 else
   fail "launcher must be executable"
@@ -849,18 +849,18 @@ fi
 
 
 # The dev venv, caches and the Rust build tree must not be copied.
-if [ -e "$FAKE_HOME/.local/share/kde-theme-manager/.venv" ] ||
-  [ -e "$FAKE_HOME/.local/share/kde-theme-manager/src/core/rust_core/target" ]; then
+if [ -e "$FAKE_HOME/.local/share/kolira/.venv" ] ||
+  [ -e "$FAKE_HOME/.local/share/kolira/src/core/rust_core/target" ]; then
   fail "installer copied .venv or the Rust build tree"
 else
   ok "installer skips .venv / rust_core target"
 fi
 
 # Killing the app directory must break the launcher with a clear message.
-mv "$FAKE_HOME/.local/share/kde-theme-manager" "$FAKE_HOME/moved-app"
+mv "$FAKE_HOME/.local/share/kolira" "$FAKE_HOME/moved-app"
 out="$(env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
-  PATH="/usr/bin:/bin" bash "$FAKE_HOME/.local/bin/kde-theme-manager" 2>&1 || true)"
-mv "$FAKE_HOME/moved-app" "$FAKE_HOME/.local/share/kde-theme-manager"
+  PATH="/usr/bin:/bin" bash "$FAKE_HOME/.local/bin/kolira-gui" 2>&1 || true)"
+mv "$FAKE_HOME/moved-app" "$FAKE_HOME/.local/share/kolira"
 case "$out" in
   *"not installed"*) ok "launcher reports a missing app instead of crashing" ;;
   *) fail "launcher message unexpected: $out" ;;
@@ -868,14 +868,14 @@ esac
 
 # A re-install must keep working (and back up the previous tree) without
 # dragging dev artifacts into the backup.
-mkdir -p "$FAKE_HOME/.local/share/kde-theme-manager/.venv" \
-  "$FAKE_HOME/.local/share/kde-theme-manager/src/core/rust_core/target"
+mkdir -p "$FAKE_HOME/.local/share/kolira/.venv" \
+  "$FAKE_HOME/.local/share/kolira/src/core/rust_core/target"
 if gui_install >/dev/null 2>&1; then
   ok "re-install succeeds"
 else
   fail "re-install failed"
 fi
-backup_dir="$(compgen -G "$FAKE_HOME/.config/kde-theme-profile/backups/deploy-kde-theme-manager-*" | tail -1)"
+backup_dir="$(compgen -G "$FAKE_HOME/.config/kolira/backups/deploy-kolira-*" | tail -1)"
 if [ -n "$backup_dir" ] && [ -f "$backup_dir/app/src/__main__.py" ]; then
   ok "re-install backs up the previous app directory"
 else
@@ -891,7 +891,7 @@ fi
 # must warn about it, and --restart must stop it. The fake process mimics the
 # launcher (cwd = app dir, `-m src` in argv); `; :` stops bash from exec'ing.
 fake_gui() {
-  (cd "$FAKE_HOME/.local/share/kde-theme-manager" && exec bash -c 'sleep 30; :' fake -m src) &
+  (cd "$FAKE_HOME/.local/share/kolira" && exec bash -c 'sleep 30; :' fake -m src) &
   FAKE_GUI_PID=$!
   sleep 0.3
 }
@@ -908,7 +908,7 @@ else
 fi
 env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
   PATH="/usr/bin:/bin" KTM_INSTALL_NO_LAUNCH=1 \
-  bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --only-gui --no-venv --restart >/dev/null 2>&1 || true
+  bash "$SCRIPT_DIR/scripts/install-kolira.sh" --only-gui --no-venv --restart >/dev/null 2>&1 || true
 sleep 0.3
 if kill -0 "$FAKE_GUI_PID" 2>/dev/null; then
   fail "--restart did not stop the running copy"
@@ -920,26 +920,26 @@ wait "$FAKE_GUI_PID" 2>/dev/null || true
 
 env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
   PATH="/usr/bin:/bin" \
-  bash "$SCRIPT_DIR/scripts/uninstall-theme-profile-kit.sh" --only-gui --force >/dev/null 2>&1
+  bash "$SCRIPT_DIR/scripts/uninstall-kolira.sh" --only-gui --force >/dev/null 2>&1
 
 check_gone() { # path description
   if [ -e "$1" ]; then fail "still present: $1"; else ok "$2"; fi
 }
 
-check_gone "$FAKE_HOME/.local/share/kde-theme-manager" "app copy removed"
-check_gone "$FAKE_HOME/.local/bin/kde-theme-manager" "launcher removed"
-check_gone "$FAKE_HOME/.local/share/applications/kde-theme-manager.desktop" \
+check_gone "$FAKE_HOME/.local/share/kolira" "app copy removed"
+check_gone "$FAKE_HOME/.local/bin/kolira-gui" "launcher removed"
+check_gone "$FAKE_HOME/.local/share/applications/kolira.desktop" \
   "desktop entry removed"
-check_gone "$FAKE_HOME/.local/share/icons/hicolor/scalable/apps/ktm-theme-manager.svg" \
+check_gone "$FAKE_HOME/.local/share/icons/hicolor/scalable/apps/kolira-icon.svg" \
   "app icon removed"
 
 # An unrelated directory must survive removal.
-mkdir -p "$FAKE_HOME/.local/share/kde-theme-manager-not-ours"
-printf 'keep me\n' > "$FAKE_HOME/.local/share/kde-theme-manager-not-ours/data"
+mkdir -p "$FAKE_HOME/.local/share/kolira-not-ours"
+printf 'keep me\n' > "$FAKE_HOME/.local/share/kolira-not-ours/data"
 env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
   PATH="/usr/bin:/bin" \
-  bash "$SCRIPT_DIR/scripts/uninstall-theme-profile-kit.sh" --only-gui --force >/dev/null 2>&1
-if [ -f "$FAKE_HOME/.local/share/kde-theme-manager-not-ours/data" ]; then
+  bash "$SCRIPT_DIR/scripts/uninstall-kolira.sh" --only-gui --force >/dev/null 2>&1
+if [ -f "$FAKE_HOME/.local/share/kolira-not-ours/data" ]; then
   ok "uninstall leaves unrelated data alone"
 else
   fail "uninstall removed an unrelated directory"
@@ -949,13 +949,13 @@ fi
 # install the CLI only).
 if env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
   PATH="/usr/bin:/bin:$REAL_CARGO_BIN" CARGO_HOME="$REAL_CARGO_HOME" RUSTUP_HOME="$REAL_RUSTUP_HOME" \
-  bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --no-venv >/dev/null 2>&1; then
-  ok "install-theme-profile-kit.sh runs"
+  bash "$SCRIPT_DIR/scripts/install-kolira.sh" --no-venv >/dev/null 2>&1; then
+  ok "install-kolira.sh runs"
 else
-  fail "install-theme-profile-kit.sh failed"
+  fail "install-kolira.sh failed"
 fi
 
-for f in theme-profile theme-menu wallpaper-picker wallpaper-next wallpaper-prev; do
+for f in kolira theme-menu wallpaper-picker wallpaper-next wallpaper-prev; do
   if [ -x "$FAKE_HOME/.local/bin/$f" ]; then
     ok "kit installer deployed $f"
   else
@@ -963,13 +963,19 @@ for f in theme-profile theme-menu wallpaper-picker wallpaper-next wallpaper-prev
   fi
 done
 
-if [ -x "$FAKE_HOME/.local/bin/kde-theme-manager" ]; then
+if [ -x "$FAKE_HOME/.local/bin/kolira-gui" ]; then
   ok "kit installer also installed the GUI launcher"
+  if [ "$(head -c 4 "$FAKE_HOME/.local/bin/kolira")" = $'\x7fELF' ] &&
+    [ "$(head -c 2 "$FAKE_HOME/.local/bin/kolira-gui")" = '#!' ]; then
+    ok "GUI launcher does not overwrite the Rust CLI"
+  else
+    fail "CLI and GUI commands collide"
+  fi
 else
   fail "kit installer did not install the GUI launcher"
 fi
 
-if python3 - "$FAKE_HOME/.config/kde-theme-profile/installed-assets.json" <<'REGISTRY'
+if python3 - "$FAKE_HOME/.config/kolira/installed-assets.json" <<'REGISTRY'
 import json, sys
 registry = json.load(open(sys.argv[1]))
 assert registry["schema"] == 2
@@ -986,30 +992,30 @@ fi
 bundled_ok=1
 for dir in "$SCRIPT_DIR/themes"/*/; do
   name="$(basename "$dir")"
-  [ -f "$FAKE_HOME/.config/kde-theme-profile/themes/$name/theme.json" ] || bundled_ok=0
+  [ -f "$FAKE_HOME/.config/kolira/themes/$name/theme.json" ] || bundled_ok=0
 done
 bundled_names="$(find "$SCRIPT_DIR/themes" -mindepth 1 -maxdepth 1 -type d -printf '%f ' | sort)"
 if [ "$bundled_ok" = 1 ] && [ -n "$bundled_names" ]; then
   ok "kit installer added the bundled themes ($bundled_names)"
 else
-  fail "bundled themes missing from $FAKE_HOME/.config/kde-theme-profile/themes"
+  fail "bundled themes missing from $FAKE_HOME/.config/kolira/themes"
 fi
 first_theme="$(find "$SCRIPT_DIR/themes" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | head -1)"
-printf 'mine\n' >"$FAKE_HOME/.config/kde-theme-profile/themes/$first_theme/marker"
+printf 'mine\n' >"$FAKE_HOME/.config/kolira/themes/$first_theme/marker"
 env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
   PATH="/usr/bin:/bin:$REAL_CARGO_BIN" CARGO_HOME="$REAL_CARGO_HOME" RUSTUP_HOME="$REAL_RUSTUP_HOME" \
-  bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --only-cli >/dev/null 2>&1
-if [ -f "$FAKE_HOME/.config/kde-theme-profile/themes/$first_theme/marker" ]; then
+  bash "$SCRIPT_DIR/scripts/install-kolira.sh" --only-cli >/dev/null 2>&1
+if [ -f "$FAKE_HOME/.config/kolira/themes/$first_theme/marker" ]; then
   ok "re-installing never replaces an existing theme"
 else
   fail "re-install replaced the user's theme $first_theme"
 fi
 
-rm -rf "$FAKE_HOME/.local/share/kde-theme-manager" "$FAKE_HOME/.local/bin/kde-theme-manager"
+rm -rf "$FAKE_HOME/.local/share/kolira" "$FAKE_HOME/.local/bin/kolira-gui"
 env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
   PATH="/usr/bin:/bin:$REAL_CARGO_BIN" CARGO_HOME="$REAL_CARGO_HOME" RUSTUP_HOME="$REAL_RUSTUP_HOME" \
-  bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --only-cli >/dev/null 2>&1
-if [ ! -e "$FAKE_HOME/.local/bin/kde-theme-manager" ]; then
+  bash "$SCRIPT_DIR/scripts/install-kolira.sh" --only-cli >/dev/null 2>&1
+if [ -x "$FAKE_HOME/.local/bin/kolira" ] && [ ! -e "$FAKE_HOME/.local/bin/kolira-gui" ]; then
   ok "--only-cli installs the CLI without the app"
 else
   fail "--only-cli still installed the app"
@@ -1017,22 +1023,22 @@ fi
 
 if env -i HOME="$FAKE_HOME" XDG_DATA_HOME="$FAKE_HOME/.local/share" \
   PATH="/usr/bin:/bin" \
-  bash "$SCRIPT_DIR/scripts/uninstall-theme-profile-kit.sh" --force --only-cli >/dev/null 2>&1 &&
-  [ ! -e "$FAKE_HOME/.local/bin/theme-profile" ]; then
-  ok "uninstall-theme-profile-kit.sh --force --only-cli removes the CLI"
+  bash "$SCRIPT_DIR/scripts/uninstall-kolira.sh" --force --only-cli >/dev/null 2>&1 &&
+  [ ! -e "$FAKE_HOME/.local/bin/kolira" ]; then
+  ok "uninstall-kolira.sh --force --only-cli removes the CLI"
 else
   fail "kit uninstaller (--only-cli) did not remove the CLI"
 fi
 
 # --- 12. The GUI install ships no Rust library --------------------------------
-# The second core (libkde_theme_core.so) was removed; the installer must not
+# The second core (libkolira_core.so) was removed; the installer must not
 # reference rust flags or install any library.
 echo "=== Section 12: no Rust library in the GUI install ==="
 
 FAKE_HOME_RUST="$TMP_ROOT/fake-home-rust"
 mkdir -p "$FAKE_HOME_RUST"
 
-if bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --help 2>&1 |
+if bash "$SCRIPT_DIR/scripts/install-kolira.sh" --help 2>&1 |
   grep -q -- "--with-rust"; then
   fail "installer --help still documents the removed --with-rust / --no-rust"
 else
@@ -1041,8 +1047,8 @@ fi
 
 if env -i HOME="$FAKE_HOME_RUST" XDG_DATA_HOME="$FAKE_HOME_RUST/.local/share" \
   PATH="/usr/bin:/bin" \
-  bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --only-gui --no-venv >/dev/null 2>&1; then
-  if [ -e "$FAKE_HOME_RUST/.local/share/kde-theme-manager/lib" ]; then
+  bash "$SCRIPT_DIR/scripts/install-kolira.sh" --only-gui --no-venv >/dev/null 2>&1; then
+  if [ -e "$FAKE_HOME_RUST/.local/share/kolira/lib" ]; then
     fail "installer still creates a Rust library directory"
   else
     ok "installer installs no Rust library"
@@ -1052,7 +1058,7 @@ else
 fi
 
 # The installed app copy must not carry the ctypes binding either.
-if [ -e "$FAKE_HOME_RUST/.local/share/kde-theme-manager/src/core/rust_core.py" ]; then
+if [ -e "$FAKE_HOME_RUST/.local/share/kolira/src/core/rust_core.py" ]; then
   fail "installed app still ships src/core/rust_core.py"
 else
   ok "installed app ships no rust_core.py binding"
@@ -1068,7 +1074,7 @@ if ! command -v kreadconfig6 >/dev/null 2>&1 || ! command -v kwriteconfig6 >/dev
   echo "  \u23ed  kreadconfig6/kwriteconfig6 not installed (KDE tooling) — skipping"
 else
   LF_HOME="$TMP_ROOT/lf-home"
-  mkdir -p "$LF_HOME/.config/kde-theme-profile" "$LF_HOME/.config"
+  mkdir -p "$LF_HOME/.config/kolira" "$LF_HOME/.config"
   # Themes only apply installed assets: provide the Look & Feel package.
   mkdir -p "$LF_HOME/.local/share/plasma/look-and-feel/paper"
   echo '{}' >"$LF_HOME/.local/share/plasma/look-and-feel/paper/metadata.json"
@@ -1091,7 +1097,7 @@ MOCK
   done
 
   if HOME="$LF_HOME" PATH="$MOCK_BIN_LF:$PATH" \
-    "$CLI_DIR/theme-profile" save lf-test >/dev/null 2>&1; then
+    "$CLI_DIR/kolira" save lf-test >/dev/null 2>&1; then
     ok "save copies the live kdeglobals into the profile"
   else
     fail "save lf-test failed"
@@ -1101,7 +1107,7 @@ MOCK
   HOME="$LF_HOME" kwriteconfig6 --file kdeglobals --group KDE --key LookAndFeelPackage glass
 
   if HOME="$LF_HOME" PATH="$MOCK_BIN_LF:$PATH" \
-    "$CLI_DIR/theme-profile" apply lf-test >/dev/null 2>&1; then
+    "$CLI_DIR/kolira" apply lf-test >/dev/null 2>&1; then
     ok "apply lf-test exits 0 with mocked session commands"
   else
     fail "apply lf-test failed"
@@ -1129,7 +1135,7 @@ else
   ACC_HOME="$TMP_ROOT/accent-home"
   ACC_CALLS="$TMP_ROOT/accent-calls.log"
   export ACC_CALLS
-  mkdir -p "$ACC_HOME/.config/kde-theme-profile" "$ACC_HOME/.config" "$ACC_HOME/.local/share/color-schemes"
+  mkdir -p "$ACC_HOME/.config/kolira" "$ACC_HOME/.config" "$ACC_HOME/.local/share/color-schemes"
   printf '[General]\nName=Breeze1\n' >"$ACC_HOME/.local/share/color-schemes/Breeze1.colors"
   : > "$ACC_CALLS"
 
@@ -1175,10 +1181,10 @@ MOCK
   chmod +x "$MOCK_BIN_ACC/plasma-apply-colorscheme" "$MOCK_BIN_ACC/magick"
 
   HOME="$ACC_HOME" PATH="$MOCK_BIN_ACC:$PATH" \
-    "$CLI_DIR/theme-profile" save accent-explicit >/dev/null 2>&1
+    "$CLI_DIR/kolira" save accent-explicit >/dev/null 2>&1
   HOME="$ACC_HOME" kwriteconfig6 --file kdeglobals --group General --key AccentColor 200,200,200
   if HOME="$ACC_HOME" PATH="$MOCK_BIN_ACC:$PATH" \
-    "$CLI_DIR/theme-profile" apply accent-explicit >/dev/null 2>&1 \
+    "$CLI_DIR/kolira" apply accent-explicit >/dev/null 2>&1 \
     && grep -qx -- "plasma-apply-colorscheme Breeze1" "$ACC_CALLS" \
     && grep -qx -- "plasma-apply-colorscheme --accent-color #9a974d" "$ACC_CALLS"; then
     # Separate calls: with --accent-color the scheme argument is ignored.
@@ -1194,9 +1200,9 @@ ColorScheme=Breeze1
 accentColorFromWallpaper=true
 EOF
   HOME="$ACC_HOME" PATH="$MOCK_BIN_ACC:$PATH" \
-    "$CLI_DIR/theme-profile" save accent-wallpaper >/dev/null 2>&1
+    "$CLI_DIR/kolira" save accent-wallpaper >/dev/null 2>&1
   if HOME="$ACC_HOME" PATH="$MOCK_BIN_ACC:$PATH" \
-    "$CLI_DIR/theme-profile" apply accent-wallpaper >/dev/null 2>&1 \
+    "$CLI_DIR/kolira" apply accent-wallpaper >/dev/null 2>&1 \
     && grep -qx -- "plasma-apply-colorscheme Breeze1" "$ACC_CALLS" \
     && ! grep -q -- "--accent-color" "$ACC_CALLS" \
     && ! grep -q '^magick ' "$ACC_CALLS"; then
@@ -1225,7 +1231,7 @@ else
   STYLE_HOME="$TMP_ROOT/style-home"
   STYLE_CALLS="$TMP_ROOT/style-calls.log"
   export STYLE_CALLS
-  mkdir -p "$STYLE_HOME/.config/kde-theme-profile" "$STYLE_HOME/.config/Kvantum/Sandstone"
+  mkdir -p "$STYLE_HOME/.config/kolira" "$STYLE_HOME/.config/Kvantum/Sandstone"
   : >"$STYLE_HOME/.config/Kvantum/Sandstone/Sandstone.kvconfig"
   : > "$STYLE_CALLS"
   cat > "$STYLE_HOME/.config/kdeglobals" <<'EOF'
@@ -1263,9 +1269,9 @@ MOCK
   chmod +x "$MOCK_BIN_STYLE/plasma-apply-colorscheme" "$MOCK_BIN_STYLE/kvantummanager"
 
   HOME="$STYLE_HOME" PATH="$MOCK_BIN_STYLE:$PATH" \
-    "$CLI_DIR/theme-profile" save qt-style-test >/dev/null 2>&1
+    "$CLI_DIR/kolira" save qt-style-test >/dev/null 2>&1
   if HOME="$STYLE_HOME" PATH="$MOCK_BIN_STYLE:$PATH" \
-    "$CLI_DIR/theme-profile" apply qt-style-test >/dev/null 2>&1 \
+    "$CLI_DIR/kolira" apply qt-style-test >/dev/null 2>&1 \
     && grep -q '^kvantummanager --set Sandstone$' "$STYLE_CALLS"; then
     ok "apply re-applies the Kvantum Qt widget theme"
   else
@@ -1281,13 +1287,13 @@ mkdir -p "$MAN_HOME/.config"
 printf '[General]\nAccentColor=5,6,7\n' > "$MAN_HOME/.config/kdeglobals"
 
 # save writes the theme package manifest theme.json (schema theme@2).
-if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" save man-profile >/dev/null 2>&1; then
+if HOME="$MAN_HOME" "$CLI_DIR/kolira" save man-profile >/dev/null 2>&1; then
   ok "save man-profile"
 else
   fail "save man-profile"
 fi
-man_root="$MAN_HOME/.config/kde-theme-profile/themes/man-profile"
-if grep -q '"schema": "theme-profile/theme@2"' "$man_root/theme.json" 2>/dev/null \
+man_root="$MAN_HOME/.config/kolira/themes/man-profile"
+if grep -q '"schema": "kolira/theme@2"' "$man_root/theme.json" 2>/dev/null \
   && grep -q '"name": "man-profile"' "$man_root/theme.json" \
   && grep -q '"accent_color": "5,6,7"' "$man_root/theme.json"; then
   ok "theme.json carries schema, name and the theme values"
@@ -1296,12 +1302,12 @@ else
 fi
 
 # describe --set / describe round-trips through theme.json.
-if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" describe man-profile --set="Dark glass" >/dev/null 2>&1; then
+if HOME="$MAN_HOME" "$CLI_DIR/kolira" describe man-profile --set="Dark glass" >/dev/null 2>&1; then
   ok "describe --set exits 0"
 else
   fail "describe --set failed"
 fi
-desc="$(HOME="$MAN_HOME" "$CLI_DIR/theme-profile" describe man-profile 2>/dev/null)"
+desc="$(HOME="$MAN_HOME" "$CLI_DIR/kolira" describe man-profile 2>/dev/null)"
 if [ "$desc" = "Dark glass" ]; then
   ok "describe reads the description back"
 else
@@ -1312,25 +1318,25 @@ if grep -q '"description": "Dark glass"' "$man_root/theme.json"; then
 else
   fail "description missing from theme.json"
 fi
-if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" describe no-such-profile --set=x >/dev/null 2>&1; then
+if HOME="$MAN_HOME" "$CLI_DIR/kolira" describe no-such-profile --set=x >/dev/null 2>&1; then
   fail "describe on a missing profile should fail"
 else
   ok "describe rejects a missing profile"
 fi
 
 # save --description writes the description in one step.
-if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" save desc-profile \
+if HOME="$MAN_HOME" "$CLI_DIR/kolira" save desc-profile \
     --description="in one step" >/dev/null 2>&1 \
-  && [ "$(HOME="$MAN_HOME" "$CLI_DIR/theme-profile" describe desc-profile 2>/dev/null)" = "in one step" ]; then
+  && [ "$(HOME="$MAN_HOME" "$CLI_DIR/kolira" describe desc-profile 2>/dev/null)" = "in one step" ]; then
   ok "save --description round-trips"
 else
   fail "save --description round-trip broken"
 fi
 
 # components CRUD: the registry lives in components.json next to the profiles.
-comp_file="$MAN_HOME/.config/kde-theme-profile/components.json"
+comp_file="$MAN_HOME/.config/kolira/components.json"
 comp_json='{"id":"myapp","name":"My App","category":"Custom","config_paths":[".config/myapp/settings.json"],"description":"test"}'
-if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" components add "$comp_json" >/dev/null 2>&1; then
+if HOME="$MAN_HOME" "$CLI_DIR/kolira" components add "$comp_json" >/dev/null 2>&1; then
   ok "components add"
 else
   fail "components add failed"
@@ -1340,31 +1346,31 @@ if [ -f "$comp_file" ] && grep -q '"schema_version": 1' "$comp_file" && grep -q 
 else
   fail "components.json missing or malformed"
 fi
-if [ "$(HOME="$MAN_HOME" "$CLI_DIR/theme-profile" components list 2>/dev/null)" = "myapp" ]; then
+if [ "$(HOME="$MAN_HOME" "$CLI_DIR/kolira" components list 2>/dev/null)" = "myapp" ]; then
   ok "components list returns the new id"
 else
   fail "components list did not return myapp"
 fi
-if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" components add "$comp_json" >/dev/null 2>&1; then
+if HOME="$MAN_HOME" "$CLI_DIR/kolira" components add "$comp_json" >/dev/null 2>&1; then
   fail "components add with a duplicate id should fail"
 else
   ok "components add rejects a duplicate id"
 fi
-if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" components add \
+if HOME="$MAN_HOME" "$CLI_DIR/kolira" components add \
     '{"id":"../escape","config_paths":[".config/x"]}' >/dev/null 2>&1; then
   fail "components add with a traversal id should fail"
 else
   ok "components add rejects a traversal id"
 fi
 comp_json_v2='{"id":"myapp","name":"My App 2","category":"Custom","config_paths":[".config/myapp/settings.json"],"description":"v2"}'
-if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" components edit "$comp_json_v2" >/dev/null 2>&1 \
+if HOME="$MAN_HOME" "$CLI_DIR/kolira" components edit "$comp_json_v2" >/dev/null 2>&1 \
   && grep -q 'My App 2' "$comp_file"; then
   ok "components edit updates the entry"
 else
   fail "components edit failed"
 fi
-if HOME="$MAN_HOME" "$CLI_DIR/theme-profile" components remove myapp >/dev/null 2>&1 \
-  && [ -z "$(HOME="$MAN_HOME" "$CLI_DIR/theme-profile" components list 2>/dev/null)" ]; then
+if HOME="$MAN_HOME" "$CLI_DIR/kolira" components remove myapp >/dev/null 2>&1 \
+  && [ -z "$(HOME="$MAN_HOME" "$CLI_DIR/kolira" components list 2>/dev/null)" ]; then
   ok "components remove deletes the entry"
 else
   fail "components remove failed"
@@ -1400,7 +1406,7 @@ chmod +x "$MOCK_BIN_APP/mockapp-reload"
 # be on PATH for every CLI call that touches the registry.)
 APP_PATH="$MOCK_BIN_APP:$PATH"
 app_json='{"id":"mockapp","name":"Mock App","category":"Custom","config_paths":[".config/mockapp/settings.conf"],"reload_command":"mockapp-reload","supports_live_reload":true}'
-if HOME="$APP_HOME" PATH="$APP_PATH" "$CLI_DIR/theme-profile" components add "$app_json" >/dev/null 2>&1; then
+if HOME="$APP_HOME" PATH="$APP_PATH" "$CLI_DIR/kolira" components add "$app_json" >/dev/null 2>&1; then
   ok "custom component registered"
 else
   fail "custom component registration"
@@ -1408,13 +1414,13 @@ fi
 
 # Save it into a profile, change the live file, apply: the profile value must
 # come back and the reload command must have fired.
-if HOME="$APP_HOME" PATH="$APP_PATH" "$CLI_DIR/theme-profile" save app-profile --components=mockapp >/dev/null 2>&1; then
+if HOME="$APP_HOME" PATH="$APP_PATH" "$CLI_DIR/kolira" save app-profile --components=mockapp >/dev/null 2>&1; then
   ok "save with the custom component"
 else
   fail "save with the custom component"
 fi
 printf 'theme=light\n' > "$APP_HOME/.config/mockapp/settings.conf"
-if HOME="$APP_HOME" PATH="$APP_PATH" "$CLI_DIR/theme-profile" apply app-profile --components=mockapp >/dev/null 2>&1; then
+if HOME="$APP_HOME" PATH="$APP_PATH" "$CLI_DIR/kolira" apply app-profile --components=mockapp >/dev/null 2>&1; then
   ok "apply with the custom component"
 else
   fail "apply with the custom component"
@@ -1434,7 +1440,7 @@ else
 fi
 
 # A shell-injection reload command must be rejected at registration.
-if HOME="$APP_HOME" "$CLI_DIR/theme-profile" components add \
+if HOME="$APP_HOME" "$CLI_DIR/kolira" components add \
     '{"id":"evil","config_paths":[".config/mockapp/settings.conf"],"reload_command":"sh -c echo hi; rm -rf x"}' \
     >/dev/null 2>&1; then
   fail "components add accepted a reload command with shell metacharacters"
@@ -1450,25 +1456,25 @@ CLONE_HOME="$TMP_ROOT/clone-home"
 mkdir -p "$CLONE_HOME/.config"
 printf '[General]\nAccentColor=9,8,7\n' > "$CLONE_HOME/.config/kdeglobals"
 
-if HOME="$CLONE_HOME" "$CLI_DIR/theme-profile" save clone-src >/dev/null 2>&1; then
+if HOME="$CLONE_HOME" "$CLI_DIR/kolira" save clone-src >/dev/null 2>&1; then
   ok "save clone-src"
 else
   fail "save clone-src"
 fi
-if HOME="$CLONE_HOME" "$CLI_DIR/theme-profile" describe clone-src --set="Source theme" >/dev/null 2>&1; then
+if HOME="$CLONE_HOME" "$CLI_DIR/kolira" describe clone-src --set="Source theme" >/dev/null 2>&1; then
   ok "describe clone-src"
 else
   fail "describe clone-src"
 fi
 
 # Happy path: package copied, theme.json renamed, description/created kept.
-if HOME="$CLONE_HOME" "$CLI_DIR/theme-profile" clone clone-src clone-dst >/dev/null 2>&1; then
+if HOME="$CLONE_HOME" "$CLI_DIR/kolira" clone clone-src clone-dst >/dev/null 2>&1; then
   ok "clone exits 0"
 else
   fail "clone failed"
 fi
-src_root="$CLONE_HOME/.config/kde-theme-profile/themes/clone-src"
-dst_root="$CLONE_HOME/.config/kde-theme-profile/themes/clone-dst"
+src_root="$CLONE_HOME/.config/kolira/themes/clone-src"
+dst_root="$CLONE_HOME/.config/kolira/themes/clone-dst"
 if [ -f "$dst_root/theme.json" ] && grep -q '"accent_color": "9,8,7"' "$dst_root/theme.json"; then
   ok "clone copied the theme package"
 else
@@ -1494,24 +1500,24 @@ fi
 
 # Source profile and the active marker must stay as they were.
 if [ -f "$src_root/theme.json" ] \
-  && [ "$(cat "$CLONE_HOME/.config/kde-theme-profile/active-profile" 2>/dev/null)" = "clone-src" ]; then
+  && [ "$(cat "$CLONE_HOME/.config/kolira/active-profile" 2>/dev/null)" = "clone-src" ]; then
   ok "clone leaves the source and the active marker untouched"
 else
   fail "clone disturbed the source or the active marker"
 fi
 
 # Error paths.
-if HOME="$CLONE_HOME" "$CLI_DIR/theme-profile" clone clone-src clone-dst >/dev/null 2>&1; then
+if HOME="$CLONE_HOME" "$CLI_DIR/kolira" clone clone-src clone-dst >/dev/null 2>&1; then
   fail "clone onto an existing profile should fail"
 else
   ok "clone rejects an existing target"
 fi
-if HOME="$CLONE_HOME" "$CLI_DIR/theme-profile" clone no-such-profile dst2 >/dev/null 2>&1; then
+if HOME="$CLONE_HOME" "$CLI_DIR/kolira" clone no-such-profile dst2 >/dev/null 2>&1; then
   fail "clone from a missing profile should fail"
 else
   ok "clone rejects a missing source"
 fi
-if HOME="$CLONE_HOME" "$CLI_DIR/theme-profile" clone clone-src "../evil" >/dev/null 2>&1; then
+if HOME="$CLONE_HOME" "$CLI_DIR/kolira" clone clone-src "../evil" >/dev/null 2>&1; then
   fail "clone with a traversal target should fail"
 else
   ok "clone rejects a traversal target"
@@ -1538,8 +1544,8 @@ sortMode=-1
 [Containments][1][Wallpaper][org.kde.image][General]
 Image=file://$EX_A/Pictures/Wallpaper/sea.jpg
 APPLETS
-ex_a() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$EX_A" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
-ex_b() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$EX_B" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+ex_a() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$EX_A" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
+ex_b() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$EX_B" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 ex_a save sea >/dev/null 2>&1
 ZIP="$TMP_ROOT/sea.ktmtheme.zip"
 if ex_a export sea --out="$ZIP" >/dev/null 2>&1 && [ -f "$ZIP" ]; then
@@ -1551,7 +1557,7 @@ EX_X="$TMP_ROOT/export-x"
 mkdir -p "$EX_X" && (cd "$EX_X" && python3 -c 'import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall(".")' "$ZIP")
 # shellcheck disable=SC2016  # the literal token $HOME is what the export must contain
 if ! grep -rqF "$EX_A" "$EX_X" && grep -qF '$HOME/.config/wofi/colors.css' "$EX_X/.config/wofi/style.css" &&
-  grep -qx "background #282a36" "$EX_X/.config/kitty/theme-profile.conf" && [ ! -e "$EX_X/.config/kitty/kitty.conf" ] &&
+  grep -qx "background #282a36" "$EX_X/.config/kitty/kolira.conf" && [ ! -e "$EX_X/.config/kitty/kitty.conf" ] &&
   ! grep -q "secret-file" "$EX_X/.config/plasma-org.kde.plasma.desktop-appletsrc" &&
   ! grep -q "sortMode" "$EX_X/.config/plasma-org.kde.plasma.desktop-appletsrc" &&
   grep -q "Wallpaper/sea.jpg" "$EX_X/.config/plasma-org.kde.plasma.desktop-appletsrc" && [ -f "$EX_X/export.json" ]; then
@@ -1561,8 +1567,8 @@ else
 fi
 
 if ex_b import "$ZIP" | grep -q "^Imported theme: sea" &&
-  grep -qF "@import \"$EX_B/.config/wofi/colors.css\"" "$EX_B/.config/kde-theme-profile/themes/sea/.config/wofi/style.css" &&
-  [ -f "$EX_B/.config/kde-theme-profile/themes/sea/wallpaper/sea.jpg" ]; then
+  grep -qF "@import \"$EX_B/.config/wofi/colors.css\"" "$EX_B/.config/kolira/themes/sea/.config/wofi/style.css" &&
+  [ -f "$EX_B/.config/kolira/themes/sea/wallpaper/sea.jpg" ]; then
   ok "import expands \$HOME to the receiver's home and brings the wallpaper"
 else
   fail "import did not restore the theme for the receiver"
@@ -1570,8 +1576,8 @@ fi
 mkdir -p "$EX_B/.config/kitty"
 printf 'map ctrl+b close_tab\n' >"$EX_B/.config/kitty/kitty.conf"
 ex_b apply sea >/dev/null 2>&1
-if grep -qx "background #282a36" "$EX_B/.config/kitty/theme-profile.conf" &&
-  grep -qx "map ctrl+b close_tab" "$EX_B/.config/kitty/kitty.conf" && grep -qx "include theme-profile.conf" "$EX_B/.config/kitty/kitty.conf" &&
+if grep -qx "background #282a36" "$EX_B/.config/kitty/kolira.conf" &&
+  grep -qx "map ctrl+b close_tab" "$EX_B/.config/kitty/kitty.conf" && grep -qx "include kolira.conf" "$EX_B/.config/kitty/kitty.conf" &&
   grep -qF "$EX_B/.config/wofi/colors.css" "$EX_B/.config/wofi/style.css"; then
   ok "an imported theme applies on the receiver's machine and keeps their kitty keys"
 else
@@ -1583,13 +1589,13 @@ else
   ok "import refuses an existing name without --force"
 fi
 if ex_b import "$ZIP" --force >/dev/null 2>&1 &&
-  compgen -G "$EX_B/.config/kde-theme-profile/backups/pre-import-sea-*" >/dev/null; then
+  compgen -G "$EX_B/.config/kolira/backups/pre-import-sea-*" >/dev/null; then
   ok "import --force replaces the theme and backs up the old one"
 else
   fail "import --force did not back up the replaced theme"
 fi
 if ex_b import "$EX_X" --name=sea-dir | grep -q "^Imported theme: sea-dir" &&
-  grep -q '"name": "sea-dir"' "$EX_B/.config/kde-theme-profile/themes/sea-dir/theme.json"; then
+  grep -q '"name": "sea-dir"' "$EX_B/.config/kolira/themes/sea-dir/theme.json"; then
   ok "import accepts an unpacked theme directory and --name"
 else
   fail "directory import / --name failed"
@@ -1603,13 +1609,13 @@ if ex_b import "$EVIL" >/dev/null 2>&1 || [ -e "$TMP_ROOT/evil.txt" ]; then
 else
   ok "import refuses paths that escape the theme (zip-slip)"
 fi
-printf 'tampered\n' >>"$EX_X/.config/kitty/theme-profile.conf"
+printf 'tampered\n' >>"$EX_X/.config/kitty/kolira.conf"
 if ex_b import "$EX_X" --name=tampered >/dev/null 2>&1; then
   fail "a modified file passed the checksum check"
 else
   ok "import refuses files whose SHA-256 does not match export.json"
 fi
-if [ -e "$EX_B/.config/kde-theme-profile/themes/tampered" ] || compgen -G "$EX_B/.config/kde-theme-profile/themes/.import-*" >/dev/null; then
+if [ -e "$EX_B/.config/kolira/themes/tampered" ] || compgen -G "$EX_B/.config/kolira/themes/.import-*" >/dev/null; then
   fail "a refused import left files behind"
 else
   ok "a refused import leaves nothing behind"
@@ -1632,14 +1638,14 @@ cat >"$DEP_A/.local/share/knewstuff3/icons.knsregistry" <<REG
  </stuff>
 </hotnewstuffregistry>
 REG
-dep_a() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$DEP_A" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
-dep_b() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$DEP_B" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+dep_a() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$DEP_A" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
+dep_b() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$DEP_B" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 dep_a save candy >/dev/null 2>&1
 if python3 -c 'import json,sys; d=json.load(open(sys.argv[1]))["dependencies"]; assert any(x["kind"]=="icons" and x["name"]=="Candy" and x["source"]=="kde-store" and x["id"]=="1305251" and x["exact"] for x in d), d' \
-  "$DEP_A/.config/kde-theme-profile/themes/candy/theme.json" 2>/dev/null; then
+  "$DEP_A/.config/kolira/themes/candy/theme.json" 2>/dev/null; then
   ok "save records the KDE Store id of icons installed via Get New… (KNewStuff registry)"
 else
-  fail "dependency source not detected: $(cat "$DEP_A/.config/kde-theme-profile/themes/candy/theme.json")"
+  fail "dependency source not detected: $(cat "$DEP_A/.config/kolira/themes/candy/theme.json")"
 fi
 if [ "$(dep_a deps candy)" = "All dependencies are installed." ]; then
   ok "deps lists nothing on the machine that has everything"
@@ -1654,7 +1660,7 @@ if printf '%s' "$report" | python3 -c 'import json,sys; r=json.load(sys.stdin); 
 else
   fail "import/deps did not report the missing dependency: $report"
 fi
-if out=$(env -u KTM_THEME_NO_APPLY -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$DEP_B" KTM_OFFLINE=1 "$CLI_DIR/theme-profile" deps candy --install=0 2>&1); then
+if out=$(env -u KTM_THEME_NO_APPLY -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$DEP_B" KTM_OFFLINE=1 "$CLI_DIR/kolira" deps candy --install=0 2>&1); then
   fail "install worked offline?! $out"
 else
   case "$out" in *"network is disabled"*) ok "installing respects the offline switch" ;; *) fail "unexpected install output: $out" ;; esac
@@ -1674,10 +1680,10 @@ mkdir -p "$KO_A/.config" "$KO_A/.local/share/konsole" "$KO_B/.config" "$KO_B/.lo
 printf '[Desktop Entry]\nDefaultProfile=Mine.profile\n' >"$KO_A/.config/konsolerc"
 printf '[Appearance]\nColorScheme=Night\nFont=Inter,11,-1,5,50,0,0,0,0,0\n\n[General]\nCommand=/bin/zsh\nName=Mine\n\n[Scrolling]\nHistorySize=9999\n' >"$KO_A/.local/share/konsole/Mine.profile"
 printf '[Background]\nColor=1,2,3\n\n[General]\nDescription=Night\nOpacity=0.8\n' >"$KO_A/.local/share/konsole/Night.colorscheme"
-ko_a() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$KO_A" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
-ko_b() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$KO_B" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+ko_a() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$KO_A" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
+ko_b() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$KO_B" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 ko_a save night >/dev/null 2>&1
-ko_store="$KO_A/.config/kde-theme-profile/themes/night/.local/share/konsole"
+ko_store="$KO_A/.config/kolira/themes/night/.local/share/konsole"
 if grep -q "ColorScheme=Night" "$ko_store/Mine.profile" && ! grep -q "Command\|HistorySize" "$ko_store/Mine.profile" &&
   grep -q "Opacity=0.8" "$ko_store/Night.colorscheme"; then
   ok "save stores the Konsole scheme and only the profile's [Appearance]"
@@ -1698,7 +1704,7 @@ else
 fi
 # A receiver without any profile gets a "Theme Profile" made default.
 KO_C="$TMP_ROOT/konsole-c"; mkdir -p "$KO_C"
-env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$KO_C" KTM_THEME_NO_APPLY=1 PATH="$SAFE_BIN:/usr/bin:/bin" "$CLI_DIR/theme-profile" import "$TMP_ROOT/night.zip" --apply >/dev/null 2>&1
+env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$KO_C" KTM_THEME_NO_APPLY=1 PATH="$SAFE_BIN:/usr/bin:/bin" "$CLI_DIR/kolira" import "$TMP_ROOT/night.zip" --apply >/dev/null 2>&1
 if command -v konsole >/dev/null 2>&1; then
   if grep -q "ColorScheme=Night" "$KO_C/.local/share/konsole/Theme Profile.profile" 2>/dev/null &&
     grep -q "Name=Theme Profile" "$KO_C/.local/share/konsole/Theme Profile.profile" &&
@@ -1720,7 +1726,7 @@ printf '[Install9]\nDefault=zzz.default-release\n' >"$FF_B/.mozilla/firefox/inst
 printf 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);\nuser_pref("privacy.resistFingerprinting", true);\n' >"$FF_A/.mozilla/firefox/aaa.default-release/user.js"
 printf '#nav-bar { background: #282a36; }\n' >"$FF_A/.mozilla/firefox/aaa.default-release/chrome/userChrome.css"
 printf 'user_pref("privacy.resistFingerprinting", false);\nuser_pref("browser.startup.page", 3);\n' >"$FF_B/.mozilla/firefox/zzz.default-release/user.js"
-ff() { local h="$1"; shift; env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$h" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+ff() { local h="$1"; shift; env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$h" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 ff "$FF_A" save fox >/dev/null 2>&1
 ff "$FF_A" export fox --out="$TMP_ROOT/fox.zip" >/dev/null 2>&1
 ff "$FF_B" import "$TMP_ROOT/fox.zip" --apply >/dev/null 2>&1
@@ -1739,28 +1745,28 @@ DC_A="$TMP_ROOT/dc-a"; DC_B="$TMP_ROOT/dc-b"; DC_C="$TMP_ROOT/dc-c"
 mkdir -p "$DC_A/.config/vesktop/settings" "$DC_B/.config/Vencord/settings" "$DC_C"
 printf '{\n  "minimizeToTray": true,\n  "enabledThemes": []\n}\n' >"$DC_A/.config/vesktop/settings/settings.json"
 printf '{\n  "autoUpdate": false,\n  "plugins": {"x": {"enabled": true}}\n}\n' >"$DC_B/.config/Vencord/settings/settings.json"
-dc() { local h="$1"; shift; env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$h" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+dc() { local h="$1"; shift; env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$h" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 dc "$DC_A" palette import "$BASE16" >/dev/null 2>&1
 dc "$DC_A" palette apply --targets=discord >/dev/null 2>&1
-if grep -q "midnight-discord" "$DC_A/.config/vesktop/themes/theme-profile.theme.css" 2>/dev/null &&
-  grep -q '"theme-profile.theme.css"' "$DC_A/.config/vesktop/settings/settings.json" &&
+if grep -q "midnight-discord" "$DC_A/.config/vesktop/themes/kolira.theme.css" 2>/dev/null &&
+  grep -q '"kolira.theme.css"' "$DC_A/.config/vesktop/settings/settings.json" &&
   grep -q '"minimizeToTray": true' "$DC_A/.config/vesktop/settings/settings.json"; then
   ok "palette apply writes and enables a Discord theme in Vesktop, keeping other settings"
 else
   fail "Discord palette apply wrong: $(cat "$DC_A/.config/vesktop/settings/settings.json")"
 fi
 dc "$DC_A" save disc >/dev/null 2>&1
-dc_store="$DC_A/.config/kde-theme-profile/themes/disc/.config/vesktop"
+dc_store="$DC_A/.config/kolira/themes/disc/.config/vesktop"
 if grep -q enabledThemes "$dc_store/settings/settings.json" && ! grep -q minimizeToTray "$dc_store/settings/settings.json" &&
-  [ -f "$dc_store/themes/theme-profile.theme.css" ]; then
+  [ -f "$dc_store/themes/kolira.theme.css" ]; then
   ok "save stores the Discord themes and only enabledThemes/themeLinks"
 else
   fail "Discord save wrong: $(cat "$dc_store/settings/settings.json" 2>&1)"
 fi
 dc "$DC_A" export disc --out="$TMP_ROOT/disc.zip" >/dev/null 2>&1
 dc "$DC_B" import "$TMP_ROOT/disc.zip" --apply >/dev/null 2>&1
-if [ -f "$DC_B/.config/Vencord/themes/theme-profile.theme.css" ] && grep -q '"autoUpdate": false' "$DC_B/.config/Vencord/settings/settings.json" &&
-  grep -q '"theme-profile.theme.css"' "$DC_B/.config/Vencord/settings/settings.json" && [ ! -e "$DC_B/.config/vesktop" ]; then
+if [ -f "$DC_B/.config/Vencord/themes/kolira.theme.css" ] && grep -q '"autoUpdate": false' "$DC_B/.config/Vencord/settings/settings.json" &&
+  grep -q '"kolira.theme.css"' "$DC_B/.config/Vencord/settings/settings.json" && [ ! -e "$DC_B/.config/vesktop" ]; then
   ok "a Vesktop theme lands in a Vencord user's client, keeping their settings"
 else
   fail "Vencord settings changed: $(cat "$DC_B/.config/Vencord/settings/settings.json")"
@@ -1778,18 +1784,18 @@ SP_A="$TMP_ROOT/sp-a"; SP_B="$TMP_ROOT/sp-b"
 mkdir -p "$SP_A/.config/spicetify" "$SP_B/.config/spicetify"
 printf '[Setting]\nspotify_path = /opt/spotify-a\ncurrent_theme = Old\ncolor_scheme = dark\n\n[AdditionalOptions]\nextensions = mine.js\n' >"$SP_A/.config/spicetify/config-xpui.ini"
 printf '[Setting]\nspotify_path = /usr/share/spotify\ncurrent_theme = Other\n\n[AdditionalOptions]\nextensions = theirs.js\n' >"$SP_B/.config/spicetify/config-xpui.ini"
-sp() { local h="$1"; shift; env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$h" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+sp() { local h="$1"; shift; env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$h" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 sp "$SP_A" palette import "$BASE16" >/dev/null 2>&1
 sp "$SP_A" palette apply --targets=spicetify >/dev/null 2>&1
 spa="$SP_A/.config/spicetify"
-if grep -q "^\[ThemeProfile\]" "$spa/Themes/ThemeProfile/color.ini" 2>/dev/null && grep -q "current_theme=ThemeProfile" "$spa/config-xpui.ini" &&
+if grep -q "^\[Kolira\]" "$spa/Themes/Kolira/color.ini" 2>/dev/null && grep -q "current_theme=Kolira" "$spa/config-xpui.ini" &&
   grep -q "spotify_path = /opt/spotify-a" "$spa/config-xpui.ini"; then
   ok "palette apply writes a Spicetify colour scheme and selects it, keeping spotify_path"
 else
   fail "Spicetify palette apply wrong: $(cat "$spa/config-xpui.ini")"
 fi
 sp "$SP_A" save spot >/dev/null 2>&1
-sp_store="$SP_A/.config/kde-theme-profile/themes/spot/.config/spicetify"
+sp_store="$SP_A/.config/kolira/themes/spot/.config/spicetify"
 if grep -q "current_theme" "$sp_store/config-xpui.ini" && ! grep -q "spotify_path\|extensions" "$sp_store/config-xpui.ini"; then
   ok "save stores only the Spicetify theme keys"
 else
@@ -1798,8 +1804,8 @@ fi
 sp "$SP_A" export spot --out="$TMP_ROOT/spot.zip" >/dev/null 2>&1
 sp "$SP_B" import "$TMP_ROOT/spot.zip" --apply >/dev/null 2>&1
 spb="$SP_B/.config/spicetify"
-if grep -q "current_theme=ThemeProfile" "$spb/config-xpui.ini" && grep -q "spotify_path = /usr/share/spotify" "$spb/config-xpui.ini" &&
-  grep -q "extensions = theirs.js" "$spb/config-xpui.ini" && [ -f "$spb/Themes/ThemeProfile/color.ini" ]; then
+if grep -q "current_theme=Kolira" "$spb/config-xpui.ini" && grep -q "spotify_path = /usr/share/spotify" "$spb/config-xpui.ini" &&
+  grep -q "extensions = theirs.js" "$spb/config-xpui.ini" && [ -f "$spb/Themes/Kolira/color.ini" ]; then
   ok "the receiver gets the Spicetify theme and keeps their Spotify path and extensions"
 else
   fail "Spicetify apply wrong: $(cat "$spb/config-xpui.ini")"
@@ -1816,13 +1822,13 @@ printf 'SETUVAR __fish_initialized:4300\nSETUVAR fish_color_command:bd93f9\nSETU
 printf '[general]\nframerate = 60\n\n[color]\ngradient = 1\ngradient_color_1 = %s\n' "'#ff0000'" >"$SA/.config/cava/config"
 printf 'font-size = 12\nbackground = #282a36\nkeybind = ctrl+a=new_tab\n' >"$SA/.config/ghostty/config"
 printf -- '--theme="Dracula"\n--style=numbers\n' >"$SA/.config/bat/config"
-sh_cli() { local h="$1"; shift; env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$h" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+sh_cli() { local h="$1"; shift; env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$h" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 sh_cli "$SA" save shells >/dev/null 2>&1
-st="$SA/.config/kde-theme-profile/themes/shells"
-if grep -q '"name":"aliens"' "$st/.config/oh-my-posh/theme-profile.omp.json" 2>/dev/null && [ ! -e "$st/.config/fish/config.fish" ] &&
+st="$SA/.config/kolira/themes/shells"
+if grep -q '"name":"aliens"' "$st/.config/oh-my-posh/kolira.omp.json" 2>/dev/null && [ ! -e "$st/.config/fish/config.fish" ] &&
   grep -q "fish_color_command" "$st/.config/fish/fish_variables" && ! grep -q "fish_user_paths" "$st/.config/fish/fish_variables" &&
   grep -q "gradient_color_1" "$st/.config/cava/config" && ! grep -q "framerate" "$st/.config/cava/config" &&
-  grep -q "background = #282a36" "$st/.config/ghostty/theme-profile" && [ ! -e "$st/.config/ghostty/config" ] &&
+  grep -q "background = #282a36" "$st/.config/ghostty/kolira" && [ ! -e "$st/.config/ghostty/config" ] &&
   grep -q -- '--theme="Dracula"' "$st/.config/bat/config" && ! grep -q -- "--style" "$st/.config/bat/config" &&
   grep -q "oh-my-posh init fish --config '$SA/themes/aliens.omp.json'" "$SA/.config/fish/config.fish"; then
   ok "save stores the prompt theme, fish colours, cava [color], ghostty look, bat theme — no personal lines, no live change"
@@ -1838,12 +1844,12 @@ printf -- '--theme="TwoDark"\n--paging=never\n' >"$SB/.config/bat/config"
 sh_cli "$SB" import "$TMP_ROOT/shells.zip" --apply >/dev/null 2>&1
 bad=""
 # shellcheck disable=SC2016  # the literal $HOME is what the shell config must contain
-grep -qF 'oh-my-posh init fish --config "$HOME/.config/oh-my-posh/theme-profile.omp.json")' "$SB/.config/fish/config.fish" || bad="$bad omp-line"
+grep -qF 'oh-my-posh init fish --config "$HOME/.config/oh-my-posh/kolira.omp.json")' "$SB/.config/fish/config.fish" || bad="$bad omp-line"
 grep -q "set -g fish_greeting" "$SB/.config/fish/config.fish" || bad="$bad fish-config"
-[ -f "$SB/.config/oh-my-posh/theme-profile.omp.json" ] || bad="$bad omp-file"
+[ -f "$SB/.config/oh-my-posh/kolira.omp.json" ] || bad="$bad omp-file"
 grep -q "fish_color_command:bd93f9" "$SB/.config/fish/fish_variables" && grep -q "fish_user_paths:/b" "$SB/.config/fish/fish_variables" || bad="$bad fish-vars"
 grep -q "framerate = 144" "$SB/.config/cava/config" && grep -q "gradient_color_1" "$SB/.config/cava/config" && ! grep -q "#00ff00" "$SB/.config/cava/config" || bad="$bad cava"
-grep -q "font-size = 15" "$SB/.config/ghostty/config" && [ "$(tail -1 "$SB/.config/ghostty/config")" = "config-file = ?theme-profile" ] && grep -q "background = #282a36" "$SB/.config/ghostty/theme-profile" || bad="$bad ghostty"
+grep -q "font-size = 15" "$SB/.config/ghostty/config" && [ "$(tail -1 "$SB/.config/ghostty/config")" = "config-file = ?kolira" ] && grep -q "background = #282a36" "$SB/.config/ghostty/kolira" || bad="$bad ghostty"
 grep -q -- '--theme="Dracula"' "$SB/.config/bat/config" && grep -q -- "--paging=never" "$SB/.config/bat/config" || bad="$bad bat"
 if [ -z "$bad" ]; then
   ok "applying brings prompt, fish colours, cava, ghostty, bat looks and keeps the receiver's own settings"
@@ -1861,9 +1867,9 @@ printf '[%%General]\n' >"$PR/.config/Kvantum/Other/Other.kvconfig"
 printf '[General]\nColorScheme=MyScheme\n\n[KDE]\nwidgetStyle=kvantum\n' >"$PR/.config/kdeglobals"
 printf '[General]\nName=MyScheme\n' >"$PR/.local/share/color-schemes/MyScheme.colors"
 printf '[General]\nName=Unused\n' >"$PR/.local/share/color-schemes/Unused.colors"
-pr() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$PR" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+pr() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$PR" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 pr save own >/dev/null 2>&1
-own="$PR/.config/kde-theme-profile/themes/own"
+own="$PR/.config/kolira/themes/own"
 if [ -f "$own/.config/Kvantum/Mine/Mine.kvconfig" ] && [ ! -e "$own/.config/Kvantum/Other" ] &&
   [ -f "$own/.local/share/color-schemes/MyScheme.colors" ] && [ ! -e "$own/.local/share/color-schemes/Unused.colors" ]; then
   ok "save carries only the theme's own Kvantum family and colour scheme"
@@ -1876,7 +1882,7 @@ cp "$PR/.local/share/color-schemes/Unused.colors" "$own/.local/share/color-schem
 mkdir -p "$own/metadata/kde"; printf 'diag\n' >"$own/metadata/kde/summary.txt"; printf '[FileDialog]\n' >"$own/.config/QtProject.conf"
 if pr prune own | grep -q "^Pruned own: 4 file" && [ ! -e "$own/.config/Kvantum/Other" ] && [ ! -e "$own/metadata" ] &&
   [ ! -e "$own/.config/QtProject.conf" ] && [ -f "$own/.config/Kvantum/Mine/Mine.kvconfig" ] &&
-  compgen -G "$PR/.config/kde-theme-profile/backups/pre-prune-own-*/.config/Kvantum/Other/Other.kvconfig" >/dev/null; then
+  compgen -G "$PR/.config/kolira/backups/pre-prune-own-*/.config/Kvantum/Other/Other.kvconfig" >/dev/null; then
   ok "prune drops foreign assets, diagnostics and untracked leftovers (full backup first)"
 else
   fail "prune wrong: $(find "$own" -type f | sed "s|$own/||" | sort | tr '\n' ' ')"
@@ -1885,12 +1891,12 @@ fi
 PR2="$TMP_ROOT/prune-recv"; mkdir -p "$PR2/.config"
 printf '[General]\nColorScheme=BreezeDark\n' >"$PR2/.config/kdeglobals"
 pr export own --out="$TMP_ROOT/own.zip" >/dev/null 2>&1
-env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$PR2" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" import "$TMP_ROOT/own.zip" --apply >/dev/null 2>&1
+env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$PR2" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" import "$TMP_ROOT/own.zip" --apply >/dev/null 2>&1
 if [ -f "$PR2/.local/share/color-schemes/MyScheme.colors" ] && [ -f "$PR2/.config/Kvantum/Mine/Mine.kvconfig" ] &&
   grep -q "ColorScheme=MyScheme" "$PR2/.config/kdeglobals"; then
   ok "applying restores the theme's own assets even where another scheme was active"
 else
-  fail "theme assets not restored: $(find "$PR2" -type f | sed "s|$PR2/||" | grep -v theme-profile)"
+  fail "theme assets not restored: $(find "$PR2" -type f | sed "s|$PR2/||" | grep -v kolira)"
 fi
 
 # --- 26. GTK follows icon/cursor/GTK fields; own store-install record -------
@@ -1898,7 +1904,7 @@ echo "=== Section 26: GTK mirror and own install record ==="
 GM="$TMP_ROOT/gtk-mirror"; mkdir -p "$GM/.config/gtk-3.0" "$GM/.config/gtk-4.0"
 printf '[Settings]\ngtk-icon-theme-name=breeze\ngtk-xft-dpi=98304\n' >"$GM/.config/gtk-3.0/settings.ini"
 printf '[Settings]\ngtk-theme-name=Old\n' >"$GM/.config/gtk-4.0/settings.ini"
-gm() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$GM" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+gm() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$GM" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 gm field set icon_theme=Seven cursor_theme=aero gtk_theme=Glass gtk_dark=true >/dev/null 2>&1
 if grep -qx "gtk-icon-theme-name=Seven" "$GM/.config/gtk-4.0/settings.ini" && grep -qx "gtk-icon-theme-name=Seven" "$GM/.config/gtk-3.0/settings.ini" &&
   grep -qx "gtk-cursor-theme-name=aero" "$GM/.config/gtk-4.0/settings.ini" && grep -qx "gtk-theme-name=Glass" "$GM/.config/gtk-4.0/settings.ini" &&
@@ -1909,25 +1915,25 @@ else
 fi
 # A KDE Store item installed by `deps --install` is remembered with its id, so
 # a later save records the exact source (KNewStuff knows only its own installs).
-mkdir -p "$GM/.local/share/icons/Seven" "$GM/.config/kde-theme-profile"
+mkdir -p "$GM/.local/share/icons/Seven" "$GM/.config/kolira"
 printf '[Icon Theme]\nName=Seven\n' >"$GM/.local/share/icons/Seven/index.theme"
-printf '{"%s": {"store": "kde-store", "id": "1631627", "title": "Seven Icons"}}\n' "$GM/.local/share/icons/Seven" >"$GM/.config/kde-theme-profile/installed-assets.json"
+printf '{"%s": {"store": "kde-store", "id": "1631627", "title": "Seven Icons"}}\n' "$GM/.local/share/icons/Seven" >"$GM/.config/kolira/installed-assets.json"
 gm save seven >/dev/null 2>&1
 if python3 -c 'import json,sys; d=json.load(open(sys.argv[1]))["dependencies"]; assert any(x["name"]=="Seven" and x["id"]=="1631627" and x["exact"] for x in d), d' \
-  "$GM/.config/kde-theme-profile/themes/seven/theme.json" 2>/dev/null; then
+  "$GM/.config/kolira/themes/seven/theme.json" 2>/dev/null; then
   ok "save records the KDE Store id of assets that deps --install fetched"
 else
-  fail "own install record ignored: $(cat "$GM/.config/kde-theme-profile/themes/seven/theme.json" 2>/dev/null | head -c 600)"
+  fail "own install record ignored: $(cat "$GM/.config/kolira/themes/seven/theme.json" 2>/dev/null | head -c 600)"
 fi
 
 # Editor themes: no editor here → nothing to fetch, nothing reported.
-ED="$TMP_ROOT/editor-absent"; mkdir -p "$ED/.config/kde-theme-profile/themes/ed" "$ED/bin"
-cat >"$ED/.config/kde-theme-profile/themes/ed/theme.json" <<'JSON'
-{"schema": "theme-profile/theme@2", "name": "ed", "values": {"vscode_theme": "Night Owl"}, "assets": [], "appearance_only": true,
+ED="$TMP_ROOT/editor-absent"; mkdir -p "$ED/.config/kolira/themes/ed" "$ED/bin"
+cat >"$ED/.config/kolira/themes/ed/theme.json" <<'JSON'
+{"schema": "kolira/theme@2", "name": "ed", "values": {"vscode_theme": "Night Owl"}, "assets": [], "appearance_only": true,
  "sources": {"vscode_theme": {"store": "vscode-marketplace", "id": "sdras.night-owl", "url": ""}},
  "dependencies": [{"kind": "vscode", "name": "Night Owl", "source": "vscode-marketplace", "id": "sdras.night-owl", "title": "", "url": "https://marketplace.visualstudio.com/items?itemName=sdras.night-owl", "exact": true}]}
 JSON
-ed_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$ED" PATH="$ED/bin" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+ed_cli() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$ED" PATH="$ED/bin" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 if [ "$(ed_cli deps ed)" = "All dependencies are installed." ] && ed_cli check ed | grep -q "^Everything this theme needs"; then
   ok "a theme for an editor that is not installed is neither listed nor reported missing"
 else
@@ -1940,38 +1946,38 @@ else
   fail "installed editor's theme not listed: $(ed_cli deps ed; ed_cli check ed)"
 fi
 
-# Palette → libadwaita: translucent colours in gtk-4.0/theme-profile.css,
+# Palette → libadwaita: translucent colours in gtk-4.0/kolira.css,
 # imported last from gtk.css (KDE's colors.css import kept).
 GP="$TMP_ROOT/gtk-palette"; mkdir -p "$GP/.config/gtk-4.0"; printf "@import 'colors.css';\n" >"$GP/.config/gtk-4.0/gtk.css"
-gp() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$GP" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+gp() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$GP" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 gp palette import gallery:dracula >/dev/null 2>&1
 gp palette apply --targets=gtk --gtk-opacity=0.6 >/dev/null 2>&1; gp palette apply --targets=gtk --gtk-opacity=0.6 >/dev/null 2>&1
-if grep -q "@define-color window_bg_color alpha(#[0-9a-f]*, 0.60);" "$GP/.config/gtk-4.0/theme-profile.css" 2>/dev/null &&
-  [ "$(cat "$GP/.config/gtk-4.0/gtk.css")" = "$(printf "@import 'colors.css';\n@import 'theme-profile.css';")" ]; then
+if grep -q "@define-color window_bg_color alpha(#[0-9a-f]*, 0.60);" "$GP/.config/gtk-4.0/kolira.css" 2>/dev/null &&
+  [ "$(cat "$GP/.config/gtk-4.0/gtk.css")" = "$(printf "@import 'colors.css';\n@import 'kolira.css';")" ]; then
   ok "palette gtk target writes translucent libadwaita colours and imports them once"
 else
-  fail "gtk target: $(cat "$GP/.config/gtk-4.0/gtk.css" "$GP/.config/gtk-4.0/theme-profile.css" 2>&1 | head -5)"
+  fail "gtk target: $(cat "$GP/.config/gtk-4.0/gtk.css" "$GP/.config/gtk-4.0/kolira.css" 2>&1 | head -5)"
 fi
 
 # A user Aurorae decoration travels inside the theme (not a dependency).
 AU="$TMP_ROOT/aurorae"; mkdir -p "$AU/.local/share/aurorae/themes/MineAero" "$AU/.config"
 printf '[General]\nActiveTextColor=0,0,0,255\n' >"$AU/.local/share/aurorae/themes/MineAero/MineAerorc"
 printf '[org.kde.kdecoration2]\nlibrary=org.kde.kwin.aurorae\ntheme=__aurorae__svg__MineAero\n' >"$AU/.config/kwinrc"
-au() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$AU" KTM_THEME_NO_APPLY=1 KTM_OFFLINE=1 "$CLI_DIR/theme-profile" "$@"; }
+au() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$AU" KTM_THEME_NO_APPLY=1 KTM_OFFLINE=1 "$CLI_DIR/kolira" "$@"; }
 au save deco >/dev/null 2>&1
 if python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert any(a["kind"]=="aurorae" and a["name"]=="MineAero" for a in d["assets"]), d["assets"]; assert not any(x["kind"]=="aurorae" for x in d["dependencies"]), d["dependencies"]' \
-  "$AU/.config/kde-theme-profile/themes/deco/theme.json" 2>/dev/null &&
-  [ -f "$AU/.config/kde-theme-profile/themes/deco/.local/share/aurorae/themes/MineAero/MineAerorc" ]; then
+  "$AU/.config/kolira/themes/deco/theme.json" 2>/dev/null &&
+  [ -f "$AU/.config/kolira/themes/deco/.local/share/aurorae/themes/MineAero/MineAerorc" ]; then
   ok "a user Aurorae decoration is carried as a theme asset, not a dependency"
 else
-  fail "aurorae not carried: $(cat "$AU/.config/kde-theme-profile/themes/deco/theme.json" 2>/dev/null | head -c 700)"
+  fail "aurorae not carried: $(cat "$AU/.config/kolira/themes/deco/theme.json" 2>/dev/null | head -c 700)"
 fi
 
 # Rounded Corners keeps its settings in [Round-Corners]: part of the theme.
 RC="$TMP_ROOT/round-corners"; mkdir -p "$RC/.config"
 printf '[Plugins]\nkwin4_effect_shapecornersEnabled=true\n\n[Round-Corners]\nSize=10\nShadowSize=45\n\n[Desktops]\nNumber=4\n' >"$RC/.config/kwinrc"
-env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$RC" KTM_THEME_NO_APPLY=1 KTM_OFFLINE=1 "$CLI_DIR/theme-profile" save rc >/dev/null 2>&1
-snap="$RC/.config/kde-theme-profile/themes/rc/.config/kwinrc"
+env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$RC" KTM_THEME_NO_APPLY=1 KTM_OFFLINE=1 "$CLI_DIR/kolira" save rc >/dev/null 2>&1
+snap="$RC/.config/kolira/themes/rc/.config/kwinrc"
 if grep -q "^Size=10" "$snap" 2>/dev/null && grep -q "^kwin4_effect_shapecornersEnabled=true" "$snap" && ! grep -q "Desktops" "$snap"; then
   ok "rounded-corner settings and the effect switch travel with the theme (desktops do not)"
 else
@@ -1980,9 +1986,9 @@ fi
 
 # Follow-up actions: nothing for a theme without restart-worthy apps; an
 # unknown action is refused.
-AC="$TMP_ROOT/actions"; mkdir -p "$AC/.config/kde-theme-profile/themes/plain"
-printf '{"schema": "theme-profile/theme@2", "name": "plain", "values": {}, "assets": [], "dependencies": []}\n' >"$AC/.config/kde-theme-profile/themes/plain/theme.json"
-ac() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$AC" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+AC="$TMP_ROOT/actions"; mkdir -p "$AC/.config/kolira/themes/plain"
+printf '{"schema": "kolira/theme@2", "name": "plain", "values": {}, "assets": [], "dependencies": []}\n' >"$AC/.config/kolira/themes/plain/theme.json"
+ac() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$AC" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 if [ "$(ac actions plain)" = "Nothing to do." ] && [ "$(ac actions plain --json)" = "[]" ] && ! ac action bogus >/dev/null 2>&1; then
   ok "actions lists nothing for a plain theme; unknown actions are refused"
 else
@@ -1991,25 +1997,25 @@ fi
 
 # Automation choices are the user's (app-preferences.json), kept beside the
 # app's own settings; unknown keys and values are refused.
-AU2="$TMP_ROOT/automation"; mkdir -p "$AU2/.config/kde-theme-profile"
-printf '{\n  "theme": "glass",\n  "network_enabled": false\n}\n' >"$AU2/.config/kde-theme-profile/app-preferences.json"
-au2() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$AU2" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+AU2="$TMP_ROOT/automation"; mkdir -p "$AU2/.config/kolira"
+printf '{\n  "theme": "glass",\n  "network_enabled": false\n}\n' >"$AU2/.config/kolira/app-preferences.json"
+au2() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$AU2" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 if au2 automation --json | grep '"configured":false' >/dev/null &&
   au2 automation set store=always restart_zen=never &&
   au2 automation --json | grep '"configured":true' >/dev/null &&
   au2 automation | grep -x "store=always  # .*" >/dev/null && au2 automation | grep "^restart_zen=never" >/dev/null &&
-  grep -q '"theme": "glass"' "$AU2/.config/kde-theme-profile/app-preferences.json" &&
+  grep -q '"theme": "glass"' "$AU2/.config/kolira/app-preferences.json" &&
   ! au2 automation set store=maybe 2>/dev/null && ! au2 automation set bogus=ask 2>/dev/null &&
   printf 'never\n\n\n\n\n\n' | au2 automation ask >/dev/null && au2 automation | grep "^store=never" >/dev/null; then
   ok "automation choices are stored per user beside the app settings; bad keys/values refused; ask reads answers"
 else
-  fail "automation: $(au2 automation 2>&1 | tr '\n' ' ') // $(cat "$AU2/.config/kde-theme-profile/app-preferences.json")"
+  fail "automation: $(au2 automation 2>&1 | tr '\n' ' ') // $(cat "$AU2/.config/kolira/app-preferences.json")"
 fi
 
 # Apply follows the choices: "never" drops a missing store dependency from
 # what is offered, "ask" keeps it.
-mkdir -p "$AU2/.config/kde-theme-profile/themes/needs"
-printf '{"schema": "theme-profile/theme@2", "name": "needs", "values": {}, "assets": [], "dependencies": [{"kind": "icons", "name": "NoSuchIcons", "source": "kde-store", "id": "999999999", "title": "No Such Icons", "url": "https://store.kde.org/p/999999999", "exact": true}]}\n' >"$AU2/.config/kde-theme-profile/themes/needs/theme.json"
+mkdir -p "$AU2/.config/kolira/themes/needs"
+printf '{"schema": "kolira/theme@2", "name": "needs", "values": {}, "assets": [], "dependencies": [{"kind": "icons", "name": "NoSuchIcons", "source": "kde-store", "id": "999999999", "title": "No Such Icons", "url": "https://store.kde.org/p/999999999", "exact": true}]}\n' >"$AU2/.config/kolira/themes/needs/theme.json"
 deps_offered() { au2 apply needs --json 2>/dev/null | python3 -c 'import json,sys; print(len(json.load(sys.stdin)["dependencies"]))'; }
 au2 automation set store=never >/dev/null; never_count="$(deps_offered)"
 au2 automation set store=ask >/dev/null; ask_count="$(deps_offered)"
@@ -2023,22 +2029,22 @@ fi
 # a Look & Feel package (defaults only, no layout) for the live look.
 NT="$TMP_ROOT/new-theme"; mkdir -p "$NT/.config"
 printf '[General]\nColorScheme=Mine\n' >"$NT/.config/kdeglobals"
-nt() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$NT" KTM_THEME_NO_APPLY=1 KTM_OFFLINE=1 "$CLI_DIR/theme-profile" "$@"; }
+nt() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$NT" KTM_THEME_NO_APPLY=1 KTM_OFFLINE=1 "$CLI_DIR/kolira" "$@"; }
 nt new fresh --from=neutral-dark >/dev/null 2>&1
 nt new copy --from=fresh >/dev/null 2>&1
 if python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); v=d["values"]; assert v.get("color_scheme")=="BreezeDark" and v.get("blur_enabled") is False, v' \
-     "$NT/.config/kde-theme-profile/themes/fresh/theme.json" 2>/dev/null &&
-  [ -f "$NT/.config/kde-theme-profile/themes/copy/theme.json" ] &&
-  [ "$(cat "$NT/.config/kde-theme-profile/active-profile")" = copy ] &&
+     "$NT/.config/kolira/themes/fresh/theme.json" 2>/dev/null &&
+  [ -f "$NT/.config/kolira/themes/copy/theme.json" ] &&
+  [ "$(cat "$NT/.config/kolira/active-profile")" = copy ] &&
   ! nt new fresh --from=neutral-light >/dev/null 2>&1 && ! nt new other --from=nosuch >/dev/null 2>&1; then
   ok "new: neutral template saved as a theme, a copy of a theme applied; names and bases checked"
 else
-  fail "new: $(cat "$NT/.config/kde-theme-profile/themes/fresh/theme.json" 2>/dev/null | head -c 400)"
+  fail "new: $(cat "$NT/.config/kolira/themes/fresh/theme.json" 2>/dev/null | head -c 400)"
 fi
 nt look-and-feel copy >/dev/null 2>&1
-LAF="$NT/.local/share/plasma/look-and-feel/theme-profile-copy"
+LAF="$NT/.local/share/plasma/look-and-feel/kolira-copy"
 if grep -qx "ColorScheme=BreezeDark" "$LAF/contents/defaults" 2>/dev/null && [ -f "$LAF/metadata.json" ] &&
-  [ ! -e "$LAF/contents/layouts" ] && grep -q "LookAndFeelPackage=theme-profile-copy" "$NT/.config/kdeglobals"; then
+  [ ! -e "$LAF/contents/layouts" ] && grep -q "LookAndFeelPackage=kolira-copy" "$NT/.config/kdeglobals"; then
   ok "look-and-feel: defaults from the live look, no layout, selected"
 else
   fail "look-and-feel: $(cat "$LAF/contents/defaults" 2>&1) // $(grep -i lookandfeel "$NT/.config/kdeglobals")"
@@ -2116,13 +2122,13 @@ AppletOrder=22;21
 APPLETS
 printf '[PlasmaViews][Panel 20]\nfloating=1\npanelOpacity=2\npanelVisibility=0\n\n[PlasmaViews][Panel 20][Defaults]\nthickness=44\n' >"$LU/.config/plasmashellrc"
 printf '[General]\nOrder=mine\n\n[mine]\nDescription=my rule\nwmclass=firefox\nwmclassmatch=1\nminimize=true\nminimizerule=2\n' >"$LU/.config/kwinrulesrc"
-la() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$LA" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
-lu() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$LU" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+la() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$LA" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
+lu() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$LU" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 la save dune >/dev/null 2>&1
-STORED="$LA/.config/kde-theme-profile/themes/dune/.config/plasma-org.kde.plasma.desktop-appletsrc"
+STORED="$LA/.config/kolira/themes/dune/.config/plasma-org.kde.plasma.desktop-appletsrc"
 if ! grep -q "icon=author-logo\|org.kde.plasma.kickoff\|weather\|author home town\|favorites\|AppletOrder\|author-activity" "$STORED" &&
-  ! grep -q "thickness\|panelVisibility" "$LA/.config/kde-theme-profile/themes/dune/.config/plasmashellrc" &&
-  ! grep -q "pinned size\|position" "$LA/.config/kde-theme-profile/themes/dune/.config/kwinrulesrc"; then
+  ! grep -q "thickness\|panelVisibility" "$LA/.config/kolira/themes/dune/.config/plasmashellrc" &&
+  ! grep -q "pinned size\|position" "$LA/.config/kolira/themes/dune/.config/kwinrulesrc"; then
   ok "save keeps the shell's look only: no widgets, widget settings, panel sizes or behaviour rules"
 else
   fail "save stored layout: $(cat "$STORED")"
@@ -2169,7 +2175,7 @@ exit 0
 GSMOCK
 chmod +x "$GS_MOCK/gsettings"
 printf '[Settings]\ngtk-theme-name=LightOne\ngtk-application-prefer-dark-theme=false\n' >"$GS/.config/gtk-3.0/settings.ini"
-gs() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$GS" PATH="$GS_MOCK:$PATH" "$CLI_DIR/theme-profile" "$@"; }
+gs() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$GS" PATH="$GS_MOCK:$PATH" "$CLI_DIR/kolira" "$@"; }
 KTM_THEME_NO_APPLY=1 gs save gslight --no-wallpaper >/dev/null 2>&1
 printf '[Settings]\ngtk-theme-name=DarkOne\ngtk-application-prefer-dark-theme=true\n' >"$GS/.config/gtk-3.0/settings.ini"
 : >"$GS_MOCK/calls"
@@ -2199,7 +2205,7 @@ fi
 # GSettings go back: a theme's values leave with it, `default` stays `default`.
 GR="$TMP_ROOT/gsettings-return"
 mkdir -p "$GR/.config/gtk-3.0"
-gr() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$GR" PATH="$GS_MOCK:$PATH" "$CLI_DIR/theme-profile" "$@"; }
+gr() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$GR" PATH="$GS_MOCK:$PATH" "$CLI_DIR/kolira" "$@"; }
 printf 'Adwaita' >"$GS_MOCK/value-gtk-theme"
 printf 'default' >"$GS_MOCK/value-color-scheme"
 printf '[Settings]\ngtk-theme-name=Breeze\ngtk-application-prefer-dark-theme=false\n' >"$GR/.config/gtk-3.0/settings.ini"
@@ -2235,10 +2241,10 @@ printf '[Effect-blur]\nBlurStrength=3\n\n[Effect-better-blur-dx]\nBlurStrength=9
 printf '[Style]\nMenuOpacity=77\n' >"$UB/.config/breezerc"
 printf '[Windeco]\nWindowCornerRadius=8\n' >"$UB/.config/klassy/klassyrc"
 printf '[Containments][20]\nformfactor=2\nlocation=4\nplugin=org.kde.panel\n\n[Containments][20][Applets][21]\nplugin=%s\n\n[Containments][20][Applets][21][Configuration][General]\nglobalSettings={mine}\nisEnabled=true\n' "$COLORIZER" >"$UB/.config/plasma-org.kde.plasma.desktop-appletsrc"
-ua() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$UA" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
-ub() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$UB" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+ua() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$UA" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
+ub() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$UB" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 ua save unused --no-wallpaper >/dev/null 2>&1
-UP="$UA/.config/kde-theme-profile/themes/unused"
+UP="$UA/.config/kolira/themes/unused"
 if [ ! -e "$UP/.config/breezerc" ] && [ ! -e "$UP/.config/klassy/klassyrc" ] &&
   ! grep -q "Effect-blur\]\|Effect-translucency" "$UP/.config/kwinrc" && grep -q "Effect-better-blur-dx" "$UP/.config/kwinrc" &&
   ! grep -q "globalSettings\|hideWidget" "$UP/.config/plasma-org.kde.plasma.desktop-appletsrc" &&
@@ -2272,14 +2278,14 @@ mkdir -p "$NA/.config" "$NA/Pictures" "$NU/.config"
 printf 'jpeg' >"$NA/Pictures/author.jpg"
 printf '[Containments][1]\nformfactor=0\nlastScreen=0\nlocation=0\nplugin=org.kde.plasma.folder\nwallpaperplugin=org.kde.image\n\n[Containments][1][Wallpaper][org.kde.image][General]\nImage=file://%s/Pictures/author.jpg\n' "$NA" >"$NA/.config/plasma-org.kde.plasma.desktop-appletsrc"
 printf '[Containments][7]\nformfactor=0\nlastScreen=0\nlocation=0\nplugin=org.kde.plasma.folder\nwallpaperplugin=org.kde.potd\n\n[Containments][7][Wallpaper][org.kde.potd][General]\nProvider=apod\n' >"$NU/.config/plasma-org.kde.plasma.desktop-appletsrc"
-na() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$NA" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
-nu() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$NU" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+na() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$NA" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
+nu() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$NU" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 na save nowall --no-wallpaper >/dev/null 2>&1
 na save withwall >/dev/null 2>&1
-if ! grep -q "author.jpg\|wallpaperplugin" "$NA/.config/kde-theme-profile/themes/nowall/.config/plasma-org.kde.plasma.desktop-appletsrc"; then
+if ! grep -q "author.jpg\|wallpaperplugin" "$NA/.config/kolira/themes/nowall/.config/plasma-org.kde.plasma.desktop-appletsrc"; then
   ok "a theme saved without a wallpaper does not name one"
 else
-  fail "no-wallpaper theme names: $(cat "$NA/.config/kde-theme-profile/themes/nowall/.config/plasma-org.kde.plasma.desktop-appletsrc")"
+  fail "no-wallpaper theme names: $(cat "$NA/.config/kolira/themes/nowall/.config/plasma-org.kde.plasma.desktop-appletsrc")"
 fi
 na export nowall --out="$TMP_ROOT/nowall.zip" >/dev/null 2>&1
 na export withwall --no-wallpaper --out="$TMP_ROOT/withwall.zip" >/dev/null 2>&1
@@ -2295,7 +2301,7 @@ if grep -qx "wallpaperplugin=org.kde.potd" "$NRC" && grep -qx "Provider=apod" "$
 else
   fail "no-wallpaper theme changed the desktop: $(cat "$NRC")"
 fi
-cp "$NA/.config/kde-theme-profile/themes/withwall" -r "$NU/.config/kde-theme-profile/themes/withwall"
+cp "$NA/.config/kolira/themes/withwall" -r "$NU/.config/kolira/themes/withwall"
 nu apply withwall --keep-wallpaper >/dev/null 2>&1
 if grep -qx "wallpaperplugin=org.kde.potd" "$NRC" && ! grep -q "author.jpg" "$NRC"; then
   ok "--keep-wallpaper leaves any kind of wallpaper alone"
@@ -2313,7 +2319,7 @@ fi
 NV="$TMP_ROOT/nvim-untouched"
 mkdir -p "$NV/.config/nvim"
 printf 'vim.opt.number = true\n' >"$NV/.config/nvim/init.lua"
-nv() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$NV" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+nv() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$NV" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 nv import "$SCRIPT_DIR/themes/frutiger-aero-light" --apply >/dev/null 2>&1
 if [ "$(cat "$NV/.config/nvim/init.lua")" = 'vim.opt.number = true' ] && [ "$(find "$NV/.config/nvim" -type f | wc -l)" = 1 ] &&
   ! nv palette apply --targets=nvim >/dev/null 2>&1; then
@@ -2325,23 +2331,23 @@ fi
 # --- What a theme does not specify goes back to the program's default ----------------
 US="$TMP_ROOT/unspecified"
 mkdir -p "$US/.config/vesktop/settings" "$US/.config/vesktop/themes" "$US/.config/ghostty" "$US/.config/gtk-3.0" "$US/.local/share/konsole"
-printf '{\n  "minimizeToTray": true,\n  "enabledThemes": ["theme-profile.theme.css"],\n  "transparent": true\n}\n' >"$US/.config/vesktop/settings/settings.json"
-printf 'light css\n' >"$US/.config/vesktop/themes/theme-profile.theme.css"
+printf '{\n  "minimizeToTray": true,\n  "enabledThemes": ["kolira.theme.css"],\n  "transparent": true\n}\n' >"$US/.config/vesktop/settings/settings.json"
+printf 'light css\n' >"$US/.config/vesktop/themes/kolira.theme.css"
 printf 'mine\n' >"$US/.config/vesktop/themes/my-own.theme.css"
-printf 'background = #ffffff\n' >"$US/.config/ghostty/theme-profile"
-printf 'window { }\n' >"$US/.config/gtk-3.0/theme-profile.css"
+printf 'background = #ffffff\n' >"$US/.config/ghostty/kolira"
+printf 'window { }\n' >"$US/.config/gtk-3.0/kolira.css"
 printf '[Appearance]\nColorScheme=Light\n\n[General]\nName=Theme Profile\nParent=FALLBACK/\n' >"$US/.local/share/konsole/Theme Profile.profile"
 printf '[Desktop Entry]\nDefaultProfile=Theme Profile.profile\n\n[Other]\nkeep=1\n' >"$US/.config/konsolerc"
-us() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$US" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+us() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$US" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 us import "$SCRIPT_DIR/themes/dracula" --apply >/dev/null 2>&1
 VS="$US/.config/vesktop/settings/settings.json"
 if ! grep -q "enabledThemes\|transparent" "$VS" && grep -q "minimizeToTray" "$VS" && python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$VS" &&
-  [ ! -e "$US/.config/vesktop/themes/theme-profile.theme.css" ] && [ -f "$US/.config/vesktop/themes/my-own.theme.css" ]; then
+  [ ! -e "$US/.config/vesktop/themes/kolira.theme.css" ] && [ -f "$US/.config/vesktop/themes/my-own.theme.css" ]; then
   ok "a theme without Vesktop turns ours off and keeps the user's settings and files"
 else
   fail "Vesktop after a theme without it: $(cat "$VS"); $(ls "$US/.config/vesktop/themes")"
 fi
-if [ ! -e "$US/.config/ghostty/theme-profile" ] && [ ! -e "$US/.config/gtk-3.0/theme-profile.css" ]; then
+if [ ! -e "$US/.config/ghostty/kolira" ] && [ ! -e "$US/.config/gtk-3.0/kolira.css" ]; then
   ok "generated files a theme does not carry are removed"
 else
   fail "generated files stayed: $(ls "$US/.config/ghostty" "$US/.config/gtk-3.0")"
@@ -2368,7 +2374,7 @@ printf '[Mouse]\ncursorTheme=breeze_cursors\n' >"$MS/.config/kcminputrc"
 printf '[Theme]\nname=default\n' >"$MS/.config/plasmarc"
 printf '[org.kde.kdecoration2]\nlibrary=org.kde.breeze\ntheme=Breeze\n' >"$MS/.config/kwinrc"
 printf '[Settings]\ngtk-theme-name=Breeze\ngtk-icon-theme-name=breeze\n' >"$MS/.config/gtk-3.0/settings.ini"
-ms() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$MS" XDG_DATA_DIRS="$MS/none" PATH="$SAFE_BIN:/usr/bin:/bin" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+ms() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$MS" XDG_DATA_DIRS="$MS/none" PATH="$SAFE_BIN:/usr/bin:/bin" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 ms import "$SCRIPT_DIR/themes/frutiger-aero" >/dev/null 2>&1
 report="$(ms apply frutiger-aero --json 2>/dev/null)"
 if [ -d /usr/share/icons/Windows-7 ] || [ -d /usr/share/aurorae/themes/Se7enAero ]; then
@@ -2380,10 +2386,10 @@ elif grep -qx "Theme=breeze" "$MS/.config/kdeglobals" && grep -qx "library=org.k
 else
   fail "theme switched to what is missing: $(grep -h "Theme=\|library=\|^name=\|cursorTheme=" "$MS/.config/kdeglobals" "$MS/.config/kwinrc" "$MS/.config/plasmarc" "$MS/.config/kcminputrc" | tr '\n' ' ')"
 fi
-if [ -s "$MS/.config/kde-theme-profile/apply.log" ] && grep -q "apply frutiger-aero: done" "$MS/.config/kde-theme-profile/apply.log"; then
+if [ -s "$MS/.config/kolira/apply.log" ] && grep -q "apply frutiger-aero: done" "$MS/.config/kolira/apply.log"; then
   ok "every apply leaves a step log to read after a freeze"
 else
-  fail "no apply log: $(ls "$MS/.config/kde-theme-profile")"
+  fail "no apply log: $(ls "$MS/.config/kolira")"
 fi
 if ! grep -rqi --exclude='*.md' "simplekickoff\|Simple Application Launcher" "$SCRIPT_DIR/themes" "$SCRIPT_DIR/gui/qt-app/qml"; then
   ok "the launcher widget is not named or required anywhere"
@@ -2394,14 +2400,14 @@ fi
 # --- Data under the old folder names moves on the first run ---------------------------
 OL="$TMP_ROOT/old-names"
 mkdir -p "$OL/.config/theme-profile/profiles/mine/.config/theme-profile" "$OL/.config/theme-profile/backups/one"
-printf '{"schema":"theme-profile/theme@2","name":"mine","description":"","created":"2026-01-01T00:00:00Z","generator":"t","values":{},"assets":[],"sources":{},"appearance_only":true}\n' >"$OL/.config/theme-profile/profiles/mine/theme.json"
+printf '{"schema":"kolira/theme@2","name":"mine","description":"","created":"2026-01-01T00:00:00Z","generator":"t","values":{},"assets":[],"sources":{},"appearance_only":true}\n' >"$OL/.config/theme-profile/profiles/mine/theme.json"
 printf 'palette' >"$OL/.config/theme-profile/profiles/mine/.config/theme-profile/palette.json"
 printf 'mine\n' >"$OL/.config/theme-profile/active-profile"
-ol() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$OL" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+ol() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$OL" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 if [ "$(ol list 2>/dev/null)" = "mine" ] && [ ! -e "$OL/.config/theme-profile" ] &&
-  [ -f "$OL/.config/kde-theme-profile/themes/mine/.config/kde-theme-profile/palette.json" ] &&
-  [ -d "$OL/.config/kde-theme-profile/backups/one" ] && [ "$(cat "$OL/.config/kde-theme-profile/active-profile")" = mine ]; then
-  ok "themes, backups and settings move from theme-profile/profiles to kde-theme-profile/themes"
+  [ -f "$OL/.config/kolira/themes/mine/.config/kolira/palette.json" ] &&
+  [ -d "$OL/.config/kolira/backups/one" ] && [ "$(cat "$OL/.config/kolira/active-profile")" = mine ]; then
+  ok "themes, backups and settings move from theme-profile/profiles to kolira/themes"
 else
   fail "old folders not moved: $(find "$OL/.config" -maxdepth 3)"
 fi
@@ -2412,7 +2418,7 @@ BK="$TMP_ROOT/bundled-kit"
 mkdir -p "$BS/.config" "$BK"
 cp -r "$SCRIPT_DIR/themes/glass" "$BK/glass"
 cp -r "$SCRIPT_DIR/themes/dracula" "$BK/dracula"
-bs() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$BS" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+bs() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$BS" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 kit_change() { python3 - "$BK/$1" <<'KITPY'
 import hashlib, json, sys
 root = sys.argv[1]
@@ -2429,23 +2435,23 @@ else
   fail "bundled sync add: $(bs bundled sync "$BK")"
 fi
 kit_change glass
-if bs bundled sync "$BK" | grep -q "Updated theme: glass" && grep -q "new kit version" "$BS/.config/kde-theme-profile/themes/glass/.config/kwinrc" &&
-  [ -n "$(find "$BS/.config/kde-theme-profile/backups" -mindepth 1 -print -quit)" ]; then
+if bs bundled sync "$BK" | grep -q "Updated theme: glass" && grep -q "new kit version" "$BS/.config/kolira/themes/glass/.config/kwinrc" &&
+  [ -n "$(find "$BS/.config/kolira/backups" -mindepth 1 -print -quit)" ]; then
   ok "a ready theme the user did not change follows the kit, the old one is backed up"
 else
-  fail "bundled update: $(find "$BS/.config/kde-theme-profile/backups" -maxdepth 1)"
+  fail "bundled update: $(find "$BS/.config/kolira/backups" -maxdepth 1)"
 fi
-printf 'my edit\n' >>"$BS/.config/kde-theme-profile/themes/dracula/.config/kwinrc"
+printf 'my edit\n' >>"$BS/.config/kolira/themes/dracula/.config/kwinrc"
 kit_change dracula
-if bs bundled sync "$BK" | grep -q "Kept theme dracula: it may hold your changes" && grep -q "my edit" "$BS/.config/kde-theme-profile/themes/dracula/.config/kwinrc" &&
+if bs bundled sync "$BK" | grep -q "Kept theme dracula: it may hold your changes" && grep -q "my edit" "$BS/.config/kolira/themes/dracula/.config/kwinrc" &&
   [ -z "$(bs bundled sync "$BK")" ]; then
   ok "a ready theme the user changed is kept, said once, with the command to replace it"
 else
   fail "bundled kept: $(bs bundled sync "$BK")"
 fi
-rm "$BS/.config/kde-theme-profile/bundled-themes.json"
+rm "$BS/.config/kolira/bundled-themes.json"
 kit_change glass
-if bs bundled sync "$BK" | grep -q "Kept theme glass: it may hold" && ! bs bundled sync "$BK" | grep -q glass && grep -q "new kit version" "$BS/.config/kde-theme-profile/themes/glass/.config/kwinrc"; then
+if bs bundled sync "$BK" | grep -q "Kept theme glass: it may hold" && ! bs bundled sync "$BK" | grep -q glass && grep -q "new kit version" "$BS/.config/kolira/themes/glass/.config/kwinrc"; then
   ok "a theme with no record of its install is left alone, said once"
 else
   fail "bundled no record: $(bs bundled sync "$BK")"
@@ -2455,16 +2461,16 @@ fi
 UP="$TMP_ROOT/update-script"
 mkdir -p "$UP/remote" "$UP/kit/scripts"
 git -C "$UP/remote" init -q --bare
-cp "$SCRIPT_DIR/scripts/update-theme-profile-kit.sh" "$UP/kit/scripts/"
-printf '#!/usr/bin/env bash\necho "installer got: $*"\n' >"$UP/kit/scripts/install-theme-profile-kit.sh"
+cp "$SCRIPT_DIR/scripts/update-kolira.sh" "$UP/kit/scripts/"
+printf '#!/usr/bin/env bash\necho "installer got: $*"\n' >"$UP/kit/scripts/install-kolira.sh"
 chmod +x "$UP/kit/scripts/"*.sh
 git -C "$UP/kit" init -q -b main
 git -C "$UP/kit" add -A
 git -C "$UP/kit" -c user.name=t -c user.email=t@t commit -qm init
 git -C "$UP/kit" remote add origin "$UP/remote"
 git -C "$UP/kit" push -q -u origin main 2>/dev/null
-if bash "$UP/kit/scripts/update-theme-profile-kit.sh" --restart 2>&1 | grep -q "installer got: --restart"; then
-  ok "update-theme-profile-kit.sh --restart reaches the installer"
+if bash "$UP/kit/scripts/update-kolira.sh" --restart 2>&1 | grep -q "installer got: --restart"; then
+  ok "update-kolira.sh --restart reaches the installer"
 else
   fail "update script dropped its options"
 fi
@@ -2488,18 +2494,18 @@ oi() {
   local home="$1"
   shift
   env -i HOME="$home" PATH="$SAFE_BIN:$REAL_CARGO_BIN:/usr/bin:/bin" CARGO_HOME="$REAL_CARGO_HOME" RUSTUP_HOME="$REAL_RUSTUP_HOME" \
-    bash "$SCRIPT_DIR/scripts/install-theme-profile-kit.sh" --only-cli "$@"
+    bash "$SCRIPT_DIR/scripts/install-kolira.sh" --only-cli "$@"
 }
-OTHEME="$OH/.config/kde-theme-profile/themes/my-original-look"
+OTHEME="$OH/.config/kolira/themes/my-original-look"
 if oi "$OH" >"$TMP_ROOT/original.log" 2>&1 && grep -q "ColorScheme=FriendScheme" "$OTHEME/.config/kdeglobals" && grep -q "no-original-theme" "$TMP_ROOT/original.log"; then
   ok "the first install saves the current look as my-original-look and says so"
 else
   fail "no original theme: $(tail -3 "$TMP_ROOT/original.log")"
 fi
-if [ -d "$OH/.config/kde-theme-profile/themes/glass" ] && [ -f "$OTHEME/theme.json" ]; then
+if [ -d "$OH/.config/kolira/themes/glass" ] && [ -f "$OTHEME/theme.json" ]; then
   ok "the bundled themes are added next to it"
 else
-  fail "after the first install: $(ls "$OH/.config/kde-theme-profile/themes")"
+  fail "after the first install: $(ls "$OH/.config/kolira/themes")"
 fi
 printf '[General]\nColorScheme=SomeTheme\n' >"$OH/.config/kdeglobals"
 if oi "$OH" >/dev/null 2>&1 && grep -q "ColorScheme=FriendScheme" "$OTHEME/.config/kdeglobals"; then
@@ -2510,7 +2516,7 @@ fi
 ON="$TMP_ROOT/original-none"
 mkdir -p "$ON/.config"
 if oi "$ON" --no-themes --no-original-theme >/dev/null 2>&1 &&
-  [ ! -e "$ON/.config/kde-theme-profile/themes/my-original-look" ]; then
+  [ ! -e "$ON/.config/kolira/themes/my-original-look" ]; then
   ok "--no-original-theme skips it"
 else
   fail "--no-original-theme still saved a theme"
@@ -2519,9 +2525,9 @@ fi
 # --- The login screen is not the app's business ------------------------------------
 SD="$TMP_ROOT/sddm-home"
 mkdir -p "$SD/.config"
-sd() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$SD" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+sd() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$SD" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 sd save old-theme --no-wallpaper >/dev/null 2>&1
-SDJ="$SD/.config/kde-theme-profile/themes/old-theme/theme.json"
+SDJ="$SD/.config/kolira/themes/old-theme/theme.json"
 python3 - "$SDJ" <<'SDPY'
 import json, sys
 d = json.load(open(sys.argv[1]))
@@ -2549,7 +2555,7 @@ printf '#!/usr/bin/env bash\necho "$*" >>"%s/calls"\nexit 0\n' "$HANG_MOCK" >"$H
 chmod +x "$HANG_MOCK/systemctl"
 printf '[KDE]\nwidgetStyle=kvantum\n' >"$HANG/.config/kdeglobals"
 printf '[General]\ntheme=Absent\n' >"$HANG/.config/Kvantum/kvantum.kvconfig"
-hang() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$HANG" PATH="$HANG_MOCK:$PATH" KTM_COMMAND_TIMEOUT=1 "$CLI_DIR/theme-profile" "$@"; }
+hang() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$HANG" PATH="$HANG_MOCK:$PATH" KTM_COMMAND_TIMEOUT=1 "$CLI_DIR/kolira" "$@"; }
 KTM_THEME_NO_APPLY=1 hang save absent --no-wallpaper >/dev/null 2>&1
 : >"$HANG_MOCK/calls"
 hang apply absent >/dev/null 2>&1
@@ -2578,7 +2584,7 @@ fi
 
 # --- A friend's round trip: own theme → a bundled theme → back = as it was ------
 RT="$TMP_ROOT/friend-home"
-rt() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u XDG_CACHE_HOME -u WALLPAPER_DIR HOME="$RT" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+rt() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u XDG_CACHE_HOME -u WALLPAPER_DIR HOME="$RT" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 bash "$SCRIPT_DIR/tests/e2e/make-friend-home.sh" "$RT"
 rt save my-look >/dev/null 2>&1
 python3 "$SCRIPT_DIR/tests/e2e/snapshot.py" "$RT" "$TMP_ROOT/rt-before.json"
@@ -2629,25 +2635,25 @@ else
 fi
 
 PF="$TMP_ROOT/preserved-fastfetch"
-pf() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u XDG_CACHE_HOME HOME="$PF" KTM_THEME_NO_APPLY=1 KTM_OFFLINE=1 "$CLI_DIR/theme-profile" "$@"; }
-mkdir -p "$PF/.config/fastfetch" "$PF/.config/kde-theme-profile/themes/legacy/.config/fastfetch"
+pf() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u XDG_CACHE_HOME HOME="$PF" KTM_THEME_NO_APPLY=1 KTM_OFFLINE=1 "$CLI_DIR/kolira" "$@"; }
+mkdir -p "$PF/.config/fastfetch" "$PF/.config/kolira/themes/legacy/.config/fastfetch"
 printf 'my config\n' >"$PF/.config/fastfetch/config.jsonc"
 printf 'my logo\n' >"$PF/.config/fastfetch/logo"
-printf 'author config\n' >"$PF/.config/kde-theme-profile/themes/legacy/.config/fastfetch/config.jsonc"
-cat >"$PF/.config/kde-theme-profile/themes/legacy/theme.json" <<'JSON'
-{"schema":"theme-profile/theme@2","name":"legacy","assets":[{"kind":"fastfetch-logo","name":"config","path":".config/fastfetch/config.jsonc","origin":"user","redistributable":false}]}
+printf 'author config\n' >"$PF/.config/kolira/themes/legacy/.config/fastfetch/config.jsonc"
+cat >"$PF/.config/kolira/themes/legacy/theme.json" <<'JSON'
+{"schema":"kolira/theme@2","name":"legacy","assets":[{"kind":"fastfetch-logo","name":"config","path":".config/fastfetch/config.jsonc","origin":"user","redistributable":false}]}
 JSON
 pf save own >/dev/null 2>&1
-if [ ! -e "$PF/.config/kde-theme-profile/themes/own/.config/fastfetch" ]; then
+if [ ! -e "$PF/.config/kolira/themes/own/.config/fastfetch" ]; then
   ok "saving a theme excludes fastfetch"
 else
   fail "fastfetch was saved"
 fi
-mkdir -p "$PF/.config/kde-theme-profile/apply-journal/originals"
+mkdir -p "$PF/.config/kolira/apply-journal/originals"
 PF_HASH="$(sha256sum "$PF/.config/fastfetch/config.jsonc" | cut -d' ' -f1)"
 PF_LOGO_HASH="$(sha256sum "$PF/.config/fastfetch/logo" | cut -d' ' -f1)"
-printf 'old config\n' >"$PF/.config/kde-theme-profile/apply-journal/originals/old"
-printf '{"created":{".config/fastfetch/logo":"%s"},"replaced":{".config/fastfetch/config.jsonc":["%s","old"]}}\n' "$PF_LOGO_HASH" "$PF_HASH" >"$PF/.config/kde-theme-profile/apply-journal/journal.json"
+printf 'old config\n' >"$PF/.config/kolira/apply-journal/originals/old"
+printf '{"created":{".config/fastfetch/logo":"%s"},"replaced":{".config/fastfetch/config.jsonc":["%s","old"]}}\n' "$PF_LOGO_HASH" "$PF_HASH" >"$PF/.config/kolira/apply-journal/journal.json"
 if pf apply legacy >/dev/null 2>&1 && pf apply own >/dev/null 2>&1 &&
   [ "$(cat "$PF/.config/fastfetch/config.jsonc")" = 'my config' ] &&
   [ "$(cat "$PF/.config/fastfetch/logo")" = 'my logo' ]; then
@@ -2662,7 +2668,7 @@ else
   fail "export still contains fastfetch"
 fi
 
-python3 - "$PF/.config/kde-theme-profile/themes/legacy" "$TMP_ROOT/legacy-fastfetch.zip" <<'PY'
+python3 - "$PF/.config/kolira/themes/legacy" "$TMP_ROOT/legacy-fastfetch.zip" <<'PY'
 import hashlib
 import json
 from pathlib import Path
@@ -2670,14 +2676,14 @@ import sys
 import zipfile
 source = Path(sys.argv[1])
 files = {str(path.relative_to(source)): path.read_bytes() for path in source.rglob('*') if path.is_file()}
-manifest = {"format": "theme-profile/export@1", "theme": "legacy", "exported": "", "generator": "test", "home_token": "$HOME", "files": {name: hashlib.sha256(data).hexdigest() for name, data in files.items()}}
+manifest = {"format": "kolira/export@1", "theme": "legacy", "exported": "", "generator": "test", "home_token": "$HOME", "files": {name: hashlib.sha256(data).hexdigest() for name, data in files.items()}}
 with zipfile.ZipFile(sys.argv[2], 'w') as archive:
     for name, data in files.items():
         archive.writestr(name, data)
     archive.writestr('export.json', json.dumps(manifest))
 PY
 if pf import "$TMP_ROOT/legacy-fastfetch.zip" --name=imported-preserved >/dev/null 2>&1 &&
-  [ ! -e "$PF/.config/kde-theme-profile/themes/imported-preserved/.config/fastfetch" ] &&
+  [ ! -e "$PF/.config/kolira/themes/imported-preserved/.config/fastfetch" ] &&
   pf apply imported-preserved >/dev/null 2>&1 &&
   [ "$(cat "$PF/.config/fastfetch/config.jsonc")" = 'my config' ] &&
   [ "$(cat "$PF/.config/fastfetch/logo")" = 'my logo' ]; then

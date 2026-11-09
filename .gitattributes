@@ -2,16 +2,16 @@
 *.bash text eol=lf
 EOF
 
-files/bin/theme-profile    text eol=lf
+files/bin/kolira    text eol=lf
 files/bin/theme-menu       text eol=lf
 files/bin/wallpaper-picker text eol=lf
 files/bin/wallpaper-next   text eol=lf
 files/bin/wallpaper-prev   text eol=lf
 
 # Don't include docs/scripts in source release archives if we ever do `git archive`
-scripts/install-theme-profile-kit.sh  export-ignore
-scripts/uninstall-theme-profile-kit.sh export-ignore
-scripts/update-theme-profile-kit.sh  export-ignore
+scripts/install-kolira.sh  export-ignore
+scripts/uninstall-kolira.sh export-ignore
+scripts/update-kolira.sh  export-ignore
 docs/  export-ignore
 tests/ export-ignore
 .gitignore export-ignore

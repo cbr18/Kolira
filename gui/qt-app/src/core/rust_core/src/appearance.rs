@@ -12,8 +12,8 @@
 //!   file: allowed keys come from the theme (absent ones are removed), every
 //!   other key stays as the user has it;
 //! * [`Policy::KittyHost`] / [`Policy::AlacrittyHost`] — the way ricers do it:
-//!   the look lives in a separate file (`kitty/theme-profile.conf`,
-//!   `alacritty/theme-profile.toml`) that the user's config includes once;
+//!   the look lives in a separate file (`kitty/kolira.conf`,
+//!   `alacritty/kolira.toml`) that the user's config includes once;
 //!   the user's config itself is never stored and only gains the include line;
 //! * [`Policy::KwinRc`] — [`KWINRC`] without the settings of effects the theme
 //!   keeps off (those stay as the user has them);
@@ -34,11 +34,11 @@ pub fn is_preserved(rel: &str) -> bool {
 }
 
 pub const KITTY_HOST: &str = ".config/kitty/kitty.conf";
-pub const KITTY_THEME: &str = ".config/kitty/theme-profile.conf";
-pub const KITTY_INCLUDE: &str = "include theme-profile.conf";
+pub const KITTY_THEME: &str = ".config/kitty/kolira.conf";
+pub const KITTY_INCLUDE: &str = "include kolira.conf";
 pub const ALACRITTY_HOST: &str = ".config/alacritty/alacritty.toml";
-pub const ALACRITTY_THEME: &str = ".config/alacritty/theme-profile.toml";
-pub const ALACRITTY_IMPORT: &str = "~/.config/alacritty/theme-profile.toml";
+pub const ALACRITTY_THEME: &str = ".config/alacritty/kolira.toml";
+pub const ALACRITTY_IMPORT: &str = "~/.config/alacritty/kolira.toml";
 
 /// Which keys of an INI group are appearance.
 #[derive(Debug, Clone, Copy)]
@@ -77,7 +77,7 @@ pub enum Policy {
     /// Shell config with an `oh-my-posh init` line: never stored, only the
     /// `--config` path is pointed at the theme's prompt file.
     OmpHost,
-    /// ghostty config: never stored, gains `config-file = ?theme-profile`.
+    /// ghostty config: never stored, gains `config-file = ?kolira`.
     GhosttyHost,
     /// Lines selected by a predicate, merged by name (fish colours, bat theme).
     Lines(fn(&str) -> bool),
@@ -991,7 +991,7 @@ pub fn jsonc_merge(theme: &str, live: &str, keys: &[&str]) -> String {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// kitty: appearance in kitty/theme-profile.conf, included by kitty.conf
+// kitty: appearance in kitty/kolira.conf, included by kitty.conf
 // ─────────────────────────────────────────────────────────────────────────────
 
 const KITTY_LOOK: &[&str] = &[
@@ -1051,13 +1051,13 @@ fn kitty_look(line: &str) -> bool {
 }
 
 /// Split a `kitty.conf` into (appearance lines incl. the generated palette
-/// block, the rest without the `include theme-profile.conf` line).
+/// block, the rest without the `include kolira.conf` line).
 pub fn kitty_split(host: &str) -> (String, String) {
     let mut look: Vec<&str> = Vec::new();
     let mut rest: Vec<&str> = Vec::new();
     let mut in_palette = false;
     for line in host.lines() {
-        if line.starts_with("# BEGIN theme-profile palette") {
+        if line.starts_with("# BEGIN kolira palette") {
             in_palette = true;
         }
         if in_palette {
@@ -1089,7 +1089,7 @@ pub fn kitty_split(host: &str) -> (String, String) {
     (join(look), join(rest))
 }
 
-const KITTY_NOTE: &str = "# Theme (theme-profile): appearance lives in theme-profile.conf";
+const KITTY_NOTE: &str = "# Theme (kolira): appearance lives in kolira.conf";
 
 /// The user's kitty.conf without appearance lines, ending with the include
 /// (last, so the theme wins over anything above it). Idempotent.
@@ -1106,7 +1106,7 @@ pub fn kitty_host(host: &str) -> String {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Alacritty: appearance in alacritty/theme-profile.toml, imported by alacritty.toml
+// Alacritty: appearance in alacritty/kolira.toml, imported by alacritty.toml
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ALACRITTY_WINDOW: &[&str] = &[

@@ -42,12 +42,12 @@ dest.mkdir(parents=True,exist_ok=True)
         self.dir.path().join(rel)
     }
     fn theme(&self, name: &str, label: &str) {
-        let dir = self.p(&format!("config/kde-theme-profile/themes/{name}"));
+        let dir = self.p(&format!("config/kolira/themes/{name}"));
         fs::create_dir_all(&dir).unwrap();
-        fs::write(dir.join("theme.json"), serde_json::to_vec(&json!({"schema":"theme-profile/theme@2","name":name,"dependencies":[{"kind":"vscode","name":label,"source":"open-vsx","id":"test.theme","exact":true}]})).unwrap()).unwrap();
+        fs::write(dir.join("theme.json"), serde_json::to_vec(&json!({"schema":"kolira/theme@2","name":name,"dependencies":[{"kind":"vscode","name":label,"source":"open-vsx","id":"test.theme","exact":true}]})).unwrap()).unwrap();
     }
     fn cmd(&self, args: &[&str]) -> Command {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_theme-profile"));
+        let mut command = Command::new(env!("CARGO_BIN_EXE_kolira"));
         command
             .args(args)
             .env("HOME", self.dir.path())
@@ -218,13 +218,13 @@ fn cancellation_stops_the_current_provider_and_does_not_apply_a_theme() {
     let state: Value =
         serde_json::from_slice(&h.ok(&["dependencies", "operation", operation]).stdout).unwrap();
     assert_eq!(state["status"], "cancelled");
-    assert!(!h.p("config/kde-theme-profile/active-profile").exists());
+    assert!(!h.p("config/kolira/active-profile").exists());
 }
 
 #[test]
 fn migration_keeps_sources_without_granting_ownership_and_corruption_is_visible() {
     let h = Home::new();
-    let path = h.p("config/kde-theme-profile/installed-assets.json");
+    let path = h.p("config/kolira/installed-assets.json");
     let legacy = json!({"/some/external/theme":{"store":"kde-store","id":"123","title":"Old"}});
     fs::write(&path, serde_json::to_vec(&legacy).unwrap()).unwrap();
     h.rows();
@@ -388,7 +388,7 @@ fn asynchronous_api_returns_durable_id_and_keeps_verified_result_after_transport
     assert_eq!(h.rows()[0]["installed"], true);
     assert!(h
         .p(&format!(
-            "config/kde-theme-profile/dependency-operations/{id}/events.jsonl"
+            "config/kolira/dependency-operations/{id}/events.jsonl"
         ))
         .is_file());
 }

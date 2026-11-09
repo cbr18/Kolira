@@ -34,7 +34,7 @@ def field_texts() -> list[str]:
 def app_texts() -> list[str]:
     from core.cli_core import core_request
     import os
-    local = ROOT / "src/core/rust_core/target/release/theme-profile"
+    local = ROOT / "src/core/rust_core/target/release/kolira"
     binary = os.environ.get("KTM_THEME_PROFILE_BIN") or (str(local) if local.is_file() else None)
     return core_request("registry.descriptions", _binary=binary)
 

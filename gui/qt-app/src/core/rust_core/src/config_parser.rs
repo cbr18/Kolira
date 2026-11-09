@@ -138,7 +138,7 @@ pub fn get_json_value(value: &serde_json::Value, key: &str) -> Option<String> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Tolerant single-value readers used by `theme-profile status`.
+// Tolerant single-value readers used by `kolira status`.
 //
 // These deliberately do NOT parse the whole file: KConfig files may contain
 // unquoted values and JSONC files may contain comments and trailing commas.

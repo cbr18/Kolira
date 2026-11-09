@@ -5,7 +5,7 @@
 //!
 //! Stored in `app-preferences.json` as `"automation": {key: policy}` plus
 //! `"automation_configured": true` once the user chose (first run of the app,
-//! or the installer's `theme-profile automation ask`).
+//! or the installer's `kolira automation ask`).
 
 use std::io::{BufRead, Write};
 
@@ -135,10 +135,7 @@ pub fn set(choices: &[(&str, Policy)]) -> Result<()> {
 
 /// Ask every question on a terminal (installer); Enter keeps the current one.
 pub fn ask_interactively(input: &mut dyn BufRead, out: &mut dyn Write) -> Result<()> {
-    writeln!(
-        out,
-        "What may KDE Theme Manager do by itself when you apply a theme?"
-    )?;
+    writeln!(out, "What may kolira do by itself when you apply a theme?")?;
     writeln!(
         out,
         "  ask = offer it each time, always = just do it, never = skip it\n"

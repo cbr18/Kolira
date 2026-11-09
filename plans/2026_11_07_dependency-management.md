@@ -122,13 +122,13 @@ Python/PySide6/QML — адаптером и интерфейсом.
 Предлагаемое расширение CLI (точный JSON закрепить до подключения GUI):
 
 ```text
-theme-profile deps registry [--theme=NAME|--app] [--json]
-theme-profile deps refresh [--json]
-theme-profile deps install ID... [--events=jsonl]
-theme-profile deps remove ID... [--confirm-shared] [--events=jsonl]
-theme-profile deps operation ID [--json]
-theme-profile deps cancel ID
-theme-profile deps register-app --python=PATH [--json]
+kolira deps registry [--theme=NAME|--app] [--json]
+kolira deps refresh [--json]
+kolira deps install ID... [--events=jsonl]
+kolira deps remove ID... [--confirm-shared] [--events=jsonl]
+kolira deps operation ID [--json]
+kolira deps cancel ID
+kolira deps register-app --python=PATH [--json]
 ```
 
 1. Сохранить `deps NAME --json/--refresh/--install` как совместимый вход к тому же

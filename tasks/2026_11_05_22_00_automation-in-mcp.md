@@ -5,15 +5,15 @@
 
 ## Что сделать
 
-Локальный MCP-сервер (`mcp/theme_profile_mcp.py`, `docs/MCP.md`) должен уметь то
+Локальный MCP-сервер (`mcp/kolira_profile_mcp.py`, `docs/MCP.md`) должен уметь то
 же, что GUI и CLI, — с теми же правилами согласия:
 
-- `get_automation` / `set_automation` — выбор пользователя (`theme-profile
+- `get_automation` / `set_automation` — выбор пользователя (`kolira
   automation --json` / `set KEY=ask|always|never`); менять только по явной
   просьбе пользователя, не «для удобства».
-- `list_actions(theme)` — что осталось после применения (`theme-profile actions
+- `list_actions(theme)` — что осталось после применения (`kolira actions
   NAME --json`): перезапуски, подсказка Telegram, с предупреждениями.
-- `run_action(id)` — выполнить одно действие (`theme-profile action ID`);
+- `run_action(id)` — выполнить одно действие (`kolira action ID`);
   в описании инструмента — предупреждение (звонок в Vesktop/Zen прервётся).
 - `install_dependencies` уже есть — описать, что системные пакеты открывают
   терминал и ждут пароль пользователя (MCP-клиент не должен считать это

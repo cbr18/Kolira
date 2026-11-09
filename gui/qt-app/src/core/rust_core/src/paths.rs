@@ -2,8 +2,8 @@
 //!
 //! Themes keep the `.config/...` layout inside, but the live files they mirror
 //! must follow `XDG_CONFIG_HOME`/`XDG_DATA_HOME`. Data lives in
-//! `$XDG_CONFIG_HOME/kde-theme-profile`; the old `theme-profile` folder is moved
-//! there on start, by this module and its twin `core/paths.py`.
+//! `$XDG_CONFIG_HOME/kolira`; the old `kde-theme-profile` / `theme-profile` folders are moved
+//! there on start by Rust; Python only resolves the canonical path.
 
 use std::path::{Path, PathBuf};
 
@@ -25,22 +25,25 @@ pub fn data_home() -> PathBuf {
     dirs::data_dir().unwrap_or_else(|| home_dir().join(".local/share"))
 }
 
-/// The data folder's name; `theme-profile` before 0.6.0 (see [`migrate_old_names`]).
-const DATA_DIR: &str = "kde-theme-profile";
-const OLD_DATA_DIR: &str = "theme-profile";
+/// Canonical data directory and historical names accepted during migration.
+const DATA_DIR: &str = "kolira";
+const OLD_DATA_DIRS: &[&str] = &["kde-theme-profile", "theme-profile", "kolira"];
 
 pub fn theme_root() -> PathBuf {
     let preferred = config_home().join(DATA_DIR);
     let in_dot_config = home_dir().join(".config").join(DATA_DIR);
     // Unit tests read this path with the real HOME: they must not move real data.
     if !cfg!(test) {
-        migrate_old_names(
-            &[
-                config_home().join(OLD_DATA_DIR),
-                home_dir().join(".config").join(OLD_DATA_DIR),
-            ],
-            &preferred,
-        );
+        let old_roots: Vec<PathBuf> = OLD_DATA_DIRS
+            .iter()
+            .flat_map(|name| {
+                [
+                    config_home().join(name),
+                    home_dir().join(".config").join(name),
+                ]
+            })
+            .collect();
+        migrate_old_names(&old_roots, &preferred);
     }
     if preferred.exists() || !in_dot_config.exists() {
         preferred
@@ -49,8 +52,8 @@ pub fn theme_root() -> PathBuf {
     }
 }
 
-/// Move data from the old folder names: `theme-profile/` → `kde-theme-profile/`,
-/// `profiles/` → `themes/`, and inside each theme its own `.config/theme-profile`.
+/// Move data from the old folder names: `kde-theme-profile/` / `theme-profile/` → `kolira/`,
+/// `profiles/` → `themes/`, and inside each theme its own `.config/kolira`.
 /// Runs on every start and does nothing once done. It merges, because something
 /// may have created the new folder first (the installer's backups). Nothing is
 /// overwritten: an entry that exists in both places stays in the old folder.
@@ -71,10 +74,13 @@ fn migrate_old_names(old_roots: &[PathBuf], new_root: &Path) {
         return;
     };
     for entry in entries.flatten() {
-        let inner = entry.path().join(".config").join(OLD_DATA_DIR);
-        if inner.is_dir() {
-            move_children(&inner, &entry.path().join(".config").join(DATA_DIR));
-            let _ = std::fs::remove_dir(&inner);
+        let target = entry.path().join(".config").join(DATA_DIR);
+        for name in OLD_DATA_DIRS {
+            let inner = entry.path().join(".config").join(name);
+            if inner != target && inner.is_dir() {
+                move_children(&inner, &target);
+                let _ = std::fs::remove_dir(&inner);
+            }
         }
     }
 }
@@ -93,6 +99,25 @@ fn move_children(from: &Path, to: &Path) {
             let _ = std::fs::remove_dir(entry.path());
         }
     }
+}
+
+/// Resolve persisted backup references after moving a historical data root.
+/// Only a missing old backup path with an existing migrated counterpart is mapped.
+pub fn migrated_backup_path(path: &Path) -> PathBuf {
+    if path.exists() {
+        return path.to_path_buf();
+    }
+    for name in ["kde-theme-profile", "theme-profile"] {
+        for base in [config_home(), home_dir().join(".config")] {
+            if let Ok(suffix) = path.strip_prefix(base.join(name).join("backups")) {
+                let migrated = theme_root().join("backups").join(suffix);
+                if migrated.exists() {
+                    return migrated;
+                }
+            }
+        }
+    }
+    path.to_path_buf()
 }
 
 pub fn profiles_dir() -> PathBuf {
@@ -332,10 +357,7 @@ mod migration_tests {
     #[test]
     fn old_folder_names_move_and_nothing_is_overwritten() {
         let tmp = tempfile::tempdir().unwrap();
-        let (old, new) = (
-            tmp.path().join("theme-profile"),
-            tmp.path().join("kde-theme-profile"),
-        );
+        let (old, new) = (tmp.path().join("theme-profile"), tmp.path().join("kolira"));
         std::fs::create_dir_all(old.join("profiles/mine/.config/theme-profile")).unwrap();
         std::fs::write(
             old.join("profiles/mine/.config/theme-profile/palette.json"),
@@ -350,7 +372,7 @@ mod migration_tests {
         std::fs::write(new.join("app-preferences.json"), "new").unwrap();
         migrate_old_names(std::slice::from_ref(&old), &new);
         assert!(new
-            .join("themes/mine/.config/kde-theme-profile/palette.json")
+            .join("themes/mine/.config/kolira/palette.json")
             .is_file());
         assert!(new.join("backups/one").is_dir() && new.join("backups/deploy").is_dir());
         assert_eq!(

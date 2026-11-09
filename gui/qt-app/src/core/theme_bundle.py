@@ -444,7 +444,7 @@ class ThemeBundleCore:
         except (ValueError, RuntimeError) as exc:
             return Result.err(str(exc))
 
-    # ── editor theme stores (Rust CLI: `theme-profile apps …`) ───────────
+    # ── editor theme stores (Rust CLI: `kolira apps …`) ───────────
 
     def _cli_json(self, args: list[str], timeout: int = 180) -> Result:
         from .cli_core import run_cli
@@ -454,7 +454,7 @@ class ThemeBundleCore:
         try:
             return Result.ok(data={"value": json.loads(result.message)})
         except ValueError:
-            return Result.err("theme-profile returned invalid JSON")
+            return Result.err("kolira returned invalid JSON")
 
     def _store_adapter(self, app_id: str) -> Result:
         adapter = adapter_for(app_id)

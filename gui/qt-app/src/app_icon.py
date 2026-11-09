@@ -1,8 +1,8 @@
 """Application icon resolution.
 
 The installer ships an icon named :data:`ICON_NAME` (see
-``resources/icons/ktm-theme-manager.svg`` and the ``Icon=`` key in
-``resources/kde-theme-manager.desktop``). When the app runs from the source
+``resources/icons/kolira-icon.svg`` and the ``Icon=`` key in
+``resources/kolira.desktop``). When the app runs from the source
 tree that icon is not installed yet, so fall back to the Breeze theme icon.
 
 The name deliberately does **not** start with ``kde-`` or ``plasma-``: KDE's
@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from PySide6.QtGui import QIcon
 
-ICON_NAME = "ktm-theme-manager"
+ICON_NAME = "kolira-icon"
 FALLBACK_ICON_NAME = "preferences-desktop-theme"
 
 

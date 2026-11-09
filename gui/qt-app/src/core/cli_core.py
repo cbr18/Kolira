@@ -34,7 +34,7 @@ def run_cli(arguments, *, stdin=None, timeout=120, binary=None):
     except (OSError, subprocess.SubprocessError) as exc:
         return Result.err(str(exc))
     if proc.returncode:
-        return Result.err(proc.stderr.strip() or proc.stdout.strip() or "theme-profile failed")
+        return Result.err(proc.stderr.strip() or proc.stdout.strip() or "kolira failed")
     return Result.ok(proc.stdout.strip())
 
 
@@ -75,11 +75,11 @@ def core_request(method: str, *, _binary=None, _timeout=180, **arguments):
 # Profile Core
 # ──────────────────────────────────────────────────────────────
 
-def resolve_cli_bin(name: str = "theme-profile") -> str:
-    """Path of a Rust CLI binary: $KTM_THEME_PROFILE_BIN (theme-profile only;
+def resolve_cli_bin(name: str = "kolira") -> str:
+    """Path of a Rust CLI binary: $KTM_THEME_PROFILE_BIN (kolira only;
     tests point it at the freshly built one) → PATH → ~/.local/bin."""
     override = os.environ.get("KTM_THEME_PROFILE_BIN")
-    if name == "theme-profile" and override:
+    if name == "kolira" and override:
         return override
     resolved = shutil.which(name)
     if resolved:
@@ -117,11 +117,11 @@ def core_cli_process(parent, method, arguments):
 
 
 class CliProfileCore(ProfileCore):
-    """Обёртка над Rust CLI `theme-profile`."""
+    """Обёртка над Rust CLI `kolira`."""
 
-    def __init__(self, theme_profile_bin: str = "theme-profile"):
+    def __init__(self, kolira_profile_bin: str = "kolira"):
         # Resolve binary path: check PATH, then fallback to ~/.local/bin/
-        self.bin = resolve_cli_bin(theme_profile_bin)
+        self.bin = resolve_cli_bin(kolira_profile_bin)
         # Cached for compatibility with the existing test-suite; the public
         # properties keep the rest of the code free of direct attribute use.
         self._profiles_dir = profiles_dir()
@@ -250,7 +250,7 @@ class CliProfileCore(ProfileCore):
         return self._run(args, timeout=120)
 
     def new_theme(self, name: str, base: str) -> Result:
-        """`theme-profile new NAME --from=BASE` (replaces the live look)."""
+        """`kolira new NAME --from=BASE` (replaces the live look)."""
         try:
             name = validate_profile_name(name)
             if base not in ("neutral-light", "neutral-dark"):
@@ -260,7 +260,7 @@ class CliProfileCore(ProfileCore):
         return self._run(["new", name, f"--from={base}"], timeout=300)
 
     def look_and_feel(self, name: str) -> Result:
-        """`theme-profile look-and-feel NAME`: the live look as a Global Theme."""
+        """`kolira look-and-feel NAME`: the live look as a Global Theme."""
         try:
             name = validate_profile_name(name)
         except ValueError as exc:
@@ -268,7 +268,7 @@ class CliProfileCore(ProfileCore):
         return self._run(["look-and-feel", name], timeout=60)
 
     def export_theme(self, name: str, path: str, include_wallpaper: bool = True) -> Result:
-        """`theme-profile export NAME --out=PATH [--no-wallpaper]`."""
+        """`kolira export NAME --out=PATH [--no-wallpaper]`."""
         try:
             name = validate_profile_name(name)
         except ValueError as exc:
@@ -281,7 +281,7 @@ class CliProfileCore(ProfileCore):
         return self._run(args, timeout=120)
 
     def import_theme(self, path: str, name: str = "", force: bool = False) -> Result:
-        """`theme-profile import PATH [--name=] [--force] --json`.
+        """`kolira import PATH [--name=] [--force] --json`.
 
         data = {name, files, replaced, missing: [{field, name, source}]}.
         """
@@ -301,11 +301,11 @@ class CliProfileCore(ProfileCore):
         try:
             report = json.loads(result.message or "{}")
         except ValueError:
-            return Result.err("theme-profile import returned invalid JSON")
+            return Result.err("kolira import returned invalid JSON")
         return Result.ok(f"Imported theme: {report.get('name', '')}", data=report)
 
     def dependencies(self, name: str) -> Result:
-        """`theme-profile deps NAME --json`: what the theme needs that is not installed."""
+        """`kolira deps NAME --json`: what the theme needs that is not installed."""
         try:
             name = validate_profile_name(name)
         except ValueError as exc:
@@ -316,10 +316,10 @@ class CliProfileCore(ProfileCore):
         try:
             return Result.ok(data=json.loads(result.message or "[]"))
         except ValueError:
-            return Result.err("theme-profile deps returned invalid JSON")
+            return Result.err("kolira deps returned invalid JSON")
 
     def install_dependencies(self, name: str, indexes: Optional[list[int]] = None, timeout: int = 3600) -> Result:
-        """`theme-profile deps NAME --install=… --json` (downloads from the
+        """`kolira deps NAME --install=… --json` (downloads from the
         official sources; packages are never installed — see their command)."""
         try:
             name = validate_profile_name(name)
@@ -332,14 +332,14 @@ class CliProfileCore(ProfileCore):
         try:
             items = json.loads(result.message or "[]")
         except ValueError:
-            return result if not result.success else Result.err("invalid JSON from theme-profile deps")
+            return result if not result.success else Result.err("invalid JSON from kolira deps")
         failed = [i for i in items if not i.get("ok")]
         lines = [("✓ " if i.get("ok") else "✗ ") + str(i.get("message", "")) for i in items]
         message = "\n".join(lines) or "Nothing to install"
         return Result(not failed, message, data=items)
 
     def actions(self, name: str) -> Result:
-        """`theme-profile actions NAME --json`: follow-up steps for a theme."""
+        """`kolira actions NAME --json`: follow-up steps for a theme."""
         try:
             name = validate_profile_name(name)
         except ValueError as exc:
@@ -348,10 +348,10 @@ class CliProfileCore(ProfileCore):
         try:
             return Result(result.success, "", data=json.loads(result.message or "[]"))
         except ValueError:
-            return Result.err(result.message or "invalid JSON from theme-profile actions")
+            return Result.err(result.message or "invalid JSON from kolira actions")
 
     def run_action(self, action_id: str) -> Result:
-        """`theme-profile action ID`: one follow-up step the user agreed to."""
+        """`kolira action ID`: one follow-up step the user agreed to."""
         if not action_id.replace("-", "").isalnum():
             return Result.err(f"invalid action {action_id!r}")
         return self._run(["action", action_id], timeout=300)
@@ -368,7 +368,7 @@ class CliProfileCore(ProfileCore):
         try:
             missing = json.loads(result.message or "[]")
         except ValueError:
-            return Result.err("theme-profile check returned invalid JSON")
+            return Result.err("kolira check returned invalid JSON")
         return Result.ok(data={"missing": missing})
 
     def delete(self, name: str) -> Result:
@@ -379,7 +379,7 @@ class CliProfileCore(ProfileCore):
         return self._run(["delete", name])
 
     def clone(self, source: str, target: str) -> Result:
-        """Дублировать профиль: `theme-profile clone SOURCE TARGET`."""
+        """Дублировать профиль: `kolira clone SOURCE TARGET`."""
         try:
             source = validate_profile_name(source)
             target = validate_profile_name(target)
@@ -388,7 +388,7 @@ class CliProfileCore(ProfileCore):
         return self._run(["clone", source, target], timeout=60)
 
     def set_description(self, name: str, description: str) -> Result:
-        """Описание профиля — через `theme-profile describe NAME --set=...`."""
+        """Описание профиля — через `kolira describe NAME --set=...`."""
         try:
             name = validate_profile_name(name)
         except ValueError as exc:
@@ -547,7 +547,7 @@ class CliSettingsCore(SettingsCore):
     def get_defaults(self) -> AppSettings:
         return AppSettings.from_dict(core_request("settings.defaults"))
 
-    # ── automation choices (owned by the Rust core: `theme-profile automation`)
+    # ── automation choices (owned by the Rust core: `kolira automation`)
 
     def automation(self) -> dict:
         """{configured: bool, items: [{key, what, note, policy}]}."""
@@ -560,7 +560,7 @@ class CliSettingsCore(SettingsCore):
             return {}
 
     def set_automation(self, choices: dict) -> Result:
-        """`theme-profile automation set KEY=POLICY …` (also marks it configured)."""
+        """`kolira automation set KEY=POLICY …` (also marks it configured)."""
         pairs = [f"{k}={v}" for k, v in choices.items()
                  if str(k).replace("_", "").isalnum() and v in ("ask", "always", "never")]
         if not pairs:

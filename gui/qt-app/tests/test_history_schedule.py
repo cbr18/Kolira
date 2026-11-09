@@ -6,9 +6,9 @@ from controllers.history_schedule import HistoryScheduleController
 
 
 def theme(tmp_path):
-    path = tmp_path / '.config/kde-theme-profile/themes/probe'
+    path = tmp_path / '.config/kolira/themes/probe'
     path.mkdir(parents=True)
-    (path / 'theme.json').write_text(json.dumps({'schema':'theme-profile/theme@2','name':'probe'}))
+    (path / 'theme.json').write_text(json.dumps({'schema':'kolira/theme@2','name':'probe'}))
 
 
 def test_queued_read_requests_and_rule_persistence(qtbot, tmp_path):
@@ -42,7 +42,7 @@ def test_missing_executable_finishes_request_with_visible_error(qtbot, monkeypat
 def test_failed_apply_links_the_error_to_the_actual_history_record(qtbot, tmp_path):
     from core.cli_core import CliProfileCore
     theme(tmp_path)
-    broken = tmp_path/'.config/kde-theme-profile/themes/probe/.config/alacritty/alacritty.toml'
+    broken = tmp_path/'.config/kolira/themes/probe/.config/alacritty/alacritty.toml'
     broken.parent.mkdir(parents=True)
     broken.write_text('[invalid toml')
     result = CliProfileCore().apply('probe', skip_dependencies=True)

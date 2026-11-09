@@ -41,9 +41,9 @@
 ## CLI и API
 
 ```bash
-theme-profile preview Paper --json
-theme-profile preview Paper --keep-wallpaper --json
-theme-profile apply Paper --keep-wallpaper --preview-token=TOKEN
+kolira preview Paper --json
+kolira preview Paper --keep-wallpaper --json
+kolira apply Paper --keep-wallpaper --preview-token=TOKEN
 ```
 
 Параметры Apply должны совпадать с просмотром. Для старых снимков поддерживается

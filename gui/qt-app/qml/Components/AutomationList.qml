@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import org.kde.kirigami.platform as Platform
 
-// The user's automation choices (theme-profile automation): one row per
+// The user's automation choices (kolira automation): one row per
 // kind of step a theme may need — ask / always / never — with what it does
 // and what to know before choosing "always". Emits chosen(key, policy).
 ColumnLayout {

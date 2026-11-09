@@ -12,7 +12,7 @@
     },
     {
       "kind": "look-and-feel",
-      "license": "MIT (theme-profile-kit)",
+      "license": "MIT (kolira)",
       "name": "glass",
       "origin": "user",
       "path": ".local/share/plasma/look-and-feel/glass",
@@ -121,10 +121,10 @@
     }
   ],
   "description": "Dark translucent glass: blur everywhere, OrchisDark Kvantum, accent from the monochrome Saturn wallpaper",
-  "generator": "theme-profile 0.5.0",
+  "generator": "kolira 0.5.0",
   "name": "glass",
   "palette": null,
-  "schema": "theme-profile/theme@2",
+  "schema": "kolira/theme@2",
   "sources": {
     "vscode_theme": {
       "id": "unthrottled.doki-theme",

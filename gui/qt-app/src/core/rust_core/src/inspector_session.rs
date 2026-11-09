@@ -464,7 +464,7 @@ pub fn rpc(op: &str, args: &Value) -> Result<Value> {
     if op == "close" && args["session"].is_null() {
         return Ok(json!({"closed":false}));
     }
-    let root = paths::cache_home().join("kde-theme-profile/inspector-sessions");
+    let root = paths::cache_home().join("kolira/inspector-sessions");
     fs::create_dir_all(&root)?;
     fs::set_permissions(&root, fs::Permissions::from_mode(0o700))?;
     let dir = if let Some(id) = args["session"].as_str() {
@@ -616,7 +616,7 @@ pub fn staged(session: Option<&str>) -> Result<BTreeMap<String, Value>> {
     };
     paths::validate_profile_name(id)?;
     let file = paths::cache_home()
-        .join("kde-theme-profile/inspector-sessions")
+        .join("kolira/inspector-sessions")
         .join(id)
         .join("state.json");
     let state: State = serde_json::from_slice(&fs::read(file)?)?;

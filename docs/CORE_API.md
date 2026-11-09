@@ -8,7 +8,7 @@ Core/CLI — Rust; GUI остаётся Python (PySide6 + QML). Python отве�
 
 ## Протокол API v1
 
-`theme-profile core METHOD` читает один JSON-объект из stdin (до 32 MiB),
+`kolira core METHOD` читает один JSON-объект из stdin (до 32 MiB),
 выполняет запрос и возвращает ровно один JSON-объект в stdout:
 
 ```json
@@ -24,9 +24,9 @@ Core/CLI — Rust; GUI остаётся Python (PySide6 + QML). Python отве�
 QUrl/QColor/QJSValue преобразуются в обычные JSON-значения на границе Qt.
 
 ```bash
-printf '%s' '{}' | theme-profile core settings.get
-printf '%s' '{"settings":{"theme":"paper"}}' | theme-profile core settings.set
-printf '%s' '{"id":"window_bg"}' | theme-profile core field.read
+printf '%s' '{}' | kolira core settings.get
+printf '%s' '{"settings":{"theme":"paper"}}' | kolira core settings.set
+printf '%s' '{"id":"window_bg"}' | kolira core field.read
 ```
 
 ## Семейства методов
@@ -54,7 +54,7 @@ printf '%s' '{"id":"window_bg"}' | theme-profile core field.read
 Первый `inspector.state` без `session` создаёт идентификатор. Последующие
 запросы передают его. Rust хранит staging, порядок, Undo, оригиналы файлов
 и монотонную `revision` в
-`$XDG_CACHE_HOME/kde-theme-profile/inspector-sessions/inspector-<random>/`.
+`$XDG_CACHE_HOME/kolira/inspector-sessions/inspector-<random>/`.
 Каталог имеет права 0700, состояние — 0600; запросы одной сессии сериализуются
 файловой блокировкой. Python хранит лишь копии для отображения и игнорирует
 ответы с меньшей revision.
@@ -65,7 +65,7 @@ Curated-поля и generic-конфиги накапливаются до Apply
 Undo снимает последнее staged-изменение, затем отменяет применённые изменения;
 ошибка восстановления сохраняет запись для повтора. Revert восстанавливает
 оригинальные файлы сессии. Перед первой записью Rust сохраняет постоянные копии
-в `$XDG_CONFIG_HOME/kde-theme-profile/backups/inspector-<random>/` (0700).
+в `$XDG_CONFIG_HOME/kolira/backups/inspector-<random>/` (0700).
 Копии и заменяемые файлы сохраняют исходные права; новые конфиги создаются 0600.
 Закрытие сессии удаляет её кэш, сохраняя постоянные бэкапы. GUI при штатном выходе
 дожидается фоновых задач до 5 секунд и закрывает сессию, если они завершились;

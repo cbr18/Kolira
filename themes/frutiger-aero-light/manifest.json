@@ -35,7 +35,7 @@
         ".config/gtk-3.0/settings.ini",
         ".config/gtk-3.0/gtk.css",
         ".config/gtk-3.0/colors.css",
-        ".config/gtk-3.0/theme-profile.css"
+        ".config/gtk-3.0/kolira.css"
       ]
     },
     {
@@ -44,7 +44,7 @@
         ".config/gtk-4.0/settings.ini",
         ".config/gtk-4.0/gtk.css",
         ".config/gtk-4.0/colors.css",
-        ".config/gtk-4.0/theme-profile.css"
+        ".config/gtk-4.0/kolira.css"
       ]
     },
     {
@@ -70,21 +70,21 @@
       "id": "kvantum",
       "paths": [
         ".config/Kvantum/kvantum.kvconfig",
-        ".config/Kvantum/ThemeProfileFrutigerAeroLight"
+        ".config/Kvantum/KoliraFrutigerAeroLight"
       ]
     },
     {
       "id": "kitty",
       "paths": [
         ".config/kitty/kitty.conf",
-        ".config/kitty/theme-profile.conf"
+        ".config/kitty/kolira.conf"
       ]
     },
     {
       "id": "alacritty",
       "paths": [
         ".config/alacritty/alacritty.toml",
-        ".config/alacritty/theme-profile.toml"
+        ".config/alacritty/kolira.toml"
       ]
     },
     {
@@ -138,7 +138,7 @@
       "id": "oh-my-posh",
       "paths": [
         ".config/fish/config.fish",
-        ".config/oh-my-posh/theme-profile.omp.json"
+        ".config/oh-my-posh/kolira.omp.json"
       ]
     },
     {
@@ -151,7 +151,7 @@
       "id": "ghostty",
       "paths": [
         ".config/ghostty/config",
-        ".config/ghostty/theme-profile"
+        ".config/ghostty/kolira"
       ]
     },
     {
@@ -178,7 +178,7 @@
       "id": "konsole",
       "paths": [
         ".local/share/konsole/Theme Profile.profile",
-        ".local/share/konsole/ThemeProfileFrutigerAeroLight.colorscheme"
+        ".local/share/konsole/KoliraFrutigerAeroLight.colorscheme"
       ]
     },
     {
@@ -198,13 +198,13 @@
     {
       "id": "color_schemes",
       "paths": [
-        ".local/share/color-schemes/ThemeProfileFrutigerAeroLight.colors"
+        ".local/share/color-schemes/KoliraFrutigerAeroLight.colors"
       ]
     },
     {
       "id": "palette",
       "paths": [
-        ".config/kde-theme-profile/palette.json"
+        ".config/kolira/palette.json"
       ]
     }
   ]

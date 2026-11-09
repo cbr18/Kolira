@@ -222,7 +222,7 @@ pub fn palette_from_swatches(
         } else {
             name.trim().to_string()
         },
-        author: "theme-profile (generated from wallpaper)".to_string(),
+        author: "kolira (generated from wallpaper)".to_string(),
         variant,
         base: base.iter().map(|c| c.hex()).collect(),
         accent: accent.hex(),

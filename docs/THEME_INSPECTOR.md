@@ -23,7 +23,7 @@
 |---|---|---|
 | Карточка профиля | имя, свотчи палитры, отпечаток темы (accent/Kvantum/blur/радиус), дата сохранения, размер, число компонентов, кнопки Apply/Preview/Diff/Inspect/Delete | что *внутри* по каждому полю (есть в Theme) |
 | `Preview` | список компонентов + сырой `diff -ru` на 4000+ строк | человекочитаемые поля «было → станет» |
-| `theme-profile status` | ~40 плоских `key=value` | значения с типами, дефолты, валидация; часть строк битая (JSON/zed) |
+| `kolira status` | ~40 плоских `key=value` | значения с типами, дефолты, валидация; часть строк битая (JSON/zed) |
 | Settings | настройки *приложения* | настройки *темы* |
 | System Settings | всё, но по разным kcm | единого взгляда «что такое моя тема» |
 
@@ -44,7 +44,7 @@
 | `kvantum` | `Kvantum/kvantum.kvconfig`, `Kvantum/<Theme>/` | активная тема + десятки флагов (blurring, translucent_windows, отступы) |
 | `gtk3` / `gtk4` | `gtk-3.0/settings.ini`, `gtk.css`, `colors.css` | тема, иконки, курсор, шрифт, CSS-переопределения |
 | `qt5ct` | `Trolltech.conf` | палитра Qt-приложений (`QtProject.conf` — состояние диалога файлов, не отслеживается) |
-| `kitty` / `alacritty` | `kitty/theme-profile.conf`, `alacritty/theme-profile.toml` (подключаются из `kitty.conf` / `alacritty.toml`) + themes | прозрачность, blur, цвета, шрифт |
+| `kitty` / `alacritty` | `kitty/kolira.conf`, `alacritty/kolira.toml` (подключаются из `kitty.conf` / `alacritty.toml`) + themes | прозрачность, blur, цвета, шрифт |
 | `wofi` | `wofi/style.css`, `wallpaper.css` | цвета меню через `@define-color` |
 | `btop` | `btop.conf`, `themes/*.theme` | тема, скругления |
 | `zed` / `vscode` / `cursor` | `settings.json` | active theme (light/dark/mode) |
@@ -367,7 +367,7 @@ FFI и второго backend нет. [API v1 и хранение сессий](
 | `kwin-reconfigure` | `qdbus6 org.kde.KWin /KWin reconfigure` |
 | `kwin-effect` | `… /Effects loadEffect\|unloadEffect <name>` + `reconfigureEffect <name>` |
 | `kbuildsycoca` | `kbuildsycoca6` |
-| `kitty-live` | `kitty @ --to unix:/tmp/kitty-theme-profile load-config` + `set-background-opacity`/`set-colors` |
+| `kitty-live` | `kitty @ --to unix:/tmp/kitty-kolira load-config` + `set-background-opacity`/`set-colors` |
 | `plasmashell` | `systemctl --user restart plasma-plasmashell` (только панели/темы, с подтверждением) |
 | `none` | приложение само перечитает конфиг |
 
@@ -387,7 +387,7 @@ FFI и второго backend нет. [API v1 и хранение сессий](
 reload-хуки. Практика показала, что промежуточные состояния (слайдер,
 меняющий opacity от 0.3 до 0.9) порождают серию перезагрузок приложений.
 Теперь: set_value/set_config_value только валидируют и копят правки;
-`apply()` передаёт сессию Rust (`theme-profile core inspector.apply`):
+`apply()` передаёт сессию Rust (`kolira core inspector.apply`):
 ядро патчит файлы, выполняет команды/хуки, зеркалирует GTK, сохраняет снимки
 и стек Undo. Python отображает результат. Ошибочные изменения остаются staged;
 успешная тема приложения не скрывает ошибку curated-поля.
@@ -470,7 +470,7 @@ Staged-значение сразу видно в поле (флаг
 - [ ] `validate()`: несуществующие scheme/L&F/Plasma theme/иконки/курсоры/шрифт; конфликт blur.
 - [ ] `ThemeCore` (Python), `ThemeController`, QML: `ThemePage`, `ThemeSectionPage`, `ThemeFieldRow`, `ColorSwatch`, `ValueBadge`.
 - [ ] Поиск по полям, «Open in System Settings», «Open file», diff live↔profile по полям.
-- [ ] Тесты: значения против `theme-profile status` (golden), валидация на синтетических конфигах, offscreen-рендер страницы.
+- [ ] Тесты: значения против `kolira status` (golden), валидация на синтетических конфигах, offscreen-рендер страницы.
 
 ### Phase 2 — редактирование (2–3 дня)
 - [ ] Writers + hooks; snapshot/undo/revert.

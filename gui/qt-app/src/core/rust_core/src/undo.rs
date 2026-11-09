@@ -466,7 +466,13 @@ pub(crate) fn plan_record_prefs(
             } else {
                 "\n"
             };
-            plan.write_text(&path, format!("{old}{sep}// theme-profile: back to the value before the previous theme\n{restore}"), "browser_reset")?;
+            plan.write_text(
+                &path,
+                format!(
+                    "{old}{sep}// kolira: back to the value before the previous theme\n{restore}"
+                ),
+                "browser_reset",
+            )?;
             // Written for the browser's next start: not a theme's file to remove.
             j.created.remove(user_js);
             j.replaced.remove(user_js);

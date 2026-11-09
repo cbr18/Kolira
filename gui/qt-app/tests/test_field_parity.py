@@ -1,4 +1,4 @@
-"""Rust field engine (`theme-profile field`) and the Python inspector core
+"""Rust field engine (`kolira field`) and the Python inspector core
 must read and write the same keys identically — both use theme_fields.json."""
 
 import json

@@ -115,7 +115,7 @@ impl Base {
     pub fn resolve(&self, relative: &str) -> PathBuf {
         match self {
             Base::Live => live_path(relative),
-            Base::Snapshot(root) => root.join(relative),
+            Base::Snapshot(root) => crate::profile::theme_file(root, relative),
         }
     }
 }
@@ -1275,7 +1275,7 @@ mod tests {
         )
         .unwrap();
         std::fs::write(
-            root.join(".config/kitty/theme-profile.conf"),
+            root.join(".config/kitty/kolira.conf"),
             "background_opacity 0.8\n",
         )
         .unwrap();

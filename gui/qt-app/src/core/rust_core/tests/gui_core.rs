@@ -23,7 +23,7 @@ impl Home {
         fs::write(path, text).unwrap();
     }
     fn command(&self, method: &str) -> Command {
-        let mut c = Command::new(env!("CARGO_BIN_EXE_theme-profile"));
+        let mut c = Command::new(env!("CARGO_BIN_EXE_kolira"));
         c.args(["core", method])
             .env("HOME", self.0.path())
             .env("XDG_CONFIG_HOME", self.path(".config"))
@@ -79,7 +79,7 @@ impl Home {
     }
     fn register(&self) {
         self.write(
-            ".config/kde-theme-profile/components.json",
+            ".config/kolira/components.json",
             r#"{"components":[{"id":"mockapp","name":"Mock","config_paths":[".config/mockapp"]}]}"#,
         );
     }
@@ -97,7 +97,7 @@ impl Home {
 fn settings_keep_foreign_keys_validate_types_and_private_mode() {
     let h = Home::new();
     h.write(
-        ".config/kde-theme-profile/app-preferences.json",
+        ".config/kolira/app-preferences.json",
         r#"{"automation":{"store":"never"},"future":{"keep":true}}"#,
     );
     h.rpc(
@@ -109,17 +109,17 @@ fn settings_keep_foreign_keys_validate_types_and_private_mode() {
     assert_eq!(saved["core_backend"], "core");
     assert_eq!(saved["automation"]["store"], "never");
     assert_eq!(saved["future"]["keep"], true);
-    let before = fs::read(h.path(".config/kde-theme-profile/app-preferences.json")).unwrap();
+    let before = fs::read(h.path(".config/kolira/app-preferences.json")).unwrap();
     assert_eq!(
         h.raw("settings.set", json!({"settings":{"theme":42}}))["ok"],
         false
     );
     assert_eq!(
-        fs::read(h.path(".config/kde-theme-profile/app-preferences.json")).unwrap(),
+        fs::read(h.path(".config/kolira/app-preferences.json")).unwrap(),
         before
     );
     assert_eq!(
-        fs::metadata(h.path(".config/kde-theme-profile/app-preferences.json"))
+        fs::metadata(h.path(".config/kolira/app-preferences.json"))
             .unwrap()
             .permissions()
             .mode()
@@ -141,7 +141,7 @@ fn settings_updates_and_automation_share_one_lock() {
             )
         }));
     }
-    let mut auto = Command::new(env!("CARGO_BIN_EXE_theme-profile"));
+    let mut auto = Command::new(env!("CARGO_BIN_EXE_kolira"));
     auto.args(["automation", "set", "store=never"])
         .env("HOME", h.0.path())
         .env("XDG_CONFIG_HOME", h.path(".config"));
@@ -260,7 +260,7 @@ fn app_success_cannot_mask_a_failed_field_and_no_profile_is_saved() {
         json!({"session":id,"name":"failed","components":{"color_scheme":"Base"}}),
     );
     assert_eq!(created["ok"], false);
-    assert!(!h.path(".config/kde-theme-profile/themes/failed").exists());
+    assert!(!h.path(".config/kolira/themes/failed").exists());
 }
 
 #[test]
@@ -436,7 +436,7 @@ fn closing_session_removes_cache_and_keeps_private_backups() {
         json!({"session":id,"id":"window_bg","value":"#112233"}),
     );
     h.rpc("inspector.apply", json!({"session":id}));
-    let backup = h.path(&format!(".config/kde-theme-profile/backups/{id}"));
+    let backup = h.path(&format!(".config/kolira/backups/{id}"));
     assert_eq!(
         fs::metadata(&backup).unwrap().permissions().mode() & 0o777,
         0o700
@@ -454,7 +454,7 @@ fn closing_session_removes_cache_and_keeps_private_backups() {
         true
     );
     assert!(!h
-        .path(&format!(".cache/kde-theme-profile/inspector-sessions/{id}"))
+        .path(&format!(".cache/kolira/inspector-sessions/{id}"))
         .exists());
     assert!(backup.is_dir());
     assert_eq!(h.raw("inspector.state", json!({"session":id}))["ok"], false);
@@ -489,10 +489,10 @@ fn no_apply_disables_wallpaper_and_desktop_hooks() {
 #[test]
 fn active_marker_clearing_does_not_delete_a_valid_new_selection() {
     let h = Home::new();
-    h.write(".config/kde-theme-profile/active-profile", "gone\n");
+    h.write(".config/kolira/active-profile", "gone\n");
     assert_eq!(h.rpc("profile.clear_stale", json!({"name":"gone"})), true);
-    h.write(".config/kde-theme-profile/active-profile", "current\n");
-    fs::create_dir_all(h.path(".config/kde-theme-profile/themes/current")).unwrap();
+    h.write(".config/kolira/active-profile", "current\n");
+    fs::create_dir_all(h.path(".config/kolira/themes/current")).unwrap();
     assert_eq!(h.rpc("profile.clear_stale", json!({"name":"gone"})), false);
     assert_eq!(h.rpc("profile.active", json!({})), "current");
 }
@@ -515,14 +515,10 @@ fn summary_batch_reads_snapshots_and_isolates_damaged_entries() {
         ".config/kdeglobals",
         "[General]\nColorScheme=LiveMustNotLeak\n",
     );
-    home.write(".config/kde-theme-profile/themes/saved/.config/kdeglobals", "[General]\nColorScheme=Saved\nAccentColor=10,20,30\n[Colors:Window]\nBackgroundNormal=32,36,31\n");
-    home.write(".config/kde-theme-profile/themes/package/theme.json", r##"{"schema":"theme-profile/theme@2","name":"package","values":{"color_scheme":"Package","accent_color":"#112233"}}"##);
-    home.write(".config/kde-theme-profile/themes/broken/theme.json", "{bad");
-    std::os::unix::fs::symlink(
-        home.0.path(),
-        home.path(".config/kde-theme-profile/themes/link"),
-    )
-    .unwrap();
+    home.write(".config/kolira/themes/saved/.config/kdeglobals", "[General]\nColorScheme=Saved\nAccentColor=10,20,30\n[Colors:Window]\nBackgroundNormal=32,36,31\n");
+    home.write(".config/kolira/themes/package/theme.json", r##"{"schema":"kolira/theme@2","name":"package","values":{"color_scheme":"Package","accent_color":"#112233"}}"##);
+    home.write(".config/kolira/themes/broken/theme.json", "{bad");
+    std::os::unix::fs::symlink(home.0.path(), home.path(".config/kolira/themes/link")).unwrap();
     let data = home.rpc(
         "profile.summaries",
         json!({"names":["saved","package","broken","missing","link"]}),

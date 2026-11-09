@@ -1,0 +1,25 @@
+{
+  "name": "Frutiger Aero Light",
+  "author": "kolira",
+  "variant": "light",
+  "base": [
+    "#ffffff",
+    "#f0f6fc",
+    "#d9ebf9",
+    "#8a9cad",
+    "#56687a",
+    "#1b1b1b",
+    "#0d0d0d",
+    "#000000",
+    "#c42b1c",
+    "#d06b00",
+    "#a07800",
+    "#2f8a2f",
+    "#0a8ca6",
+    "#0066cc",
+    "#6b4fbb",
+    "#1f9b80"
+  ],
+  "accent": "#3399e6",
+  "source": "manual"
+}

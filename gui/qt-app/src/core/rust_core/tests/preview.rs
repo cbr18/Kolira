@@ -28,18 +28,18 @@ impl Home {
     }
     fn theme(&self, name: &str, package: bool) {
         self.write(
-            &format!(".config/kde-theme-profile/themes/{name}/.config/kdeglobals"),
+            &format!(".config/kolira/themes/{name}/.config/kdeglobals"),
             "[General]\nColorScheme=New\nTerminalApplication=must-not-arrive\n",
         );
         if package {
             self.write(
-                &format!(".config/kde-theme-profile/themes/{name}/theme.json"),
-                &json!({"schema":"theme-profile/theme@2","name":name}).to_string(),
+                &format!(".config/kolira/themes/{name}/theme.json"),
+                &json!({"schema":"kolira/theme@2","name":name}).to_string(),
             );
         }
     }
     fn command(&self, args: &[&str]) -> Command {
-        let mut c = Command::new(env!("CARGO_BIN_EXE_theme-profile"));
+        let mut c = Command::new(env!("CARGO_BIN_EXE_kolira"));
         c.args(args)
             .env("HOME", self.0.path())
             .env("XDG_CONFIG_HOME", self.path(".config"))
@@ -113,8 +113,8 @@ fn preview_is_readonly_and_confirmed_result_matches_every_file() {
     let before = fs::read(h.path(".config/kdeglobals")).unwrap();
     let report = h.preview("next", false);
     assert_eq!(fs::read(h.path(".config/kdeglobals")).unwrap(), before);
-    assert!(!h.path(".config/kde-theme-profile/backups").exists());
-    assert!(!h.path(".config/kde-theme-profile/operations").exists());
+    assert!(!h.path(".config/kolira/backups").exists());
+    assert!(!h.path(".config/kolira/operations").exists());
     assert_eq!(report["file_count"], 1);
     assert!(!report["files"][0]["diff"]
         .as_str()
@@ -132,12 +132,12 @@ fn journal_resets_and_user_edits_match_actual_apply() {
     let h = Home::new();
     h.theme("first", true);
     h.write(
-        ".config/kde-theme-profile/themes/first/.config/wofi/style.css",
+        ".config/kolira/themes/first/.config/wofi/style.css",
         "window { color: red; }\n",
     );
     let first = h.preview("first", false);
     h.apply_reviewed(&first);
-    let journal = h.path(".config/kde-theme-profile/apply-journal/journal.json");
+    let journal = h.path(".config/kolira/apply-journal/journal.json");
     let original = fs::read(&journal).unwrap();
     let report = h.preview("next", false);
     assert_eq!(fs::read(&journal).unwrap(), original);
@@ -174,7 +174,7 @@ fn stale_live_source_permissions_and_options_require_new_review() {
         match change {
             0 => h.write(".config/kdeglobals", "[General]\nColorScheme=Edited\n"),
             1 => h.write(
-                ".config/kde-theme-profile/themes/next/.config/kdeglobals",
+                ".config/kolira/themes/next/.config/kdeglobals",
                 "[General]\nColorScheme=ChangedTheme\n",
             ),
             2 => fs::set_permissions(
@@ -189,7 +189,7 @@ fn stale_live_source_permissions_and_options_require_new_review() {
         assert_eq!(result["ok"], false, "{result}");
         assert!(result["error"].as_str().unwrap().contains("PREVIEW_STALE"));
         assert_eq!(fs::read(h.path(".config/kdeglobals")).unwrap(), before);
-        assert!(!h.path(".config/kde-theme-profile/active-profile").exists());
+        assert!(!h.path(".config/kolira/active-profile").exists());
     }
 }
 
@@ -199,7 +199,7 @@ fn partial_legacy_selection_and_cli_confirmation_share_the_contract() {
     h.theme("legacy", false);
     h.write(".config/kwinrc", "[Compositing]\nAnimationSpeed=3\n");
     h.write(
-        ".config/kde-theme-profile/themes/legacy/.config/kwinrc",
+        ".config/kolira/themes/legacy/.config/kwinrc",
         "[Compositing]\nAnimationSpeed=6\n",
     );
     let out = h.run(&["preview", "legacy", "--components=kwin", "--json"]);
@@ -236,10 +236,10 @@ fn missing_assets_are_reported_and_preserved_in_the_plan() {
     let h = Home::new();
     h.write(".config/kdeglobals", "[Icons]\nTheme=breeze\n");
     h.write(
-        ".config/kde-theme-profile/themes/next/.config/kdeglobals",
+        ".config/kolira/themes/next/.config/kdeglobals",
         "[Icons]\nTheme=ThisIconThemeDoesNotExist\n",
     );
-    h.write(".config/kde-theme-profile/themes/next/theme.json",&json!({"schema":"theme-profile/theme@2","name":"next","values":{"icon_theme":"ThisIconThemeDoesNotExist"},"dependencies":[{"kind":"icons","name":"ThisIconThemeDoesNotExist","source":"aur","id":"not-installed-pkg","exact":true}]}).to_string());
+    h.write(".config/kolira/themes/next/theme.json",&json!({"schema":"kolira/theme@2","name":"next","values":{"icon_theme":"ThisIconThemeDoesNotExist"},"dependencies":[{"kind":"icons","name":"ThisIconThemeDoesNotExist","source":"aur","id":"not-installed-pkg","exact":true}]}).to_string());
     let report = h.preview("next", false);
     assert!(!report["missing"].as_array().unwrap().is_empty());
     assert!(!report["dependencies"].as_array().unwrap().is_empty());
@@ -263,7 +263,7 @@ fn jsonc_diff_keeps_comments_and_personal_keys() {
         "{\n // personal\n \"theme\":\"Old\",\n \"ui_font_size\":19,\n}\n",
     );
     h.write(
-        ".config/kde-theme-profile/themes/next/.config/zed/settings.json",
+        ".config/kolira/themes/next/.config/zed/settings.json",
         "{\"theme\":\"New\",\"ui_font_size\":10}",
     );
     let report = h.preview("next", false);
@@ -280,7 +280,7 @@ fn jsonc_diff_keeps_comments_and_personal_keys() {
 fn save_current_first_never_overwrites_an_existing_theme() {
     let h = Home::new();
     h.rpc("profile.save_before_apply", json!({"name":"before-next"}));
-    let path = h.path(".config/kde-theme-profile/themes/before-next/theme.json");
+    let path = h.path(".config/kolira/themes/before-next/theme.json");
     let saved = fs::read(&path).unwrap();
     for name in ["before-next", "BEFORE-NEXT", "../escape"] {
         assert_eq!(
@@ -290,7 +290,7 @@ fn save_current_first_never_overwrites_an_existing_theme() {
     }
     assert_eq!(fs::read(path).unwrap(), saved);
     assert_eq!(
-        fs::read_to_string(h.path(".config/kde-theme-profile/active-profile"))
+        fs::read_to_string(h.path(".config/kolira/active-profile"))
             .unwrap()
             .trim(),
         "before-next"
@@ -302,8 +302,8 @@ fn malicious_resource_symlink_is_rejected_by_preview_without_any_write() {
     let h = Home::new();
     h.write("private", "secret");
     let rel = ".local/share/color-schemes/Probe.colors";
-    h.write(".config/kde-theme-profile/themes/next/theme.json",&json!({"schema":"theme-profile/theme@2","name":"next","assets":[{"kind":"color-scheme","name":"Probe","path":rel}]}).to_string());
-    let src = h.path(&format!(".config/kde-theme-profile/themes/next/{rel}"));
+    h.write(".config/kolira/themes/next/theme.json",&json!({"schema":"kolira/theme@2","name":"next","assets":[{"kind":"color-scheme","name":"Probe","path":rel}]}).to_string());
+    let src = h.path(&format!(".config/kolira/themes/next/{rel}"));
     fs::create_dir_all(src.parent().unwrap()).unwrap();
     symlink(h.path("private"), src).unwrap();
     assert_eq!(
@@ -311,7 +311,7 @@ fn malicious_resource_symlink_is_rejected_by_preview_without_any_write() {
         false
     );
     assert!(!h.path(rel).exists());
-    assert!(!h.path(".config/kde-theme-profile/backups").exists());
+    assert!(!h.path(".config/kolira/backups").exists());
 }
 
 #[test]
@@ -348,13 +348,13 @@ fn keep_wallpaper_and_saved_copy_use_the_same_plan() {
         h.write(apple,"[Containments][1]\nplugin=org.kde.plasma.folder\nwallpaperplugin=org.kde.image\n\n[Containments][1][Wallpaper][org.kde.image][General]\nImage=/old.jpg\n");
         let image_url =
             format!("file://{}", h.path("restored wall.jpg").display()).replace(' ', "%20");
-        h.write(&format!(".config/kde-theme-profile/themes/legacy/{apple}"),&format!("[Containments][1]\nplugin=org.kde.plasma.folder\nwallpaperplugin=org.kde.image\n\n[Containments][1][Wallpaper][org.kde.image][General]\nImage={image_url}\n"));
+        h.write(&format!(".config/kolira/themes/legacy/{apple}"),&format!("[Containments][1]\nplugin=org.kde.plasma.folder\nwallpaperplugin=org.kde.image\n\n[Containments][1][Wallpaper][org.kde.image][General]\nImage={image_url}\n"));
         h.write(
-            ".config/kde-theme-profile/themes/legacy/wallpaper/source",
+            ".config/kolira/themes/legacy/wallpaper/source",
             h.path("restored wall.jpg").to_str().unwrap(),
         );
         h.write(
-            ".config/kde-theme-profile/themes/legacy/wallpaper/copy.jpg",
+            ".config/kolira/themes/legacy/wallpaper/copy.jpg",
             "image bytes",
         );
         let report = h.preview("legacy", keep);

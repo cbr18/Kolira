@@ -9,7 +9,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / 'mcp'))
-from theme_profile_mcp import ThemeProfileMcpServer
+from kolira_profile_mcp import KoliraMcpServer
 
 
 def call(server, tool, **arguments):
@@ -25,7 +25,7 @@ def test_offline_theme_preview_apply_history_and_restore(tmp_path):
     live = config / 'kdeglobals'
     live.write_text('[KDE]\nwidgetStyle=Old\n[General]\nBrowserApplication=personal\n')
     before = live.read_bytes()
-    server = ThemeProfileMcpServer()
+    server = KoliraMcpServer()
     error, capabilities = call(server, 'get_capabilities')
     assert not error and capabilities['api'] == 1
     error, schema = call(server, 'get_theme_schema')
@@ -59,20 +59,20 @@ def test_offline_theme_preview_apply_history_and_restore(tmp_path):
     {'name': 'bad', 'values': {}, 'use_palette': 'false'},
 ])
 def test_invalid_offline_requests_have_structured_errors_and_create_no_theme(tmp_path, arguments):
-    server = ThemeProfileMcpServer()
+    server = KoliraMcpServer()
     error, result = call(server, 'prepare_theme', **arguments)
     assert error and result['error']['code'] == 'invalid_arguments'
     assert result['error']['next_action']
-    assert not (tmp_path / '.config/kde-theme-profile/themes/bad').exists()
+    assert not (tmp_path / '.config/kolira/themes/bad').exists()
 
 
 def test_installed_mcp_stdio_from_nested_theme_cwd_survives_invalid_requests(tmp_path):
     installed = tmp_path / 'installed'
     installed.mkdir()
-    script = installed / 'theme_profile_mcp.py'
-    script.write_bytes((ROOT / 'mcp/theme_profile_mcp.py').read_bytes())
+    script = installed / 'kolira_profile_mcp.py'
+    script.write_bytes((ROOT / 'mcp/kolira_profile_mcp.py').read_bytes())
     (installed / 'src').symlink_to(ROOT / 'gui/qt-app/src', target_is_directory=True)
-    cwd = tmp_path / '.config/kde-theme-profile/themes/nested'
+    cwd = tmp_path / '.config/kolira/themes/nested'
     cwd.mkdir(parents=True)
     requests = [
         [],
@@ -95,7 +95,7 @@ def test_installed_mcp_stdio_from_nested_theme_cwd_survives_invalid_requests(tmp
 
 
 def test_missing_cli_has_actionable_error(tmp_path, monkeypatch):
-    server = ThemeProfileMcpServer()
+    server = KoliraMcpServer()
     monkeypatch.setenv('KTM_THEME_PROFILE_BIN', str(tmp_path / 'missing-binary'))
     error, result = call(server, 'get_capabilities')
     assert error and result['error']['code'] == 'core_unavailable'

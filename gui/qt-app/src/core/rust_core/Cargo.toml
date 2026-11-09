@@ -1,21 +1,21 @@
 [package]
-name = "kde_theme_core"
+name = "kolira_core"
 version = "0.6.0"
 edition = "2021"
-description = "KDE Theme Profile Manager - Rust Core Library + CLI"
+description = "Kolira - Rust core and CLI for KDE appearance"
 license = "MIT"
-repository = "https://github.com/cbr18/kde-theme-manager"
+repository = "https://github.com/cbr18/Kolira"
 
 [lib]
-name = "kde_theme_core"
+name = "kolira_core"
 crate-type = ["rlib"]
 
 # The command line interface is implemented in this crate so the library and
 # the CLI share one source of truth (registry, mutations, status parsers).
 # files/bin/* (bash) was removed in 0.5.0.
 [[bin]]
-name = "theme-profile"
-path = "src/bin/theme-profile.rs"
+name = "kolira"
+path = "src/bin/kolira.rs"
 
 [[bin]]
 name = "theme-menu"

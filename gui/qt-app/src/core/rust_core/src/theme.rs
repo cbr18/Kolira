@@ -34,7 +34,12 @@ use crate::profile::copy_tree;
 use crate::wallpaper::{plasma_wallpaper_from, APPLETSRC_REL};
 
 pub const MANIFEST: &str = "theme.json";
-pub const SCHEMA: &str = "theme-profile/theme@2";
+pub const SCHEMA: &str = "kolira/theme@2";
+
+/// Branding does not invalidate packages exported by earlier versions.
+pub fn supported_schema(schema: &str) -> bool {
+    matches!(schema, SCHEMA | "theme-profile/theme@2")
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Asset {
@@ -47,7 +52,7 @@ pub struct Asset {
     pub origin: String,
     /// May be published (generated assets: yes; third-party copies: unknown → no).
     pub redistributable: bool,
-    /// Licence of the asset (`theme-profile license`), e.g. "CC0-1.0".
+    /// Licence of the asset (`kolira license`), e.g. "CC0-1.0".
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub license: String,
     /// Where it comes from (URL), for attribution.
@@ -140,6 +145,8 @@ pub struct ApplyReport {
     pub dependencies: Vec<Needed>,
     /// Follow-up actions to offer (restart programs, Telegram…).
     pub actions: Vec<crate::actions::Action>,
+    /// Optional dependencies missing here — reported as warnings, not blockers.
+    pub optional_warnings: Vec<String>,
 }
 
 /// A missing dependency with its index in `theme.json` (for `deps --install`)
@@ -156,6 +163,8 @@ pub struct Needed {
 /// The user's automation choices for the dependencies an apply found
 /// missing: `always` installs them now (store downloads; system packages in a
 /// terminal), `never` drops them; only `ask` ones stay to be offered.
+/// Required missing dependencies stay in `report.dependencies`; optional ones
+/// move to `report.optional_warnings` and never block apply.
 fn apply_dependency_policies(name: &str, report: &mut ApplyReport) -> Result<()> {
     use crate::automation::{policy, Policy};
     let (store, packages) = (policy("store"), policy("packages"));
@@ -182,9 +191,29 @@ fn apply_dependency_policies(name: &str, report: &mut ApplyReport) -> Result<()>
         report.missing = check(name)?;
         report.dependencies = needed(name)?;
     }
-    report
+    // Split remaining into required and optional. Required stay for the user
+    // to see; optional go to warnings and never block apply.
+    let (required, optional): (Vec<_>, Vec<_>) = report
         .dependencies
-        .retain(|n| of(n) == Policy::Ask || (of(n) == Policy::Always && !n.dependency.exact));
+        .drain(..)
+        .partition(|n| !n.dependency.optional);
+    report.dependencies = required
+        .into_iter()
+        .filter(|n| of(n) == Policy::Ask || (of(n) == Policy::Always && !n.dependency.exact))
+        .collect();
+    report.optional_warnings = optional
+        .into_iter()
+        .filter(|n| of(n) == Policy::Ask || (of(n) == Policy::Always && !n.dependency.exact))
+        .map(|n| format!(
+            "optional: {} ({}) — {}",
+            n.dependency.name,
+            n.dependency.kind,
+            n.command
+                .as_deref()
+                .map(|c| format!("install: {c}"))
+                .unwrap_or_else(|| format!("get: {}", n.dependency.url))
+        ))
+        .collect();
     Ok(())
 }
 
@@ -200,6 +229,24 @@ pub fn needed(name: &str) -> Result<Vec<Needed>> {
             command: crate::deps::package_command(d),
         })
         .collect())
+}
+
+/// Missing dependencies split into required (block the look) and optional
+/// (theme works without them), each with its index in `theme.json`.
+pub fn needed_split(name: &str) -> Result<(Vec<Needed>, Vec<Needed>)> {
+    let package = load(&profile_dir(name)?)?;
+    let all: Vec<_> = crate::deps::missing(&package.dependencies)
+        .into_iter()
+        .map(|(index, d)| Needed {
+            index,
+            resource_id: crate::dependency_registry::resource_id(d),
+            dependency: d.clone(),
+            command: crate::deps::package_command(d),
+        })
+        .collect();
+    let required: Vec<_> = all.iter().filter(|n| !n.dependency.optional).cloned().collect();
+    let optional: Vec<_> = all.iter().filter(|n| n.dependency.optional).cloned().collect();
+    Ok((required, optional))
 }
 
 /// Re-detect the dependencies of theme `name` on this machine (themes saved
@@ -305,7 +352,7 @@ pub fn load(dir: &Path) -> Result<Package> {
     let text = fs::read_to_string(dir.join(MANIFEST))
         .with_context(|| format!("no {MANIFEST} in {}", dir.display()))?;
     let mut package: Package = serde_json::from_str(&text).context("invalid theme.json")?;
-    if package.schema != SCHEMA {
+    if !supported_schema(&package.schema) {
         return Err(anyhow!("unsupported theme schema {:?}", package.schema));
     }
     // Not the app's business any more, older themes listed them: the login
@@ -775,7 +822,7 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
         name: name.into(),
         description: options.description.clone().unwrap_or_default(),
         created: chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false),
-        generator: format!("theme-profile {}", env!("CARGO_PKG_VERSION")),
+        generator: format!("kolira {}", env!("CARGO_PKG_VERSION")),
         ..Default::default()
     };
 
@@ -814,10 +861,10 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
             .unwrap_or(&path)
             .to_string_lossy()
             .to_string();
-        // Ours: palette-generated assets (ThemeProfile…) and the Look & Feel
-        // packages `theme-profile look-and-feel` writes (theme-profile-…).
-        let generated = asset.starts_with("ThemeProfile")
-            || (k.kind == "look-and-feel" && asset.starts_with("theme-profile-"));
+        // Ours: palette-generated assets (Kolira…) and the Look & Feel
+        // packages `kolira look-and-feel` writes (kolira-…).
+        let generated = asset.starts_with("Kolira")
+            || (k.kind == "look-and-feel" && asset.starts_with("kolira-"));
         // Generated from the palette: ours (colour scheme: MIT). A Kvantum
         // recolour keeps its base's licence: GPL for the themes that ship with
         // Kvantum; another base (store theme, unknown licence) stays private.
@@ -838,7 +885,7 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
                     ),
                 }
             }
-            (true, _) => ("MIT (generated by theme-profile)".to_string(), true),
+            (true, _) => ("MIT (generated by kolira)".to_string(), true),
             _ => (String::new(), false),
         };
         package.assets.push(Asset {
@@ -915,7 +962,7 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
         schemes.sort();
         for file in schemes {
             let name = file.trim_end_matches(".colorscheme").to_string();
-            let generated = name.starts_with("ThemeProfile");
+            let generated = name.starts_with("Kolira");
             package.assets.push(Asset {
                 kind: "konsole-scheme".into(),
                 name,
@@ -923,7 +970,7 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
                 origin: if generated { "generated" } else { "user" }.into(),
                 redistributable: generated,
                 license: if generated {
-                    "MIT (generated by theme-profile)".into()
+                    "MIT (generated by kolira)".into()
                 } else {
                     String::new()
                 },
@@ -1060,13 +1107,13 @@ fn drop_stored_wallpaper(dir: &Path) {
     }
 }
 
-/// Keep the author's licence marks (`theme-profile license`) across re-saves.
+/// Keep the author's licence marks (`kolira license`) across re-saves.
 fn carry_licences(from: &Package, to: &mut Package) {
     // Generated assets get their licence computed on every save (a Kvantum
     // recolour follows its base): an old computed label is not carried, a
     // mark the author set by hand (e.g. "derived from Breeze") is.
     let computed = |l: &str| {
-        l.starts_with("MIT (generated by theme-profile)")
+        l.starts_with("MIT (generated by kolira)")
             || l.starts_with("GPL-3.0-or-later (recoloured from Kvantum's")
             || l.starts_with("licence of ")
     };
@@ -1353,13 +1400,44 @@ fn apply_inner(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
         }
     }
     report.missing = check(name)?;
-    report.dependencies = needed(name)?;
     if !options.skip_dependencies {
+        let (required, optional) = needed_split(name)?;
+        report.dependencies = required;
+        report.optional_warnings = optional
+            .into_iter()
+            .map(|n| format!(
+                "optional: {} ({}) — {}",
+                n.dependency.name,
+                n.dependency.kind,
+                n.command
+                    .as_deref()
+                    .map(|c| format!("install: {c}"))
+                    .unwrap_or_else(|| format!("get: {}", n.dependency.url))
+            ))
+            .collect();
         let outcome = apply_dependency_policies(name, &mut report);
         crate::operation::note_report(serde_json::to_value(&report)?)?;
         outcome?;
+    } else {
+        report.dependencies = needed(name)?;
     }
     crate::operation::note_report(serde_json::to_value(&report)?)?;
+
+    // Pre-apply warning: required dependencies missing means parts of the
+    // look will fall back to whatever is currently live. List them clearly
+    // so the user knows before the theme is restored.
+    if !report.dependencies.is_empty() {
+        let required: Vec<String> = report
+            .dependencies
+            .iter()
+            .map(|d| format!("{} ({})", d.dependency.name, d.dependency.kind))
+            .collect();
+        eprintln!(
+            "warning: required dependencies not installed — apply anyway: {}",
+            required.join(", ")
+        );
+        eprintln!("hint: install with `kolira deps {name} --install`, or skip with `--without-dependencies`");
+    }
 
     if !report.errors.is_empty() {
         anyhow::bail!(
@@ -1578,13 +1656,13 @@ mod tests {
             assets: vec![
                 asset(
                     "color-scheme",
-                    "ThemeProfilePaper",
+                    "KoliraPaper",
                     "generated",
                     "LGPL-2.0-or-later (derived from KDE Breeze Light)",
                 ),
                 asset(
                     "kvantum",
-                    "ThemeProfileX",
+                    "KoliraX",
                     "generated",
                     "GPL-3.0-or-later (recoloured from Kvantum's KvArc)",
                 ),
@@ -1596,13 +1674,13 @@ mod tests {
             assets: vec![
                 asset(
                     "color-scheme",
-                    "ThemeProfilePaper",
+                    "KoliraPaper",
                     "generated",
-                    "MIT (generated by theme-profile)",
+                    "MIT (generated by kolira)",
                 ),
                 asset(
                     "kvantum",
-                    "ThemeProfileX",
+                    "KoliraX",
                     "generated",
                     "GPL-3.0-or-later (recoloured from Kvantum's KvRoughGlass)",
                 ),

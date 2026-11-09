@@ -48,8 +48,8 @@ configs/             # ОПЦИОНАЛЬНО (--with-configs): санитизи
 
 ## Что сделать
 
-- [ ] Rust: `theme-profile export NAME --out=FILE [--with-configs] [--no-wallpaper]`
-      и `theme-profile import FILE [--name=NEW] [--apply]`; логика в Rust (crate `zip`).
+- [ ] Rust: `kolira export NAME --out=FILE [--with-configs] [--no-wallpaper]`
+      и `kolira import FILE [--name=NEW] [--apply]`; логика в Rust (crate `zip`).
 - [ ] Санитайзер: `$HOME` → `${HOME}`, удаление секретов (ключи с
       `token|key|secret|password`, `zed` `language_models`, история, recent files),
       отказ экспортировать неизвестные бинарные файлы.
@@ -67,8 +67,8 @@ configs/             # ОПЦИОНАЛЬНО (--with-configs): санитизи
 
 ## Итог (2026-11-04)
 
-- Rust `src/share.rs`: `theme-profile export NAME [--out=FILE.zip|--dir=DIR]
-  [--no-wallpaper]`, `theme-profile import FILE.zip|DIR [--name] [--force]
+- Rust `src/share.rs`: `kolira export NAME [--out=FILE.zip|--dir=DIR]
+  [--no-wallpaper]`, `kolira import FILE.zip|DIR [--name] [--force]
   [--apply] [--json]`; crates `zip` (deflate), `sha2`.
 - Санитайзер свёлся к трём правилам: домашняя папка → `$HOME`, без положений
   значков рабочего стола, без `user=` в manifest.txt. Секретов в отслеживаемых

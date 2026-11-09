@@ -6,8 +6,8 @@
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use kde_theme_core::paths::{cache_home, config_home};
-use kde_theme_core::wallpaper::{list_wallpapers_in, step_index, wallpaper_dir};
+use kolira_core::paths::{cache_home, config_home};
+use kolira_core::wallpaper::{list_wallpapers_in, step_index, wallpaper_dir};
 
 fn env_or(key: &str, default: PathBuf) -> PathBuf {
     std::env::var_os(key).map(PathBuf::from).unwrap_or(default)
@@ -46,7 +46,7 @@ fn main() -> ExitCode {
         println!("{}", files[index]);
         ExitCode::SUCCESS
     } else {
-        match kde_theme_core::wallpaper::apply_image(&files[index]) {
+        match kolira_core::wallpaper::apply_image(&files[index]) {
             Ok(()) => ExitCode::SUCCESS,
             _ => ExitCode::from(1),
         }

@@ -4,15 +4,15 @@
     {
       "kind": "color-scheme",
       "license": "LGPL-2.0-or-later (derived from KDE Breeze Light)",
-      "name": "ThemeProfilePaper",
+      "name": "KoliraPaper",
       "origin": "generated",
-      "path": ".local/share/color-schemes/ThemeProfilePaper.colors",
+      "path": ".local/share/color-schemes/KoliraPaper.colors",
       "redistributable": true,
       "source": "https://invent.kde.org/plasma/breeze"
     },
     {
       "kind": "look-and-feel",
-      "license": "MIT (theme-profile-kit)",
+      "license": "MIT (kolira)",
       "name": "paper",
       "origin": "user",
       "path": ".local/share/plasma/look-and-feel/paper",
@@ -20,7 +20,7 @@
     },
     {
       "kind": "btop",
-      "license": "MIT (theme-profile-kit)",
+      "license": "MIT (kolira)",
       "name": "paper",
       "origin": "user",
       "path": ".config/btop/themes/paper.theme",
@@ -103,10 +103,10 @@
     }
   ],
   "description": "Light, flat and warm: Sandstone Kvantum, no transparency, watercolour wallpaper",
-  "generator": "theme-profile 0.5.0",
+  "generator": "kolira 0.5.0",
   "name": "Paper",
   "palette": null,
-  "schema": "theme-profile/theme@2",
+  "schema": "kolira/theme@2",
   "sources": {},
   "values": {
     "accent_color": "155,150,77",
@@ -125,7 +125,7 @@
     "btop_rounded": false,
     "btop_theme": "paper",
     "button_bg": "246,240,230",
-    "color_scheme": "ThemeProfilePaper",
+    "color_scheme": "KoliraPaper",
     "contrast": 4,
     "contrast_enabled": false,
     "cursor_ide_theme": "Default Light Modern",

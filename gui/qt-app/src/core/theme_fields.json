@@ -1207,7 +1207,7 @@
    "label": "Kitty opacity",
    "type": "float",
    "source": "kv",
-   "file": ".config/kitty/theme-profile.conf",
+   "file": ".config/kitty/kolira.conf",
    "key": "background_opacity",
    "apply": "kv",
    "hook": "kitty",
@@ -1228,7 +1228,7 @@
    "label": "Kitty blur",
    "type": "int",
    "source": "kv",
-   "file": ".config/kitty/theme-profile.conf",
+   "file": ".config/kitty/kolira.conf",
    "key": "background_blur",
    "apply": "kv",
    "hook": "kitty",
@@ -1248,7 +1248,7 @@
    "label": "Alacritty opacity",
    "type": "float",
    "source": "toml",
-   "file": ".config/alacritty/theme-profile.toml",
+   "file": ".config/alacritty/kolira.toml",
    "key": "opacity",
    "path": [
     "window"
@@ -1271,7 +1271,7 @@
    "label": "Alacritty blur",
    "type": "bool",
    "source": "toml",
-   "file": ".config/alacritty/theme-profile.toml",
+   "file": ".config/alacritty/kolira.toml",
    "key": "blur",
    "path": [
     "window"

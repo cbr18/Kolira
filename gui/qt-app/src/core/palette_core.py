@@ -1,4 +1,4 @@
-"""Palette page glue: every operation is the Rust CLI (`theme-profile palette …`).
+"""Palette page glue: every operation is the Rust CLI (`kolira palette …`).
 
 Python only runs the binary and parses its output — the palette model,
 generators, gallery and wallpaper extraction live in `rust_core`
@@ -23,7 +23,7 @@ def _run(args: list[str], *, stdin: Optional[str] = None, timeout: int = 120) ->
 
 
 class PaletteCore:
-    """Thin adapter over `theme-profile palette` / `wallpaper current`."""
+    """Thin adapter over `kolira palette` / `wallpaper current`."""
 
     def show(self) -> Optional[dict[str, Any]]:
         """Live palette (with `warnings`, `kdeScheme`), None when there is none."""
@@ -49,7 +49,7 @@ class PaletteCore:
         try:
             items = json.loads(result.message)
         except ValueError:
-            return Result.err("theme-profile returned invalid JSON")
+            return Result.err("kolira returned invalid JSON")
         return Result.ok(f"{len(items)} scheme(s)", data={"items": items})
 
     def import_gallery(self, scheme_id: str) -> Result:

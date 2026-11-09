@@ -32,7 +32,7 @@ from core.paths import live_path, profile_dir, theme_root  # noqa: E402
 from core.protocol import ProfileInfo, Result  # noqa: E402
 from core.theme_bundle import ThemeBundleCore  # noqa: E402
 from core.theme_core import AppThemeCore  # noqa: E402
-from theme_profile_mcp import ThemeProfileMcpServer  # noqa: E402
+from kolira_profile_mcp import KoliraMcpServer  # noqa: E402
 
 
 def _capture_launches(home, monkeypatch, program):
@@ -472,7 +472,7 @@ def test_save_profile_writes_theme_package(cli_bundle_home):
     directory = profile_dir("night")
     assert not (directory / "theme-bundle.json").exists()
     data = json.loads((directory / "theme.json").read_text(encoding="utf-8"))
-    assert data["schema"] == "theme-profile/theme@2"
+    assert data["schema"] == "kolira/theme@2"
     assert data["name"] == "night"
     assert data["description"] == "Dark test bundle"
     assert data["values"]["color_scheme"] == "Mine"
@@ -480,8 +480,8 @@ def test_save_profile_writes_theme_package(cli_bundle_home):
     assert data["values"]["zed_dark"] == "Ayu Dark"
     # A theme is a full snapshot: whole config files plus its local assets.
     assert (directory / ".config/kdeglobals").is_file()
-    # kitty.conf is personal (keys…): only its look, as theme-profile.conf.
-    assert (directory / ".config/kitty/theme-profile.conf").is_file()
+    # kitty.conf is personal (keys…): only its look, as kolira.conf.
+    assert (directory / ".config/kitty/kolira.conf").is_file()
     assert not (directory / ".config/kitty/kitty.conf").exists()
     assert (directory / ".local/share/color-schemes/Mine.colors").is_file()
     # The returned view is what the Theme page shows for the profile scope.
@@ -607,10 +607,10 @@ def test_mcp_server_tools_list_and_call(tmp_path: Path, monkeypatch: pytest.Monk
     monkeypatch.setattr(CoreFactory, "_theme_core", bundle_home["theme"])
     monkeypatch.setattr(CoreFactory, "_profile_core", bundle_home["profiles"])
     monkeypatch.setattr(CoreFactory, "_wallpaper_core", bundle_home["wallpapers"])
-    server = ThemeProfileMcpServer()
+    server = KoliraMcpServer()
 
     init = server.handle({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
-    assert init["result"]["serverInfo"]["name"] == "theme-profile-kit"
+    assert init["result"]["serverInfo"]["name"] == "kolira"
 
     tools = server.handle({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
     names = {tool["name"] for tool in tools["result"]["tools"]}
@@ -693,9 +693,9 @@ def test_detection_needs_an_executable_not_just_a_config(
 def test_store_search_and_install_go_through_the_cli(
     bundle_home, monkeypatch: pytest.MonkeyPatch
 ):
-    """Store access is Rust (`theme-profile apps …`); Python only parses JSON."""
+    """Store access is Rust (`kolira apps …`); Python only parses JSON."""
     home = bundle_home["home"]
-    fake = home / "fake-bin" / "theme-profile-fake"
+    fake = home / "fake-bin" / "kolira-fake"
     import shlex
     real_cli = os.environ["KTM_THEME_PROFILE_BIN"]
     fake.write_text(
@@ -737,7 +737,7 @@ def test_mcp_export_import_round_trip(tmp_path: Path, monkeypatch: pytest.Monkey
     monkeypatch.setattr(CoreFactory, "_theme_core", cli_bundle_home["theme"])
     monkeypatch.setattr(CoreFactory, "_profile_core", cli_bundle_home["profiles"])
     monkeypatch.setattr(CoreFactory, "_wallpaper_core", cli_bundle_home["wallpapers"])
-    server = ThemeProfileMcpServer()
+    server = KoliraMcpServer()
     assert cli_bundle_home["core"].save_profile("night").success
 
     def call(name: str, arguments: dict) -> dict:
@@ -773,7 +773,7 @@ def test_mcp_lists_dependencies(monkeypatch: pytest.MonkeyPatch, cli_bundle_home
     monkeypatch.setattr(CoreFactory, "_theme_core", cli_bundle_home["theme"])
     monkeypatch.setattr(CoreFactory, "_profile_core", cli_bundle_home["profiles"])
     monkeypatch.setattr(CoreFactory, "_wallpaper_core", cli_bundle_home["wallpapers"])
-    server = ThemeProfileMcpServer()
+    server = KoliraMcpServer()
     assert cli_bundle_home["core"].save_profile("night").success
     reply = server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
                            "params": {"name": "list_dependencies", "arguments": {"name": "night"}}})
@@ -786,7 +786,7 @@ def test_mcp_automation_and_actions(monkeypatch: pytest.MonkeyPatch, cli_bundle_
     monkeypatch.setattr(CoreFactory, "_theme_core", cli_bundle_home["theme"])
     monkeypatch.setattr(CoreFactory, "_profile_core", cli_bundle_home["profiles"])
     monkeypatch.setattr(CoreFactory, "_wallpaper_core", cli_bundle_home["wallpapers"])
-    server = ThemeProfileMcpServer()
+    server = KoliraMcpServer()
 
     def call(name: str, arguments: dict) -> dict:
         reply = server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
@@ -837,7 +837,7 @@ def test_new_theme_from_neutral_and_from_theme(cli_bundle_home):
     kdeglobals = (home / ".config/kdeglobals").read_text(encoding="utf-8")
     assert "ColorScheme=BreezeDark" in kdeglobals
     assert (profile_dir("plain")).is_dir()
-    assert (home / ".config/kde-theme-profile/active-profile").read_text().strip() == "plain"
+    assert (home / ".config/kolira/active-profile").read_text().strip() == "plain"
 
     copy = profiles.new_theme("plain2", "plain")
     assert copy.success, copy.message
@@ -851,21 +851,21 @@ def test_look_and_feel_package_has_no_layout(cli_bundle_home):
     assert profiles.new_theme("plain", "neutral-light").success
     result = profiles.look_and_feel("Plain")
     assert result.success, result.message
-    laf = home / ".local/share/plasma/look-and-feel/theme-profile-plain"
+    laf = home / ".local/share/plasma/look-and-feel/kolira-plain"
     defaults = (laf / "contents/defaults").read_text(encoding="utf-8")
     assert "ColorScheme=BreezeLight" in defaults
     assert not (laf / "contents/layouts").exists()
     meta = json.loads((laf / "metadata.json").read_text(encoding="utf-8"))
-    assert meta["KPlugin"]["Id"] == "theme-profile-plain"
+    assert meta["KPlugin"]["Id"] == "kolira-plain"
     kdeglobals = (home / ".config/kdeglobals").read_text(encoding="utf-8")
-    assert "LookAndFeelPackage=theme-profile-plain" in kdeglobals
+    assert "LookAndFeelPackage=kolira-plain" in kdeglobals
 
 
 @pytest.mark.parametrize("message", [[], None, "bad", {"id": 1},
     {"id": 1, "method": "tools/call", "params": ["bad"]},
     {"id": 1, "method": "tools/call", "params": {"name": "list_components", "arguments": []}}])
 def test_mcp_invalid_request_shape_does_not_break_next_request(message):
-    server = ThemeProfileMcpServer.__new__(ThemeProfileMcpServer)
+    server = KoliraMcpServer.__new__(KoliraMcpServer)
     result = server.handle(message)
     assert result["error"]["code"] in (-32600, -32602)
     assert server.handle({"jsonrpc": "2.0", "id": 2, "method": "ping"})["result"] == {}
@@ -874,7 +874,7 @@ def test_mcp_invalid_request_shape_does_not_break_next_request(message):
 @pytest.mark.parametrize("name", ["../bad", ".hidden", "", "a/b", "a" * 65])
 def test_mcp_create_profile_validates_name_before_any_mutation(name):
     from unittest.mock import Mock
-    server = ThemeProfileMcpServer.__new__(ThemeProfileMcpServer)
+    server = KoliraMcpServer.__new__(KoliraMcpServer)
     server.core = Mock()
     with pytest.raises(ValueError):
         server._create_profile({"name": name, "components": {"accent_color": "#112233"},
@@ -886,7 +886,7 @@ def test_mcp_stdio_continues_after_invalid_request(bundle_home):
     import subprocess
     messages = [[], {"id": 1, "method": "tools/call", "params": ["bad"]},
                 {"jsonrpc": "2.0", "id": 2, "method": "ping"}]
-    process = subprocess.run([sys.executable, str(MCP_DIR / "theme_profile_mcp.py")],
+    process = subprocess.run([sys.executable, str(MCP_DIR / "kolira_profile_mcp.py")],
         input="\n".join(json.dumps(message) for message in messages) + "\n",
         capture_output=True, text=True, timeout=20)
     assert process.returncode == 0, process.stderr
@@ -897,7 +897,7 @@ def test_mcp_stdio_continues_after_invalid_request(bundle_home):
 
 def test_mcp_does_not_save_after_failed_apply():
     from unittest.mock import Mock
-    server = ThemeProfileMcpServer.__new__(ThemeProfileMcpServer)
+    server = KoliraMcpServer.__new__(KoliraMcpServer)
     server.core = Mock()
     server.core.set_component.return_value = Result.ok()
     server.core.apply.return_value = Result.err("partially applied")
@@ -908,7 +908,7 @@ def test_mcp_does_not_save_after_failed_apply():
 
 
 def test_mcp_reports_failed_operation_as_tool_error(cli_bundle_home):
-    server = ThemeProfileMcpServer()
+    server = KoliraMcpServer()
     response = server.handle({"jsonrpc": "2.0", "id": 99, "method": "tools/call",
                               "params": {"name": "apply_changes", "arguments": {}}})
     assert response["result"]["isError"] is True
@@ -917,7 +917,7 @@ def test_mcp_reports_failed_operation_as_tool_error(cli_bundle_home):
 
 
 def test_mcp_preview_is_readonly_and_rejects_stale_confirmation(cli_bundle_home):
-    server = ThemeProfileMcpServer()
+    server = KoliraMcpServer()
     from core.paths import live_path
     name = "mcp-preview"
     saved = server.profiles.save(name)

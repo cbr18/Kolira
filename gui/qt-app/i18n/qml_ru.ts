@@ -2017,8 +2017,8 @@
     </message>
     <message>
         <location filename="../qml/pages/SettingsPage.qml" line="60"/>
-        <source>Only for legacy snapshot profiles. Themes (theme packages) always apply exactly what they define; convert old profiles with &quot;theme-profile migrate --all&quot;.</source>
-        <translation>Только для старых профилей-снимков. Темы (пакеты) всегда применяют ровно то, что в них задано; старые профили переводятся командой «theme-profile migrate --all».</translation>
+        <source>Only for legacy snapshot profiles. Themes (theme packages) always apply exactly what they define; convert old profiles with &quot;kolira migrate --all&quot;.</source>
+        <translation>Только для старых профилей-снимков. Темы (пакеты) всегда применяют ровно то, что в них задано; старые профили переводятся командой «kolira migrate --all».</translation>
     </message>
     <message>
         <location filename="../qml/pages/SettingsPage.qml" line="67"/>

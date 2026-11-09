@@ -35,7 +35,7 @@ Kvantum не перекрашивается, тем для редакторов 
 ## Решения (согласованы с пользователем 2026-11-04)
 
 - Порядок: **P0 → задача про обои → P1 → P2 → P3**, ветка на фазу.
-- Логика палитры и генераторов — **Rust** (`palette.rs`, `theme-profile palette …`).
+- Логика палитры и генераторов — **Rust** (`palette.rs`, `kolira palette …`).
 - Формат палитры — **base16 + отдельный акцент**.
 - Источники: галерея base16 (tinted-theming, по запросу + кэш + встроенный
   офлайн-набор), импорт файла, ручная правка, «из обоев» (GUI —
@@ -73,7 +73,7 @@ Kvantum не перекрашивается, тем для редакторов 
 ## Критерии приёмки
 
 - Everforest пересоздаётся без ручных скриптов: галерея base16 → генераторы →
-  Kvantum-шаблон → L&F `theme-profile-everforest` → тема Zed/Cursor из магазина
+  Kvantum-шаблон → L&F `kolira-everforest` → тема Zed/Cursor из магазина
   → «Сохранить как профиль»; `validate_profile` проходит; `apply glass` →
   `apply everforest` возвращает ту же картину.
 - Новая тема от «нейтрального шаблона» не содержит эффектов glass.
@@ -85,16 +85,16 @@ Kvantum не перекрашивается, тем для редакторов 
 - 2026-11-04 — **P0** смержен (`4322c38`), **задача про обои** смержена (`6994789`).
 - 2026-11-04 — **P1, часть 1** (ветка `feat/p1-palette`): `palette.rs` (base16 +
   акцент, разбор нового/старого формата, WCAG-контраст), генератор KDE `.colors`,
-  `theme-profile palette show|import|set|generate|apply`, компонент профиля
+  `kolira palette show|import|set|generate|apply`, компонент профиля
   `palette`, `docs/PALETTE.md`. Найдено и исправлено: `plasma-apply-colorscheme
   --accent-color X SCHEME` игнорирует схему — схема и акцент теперь двумя вызовами
-  (и в `theme-profile apply`).
+  (и в `kolira apply`).
 - 2026-11-04 — **P1, часть 2**: генераторы kitty (блок между маркерами,
   идемпотентно) и Alacritty (`toml_edit`, только `[colors.*]`), бэкапы и
   сохранение прав, пропуск отсутствующего конфига. Найдено и исправлено: kitty
-  дописывает `-<pid>` к `listen_on`, поэтому live-reload (и в `theme-profile apply`)
+  дописывает `-<pid>` к `listen_on`, поэтому live-reload (и в `kolira apply`)
   стучался в несуществующий сокет — теперь перебираются все
-  `/tmp/kitty-theme-profile[-<pid>]`.
+  `/tmp/kitty-kolira[-<pid>]`.
 - 2026-11-04 — **P1, часть 3**: Kvantum. Решение изменено (с согласия
   пользователя): вместо своего шаблона с метками — перекраска на лету
   *установленной* базовой темы (KvArcDark/KvArc или `--kvantum-base`), т. к.
@@ -128,10 +128,10 @@ Kvantum не перекрашивается, тем для редакторов 
   `app_store_search|install` (через тот же CLI), сценарий в `docs/MCP.md`.
   **P1 закрыт.** Дальше: P2 («Начать с…», свой L&F, темы приложений в профиле
   только по выбору), P3 (предпросмотр).
-- 2026-11-05 — **P2**: `theme-profile new NAME --from=neutral-light|neutral-dark|THEME`
+- 2026-11-05 — **P2**: `kolira new NAME --from=neutral-light|neutral-dark|THEME`
   (`constructor.rs`: нейтральный шаблон Breeze без размытия/прозрачности или
-  копия темы, применяется и становится активной), `theme-profile look-and-feel
-  NAME` (пакет `theme-profile-<name>`, только `contents/defaults`, без
+  копия темы, применяется и становится активной), `kolira look-and-feel
+  NAME` (пакет `kolira-<name>`, только `contents/defaults`, без
   раскладки; при сохранении — сгенерированный ассет MIT); GUI: «Новая тема…»,
   флажок L&F в «Сохранить». Пункт «темы приложений в профиле только по
   выбору» снят: тема — снимок всего вида (решение пользователя).

@@ -25,7 +25,7 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("KTM_OFFLINE", "1")
     monkeypatch.setenv("KTM_THEME_NO_APPLY", "1")
-    (tmp_path / ".config/kde-theme-profile").mkdir(parents=True)
+    (tmp_path / ".config/kolira").mkdir(parents=True)
     return tmp_path
 
 
@@ -48,10 +48,10 @@ def test_core_roundtrip(home: Path) -> None:
     assert core.set_slots({"accent": "#a7c080"}).success
     shown = core.show()
     assert shown["name"] == "Nord" and shown["accent"] == "#a7c080"
-    assert shown["kdeScheme"] == "ThemeProfileNord" and shown["warnings"] == []
+    assert shown["kdeScheme"] == "KoliraNord" and shown["warnings"] == []
     assert not core.apply(["gtk4"]).success  # unknown target filtered → nothing selected
     assert core.apply(["kde"]).success
-    assert (home / ".local/share/color-schemes/ThemeProfileNord.colors").is_file()
+    assert (home / ".local/share/color-schemes/KoliraNord.colors").is_file()
 
 
 def test_from_colors_uses_imagecolors_shape(home: Path) -> None:
@@ -100,9 +100,9 @@ def test_mcp_palette_and_store_tools(home: Path) -> None:
     import json
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "mcp"))
-    from theme_profile_mcp import ThemeProfileMcpServer
+    from kolira_profile_mcp import KoliraMcpServer
 
-    server = ThemeProfileMcpServer()
+    server = KoliraMcpServer()
 
     def call(tool: str, /, **arguments):
         reply = server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
@@ -125,7 +125,7 @@ def test_mcp_palette_and_store_tools(home: Path) -> None:
     assert not err and out["palette"]["name"] == "Agent"
 
     err, out = call("palette_apply", targets=["kde"])
-    assert not err and any("ThemeProfileAgent" in line for line in out["report"])
+    assert not err and any("KoliraAgent" in line for line in out["report"])
     assert call("palette_apply", targets=["gtk4"])[0] is True
     assert call("palette_import", source="gallery:../etc")[0] is True
     # Offline (KTM_OFFLINE=1): the store reports the disabled network as a tool error.

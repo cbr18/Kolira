@@ -1,7 +1,7 @@
 """Shared pytest setup.
 
 Point the GUI at the freshly built Rust CLI (gui/qt-app/src/core/rust_core/
-target/release/theme-profile) when it exists, so tests exercise the code in
+target/release/kolira) when it exists, so tests exercise the code in
 this checkout rather than whatever version is installed in ~/.local/bin.
 """
 
@@ -10,7 +10,7 @@ from pathlib import Path
 
 _RELEASE_CLI = (
     Path(__file__).resolve().parent.parent
-    / "src" / "core" / "rust_core" / "target" / "release" / "theme-profile"
+    / "src" / "core" / "rust_core" / "target" / "release" / "kolira"
 )
 
 # Tests never reach the network (saving a theme would search the KDE Store

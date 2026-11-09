@@ -37,19 +37,19 @@ takes the family from the theme and keeps the live size.
 | `btop.conf` | `color_theme`, `theme_background`, `truecolor`, `rounded_corners`, `graph_symbol*` | ~70 behaviour keys |
 | VS Code / Cursor `settings.json` | `workbench.colorTheme`/`iconTheme`/`productIconTheme`/`colorCustomizations`, `editor.tokenColorCustomizations`, editor/terminal font family, weight, ligatures, line highlight, APC / Animations / Custom UI Style keys | font sizes, line height, everything else (SSH hosts, AI, wrapping, …) |
 | Zed `settings.json` | `theme`, `icon_theme`, `ui_font_family/features/weight`, `buffer_font_family/features/weight`, `theme_overrides` | font sizes, agent/models, panels, keymap, sessions, … |
-| kitty | `kitty/theme-profile.conf` (font faces, colours, cursor, opacity/blur, padding, borders, tab bar) | `kitty.conf` — keeps `font_size`/`modify_font` and gains `include theme-profile.conf` (last line) |
+| kitty | `kitty/kolira.conf` (font faces, colours, cursor, opacity/blur, padding, borders, tab bar) | `kitty.conf` — keeps `font_size`/`modify_font` and gains `include kolira.conf` (last line) |
 | Discord (Vencord / Vesktop) | `themes/` (CSS themes) + `settings/settings.json` `enabledThemes`/`themeLinks`/`transparent` (translucent window); Vesktop ↔ Vencord themes map to whichever client the receiver has | every other client setting; stock Discord has no themes → `discord-client` dependency |
 | Spotify (Spicetify) | `Themes/` + `config-xpui.ini` `[Setting]` `current_theme`, `color_scheme`, `inject_css`, `replace_colors`, `overwrite_assets`, `inject_theme_js`; apply runs `spicetify apply` | `spotify_path`, `prefs_path`, extensions, custom apps; Spicetify itself is a dependency (`spicetify-cli`) |
-| Telegram | `TelegramDesktop/theme-profile.tdesktop-palette` (palette file generated from the theme palette); Telegram keeps the applied theme in its encrypted settings: the user picks this file once (*Settings → Chat Settings → Choose from file*), then Telegram watches it and re-applies it whenever a theme or palette rewrites it | everything in `tdata` (account, chats, settings, the chat background) |
-| oh-my-posh | the prompt theme the shell's `oh-my-posh init … --config` line uses, stored as `oh-my-posh/theme-profile.omp.json` | `config.fish` / `.zshrc` / `.bashrc` — only the `--config` path of an existing init line is changed (never added); oh-my-posh is a dependency |
+| Telegram | `TelegramDesktop/kolira.tdesktop-palette` (palette file generated from the theme palette); Telegram keeps the applied theme in its encrypted settings: the user picks this file once (*Settings → Chat Settings → Choose from file*), then Telegram watches it and re-applies it whenever a theme or palette rewrites it | everything in `tdata` (account, chats, settings, the chat background) |
+| oh-my-posh | the prompt theme the shell's `oh-my-posh init … --config` line uses, stored as `oh-my-posh/kolira.omp.json` | `config.fish` / `.zshrc` / `.bashrc` — only the `--config` path of an existing init line is changed (never added); oh-my-posh is a dependency |
 | fish | `fish_variables` lines `SETUVAR fish_color_*` / `fish_pager_color_*` | other universal variables (`fish_user_paths`, …) |
-| Ghostty | `ghostty/theme-profile` (colours, palette, opacity/blur, font families, padding) | `config` — keeps the rest and gains `config-file = ?theme-profile` (last) |
+| Ghostty | `ghostty/kolira` (colours, palette, opacity/blur, font families, padding) | `config` — keeps the rest and gains `config-file = ?kolira` (last) |
 | cava | `[color]` (running cava reloaded with SIGUSR1) | every other section |
 | yazi | `theme.toml`, `flavors/` (whole) | `yazi.toml`, `keymap.toml` |
 | bat | `config` lines `--theme…` / `--italic-text…`, `themes/` (then `bat cache --build`) | other `config` lines |
 | Konsole | the default profile's `[Appearance]` (`ColorScheme`, font family — live size kept) + its `.colorscheme` (whole: colours, opacity, blur; travels as an asset) | the profile's command, scrolling, keys…; without a profile a `Theme Profile` (`Parent=FALLBACK/`) is created and made default |
 | Firefox (default profile from `installs.ini`/`profiles.ini`) | `chrome/userChrome.css`, `chrome/userContent.css` (whole); `user.js` only look prefs (`browser.theme.*`, `toolkit.legacyUserProfileCustomizations.stylesheets`, `extensions.activeThemeID`, …) | privacy/behaviour prefs in `user.js` |
-| Alacritty | `alacritty/theme-profile.toml` (`[colors.*]`, `[font]` faces, window opacity/blur/padding/decorations, cursor style) | `[font] size`/offsets; `alacritty.toml` gains `general.import` |
+| Alacritty | `alacritty/kolira.toml` (`[colors.*]`, `[font]` faces, window opacity/blur/padding/decorations, cursor style) | `[font] size`/offsets; `alacritty.toml` gains `general.import` |
 | everything else (Klassy, Breeze, GTK CSS, wofi CSS, Zen, Obsidian appearance, Trolltech palette, Kvantum, colour schemes, L&F) | whole file (a Look & Feel package without its `contents/layouts/` scripts). `breezerc` only when the widget style or window decoration is Breeze (absent keys mean Breeze), `klassy/` only when either is Klassy | when not stored: the user's own `breezerc` / `klassy/` |
 
 Browser profile folders have a random name per install (`gp0y8wrv.Default
@@ -71,7 +71,7 @@ Every external tool has a limit (`KTM_COMMAND_TIMEOUT`, 60 s) and each step goes
 **What a theme does not specify goes back to the program's default.** A theme
 without Vesktop files turns our Vesktop theme off (`enabledThemes` gone, our CSS
 removed), a theme without Konsole removes the profile we created, and so on: a
-mixed file loses its look keys, a generated `theme-profile*` file is removed. Only
+mixed file loses its look keys, a generated `kolira*` file is removed. Only
 what we generate is removed, a program's other files are the user's. A running
 program that reads its look at start gets the usual offer to restart. Telegram
 keeps the applied palette in its own settings, so it stays until chosen there.
@@ -93,10 +93,10 @@ whole `appletsrc`, `plasmashellrc` geometry, behaviour window rules and
 `contents/layouts/`, and before 2026-11-07 also settings their look does not use
 (`breezerc`, `klassy/`, off effects, a switched-off Panel Colorizer's styling):
 apply reads only the look from the mixed files (the same filter), and
-`theme-profile prune NAME|--all` reduces them on disk (backup first).
+`kolira prune NAME|--all` reduces them on disk (backup first).
 
 **The look before the app** is kept: the first install, with no themes yet, saves
-it as the theme `my-original-look` (`install-theme-profile-kit.sh
+it as the theme `my-original-look` (`install-kolira.sh
 --no-original-theme` skips it; offline, so it carries no store sources).
 
 **Switching back leaves nothing behind** (`rust_core/src/undo.rs`). A theme only
@@ -127,8 +127,8 @@ with a real KWin and plasmashell (see `tests/e2e/Dockerfile`).
 > applying each theme and diffing the live files against its snapshot.
 
 ```
-<themes>/<name>/                 # ~/.config/kde-theme-profile/themes/<name>
-├── theme.json                     # describes the theme (schema theme-profile/theme@2)
+<themes>/<name>/                 # ~/.config/kolira/themes/<name>
+├── theme.json                     # describes the theme (schema kolira/theme@2)
 ├── manifest.json, manifest.txt    # tracked paths, components, created
 ├── wallpaper/<file> + source      # optional
 ├── .config/…, .local/share/…,     # the files themselves, at their
@@ -142,7 +142,7 @@ file — and applying restores exactly
 those (listed in `theme.json` `assets`), backed up like every other file. (Until
 2026-11-05 the registry hard-coded one user's assets, so every theme carried
 every other theme's Sandstone, glass/paper Look & Feel, noctalia/paper btop
-themes and all Zed themes; `theme-profile prune NAME|--all` removes such
+themes and all Zed themes; `kolira prune NAME|--all` removes such
 leftovers, plus files no longer tracked and old `metadata/` diagnostics, after
 copying the theme to `backups/pre-prune-<name>-…`.) Themes carry no
 `metadata/kde` diagnostics any more (pre-apply backups still do).
@@ -176,7 +176,7 @@ and its backup remain available.
 
 | Key | Meaning |
 |---|---|
-| `schema` | `theme-profile/theme@2` |
+| `schema` | `kolira/theme@2` |
 | `name`, `description`, `created`, `generator` | metadata (`description` here is authoritative) |
 | `values` | field id → value, read from the snapshot through the shared registry `gui/qt-app/src/core/theme_fields.json`: what the GUI's profile view shows and what `check` verifies. Informational: apply restores the files. |
 | `palette` | base16 palette + accent (see `docs/PALETTE.md`) when the colour scheme is generated from it, else `null` |
@@ -193,21 +193,21 @@ Marketplace / Open VSX / Zed extensions are referenced through `sources`.
 ## CLI
 
 ```bash
-theme-profile save NAME [--description=...] [--no-wallpaper]
-theme-profile new NAME --from=neutral-light|neutral-dark|THEME [--description=...]
-theme-profile look-and-feel NAME           # the live look as a Global Theme (no layout)
-theme-profile apply NAME [--keep-wallpaper] [--install-missing] [--json]
-theme-profile check NAME [--json]          # what the theme references but this machine lacks
-theme-profile migrate NAME|--all           # add theme.json to a snapshot profile (files untouched)
-theme-profile prune NAME|--all             # drop what is not part of the theme, incl. layouts (backup first)
-theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper] [--public]
-theme-profile license NAME ASSET --license=SPDX [--source=URL] [--no-redistribute]
-theme-profile import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
-theme-profile bundled sync THEMES_DIR      # add new ready themes, update unchanged ones
-theme-profile deps NAME [--refresh] [--install[=all|0,2]] [--json]
-theme-profile actions NAME [--json]        # what applying leaves to do (restarts, Telegram)
-theme-profile action ID                    # do one: vesktop, discord, zen, firefox
-theme-profile automation [--json] | set KEY=ask|always|never … | ask   # the user's choices
+kolira save NAME [--description=...] [--no-wallpaper]
+kolira new NAME --from=neutral-light|neutral-dark|THEME [--description=...]
+kolira look-and-feel NAME           # the live look as a Global Theme (no layout)
+kolira apply NAME [--keep-wallpaper] [--install-missing] [--json]
+kolira check NAME [--json]          # what the theme references but this machine lacks
+kolira migrate NAME|--all           # add theme.json to a snapshot profile (files untouched)
+kolira prune NAME|--all             # drop what is not part of the theme, incl. layouts (backup first)
+kolira export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper] [--public]
+kolira license NAME ASSET --license=SPDX [--source=URL] [--no-redistribute]
+kolira import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
+kolira bundled sync THEMES_DIR      # add new ready themes, update unchanged ones
+kolira deps NAME [--refresh] [--install[=all|0,2]] [--json]
+kolira actions NAME [--json]        # what applying leaves to do (restarts, Telegram)
+kolira action ID                    # do one: vesktop, discord, zen, firefox
+kolira automation [--json] | set KEY=ask|always|never … | ask   # the user's choices
 ```
 
 - **save** snapshots the look of every tracked file (filtered as above; old
@@ -216,7 +216,7 @@ theme-profile automation [--json] | set KEY=ask|always|never … | ask   # the u
   `--no-wallpaper` drops `wallpaper/`.
   Licences: generated assets get theirs on every save (colour/Konsole schemes
   MIT; a Kvantum recolour follows its base — see `docs/PALETTE.md`); marks set
-  with `theme-profile license` carry over across re-saves, including a hand
+  with `kolira license` carry over across re-saves, including a hand
   mark on a generated asset (Paper's Breeze-derived scheme).
 - **apply**:
   1. `--install-missing`: installs missing VS Code / Cursor / Zed themes from
@@ -243,7 +243,7 @@ theme-profile automation [--json] | set KEY=ask|always|never … | ask   # the u
   that theme under NAME and applies it. Either way NAME becomes the active
   theme; the user then changes the live look and saves over it. Applying makes
   the usual pre-apply backup first.
-- **look-and-feel** writes `~/.local/share/plasma/look-and-feel/theme-profile-<name>/`
+- **look-and-feel** writes `~/.local/share/plasma/look-and-feel/kolira-<name>/`
   (`metadata.json` + `contents/defaults`: colour scheme, widget style, icons,
   cursor, Plasma style, window decoration — never a layout, so choosing it in
   System Settings does not touch panels) and selects it (only the
@@ -256,7 +256,7 @@ theme-profile automation [--json] | set KEY=ask|always|never … | ask   # the u
   (`appearance_only`). A values-only `theme@1` package cannot be migrated:
   apply its look and save it again.
 
-`theme-profile field set` (interactive edits from the GUI's Theme page) applies
+`kolira field set` (interactive edits from the GUI's Theme page) applies
 single values: command first (`plasma-apply-colorscheme`,
 `plasma-apply-lookandfeel -a`, `kvantummanager`, …), then the key is read back
 and written directly if the tool did not store it
@@ -269,7 +269,7 @@ and written directly if the tool did not store it
   *Create a Look & Feel package for this theme* (runs `look-and-feel` before
   saving, so the package is part of the theme).
 - **New theme…** (profiles toolbar): name and base — *Neutral, light/dark*
-  or *Copy of "X"* for each theme — then `theme-profile new`; a warning says
+  or *Copy of "X"* for each theme — then `kolira new`; a warning says
   that starting replaces the current look (a backup is made).
 - **Apply** (confirmation dialog): *Keep the current wallpaper*.
 - After applying or importing, a **This Theme Needs** dialog lists the missing
@@ -304,7 +304,7 @@ list it are read without it). KDE's own assets (Breeze, Oxygen,
 1. **KDE Store, exact** — KDE's KNewStuff registries
    (`~/.local/share/knewstuff3/*.knsregistry`, written by *Get New…*) record the
    store id of everything installed that way; items fetched by `deps --install`
-   are recorded the same way in `<theme-profile data>/installed-assets.json`
+   are recorded the same way in `<kolira data>/installed-assets.json`
    (schema 2: `sources` keeps path → store id/title, `resources` keeps dependency
    requirements, ownership and factual state), so re-saving a theme keeps their exact source;
 2. **package** — `pacman -Qqo` on any installed copy (repo or AUR; a user copy
@@ -321,7 +321,7 @@ list it are read without it). KDE's own assets (Breeze, Oxygen,
    Monochrome Icon Set*, KDE/Plasma builds over forks); shown for confirmation;
 5. otherwise just a KDE Store search link.
 
-`theme-profile deps NAME` lists those not installed here (`--json` for the
+`kolira deps NAME` lists those not installed here (`--json` for the
 GUI/MCP; the apply and import reports carry them as `dependencies`).
 `--install` fetches them from the official source: KDE Store items through the
 OCS API (`api.kde-look.org`) — Plasma styles, Global Themes and widgets with
@@ -380,17 +380,17 @@ Each is `ask` (default: offered in *This Theme Needs* / *Finish Applying*),
 `always` (done during the apply — store items are installed before the files
 are restored, packages open their terminal, programs restart — and reported)
 or `never` (skipped, not offered). Asked once: by the installer when it runs
-in a terminal (`theme-profile automation ask`), else by the app on its first
+in a terminal (`kolira automation ask`), else by the app on its first
 start (*Before You Apply Themes*); changed in *Settings → Automation* or with
-`theme-profile automation set KEY=ask|always|never`. The GUI reads and writes
+`kolira automation set KEY=ask|always|never`. The GUI reads and writes
 them through the CLI; saving the app's own settings keeps them.
 
 ### After applying: actions
 
 Some steps cannot be done by writing files, or must not be done without the
 user (`rust_core/src/actions.rs`). Applying reports them (`actions` in
-`apply --json`, `action=` lines otherwise; `theme-profile actions NAME`), and
-KDE Theme Manager shows *Finish Applying* — each step with its reason, a
+`apply --json`, `action=` lines otherwise; `kolira actions NAME`), and
+kolira shows *Finish Applying* — each step with its reason, a
 warning and its own checkbox:
 
 | Action | When | Warning |
@@ -425,7 +425,7 @@ portable copy of a theme:
 
 | Part | In the export |
 |---|---|
-| `export.json` | `format: theme-profile/export@1`, theme name, date, generator, `home_token: "$HOME"`, `files`: path → SHA-256 |
+| `export.json` | `format: kolira/export@1`, theme name, date, generator, `home_token: "$HOME"`, `files`: path → SHA-256 |
 | `theme.json`, `manifest.json`, `manifest.txt` | `manifest.txt` without its `user=` line |
 | tracked appearance files | every file the theme restores (`.config/…`, `.local/share/…`, `.zen/…`, …) |
 | library folders | from `color-schemes`, `Kvantum`, `look-and-feel`, `desktoptheme`, `aurorae/themes`, `btop/themes`, `zed/themes` only the entries the theme uses (its `assets`) — not every installed theme |
@@ -468,7 +468,7 @@ then the *Missing Theme Parts* dialog. MCP: `export_theme`, `import_theme`.
 The code is MIT; each asset in `theme.json` keeps its own licence: `license`,
 `source` and `redistributable`. Generated assets are marked automatically
 (colour schemes: MIT; Kvantum recolours: GPL-3.0-or-later, derived from
-Kvantum's KvArc); everything else the author marks with `theme-profile license
+Kvantum's KvArc); everything else the author marks with `kolira license
 NAME ASSET --license=… --source=…` (`kind:name` when two assets share a name;
 marks survive re-saves and `prune`).
 
@@ -505,7 +505,7 @@ Apply дополнен `operation_id`. `operations list/show/recover` позво
 
 ## Pre-apply review
 
-`theme-profile preview NAME --json` calculates a read-only plan using the same
+`kolira preview NAME --json` calculates a read-only plan using the same
 restore/reset policies as Apply. Pass its token with `apply NAME --preview-token=TOKEN`
 and identical wallpaper/component options; changed state returns `PREVIEW_STALE`.
 Confirmed application never installs dependencies implicitly. Legacy snapshots

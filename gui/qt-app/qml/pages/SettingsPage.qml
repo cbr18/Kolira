@@ -57,7 +57,7 @@ Kirigami.ScrollablePage {
                     wrapMode: Text.WordWrap
                     font.pointSize: TypeScale.caption
                     color: ThemeColors.dimColor(page.glassMode)
-                    text: qsTr("Only for legacy snapshot profiles. Themes (theme packages) always apply exactly what they define; convert old profiles with \"theme-profile migrate --all\".")
+                    text: qsTr("Only for legacy snapshot profiles. Themes (theme packages) always apply exactly what they define; convert old profiles with \"kolira migrate --all\".")
                 }
 
                 Kirigami.FormLayout {

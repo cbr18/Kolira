@@ -33,7 +33,7 @@ use crate::profile::{case_duplicate_of, keep_desktop_icons, resolve_cli_paths, u
 use crate::theme::{self, Missing};
 use crate::wallpaper::APPLETSRC_REL;
 
-pub const FORMAT: &str = "theme-profile/export@1";
+pub const FORMAT: &str = "kolira/export@1";
 pub const EXPORT_MANIFEST: &str = "export.json";
 pub const HOME_TOKEN: &str = "$HOME";
 const MAX_FILES: usize = 20_000;
@@ -85,7 +85,7 @@ pub struct ExportManifest {
 pub struct ExportOptions {
     pub include_wallpaper: bool,
     /// For publishing (the themes in the repository): ship only assets marked
-    /// redistributable (`theme-profile license`), turn the others into
+    /// redistributable (`kolira license`), turn the others into
     /// dependencies with their source, drop Look & Feel preview screenshots.
     pub public: bool,
 }
@@ -366,7 +366,7 @@ fn manifest_for(name: &str, files: &[(String, Vec<u8>)]) -> ExportManifest {
         format: FORMAT.into(),
         theme: name.into(),
         exported: chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false),
-        generator: format!("theme-profile {}", env!("CARGO_PKG_VERSION")),
+        generator: format!("kolira {}", env!("CARGO_PKG_VERSION")),
         home_token: HOME_TOKEN.into(),
         files: files
             .iter()
@@ -380,7 +380,7 @@ pub fn export_zip(name: &str, out: &Path, options: &ExportOptions) -> Result<usi
     validate_profile_name(name)?;
     let dir = profile_dir(name)?;
     if !theme::is_package(&dir) {
-        bail!("{name} is not a theme package (run `theme-profile migrate {name}` first)");
+        bail!("{name} is not a theme package (run `kolira migrate {name}` first)");
     }
     let files = export_files(name, &dir, options)?;
     let manifest = manifest_for(name, &files);
@@ -417,7 +417,7 @@ pub fn export_dir(name: &str, out: &Path, options: &ExportOptions) -> Result<usi
     validate_profile_name(name)?;
     let dir = profile_dir(name)?;
     if !theme::is_package(&dir) {
-        bail!("{name} is not a theme package (run `theme-profile migrate {name}` first)");
+        bail!("{name} is not a theme package (run `kolira migrate {name}` first)");
     }
     if out.exists() && fs::read_dir(out)?.next().is_some() {
         bail!("{} is not empty", out.display());
@@ -588,7 +588,7 @@ pub fn sync_bundled(themes: &Path) -> Result<Vec<String>> {
                 // so a theme of unknown origin is never replaced by itself.
                 other => {
                     let files = other.map(|(_, f)| f.clone()).unwrap_or_default();
-                    lines.push(format!("Kept theme {existing}: it may hold your changes (new version: theme-profile import {} --force)", dir.display()));
+                    lines.push(format!("Kept theme {existing}: it may hold your changes (new version: kolira import {} --force)", dir.display()));
                     record.insert(existing.clone(), (kit, files));
                     continue;
                 }
@@ -628,7 +628,7 @@ pub fn import(src: &Path, options: &ImportOptions) -> Result<ImportReport> {
     let (_, manifest_bytes) = files.remove(at);
     let manifest: ExportManifest =
         serde_json::from_slice(&manifest_bytes).context("invalid export.json")?;
-    if manifest.format != FORMAT {
+    if !matches!(manifest.format.as_str(), FORMAT | "theme-profile/export@1") {
         bail!("unsupported export format {:?}", manifest.format);
     }
     for (key, bytes) in &files {
@@ -654,7 +654,7 @@ pub fn import(src: &Path, options: &ImportOptions) -> Result<ImportReport> {
         .ok_or_else(|| anyhow!("theme.json missing"))?;
     let package: theme::Package =
         serde_json::from_slice(&theme_json.1).context("invalid theme.json")?;
-    if package.schema != theme::SCHEMA {
+    if !theme::supported_schema(&package.schema) {
         bail!("unsupported theme schema {:?}", package.schema);
     }
 

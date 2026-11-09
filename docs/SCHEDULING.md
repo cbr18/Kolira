@@ -2,8 +2,8 @@
 
 Расписание исполняет Rust CLI в пользовательской Plasma-сессии. Окно GUI может
 быть закрыто. Правила и результаты сохраняются атомарно в
-`$XDG_CONFIG_HOME/kde-theme-profile/schedule.json` (по умолчанию
-`~/.config/kde-theme-profile/schedule.json`).
+`$XDG_CONFIG_HOME/kolira/schedule.json` (по умолчанию
+`~/.config/kolira/schedule.json`).
 
 ## Управление
 
@@ -14,17 +14,17 @@
 CLI:
 
 ```sh
-theme-profile schedule put '{"id":"morning","theme":"Paper","time":"08:00","days":[1,2,3,4,5],"enabled":true,"keep_wallpaper":false}'
-theme-profile schedule list
-theme-profile schedule enable
-theme-profile schedule disable
-theme-profile schedule delete morning
+kolira schedule put '{"id":"morning","theme":"Paper","time":"08:00","days":[1,2,3,4,5],"enabled":true,"keep_wallpaper":false}'
+kolira schedule list
+kolira schedule enable
+kolira schedule disable
+kolira schedule delete morning
 ```
 
 JSON API v1: `schedule.list`, `schedule.put` (`rule`), `schedule.delete` (`id`),
 `schedule.enable` (`enabled`). MCP предоставляет соответствующие инструменты.
-`theme-profile schedule tick` однократно обрабатывает текущую минуту;
-`theme-profile schedule daemon` — исполнитель с проверкой каждые 10 секунд.
+`kolira schedule tick` однократно обрабатывает текущую минуту;
+`kolira schedule daemon` — исполнитель с проверкой каждые 10 секунд.
 
 ## Время и конфликты
 
@@ -49,7 +49,7 @@ JSON API v1: `schedule.list`, `schedule.put` (`rule`), `schedule.delete` (`id`),
 ## Фоновое выполнение
 
 Включение создаёт XDG autostart-файл
-`$XDG_CONFIG_HOME/autostart/kde-theme-manager-schedule.desktop` с `OnlyShowIn=KDE;`
+`$XDG_CONFIG_HOME/autostart/kolira-schedule.desktop` с `OnlyShowIn=KDE;`
 и запускает исполнитель для текущей сессии. Это обычный desktop entry без bash
 и без системной службы; механизм описан в
 [XDG Autostart Specification](https://specifications.freedesktop.org/autostart/0.5/).

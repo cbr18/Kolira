@@ -6,7 +6,7 @@ Status: DONE (2026-11-05) — темы в themes/, всё запушено (glas
 
 ## Состояние (2026-11-04)
 
-- Remote: `git@github.com:cbr18/kde-theme-manager.git`; `main` опережает
+- Remote: `git@github.com:cbr18/kolira.git`; `main` опережает
   `origin/main` на 5 коммитов, ветка `feat/p1-palette` (ещё 4–5) не смержена.
 - Профили glass/paper/everforest/Paper/test-profile — по 3.3–4.1 МБ, это **сырые
   снимки личных конфигов**: `/home/cbr/...` в `appletsrc`, `QtProject.conf`,
@@ -66,7 +66,7 @@ Status: DONE (2026-11-05) — темы в themes/, всё запушено (glas
 - Темы glass, Paper, everforest, dracula: официальные темы Zed из магазина
   (new-darcula, everforest, dracula) вместо прозрачных без лицензии; свободные
   обои (NASA PIA17172 — PD, обесцвечено; Фалат «Свитязь» — PD; сосны в тумане —
-  CC0; Dracula — MIT); описания; лицензии ресурсов (`theme-profile license`).
+  CC0; Dracula — MIT); описания; лицензии ресурсов (`kolira license`).
 - `export --public` → `themes/<имя>/`: только распространяемое, остальное —
   зависимости с источником (Orchis, Sandstone — KDE Store); превью-скриншоты
   Look & Feel убраны. `themes/README.md` — таблицы лицензий и зависимостей.

@@ -36,7 +36,7 @@ def test_summary_refresh_coalesces_and_rejects_stale_results(qtbot, monkeypatch)
 @pytest.fixture
 def russian(qapp):
     translator = QTranslator()
-    assert translator.load(str(Path(__file__).resolve().parents[1] / "i18n/kde-theme-manager_ru.qm"))
+    assert translator.load(str(Path(__file__).resolve().parents[1] / "i18n/kolira_ru.qm"))
     qapp.installTranslator(translator)
     yield
     qapp.removeTranslator(translator)

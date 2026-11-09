@@ -16,7 +16,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  ThemeProfileManager (Qt/QML Application)                   │
+│  KoliraManager (Qt/QML Application)                   │
 ├─────────────────────────────────────────────────────────────┤
 │  UI Layer (QML/Kirigami)                                    │
 │  ├── MainPage: профили + обои (основа)                      │
@@ -29,7 +29,7 @@
 │  ├── TrackedAppsRegistry: детекшн установленных приложений  │
 │  └── ConfigWatcher: live reload настроек приложения         │
 ├─────────────────────────────────────────────────────────────┤
-│  Backend: существующие bash-скрипты (theme-profile,         │
+│  Backend: существующие bash-скрипты (kolira,         │
 │           wallpaper-picker/next/prev) — НЕ МЕНЯЕМ           │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -43,7 +43,7 @@
 
 ## 3. Отслеживаемые приложения (из `TRACKED_PATHS`)
 
-### Уже отслеживаются (текущий `theme-profile`)
+### Уже отслеживаются (текущий `kolira`)
 
 | Категория | Приложение | Конфиги | Статус детекта |
 |-----------|------------|---------|----------------|
@@ -65,7 +65,7 @@
 | | Cursor | `settings.json` | ⚠️ Если установлен |
 | **Браузер** | Zen Browser | `user.js`, `userChrome.css`, `userContent.css`, `zen-themes.css` | ⚠️ Если установлен |
 | **Notes** | Obsidian | `obsidian.json`, `Preferences`, `vault/.obsidian/appearance.json` | ⚠️ Если установлен |
-| **System** | Color Schemes | `ThemeProfilePaper.colors` | ✅ Профиль |
+| **System** | Color Schemes | `KoliraPaper.colors` | ✅ Профиль |
 | | Look & Feel | `glass/`, `paper/` в `~/.local/share/plasma/look-and-feel/` | ✅ Профиль |
 
 **Итого: 19 приложений/сущностей**, из которых **6 базовых (KDE/GTK/Qt)** всегда присутствуют, остальные — опционально.
@@ -160,14 +160,14 @@
 - Если приложение **не установлено** — чекбокс disabled, иконка ⚠️, текст "Не установлен"
 - Никаких ошибок, кричащих в консоль — тихий skip
 - Можно развернуть группу → выбрать индивидуально
-- Пресеты настроек сохраняются в `~/.config/kde-theme-profile/app-preferences.json`
+- Пресеты настроек сохраняются в `~/.config/kolira/app-preferences.json`
 
 ---
 
 ### 4.3 Применение темы к самому приложению (Dogfooding)
 
 При запуске приложение:
-1. Читает активный профиль (`~/.config/kde-theme-profile/active-profile`)
+1. Читает активный профиль (`~/.config/kolira/active-profile`)
 2. Применяет **свою** цветовую схему через `Kirigami.Theme` / `QtQuick.Controls.Material`
 3. Для `glass` — включает прозрачность окна (`Qt::WA_TranslucentBackground` + KWin blur)
 4. Для `paper` — solide фон, светлая схема
@@ -297,7 +297,7 @@ TRACKED_APPS = [
     
     # === System Profiles ===
     TrackedApp("color_schemes", "Color Schemes", "System",
-        [".local/share/color-schemes/ThemeProfilePaper.colors"]),
+        [".local/share/color-schemes/KoliraPaper.colors"]),
     TrackedApp("look_and_feel", "Look & Feel", "System",
         [".local/share/plasma/look-and-feel/glass",
          ".local/share/plasma/look-and-feel/paper"]),
@@ -322,7 +322,7 @@ def detect_all_apps() -> dict[str, AppStatus]:
 
 ---
 
-## 6. Интеграция с существующим `theme-profile`
+## 6. Интеграция с существующим `kolira`
 
 **Не переписываем логику** — оборачиваем через `QProcess`:
 
@@ -337,11 +337,11 @@ class ProfileManager(QObject):
     def __init__(self):
         super().__init__()
         self._proc = QProcess(self)
-        self._proc.setProgram("theme-profile")
+        self._proc.setProgram("kolira")
     
     def apply(self, profile: str, components: list[str] | None = None):
         """components = None → всё (по умолчанию).
-           Если задан список — нужно расширить theme-profile поддерживать --components."""
+           Если задан список — нужно расширить kolira поддерживать --components."""
         args = ["apply", profile]
         if components:
             args.extend(["--components", ",".join(components)])
@@ -352,18 +352,18 @@ class ProfileManager(QObject):
     
     def list_profiles(self) -> list[str]:
         proc = QProcess()
-        proc.start("theme-profile", ["list"])
+        proc.start("kolira", ["list"])
         proc.waitForFinished()
         return proc.readAllStandardOutput().data().decode().strip().split("\n")
 ```
 
-**Важно**: Для гранулярного применения (`--components`) нужно **расширить `theme-profile` bash-скрипт** — добавить аргумент, который фильтрует `TRACKED_PATHS`. Это единственное изменение в bash.
+**Важно**: Для гранулярного применения (`--components`) нужно **расширить `kolira` bash-скрипт** — добавить аргумент, который фильтрует `TRACKED_PATHS`. Это единственное изменение в bash.
 
 ---
 
 ## 7. Настройки приложения (User Preferences)
 
-Файл: `~/.config/kde-theme-profile/app-preferences.json`
+Файл: `~/.config/kolira/app-preferences.json`
 
 ```json
 {
@@ -390,7 +390,7 @@ class ProfileManager(QObject):
 | 2 | `TrackedAppsRegistry` — детект приложений, модель для QML | 2ч |
 | 3 | MainPage: профили (radio) + обои (панель с подсказкой) | 3ч |
 | 4 | SettingsPage: раскрывающиеся группы, чекбоксы, пресеты | 4ч |
-| 5 | Интеграция с `theme-profile` / `wallpaper-*` через QProcess | 2ч |
+| 5 | Интеграция с `kolira` / `wallpaper-*` через QProcess | 2ч |
 | 6 | Dogfooding: применение темы к самому приложению (glass blur) | 2ч |
 | 7 | Polish: иконки, анимации, тултипы, переводы | 2ч |
 | **Итого** | | **~17-18ч** |
@@ -400,13 +400,13 @@ class ProfileManager(QObject):
 ## 9. Файловая структура проекта
 
 ```
-~/theme-profile-kit/
+~/kolira/
 ├── files/bin/                    # Существующие bash-скрипты (НЕ ТРОГАТЬ)
 ├── qt-app/                       # НОВОЕ Qt-приложение
 │   ├── pyproject.toml
 │   ├── src/
 │   │   ├── __main__.py           # Entry point
-│   │   ├── profile_manager.py    # Wrapper theme-profile
+│   │   ├── profile_manager.py    # Wrapper kolira
 │   │   ├── wallpaper_manager.py  # Wrapper wallpaper-*
 │   │   ├── tracked_apps.py       # Реестр + детект
 │   │   └── settings.py           # App preferences
@@ -423,7 +423,7 @@ class ProfileManager(QObject):
 │   └── resources/
 │       ├── icons/                # SVG иконки категорий
 │       └── qmldir
-├── scripts/install-theme-profile-kit.sh  # Обновить: добавить qt-app деплой
+├── scripts/install-kolira.sh  # Обновить: добавить qt-app деплой
 └── docs/TZ-QT-APP.md             # Этот файл
 ```
 
@@ -431,33 +431,33 @@ class ProfileManager(QObject):
 
 ## 10. Деплой
 
-Добавить в `install-theme-profile-kit.sh`:
+Добавить в `install-kolira.sh`:
 
 ```bash
 # Сборка/установка Qt-приложения
 install_qt_app() {
     local src="$KIT_DIR/qt-app"
-    local dst="$HOME/.local/bin/theme-profile-manager"
+    local dst="$HOME/.local/bin/kolira-manager"
     
     # Создаём wrapper скрипт
     cat > "$dst" <<'EOF'
 #!/usr/bin/env bash
-cd "$HOME/.local/share/theme-profile-manager"
+cd "$HOME/.local/share/kolira-manager"
 exec python3 -m src "$@"
 EOF
     chmod +x "$dst"
     
     # Копируем исходники
-    rsync -a "$src/" "$HOME/.local/share/theme-profile-manager/"
+    rsync -a "$src/" "$HOME/.local/share/kolira-manager/"
     
     # .desktop файл для меню приложений
     mkdir -p "$HOME/.local/share/applications"
-    cat > "$HOME/.local/share/applications/theme-profile-manager.desktop" <<'EOF'
+    cat > "$HOME/.local/share/applications/kolira-manager.desktop" <<'EOF'
 [Desktop Entry]
 Type=Application
 Name=Theme Profile Manager
 Comment=Manage KDE theme profiles and wallpapers
-Exec=theme-profile-manager
+Exec=kolira-manager
 Icon=preferences-desktop-theme
 Categories=Settings;DesktopSettings;Qt;KDE;
 StartupNotify=true
@@ -471,7 +471,7 @@ EOF
 
 | Риск | Митигация |
 |------|-----------|
-| `theme-profile` не поддерживает `--components` | Добавить в bash за 30 мин (фильтр `TRACKED_PATHS` по префиксам) |
+| `kolira` не поддерживает `--components` | Добавить в bash за 30 мин (фильтр `TRACKED_PATHS` по префиксам) |
 | KWin blur не работает на Wayland без настройки | Проверить `KWIN_FORCE_BLUR=1`, документация в README |
 | PySide6 не в системе | `uv pip install pyside6` или `pacman -S pyside6` |
 | Zen Browser профиль — хардкод пути | Автодетект через `find ~/.zen -name "user.js" -path "*/Default*"` |
@@ -503,4 +503,4 @@ EOF
 
 ---
 
-*Создано на основе анализа `~/theme-profile-kit/files/bin/theme-profile` (TRACKED_PATHS) и текущей архитектуры.*
+*Создано на основе анализа `~/kolira/files/bin/kolira` (TRACKED_PATHS) и текущей архитектуры.*

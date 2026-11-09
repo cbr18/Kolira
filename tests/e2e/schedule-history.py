@@ -38,7 +38,7 @@ os.environ.update(XDG_CONFIG_HOME=str(home / '.config'), XDG_DATA_HOME=str(home 
                   QT_QUICK_BACKEND='software', KTM_OFFLINE='1', KTM_COMMAND_TIMEOUT='15', LANG='C.UTF-8')
 os.environ.pop('KTM_THEME_NO_APPLY', None)
 os.environ['E2E_OUT'] = str(out)
-cli = os.environ.get('KTM_THEME_PROFILE_BIN', '/src/gui/qt-app/src/core/rust_core/target/release/theme-profile')
+cli = os.environ.get('KTM_THEME_PROFILE_BIN', '/src/gui/qt-app/src/core/rust_core/target/release/kolira')
 shim = home / 'bin'
 shim.mkdir(exist_ok=True)
 (shim / 'systemctl').write_text('''#!/usr/bin/python

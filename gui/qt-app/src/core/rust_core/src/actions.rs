@@ -113,7 +113,7 @@ fn changed(dir: &Path, marker: &str, before: Option<&Path>) -> bool {
 fn had_ours(folder: &Path) -> bool {
     std::fs::read_dir(folder).is_ok_and(|it| {
         it.flatten()
-            .any(|e| e.file_name().to_string_lossy().starts_with("theme-profile"))
+            .any(|e| e.file_name().to_string_lossy().starts_with("kolira"))
     })
 }
 

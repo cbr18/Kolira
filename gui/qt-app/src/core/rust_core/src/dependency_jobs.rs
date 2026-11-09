@@ -435,7 +435,30 @@ pub fn cli(args: &[String]) -> ExitCode {
             }
             "worker" => { worker(args.get(1).context("missing action")?, args.get(2).context("missing id")?)?; Ok(true) }
             "terminal-worker" => { terminal_worker(args.get(1).context("missing result path")?, args.get(2..).context("missing command")?)?; Ok(true) }
-            _ => bail!("Usage: dependencies list|refresh|register-app|install|remove|reinstall|cancel|operation"),
+            "orphaned" => {
+                let json = args.iter().any(|a| a == "--json");
+                let orphans = registry::orphans()?;
+                if json {
+                    println!("{}", serde_json::to_string(&orphans)?);
+                } else if orphans.is_empty() {
+                    println!("No orphaned dependencies.");
+                } else {
+                    for r in &orphans {
+                        println!(
+                            "{}\t{}\t{}\t{}\t{}",
+                            r.id,
+                            r.dependency.name,
+                            r.dependency.kind,
+                            r.dependency.source,
+                            r.removal_reason
+                        );
+                    }
+                    println!();
+                    println!("Remove one: kolira dependencies remove <id> [--confirm-shared]");
+                }
+                Ok(true)
+            }
+            _ => bail!("Usage: dependencies list|refresh|register-app|install|remove|reinstall|cancel|operation|orphaned"),
         }
     })();
     match result {

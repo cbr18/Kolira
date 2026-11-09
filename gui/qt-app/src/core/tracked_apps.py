@@ -192,7 +192,7 @@ class CliTrackedAppsCore(TrackedAppsCore):
 
     @staticmethod
     def _custom_component_payload(comp: CustomComponent) -> str:
-        """Serialize for `theme-profile components add|edit`.
+        """Serialize for `kolira components add|edit`.
 
         json.dumps, never f-strings: user-entered quotes or newlines in a
         name/description must reach the CLI as valid JSON.

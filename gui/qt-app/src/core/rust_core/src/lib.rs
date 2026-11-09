@@ -2,8 +2,8 @@
 //!
 //! Provides the native Rust implementation of the theme management protocol.
 //! The GUI talks to it through the CLI binaries in `src/bin/`
-//! (`theme-profile`, `theme-menu`, `wallpaper-*`), which share this library.
-//! The former `libkde_theme_core.so` FFI layer was removed together with the
+//! (`kolira`, `theme-menu`, `wallpaper-*`), which share this library.
+//! The former `libkolira_core.so` FFI layer was removed together with the
 //! second (library) core — the application has a single core now.
 
 pub mod actions;

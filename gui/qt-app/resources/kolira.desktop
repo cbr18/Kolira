@@ -1,0 +1,17 @@
+[Desktop Entry]
+Type=Application
+Name=Kolira
+Name[ru]=Kolira
+GenericName=Theme Profile Manager
+GenericName[ru]=Менеджер профилей темы
+Comment=Manage KDE Plasma theme profiles and wallpapers
+Comment[ru]=Управление профилями темы Plasma и обоями
+Exec=kolira-gui
+TryExec=kolira-gui
+Icon=kolira-icon
+Terminal=false
+Categories=Settings;DesktopSettings;Qt;KDE;X-KDE-SystemSettings;
+StartupNotify=true
+Keywords=theme;profile;wallpaper;plasma;kde;glass;paper;
+Keywords[ru]=тема;профиль;обои;плазма;
+X-KDE-Weight=50

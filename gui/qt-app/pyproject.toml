@@ -1,5 +1,5 @@
 [project]
-name = "kde-theme-manager"
+name = "kolira"
 version = "0.6.0"
 description = "KDE Plasma Theme Profile Manager - Qt/QML UI"
 readme = "README.md"
@@ -33,7 +33,7 @@ dev = [
 ]
 
 [project.scripts]
-kde-theme-manager = "src.__main__:main"
+kolira-gui = "src.__main__:main"
 
 [tool.ruff]
 target-version = "py311"

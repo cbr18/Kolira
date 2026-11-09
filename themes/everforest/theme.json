@@ -12,7 +12,7 @@
     },
     {
       "kind": "look-and-feel",
-      "license": "MIT (theme-profile-kit)",
+      "license": "MIT (kolira)",
       "name": "glass",
       "origin": "user",
       "path": ".local/share/plasma/look-and-feel/glass",
@@ -95,10 +95,10 @@
     }
   ],
   "description": "Everforest Dark Medium: matte green palette, Breeze widgets/GTK, misty pine forest",
-  "generator": "theme-profile 0.5.0",
+  "generator": "kolira 0.5.0",
   "name": "everforest",
   "palette": null,
-  "schema": "theme-profile/theme@2",
+  "schema": "kolira/theme@2",
   "sources": {
     "vscode_theme": {
       "id": "unthrottled.doki-theme",

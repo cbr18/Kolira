@@ -15,8 +15,8 @@ Task: [2026_11_04_09_00_theme-constructor-palette.md](../tasks/2026_11_04_09_00_
    (`removeServer` + повтор), «`listen` не удался» (вывести
    `server.errorString()`, путь и подсказку про лимит 108 байт; запуститься
    без single-instance). Вернуть enum вместо bool.
-2. `scripts/install-theme-profile-kit.sh`: после установки GUI искать процесс
-   `kde-theme-manager` / `python -m src` с cwd в `~/.local/share/kde-theme-manager`;
+2. `scripts/install-kolira.sh`: после установки GUI искать процесс
+   `kolira` / `python -m src` с cwd в `~/.local/share/kolira`;
    предупреждать «запущена старая версия, перезапустите»; флаг `--restart` —
    мягко завершить (SIGTERM) и запустить заново. Тест в `tests/test-scripts.sh`.
 3. Документация: `README.md` (флаг `--restart`), `gui/qt-app/README.md`
@@ -40,23 +40,23 @@ Task: [2026_11_04_09_00_theme-constructor-palette.md](../tasks/2026_11_04_09_00_
      Complementary,Header,Header][Inactive}`, `[WM]`, `ColorEffects` из шаблона,
      `AccentColor`; маппинг ролей base16 → KDE зафиксировать таблицей в коде и
      `docs/PALETTE.md`; светлые схемы — тот же маппинг по `variant`;
-   - kitty: блок цветов между маркерами `# BEGIN theme-profile palette` /
+   - kitty: блок цветов между маркерами `# BEGIN kolira palette` /
      `# END …` в `kitty.conf` (идемпотентная замена, остальной файл не трогаем);
    - Alacritty: `[colors.*]` в `alacritty.toml` через toml_edit (без
      переформатирования).
 3. **Kvantum-шаблон**: `files/kvantum-template/` (SVG + kvconfig с метками
    `@base00@…@accent@`), генератор подставляет цвета →
-   `$XDG_DATA_HOME/Kvantum/theme-profile-<name>/`. Выбор в UI: «Из палитры» или
+   `$XDG_DATA_HOME/Kvantum/kolira-<name>/`. Выбор в UI: «Из палитры» или
    любая установленная тема Kvantum, или стиль Breeze.
-4. **CLI**: `theme-profile palette show|import FILE|URL|gallery NAME|from-wallpaper PATH|from-colors JSON|apply [--targets=kde,kitty,alacritty,kvantum]`.
+4. **CLI**: `kolira palette show|import FILE|URL|gallery NAME|from-wallpaper PATH|from-colors JSON|apply [--targets=kde,kitty,alacritty,kvantum]`.
    `from-colors` принимает цвета, снятые GUI через ImageColors, и раскладывает
    их по слотам; `from-wallpaper` — свой k-means в OKLab (без `magick`).
 5. **Галерея base16**: индекс tinted-theming скачивается по запросу в
-   `$XDG_CACHE_HOME/theme-profile/base16/`; во встроенном наборе ~10 популярных
+   `$XDG_CACHE_HOME/kolira/base16/`; во встроенном наборе ~10 популярных
    схем (Everforest, Gruvbox, Nord, Catppuccin, Tokyo Night, Rose Pine, Dracula,
    Solarized ×2, One). Настройка `network_enabled` (по умолчанию вкл.).
 6. **Магазины тем редакторов** — HTTP-клиенты и распаковка в Rust
-   (`theme-profile apps store-search APP QUERY`, `store-install APP ID`),
+   (`kolira apps store-search APP QUERY`, `store-install APP ID`),
    Python-адаптеры только вызывают CLI:
    - Zed: `GET api.zed.dev/extensions?filter=Q&provides=themes`, установка —
      скачать архив, извлечь `themes/*.json` в `~/.config/zed/themes/`;
@@ -76,7 +76,7 @@ Task: [2026_11_04_09_00_theme-constructor-palette.md](../tasks/2026_11_04_09_00_
 10. **MCP**: `palette_show`, `palette_import`, `palette_set`, `palette_apply`,
     `app_store_search`, `app_store_install`.
 11. Профиль: `palette.json` в снапшоте; трекинг
-    `$XDG_DATA_HOME/Kvantum/theme-profile-*`.
+    `$XDG_DATA_HOME/Kvantum/kolira-*`.
 
 ### P2 — новая тема (ветка `feat/p2-new-theme`)
 
@@ -85,11 +85,11 @@ Task: [2026_11_04_09_00_theme-constructor-palette.md](../tasks/2026_11_04_09_00_
    без L&F). Применение основы — существующий `apply_profile` (для шаблона —
    встроенный псевдопрофиль `files/templates/neutral/`).
 2. **Свой L&F**: при сохранении профиля генерировать
-   `$XDG_DATA_HOME/plasma/look-and-feel/theme-profile-<name>/`
+   `$XDG_DATA_HOME/plasma/look-and-feel/kolira-<name>/`
    (`metadata.json`, `contents/defaults` с ColorScheme, widgetStyle, иконками,
    курсорами, Plasma Style, оформлением окон; превью из палитры). Без layout.
    `plasma_global` пишется в bundle только если пользователь выбрал L&F явно
-   или это сгенерированный пакет. Трекинг каталога `look-and-feel/theme-profile-*`.
+   или это сгенерированный пакет. Трекинг каталога `look-and-feel/kolira-*`.
 3. **Темы приложений в bundle**: хранить только `explicit`-выбор — сессионный
    набор `_app_changes`, установки из магазина и сгенерированные; плюс
    галочки «входит в тему» на странице приложений. Старые bundle читаются как есть.
@@ -133,7 +133,7 @@ Task: [2026_11_04_09_00_theme-constructor-palette.md](../tasks/2026_11_04_09_00_
 ## Заметки по откату
 
 Каждая фаза — отдельная ветка/коммит, откат `git revert`. Генерируемые ресурсы
-живут в отдельных именах (`theme-profile-*`, блоки с маркерами) и не
+живут в отдельных именах (`kolira-*`, блоки с маркерами) и не
 перезаписывают пользовательские темы; установщик продолжает делать бэкапы.
 
 ## Документация (в той же фазе)

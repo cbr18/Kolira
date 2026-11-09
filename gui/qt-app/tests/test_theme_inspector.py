@@ -118,8 +118,8 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     put(".config/Kvantum/kvantum.kvconfig", "[General]\ntheme=OrchisDark\n")
     put(".config/Kvantum/Orchis/OrchisDark.kvconfig",
         "[%General]\ntranslucent_windows=true\nblurring=false\npopup_blurring=true\n")
-    put(".config/kitty/theme-profile.conf", KITTY)
-    put(".config/alacritty/theme-profile.toml", ALACRITTY)
+    put(".config/kitty/kolira.conf", KITTY)
+    put(".config/alacritty/kolira.toml", ALACRITTY)
     put(".config/btop/btop.conf", 'color_theme = "noctalia"\nrounded_corners = true\n')
     put(".config/zed/settings.json", ZED)
     put(".config/Code/User/settings.json",
@@ -133,10 +133,10 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     put("obsidian/vault/.obsidian/appearance.json", "{}")
     (tmp_path / ".local/share/plasma/look-and-feel/glass/contents").mkdir(parents=True)
 
-    profile = tmp_path / ".config/kde-theme-profile/themes/glass/.config"
+    profile = tmp_path / ".config/kolira/themes/glass/.config"
     profile.mkdir(parents=True, exist_ok=True)
     (profile / "kdeglobals").write_text(KDE_GLOBALS.replace("128,142,71", "10,20,30"))
-    (tmp_path / ".config/kde-theme-profile/active-profile").write_text("glass\n")
+    (tmp_path / ".config/kolira/active-profile").write_text("glass\n")
     return tmp_path
 
 
@@ -263,7 +263,7 @@ def test_write_toml_section(home: Path) -> None:
     core = AppThemeCore()
     assert core.set_value("alacritty_opacity", 0.65).success
     assert core.apply().success
-    text = (home / ".config/alacritty/theme-profile.toml").read_text()
+    text = (home / ".config/alacritty/kolira.toml").read_text()
     assert "opacity = 0.65" in text
     assert "[window]" in text
     # The colors table and keybindings are untouched.
@@ -284,7 +284,7 @@ def test_write_kitty_and_font(home: Path) -> None:
     core = AppThemeCore()
     assert core.set_value("kitty_opacity", 0.7).success
     assert core.apply().success
-    assert "background_opacity 0.7" in (home / ".config/kitty/theme-profile.conf").read_text()
+    assert "background_opacity 0.7" in (home / ".config/kitty/kolira.conf").read_text()
     assert core.get("kitty_opacity")["value"] == pytest.approx(0.7)
 
     assert core.set_value("ui_font", {"family": "DejaVu Sans", "size": 9}).success
@@ -322,7 +322,7 @@ def test_revert_session(home: Path) -> None:
     assert core.get("kitty_opacity")["value"] == pytest.approx(0.5)
     # The snapshot directory keeps the originals.
     assert (home / ".config/kdeglobals").read_text() == original
-    backups = list((home / ".config/kde-theme-profile/backups").glob("inspector-*"))
+    backups = list((home / ".config/kolira/backups").glob("inspector-*"))
     assert backups, "revert must keep a backup of the session"
 
 
@@ -376,7 +376,7 @@ def test_search_uses_labels_keys_and_russian_keywords(home: Path) -> None:
 
 def test_revert_removes_a_file_created_in_the_session(home: Path) -> None:
     core = AppThemeCore()
-    kitty = home / ".config/kitty/theme-profile.conf"
+    kitty = home / ".config/kitty/kolira.conf"
     kitty.unlink()
     assert core.set_value("kitty_opacity", 0.9).success
     assert core.apply().success
@@ -596,7 +596,7 @@ def test_core_messages_are_translated() -> None:
     from PySide6.QtCore import QCoreApplication, QTranslator
 
     app = QCoreApplication.instance() or QCoreApplication([])
-    qm = Path(__file__).resolve().parent.parent / "i18n" / "kde-theme-manager_ru.qm"
+    qm = Path(__file__).resolve().parent.parent / "i18n" / "kolira_ru.qm"
     translator = QTranslator()
     assert translator.load(str(qm))
     app.installTranslator(translator)
@@ -640,7 +640,7 @@ def test_partial_apply_keeps_only_failed_fields_and_retry(home, monkeypatch):
     assert not core.apply().success
     assert core._staged == {"accent_color": "17,34,51"}
     assert core.undo_depth() == 1
-    kitty = home / ".config/kitty/theme-profile.conf"
+    kitty = home / ".config/kitty/kolira.conf"
     before = kitty.read_bytes()
     path.rmdir()
     saved.rename(path)

@@ -51,10 +51,18 @@ pub struct Dependency {
     /// `false`: found by a name search — confirm before installing.
     #[serde(default = "yes")]
     pub exact: bool,
+    /// `true`: the theme works without it (oh-my-posh, Spicetify, Discord client…).
+    /// Missing optional dependencies are reported as warnings, not blockers.
+    #[serde(default = "no")]
+    pub optional: bool,
 }
 
 fn yes() -> bool {
     true
+}
+
+fn no() -> bool {
+    false
 }
 
 const OCS: &str = "https://api.kde-look.org/ocs/v1/content/data";
@@ -286,7 +294,7 @@ fn knewstuff_entry(path: &Path) -> Option<(String, String, String)> {
 
 /// Our own record of what `install` fetched from the KDE Store (KDE's
 /// KNewStuff registry only knows its own "Get New…" installs): installed
-/// path → (store id, title), in `<theme-profile data>/installed-assets.json`.
+/// path → (store id, title), in `<kolira data>/installed-assets.json`.
 fn own_entry(path: &Path) -> Option<(String, String)> {
     crate::dependency_registry::source_entry(path)
 }
@@ -621,6 +629,7 @@ pub fn detect(
             title: "Kvantum (Qt widget style engine)".into(),
             url: "https://archlinux.org/packages/?q=kvantum".into(),
             exact: true,
+            optional: false,
         });
     }
     // Third-party KWin effects the theme switches on (Better Blur DX, Rounded
@@ -654,6 +663,7 @@ pub fn detect(
             title: "Vesktop (Discord with Vencord) — or install Vencord into Discord: https://vencord.dev/download/".into(),
             url: "https://vencord.dev/download/".into(),
             exact: true,
+            optional: true,
         });
     }
     // A prompt theme needs oh-my-posh.
@@ -666,6 +676,7 @@ pub fn detect(
             title: "oh-my-posh (prompts usually need a Nerd Font)".into(),
             url: "https://ohmyposh.dev/docs/installation/linux".into(),
             exact: true,
+            optional: true,
         });
     }
     // Spicetify themes need Spicetify (and Spotify).
@@ -678,6 +689,7 @@ pub fn detect(
             title: "Spicetify (needs Spotify: spotify-launcher)".into(),
             url: "https://spicetify.app/docs/getting-started".into(),
             exact: true,
+            optional: true,
         });
     }
     // Firefox theme add-on (installed from inside Firefox — link only).
@@ -764,6 +776,17 @@ pub fn missing(deps: &[Dependency]) -> Vec<(usize, &Dependency)> {
         })
         .filter(|(_, d)| !installed(d))
         .collect()
+}
+
+/// Missing dependencies that are required (not optional), with their index in `deps`.
+pub fn missing_required(deps: &[Dependency]) -> Vec<(usize, &Dependency)> {
+    missing(deps).into_iter().filter(|(_, d)| !d.optional).collect()
+}
+
+/// Missing dependencies that are optional (the theme works without them),
+/// with their index in `deps`.
+pub fn missing_optional(deps: &[Dependency]) -> Vec<(usize, &Dependency)> {
+    missing(deps).into_iter().filter(|(_, d)| d.optional).collect()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 # Защита применения темы
 
-Rust сериализует операции оформления через `$XDG_CONFIG_HOME/kde-theme-profile/appearance.lock`.
+Rust сериализует операции оформления через `$XDG_CONFIG_HOME/kolira/appearance.lock`.
 Блокировка принадлежит процессу и освобождается при его завершении. Второй Apply
 получает ошибку «Another appearance operation is running», не меняя файлы.
 Один контракт используют CLI, GUI/MCP через CLI и будущий запуск по расписанию.
@@ -53,9 +53,9 @@ reload hooks остаются best effort: приложение может бы�
 ## Прерывание процесса и восстановление
 
 ```bash
-theme-profile operations list
-theme-profile operations show apply-ABC123
-theme-profile operations recover apply-ABC123
+kolira operations list
+kolira operations show apply-ABC123
+kolira operations recover apply-ABC123
 ```
 
 Состояние `preparing/applying/recovering/recovery_failed` без владельца блокировки
@@ -72,7 +72,7 @@ theme-profile operations recover apply-ABC123
 нужных личных правок можно явно запросить замену:
 
 ```bash
-theme-profile operations recover apply-ABC123 --force
+kolira operations recover apply-ABC123 --force
 ```
 
 `--force` заменяет файлы в захваченном наборе оригиналами, включая личные изменения
@@ -122,7 +122,7 @@ GUI Apply использует [просмотр изменений](APPLY_PREVI
 Копии видимых записей доступны до их явного удаления пользователем. Отдельной
 автоматической очистки бэкапов пока нет.
 
-`theme-profile operations list` и `core operation.list` возвращают состояние
+`kolira operations list` и `core operation.list` возвращают состояние
 блокировки, историю, `interrupted`, `backup_status` (`not_created`, `available`,
 `unavailable`), `backup_error` и `can_restore`. Доступность проверяется по
 манифесту и хэшам сохранённых оригиналов, а не только существованию каталога.
@@ -134,7 +134,7 @@ GUI Apply использует [просмотр изменений](APPLY_PREVI
 Для завершённой смены:
 
 ```sh
-theme-profile operations restore OPERATION_ID --confirm
+kolira operations restore OPERATION_ID --confirm
 ```
 
 JSON: `core operation.restore` с `id`, `confirmed: true`, опциональным `source`.

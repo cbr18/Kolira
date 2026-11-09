@@ -2,13 +2,13 @@
 
 Палитра — единый источник цветов сгенерированной темы. Логика живёт в Rust
 (`gui/qt-app/src/core/rust_core/src/palette.rs`), доступ — через
-`theme-profile palette …`. План работ: `plans/2026_11_04_09_00_theme-constructor-palette.md`.
+`kolira palette …`. План работ: `plans/2026_11_04_09_00_theme-constructor-palette.md`.
 
 ## Страница «Палитра» (GUI)
 
 «Тема» → плитка «Палитра» (`qml/pages/PalettePage.qml`, контроллер
 `paletteController` = `src/controllers/palette.py` поверх `core/palette_core.py`,
-который только вызывает `theme-profile palette …`):
+который только вызывает `kolira palette …`):
 
 - 16 образцов `base00…base0F` и акцент; клик → выбор цвета → `palette set`;
 - предупреждения о контрасте (`palette show --json` → `warnings`);
@@ -40,49 +40,49 @@
 - **variant** — `dark`/`light` (из файла; у старого формата — по яркости `base00`).
 - **source** — откуда палитра (`base16:<файл>`, `manual`, позже `gallery:`, `wallpaper:`).
 
-Живая палитра: `$XDG_CONFIG_HOME/kde-theme-profile/palette.json`. Профили сохраняют
-её как компонент `palette` (`.config/kde-theme-profile/palette.json` в снапшоте).
+Живая палитра: `$XDG_CONFIG_HOME/kolira/palette.json`. Профили сохраняют
+её как компонент `palette` (`.config/kolira/palette.json` в снапшоте).
 
 ## CLI
 
 ```bash
-theme-profile palette import FILE          # base16 YAML (новый/старый формат) или JSON палитры
-theme-profile palette import gallery:nord  # схема из галереи
-theme-profile palette gallery [ЗАПРОС] [--online] [--refresh] [--json]
-theme-profile palette show [--json]        # слоты, акцент, предупреждения о контрасте
-theme-profile palette set accent=#a7c080 base0F=#9da9a0
-theme-profile palette from-wallpaper [IMAGE] [--variant=dark|light] [--name=…]   # по умолчанию — текущие обои
-theme-profile palette from-colors JSON|-   # цвета от Kirigami.ImageColors (GUI)
-theme-profile palette generate kde|kitty|alacritty   # напечатать сгенерированное
-theme-profile palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvantum-base=THEME] [--opacity=0.3-1] [--gtk-opacity=…] [--discord-opacity=…]
+kolira palette import FILE          # base16 YAML (новый/старый формат) или JSON палитры
+kolira palette import gallery:nord  # схема из галереи
+kolira palette gallery [ЗАПРОС] [--online] [--refresh] [--json]
+kolira palette show [--json]        # слоты, акцент, предупреждения о контрасте
+kolira palette set accent=#a7c080 base0F=#9da9a0
+kolira palette from-wallpaper [IMAGE] [--variant=dark|light] [--name=…]   # по умолчанию — текущие обои
+kolira palette from-colors JSON|-   # цвета от Kirigami.ImageColors (GUI)
+kolira palette generate kde|kitty|alacritty   # напечатать сгенерированное
+kolira palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvantum-base=THEME] [--opacity=0.3-1] [--gtk-opacity=…] [--discord-opacity=…]
                                            # по умолчанию все цели, кроме gtk и kvantum
 ```
 
-`apply` пишет `$XDG_DATA_HOME/color-schemes/ThemeProfile<Имя>.colors` (имя с
+`apply` пишет `$XDG_DATA_HOME/color-schemes/Kolira<Имя>.colors` (имя с
 префиксом — пользовательские схемы вроде `Everforest.colors` не
 перезаписываются), выключает `accentColorFromWallpaper` и применяет схему и
 акцент. `KTM_THEME_NO_APPLY=1` отключает внешние команды.
 
 **Терминалы.** Как у райсеров: оформление терминала живёт в отдельном файле,
 который личный конфиг подключает (`docs/THEMES.md`). kitty: в
-`~/.config/kitty/theme-profile.conf` заменяется (или дописывается) блок между
-`# BEGIN theme-profile palette …` и `# END theme-profile palette`; в
+`~/.config/kitty/kolira.conf` заменяется (или дописывается) блок между
+`# BEGIN kolira palette …` и `# END kolira palette`; в
 `kitty.conf` остаются клавиши и прочее личное, а последней строкой —
-`include theme-profile.conf` (у kitty побеждает последнее значение). Если в
+`include kolira.conf` (у kitty побеждает последнее значение). Если в
 `kitty.conf` ещё было оформление, оно один раз переносится в
-`theme-profile.conf` (оригинал — в `backups/pre-split-kitty-*`). Повторное
+`kolira.conf` (оригинал — в `backups/pre-split-kitty-*`). Повторное
 применение идемпотентно. Запущенные kitty
 перезагружают цвета через `kitty @ set-colors` по всем сокетам
-`/tmp/kitty-theme-profile[-<pid>]` (kitty дописывает PID к `listen_on`). Alacritty:
-цвета `[colors.*]` пишутся через `toml_edit` в `~/.config/alacritty/theme-profile.toml`
+`/tmp/kitty-kolira[-<pid>]` (kitty дописывает PID к `listen_on`). Alacritty:
+цвета `[colors.*]` пишутся через `toml_edit` в `~/.config/alacritty/kolira.toml`
 (комментарии сохраняются), `alacritty.toml` получает
-`[general] import = ["~/.config/alacritty/theme-profile.toml"]` (или старый
+`[general] import = ["~/.config/alacritty/kolira.toml"]` (или старый
 верхнеуровневый `import`, если он уже есть); Alacritty перечитывает файлы сам.
 Перед правкой файлы тем копируются в `backups/palette-apply-<время>/`; права
 файла сохраняются. Если `kitty.conf`/`alacritty.toml` нет — цель пропускается.
 
 **Konsole** (цель `konsole`, по умолчанию включена, пропускается без Konsole):
-генерируется `~/.local/share/konsole/ThemeProfile<Имя>.colorscheme` (те же ANSI-цвета,
+генерируется `~/.local/share/konsole/Kolira<Имя>.colorscheme` (те же ANSI-цвета,
 что у kitty; прозрачность/размытие прошлой версии схемы сохраняются) и выбирается
 в профиле по умолчанию (`konsolerc DefaultProfile`); без профиля создаётся
 `Theme Profile.profile` (`Parent=FALLBACK/`) и становится профилем по умолчанию.
@@ -90,7 +90,7 @@ theme-profile palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvant
 
 **Discord** (цель `discord`, по умолчанию включена; обычный Discord тем не
 поддерживает — нужен Vencord или Vesktop): в `themes/` клиента пишется
-`theme-profile.theme.css` — цвета палитры поверх популярной темы midnight
+`kolira.theme.css` — цвета палитры поверх популярной темы midnight
 (MIT, refact0r; подключается с её сайта, как в шаблоне matugen) — и
 включается в `settings/settings.json` `enabledThemes` (точечная правка, прочие
 настройки не трогаются). Vencord перечитывает файлы тем сам; новую включённую
@@ -103,16 +103,16 @@ theme-profile palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvant
 клиента.
 
 **Spotify / Spicetify** (цель `spicetify`, по умолчанию включена, пропускается
-без `~/.config/spicetify/config-xpui.ini`): `Themes/ThemeProfile/color.ini`
-(раздел `[ThemeProfile]`, соответствие ролей — как в шаблоне matugen) + пустой
+без `~/.config/spicetify/config-xpui.ini`): `Themes/Kolira/color.ini`
+(раздел `[Kolira]`, соответствие ролей — как в шаблоне matugen) + пустой
 `user.css`; в `config-xpui.ini` выставляются `current_theme`/`color_scheme`
-`ThemeProfile`, `inject_css`/`replace_colors` `1`, затем `spicetify apply -n`.
+`Kolira`, `inject_css`/`replace_colors` `1`, затем `spicetify apply -n`.
 
 **Telegram** (цель `telegram`, по умолчанию; пропускается без Telegram или без
-сети при первом запуске): `~/.local/share/TelegramDesktop/theme-profile.tdesktop-palette`
+сети при первом запуске): `~/.local/share/TelegramDesktop/kolira.tdesktop-palette`
 — палитра Telegram (~590 цветов). База — стандартная палитра Telegram
 (`colors.palette` из desktop-app/lib_ui, GPL-3): её качает из официального
-репозитория и кэширует (`~/.cache/kde-theme-profile/telegram-colors.palette`), в
+репозитория и кэширует (`~/.cache/kolira/telegram-colors.palette`), в
 кит она не входит. Перекраска — как у Kvantum (OKLab): нейтральные идут по шкале
 «фон → текст» палитры, синий Telegram (`#40a7e3`) становится акцентом, зелёный
 исходящих сообщений — оттенком акцента (отдельная перекраска с якорем
@@ -129,8 +129,8 @@ theme-profile palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvant
 
 **Ghostty** (цель `ghostty`, по умолчанию; пропускается без
 `~/.config/ghostty/config`): блок цветов (`background`, `foreground`,
-`palette = N=…`, курсор, выделение) в `~/.config/ghostty/theme-profile`; `config`
-получает последней строкой `config-file = ?theme-profile` (прежнее оформление из
+`palette = N=…`, курсор, выделение) в `~/.config/ghostty/kolira`; `config`
+получает последней строкой `config-file = ?kolira` (прежнее оформление из
 `config` один раз переносится в файл темы).
 
 **cava** (цель `cava`, по умолчанию; пропускается без `~/.config/cava/config`):
@@ -141,15 +141,15 @@ theme-profile palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvant
 **GTK 4 / libadwaita** (цель `gtk`, включается явно — она меняет вид
 libadwaita-приложений вроде Mission Center). libadwaita не смотрит на
 `gtk-theme-name`, её цвета задаёт только `~/.config/gtk-4.0/gtk.css`. Цель пишет
-`gtk-4.0/theme-profile.css` (именованные цвета libadwaita: `window_bg_color`,
+`gtk-4.0/kolira.css` (именованные цвета libadwaita: `window_bg_color`,
 `view_bg_color`, `headerbar_*`, `sidebar_*`, `card_*`, `popover_*`, `dialog_*`,
 `accent_*`, смысловые) и добавляет в конец `gtk.css` строку
-`@import 'theme-profile.css';` (импорт KDE `colors.css` остаётся).
+`@import 'kolira.css';` (импорт KDE `colors.css` остаётся).
 `--gtk-opacity` (0.3–1, по умолчанию 1 — непрозрачно) — альфа фона окна,
 шапки и боковой панели; списки и карточки чуть прозрачнее, всплывающие окна и
 диалоги — плотнее, чтобы текст читался. Сквозь прозрачный фон видно размытие
 композитора (Better Blur DX). Файл входит в тему (компонент `gtk4`).
-Для GTK 3 цель пишет `gtk-3.0/theme-profile.css` и тот же импорт в
+Для GTK 3 цель пишет `gtk-3.0/kolira.css` и тот же импорт в
 `gtk-3.0/gtk.css`: темы GTK 3 задают фон литеральными цветами, поэтому при
 прозрачности < 1 добавляются правила поверх темы — `.background` (окна) и
 `.view` (списки, текст) цветами палитры с этой альфой; при 1 правил нет, тема
@@ -159,7 +159,7 @@ GTK 3 остаётся как есть (компонент `gtk3`).
 `kvantum`). Темы Kvantum — GPL-графика, поэтому в репозитории их нет: при
 применении берётся **установленная** базовая тема (по умолчанию `KvArcDark` для
 тёмной палитры и `KvArc` для светлой, любую другую — `--kvantum-base=…`), её SVG и
-kvconfig копируются в `~/.config/Kvantum/ThemeProfile<Имя>/` с перекраской в
+kvconfig копируются в `~/.config/Kvantum/Kolira<Имя>/` с перекраской в
 OKLab:
 
 - почти серые цвета сохраняют своё место на шкале «фон → текст» базовой темы и
@@ -176,7 +176,7 @@ OKLab:
   на элементе `menu` базы, и подсказки выглядят как её меню; `text.press/toggle.color`,
   совпадающие с `highlight.text.color` базы, получают текст на выделении.
 
-Первая строка kvconfig — `; theme-profile: recoloured from <база>` (с пометкой
+Первая строка kvconfig — `; kolira: recoloured from <база>` (с пометкой
 `(ships with Kvantum)`, если база из `/usr/share/Kvantum`). По ней сохранение
 темы ставит лицензию: перекраска темы из самого Kvantum — GPL-3.0-or-later и
 может публиковаться; перекраска сторонней темы (KDE Store, лицензия неизвестна)
@@ -190,13 +190,13 @@ OKLab:
 KvRoughGlass). Перекраска заново создаёт каталог темы, поэтому эти поля
 выставляются после неё.
 
-Затем `kvantummanager --set ThemeProfile<Имя>` и `widgetStyle=kvantum`. Профили
+Затем `kvantummanager --set Kolira<Имя>` и `widgetStyle=kvantum`. Профили
 сохраняют **активную** пользовательскую тему Kvantum целиком (каталог из
 `~/.config/Kvantum/<theme>`) и восстанавливают её при `apply`.
 
 > `plasma-apply-colorscheme --accent-color X SCHEME` меняет **только** акцент и
 > молча игнорирует схему, поэтому схема и акцент применяются двумя вызовами
-> (так же сделано в `theme-profile apply`).
+> (так же сделано в `kolira apply`).
 
 ## Соответствие base16 → KDE
 
@@ -265,13 +265,13 @@ KvRoughGlass). Перекраска заново создаёт каталог �
 
 ## Галерея
 
-`theme-profile palette gallery` (модуль `gallery.rs`) показывает схемы из трёх
+`kolira palette gallery` (модуль `gallery.rs`) показывает схемы из трёх
 источников: `id  origin  variant  name`.
 
 | origin | Откуда | Сеть |
 |---|---|---|
 | `bundled` | 15 схем, вкомпилированы из `rust_core/data/base16/*.yaml` (Everforest, Gruvbox ×2, Nord, Catppuccin ×2, Tokyo Night, Rosé Pine ×2, Dracula, Solarized ×2, OneDark, One Light, Kanagawa) | нет |
-| `cached` | ранее скачанные, `$XDG_CACHE_HOME/kde-theme-profile/base16/<id>.yaml` | нет |
+| `cached` | ранее скачанные, `$XDG_CACHE_HOME/kolira/base16/<id>.yaml` | нет |
 | `online` | каталог tinted-theming (`spec-0.11`, ~360 схем): индекс через GitHub tree API, кэш на 7 дней (`index.json`), `--refresh` — обновить | только с `--online`/`--refresh` |
 
 `palette import gallery:<id>` берёт схему из встроенных → кэша → скачивает

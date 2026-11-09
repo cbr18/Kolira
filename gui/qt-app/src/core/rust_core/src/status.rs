@@ -1,4 +1,4 @@
-//! Native `theme-profile status` — fast, data-driven.
+//! Native `kolira status` — fast, data-driven.
 //!
 //! One pass per file, exact-key readers only (see `config_parser`): no shelling
 //! out to `kreadconfig6` (the bash version took ~300 ms over 21 subprocess
@@ -35,7 +35,7 @@ fn kwin_loaded_effects() -> String {
         .join(",")
 }
 
-/// Contents of `theme-profile status`.
+/// Contents of `kolira status`.
 pub fn status() -> String {
     let cfg = config_home();
     let mut out = String::new();

@@ -12,7 +12,7 @@ from controllers.dependencies import DependencyController
 
 @pytest.fixture
 def cli(tmp_path, monkeypatch):
-    executable = tmp_path / "theme-profile"
+    executable = tmp_path / "kolira"
     executable.write_text(f"#!{sys.executable}\n" + r'''
 import json, pathlib, sys, time
 root=pathlib.Path(__file__).parent

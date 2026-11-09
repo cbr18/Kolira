@@ -7,7 +7,7 @@
 //!   `Parent=FALLBACK/` so every behaviour setting stays Konsole's default)
 //!   and made the default;
 //! * colour schemes travel as theme assets (copied in when missing);
-//! * the palette generates `ThemeProfile<Name>.colorscheme` (same ANSI colours
+//! * the palette generates `Kolira<Name>.colorscheme` (same ANSI colours
 //!   as kitty/Alacritty) and selects it in the default profile.
 
 use std::fs;

@@ -81,7 +81,7 @@ Python-детект (`tracked_apps.py`) читает `components.json` и мер
 ### Критерии «готово» (этап B)
 
 - [x] Rust: CRUD + валидация + слияние (`custom_components.rs`)
-- [x] CLI: `theme-profile components list|add|edit|remove`
+- [x] CLI: `kolira components list|add|edit|remove`
 - [x] Python: CRUD-адаптер в `CliTrackedAppsCore` (json.dumps, экранирование)
 - [x] Python: слияние реестров в детекте (встроенные выигрывают)
 - [x] `disabled_components` в настройках + фильтр в `_settings_components()`

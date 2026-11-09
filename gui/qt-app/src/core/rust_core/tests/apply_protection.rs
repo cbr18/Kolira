@@ -18,13 +18,13 @@ impl Home {
             ".config/kdeglobals",
             "# personal\n[General]\nColorScheme=Old\nBrowserApplication=keep\n",
         );
-        h.write(".config/kde-theme-profile/active-profile", "previous\n");
+        h.write(".config/kolira/active-profile", "previous\n");
         h.write(
-            ".config/kde-theme-profile/themes/probe/theme.json",
-            r#"{"schema":"theme-profile/theme@2","name":"probe"}"#,
+            ".config/kolira/themes/probe/theme.json",
+            r#"{"schema":"kolira/theme@2","name":"probe"}"#,
         );
         h.write(
-            ".config/kde-theme-profile/themes/probe/.config/kdeglobals",
+            ".config/kolira/themes/probe/.config/kdeglobals",
             "[General]\nColorScheme=New\n",
         );
         h
@@ -46,7 +46,7 @@ impl Home {
         .unwrap();
     }
     fn command(&self, args: &[&str]) -> Command {
-        let mut c = Command::new(env!("CARGO_BIN_EXE_theme-profile"));
+        let mut c = Command::new(env!("CARGO_BIN_EXE_kolira"));
         c.args(args)
             .env("HOME", self.0.path())
             .env("XDG_CONFIG_HOME", self.path(".config"))
@@ -175,14 +175,14 @@ fn invalid_preparation_changes_no_live_files() {
     let h = Home::new();
     let before = fs::read(h.path(".config/kdeglobals")).unwrap();
     h.write(
-        ".config/kde-theme-profile/themes/probe/.config/alacritty/alacritty.toml",
+        ".config/kolira/themes/probe/.config/alacritty/alacritty.toml",
         "[window\ninvalid TOML\n",
     );
     let out = h.apply();
     assert!(!out.status.success());
     assert_eq!(fs::read(h.path(".config/kdeglobals")).unwrap(), before);
     assert_eq!(
-        fs::read_to_string(h.path(".config/kde-theme-profile/active-profile")).unwrap(),
+        fs::read_to_string(h.path(".config/kolira/active-profile")).unwrap(),
         "previous\n"
     );
     assert_eq!(h.records()["operations"][0]["state"], "failed_preparation");
@@ -219,10 +219,10 @@ fn external_command_failure_restores_original_bytes_permissions_marker_and_journ
         0o640
     );
     assert_eq!(
-        fs::read_to_string(h.path(".config/kde-theme-profile/active-profile")).unwrap(),
+        fs::read_to_string(h.path(".config/kolira/active-profile")).unwrap(),
         "previous\n"
     );
-    assert!(!h.path(".config/kde-theme-profile/apply-journal").exists());
+    assert!(!h.path(".config/kolira/apply-journal").exists());
     assert_eq!(h.records()["operations"][0]["recovery_errors"], json!([]));
 }
 
@@ -235,7 +235,7 @@ fn write_failure_after_snapshot_rolls_back_earlier_writes() {
         "[Settings]\ngtk-theme-name=Old\n",
     );
     h.write(
-        ".config/kde-theme-profile/themes/probe/.config/gtk-3.0/settings.ini",
+        ".config/kolira/themes/probe/.config/gtk-3.0/settings.ini",
         "[Settings]\ngtk-theme-name=New\n",
     );
     h.executable("systemctl","#!/bin/sh\nif [ \"$2\" = stop ] && [ \"$3\" = plasma-plasmashell.service ]; then\n/bin/rm -f \"$HOME/.config/gtk-3.0/settings.ini\"\n/bin/mkdir \"$HOME/.config/gtk-3.0/settings.ini\"\nfi\nexit 0\n");
@@ -370,7 +370,7 @@ fn corrupt_backup_is_reported_and_never_used_for_restoration() {
 fn interrupted_preparation_can_be_acknowledged_without_touching_live_files() {
     let h = Home::new();
     let live = fs::read(h.path(".config/kdeglobals")).unwrap();
-    h.write(".config/kde-theme-profile/operations/apply-preparation.json", &json!({
+    h.write(".config/kolira/operations/apply-preparation.json", &json!({
         "id":"apply-preparation","profile":"probe","state":"preparing","started":"2026-11-08T00:00:00Z",
         "updated":"2026-11-08T00:00:00Z","backup":null,"error":null,"recovery_errors":[]
     }).to_string());
@@ -413,7 +413,7 @@ fn plasmashell_restart_failure_has_separate_recovery_diagnostics() {
 fn broad_custom_component_cannot_copy_its_backup_into_itself() {
     let h = Home::new();
     h.write(
-        ".config/kde-theme-profile/components.json",
+        ".config/kolira/components.json",
         r#"{"components":[{"id":"broad","config_paths":[".config"]}]}"#,
     );
     let before = fs::read(h.path(".config/kdeglobals")).unwrap();
@@ -422,7 +422,7 @@ fn broad_custom_component_cannot_copy_its_backup_into_itself() {
     assert!(String::from_utf8_lossy(&out.stderr).contains("footprint"));
     assert_eq!(fs::read(h.path(".config/kdeglobals")).unwrap(), before);
     assert!(h
-        .path(".config/kde-theme-profile/backups")
+        .path(".config/kolira/backups")
         .read_dir()
         .unwrap()
         .next()

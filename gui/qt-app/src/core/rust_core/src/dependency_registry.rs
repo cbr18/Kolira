@@ -508,6 +508,17 @@ pub fn refresh(python: Option<&str>) -> Result<Vec<Resource>> {
     Ok(reg.resources.into_values().collect())
 }
 
+/// Installed resources that no theme requires: safe candidates for removal.
+/// A resource is an orphan when it is installed, referenced by no theme, and
+/// verified manager-owned files still match their fingerprints.
+pub fn orphans() -> Result<Vec<Resource>> {
+    let all = refresh(None)?;
+    Ok(all
+        .into_iter()
+        .filter(|r| r.installed && r.themes.is_empty() && r.can_remove)
+        .collect())
+}
+
 pub fn get(id: &str) -> Result<Resource> {
     refresh(None)?
         .into_iter()

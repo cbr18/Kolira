@@ -15,13 +15,13 @@ impl Home {
             ".config/kdeglobals",
             "[KDE]\nwidgetStyle=Old\n[General]\nBrowserApplication=personal\n",
         );
-        h.write(".config/kde-theme-profile/active-profile", "previous\n");
+        h.write(".config/kolira/active-profile", "previous\n");
         h.write(
-            ".config/kde-theme-profile/themes/probe/theme.json",
-            r#"{"schema":"theme-profile/theme@2","name":"probe"}"#,
+            ".config/kolira/themes/probe/theme.json",
+            r#"{"schema":"kolira/theme@2","name":"probe"}"#,
         );
         h.write(
-            ".config/kde-theme-profile/themes/probe/.config/kdeglobals",
+            ".config/kolira/themes/probe/.config/kdeglobals",
             "[KDE]\nwidgetStyle=Breeze\n",
         );
         h
@@ -35,7 +35,7 @@ impl Home {
         fs::write(p, s).unwrap();
     }
     fn command(&self, args: &[&str]) -> Command {
-        let mut c = Command::new(env!("CARGO_BIN_EXE_theme-profile"));
+        let mut c = Command::new(env!("CARGO_BIN_EXE_kolira"));
         c.args(args)
             .env("HOME", self.0.path())
             .env("XDG_CONFIG_HOME", self.path(".config"))
@@ -163,7 +163,7 @@ fn scheduler_claims_once_orders_conflicts_and_keeps_rules_after_restart() {
     }
     h.ok("schedule.enable", json!({"enabled":true}));
     assert!(h
-        .path(".config/autostart/kde-theme-manager-schedule.desktop")
+        .path(".config/autostart/kolira-schedule.desktop")
         .is_file());
     let out = h.run(&["schedule", "tick"]);
     assert!(
@@ -208,7 +208,7 @@ fn offline_authoring_and_instruction_updates_preserve_live_state_and_user_edits(
     let h = Home::new();
     let before = fs::read(h.path(".config/kdeglobals")).unwrap();
     h.ok("agent.install", json!({}));
-    let file = h.path(".config/kde-theme-profile/themes/AGENTS.md");
+    let file = h.path(".config/kolira/themes/AGENTS.md");
     let original = fs::read_to_string(&file).unwrap();
     fs::write(&file, format!("{original}\nUser additions\n")).unwrap();
     h.ok("agent.install", json!({}));
@@ -224,7 +224,7 @@ fn offline_authoring_and_instruction_updates_preserve_live_state_and_user_edits(
     assert_eq!(out["package"]["values"]["widget_style"], "Breeze");
     assert_eq!(fs::read(h.path(".config/kdeglobals")).unwrap(), before);
     assert_eq!(
-        fs::read_to_string(h.path(".config/kde-theme-profile/active-profile")).unwrap(),
+        fs::read_to_string(h.path(".config/kolira/active-profile")).unwrap(),
         "previous\n"
     );
     assert_eq!(
@@ -241,7 +241,7 @@ fn offline_authoring_and_instruction_updates_preserve_live_state_and_user_edits(
         )["ok"],
         false
     );
-    assert!(!h.path(".config/kde-theme-profile/themes/bad").exists());
+    assert!(!h.path(".config/kolira/themes/bad").exists());
     let out = h.run(&[
         "export",
         "offline",
@@ -266,7 +266,7 @@ fn palette_authoring_uses_tracked_terminal_includes_and_keeps_requested_opacity(
         .map(|i| format!("#{:02x}{:02x}{:02x}", i * 16, i * 16, i * 16))
         .collect();
     h.write(
-        ".config/kde-theme-profile/palette.json",
+        ".config/kolira/palette.json",
         &json!({"name":"test","variant":"dark","base":colors,"accent":"#ff8800"}).to_string(),
     );
     let result = h.ok(
@@ -276,19 +276,19 @@ fn palette_authoring_uses_tracked_terminal_includes_and_keeps_requested_opacity(
     assert_eq!(result["package"]["values"]["kitty_opacity"], 0.85);
     assert!(result["package"]["palette"].is_object());
     assert!(h
-        .path(".config/kde-theme-profile/themes/palette-probe/.config/kitty/theme-profile.conf")
+        .path(".config/kolira/themes/palette-probe/.config/kitty/kolira.conf")
         .is_file());
     assert!(h
-        .path(".config/kde-theme-profile/themes/palette-probe/.config/alacritty/theme-profile.toml")
+        .path(".config/kolira/themes/palette-probe/.config/alacritty/kolira.toml")
         .is_file());
-    assert!(!h.path(".config/kitty/theme-profile.conf").exists());
+    assert!(!h.path(".config/kitty/kolira.conf").exists());
 }
 
 #[test]
 fn forced_import_cannot_replace_root_workspace_instructions() {
     let h = Home::new();
     h.ok("agent.install", json!({}));
-    let path = h.path(".config/kde-theme-profile/themes/AGENTS.md");
+    let path = h.path(".config/kolira/themes/AGENTS.md");
     let original = fs::read(&path).unwrap();
     h.ok(
         "agent.prepare",
@@ -327,9 +327,9 @@ fn forced_import_cannot_replace_root_workspace_instructions() {
 fn interrupted_record_survives_history_pruning_until_explicit_recovery() {
     let h = Home::new();
     for n in 0..12 {
-        h.write(&format!(".config/kde-theme-profile/operations/apply-old-{n}.json"),&json!({"id":format!("apply-old-{n}"),"profile":"probe","state":"succeeded","started":format!("2020-01-{:02}T00:00:00Z",n+1),"updated":"2020-01-01T00:00:00Z","backup":null,"error":null,"recovery_errors":[]}).to_string());
+        h.write(&format!(".config/kolira/operations/apply-old-{n}.json"),&json!({"id":format!("apply-old-{n}"),"profile":"probe","state":"succeeded","started":format!("2020-01-{:02}T00:00:00Z",n+1),"updated":"2020-01-01T00:00:00Z","backup":null,"error":null,"recovery_errors":[]}).to_string());
     }
-    h.write(".config/kde-theme-profile/operations/apply-pending.json",&json!({"id":"apply-pending","profile":"probe","state":"preparing","started":"2019-01-01T00:00:00Z","updated":"2019-01-01T00:00:00Z","backup":null,"error":null,"recovery_errors":[]}).to_string());
+    h.write(".config/kolira/operations/apply-pending.json",&json!({"id":"apply-pending","profile":"probe","state":"preparing","started":"2019-01-01T00:00:00Z","updated":"2019-01-01T00:00:00Z","backup":null,"error":null,"recovery_errors":[]}).to_string());
     let blocked = h.rpc(
         "profile.apply",
         json!({"name":"probe","skip_dependencies":true}),
@@ -412,8 +412,8 @@ fn missing_plasma_is_a_visible_skip_and_deleted_theme_is_an_audited_failure() {
                 .env("XDG_CURRENT_DESKTOP", "unavailable");
         } else {
             fs::rename(
-                h.path(".config/kde-theme-profile/themes/probe"),
-                h.path(".config/kde-theme-profile/themes/renamed"),
+                h.path(".config/kolira/themes/probe"),
+                h.path(".config/kolira/themes/renamed"),
             )
             .unwrap();
         }
@@ -498,8 +498,6 @@ fn import_rejects_packaged_client_instructions_and_hooks_before_publication() {
         ]);
         assert!(!result.status.success(), "{path}");
         assert!(String::from_utf8_lossy(&result.stderr).contains("not theme content"));
-        assert!(!h
-            .path(&format!(".config/kde-theme-profile/themes/{name}"))
-            .exists());
+        assert!(!h.path(&format!(".config/kolira/themes/{name}")).exists());
     }
 }

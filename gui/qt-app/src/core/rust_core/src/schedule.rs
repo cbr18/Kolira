@@ -159,8 +159,8 @@ fn autostart(enabled: bool) -> Result<()> {
         .replace('"', "\\\\\"")
         .replace('`', "\\\\`")
         .replace('$', "\\\\$");
-    write_bytes(&paths::config_home().join("autostart/kde-theme-manager-schedule.desktop"),
-        format!("[Desktop Entry]\nType=Application\nName=KDE Theme Manager Schedule\nOnlyShowIn=KDE;\nExec=\"{quoted}\" schedule daemon\nHidden={}\n", !enabled).as_bytes(), None)
+    write_bytes(&paths::config_home().join("autostart/kolira-schedule.desktop"),
+        format!("[Desktop Entry]\nType=Application\nName=kolira Schedule\nOnlyShowIn=KDE;\nExec=\"{quoted}\" schedule daemon\nHidden={}\n", !enabled).as_bytes(), None)
 }
 pub fn rpc(method: &str, args: &Value) -> Result<Value> {
     let _lock = lock()?;

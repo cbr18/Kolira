@@ -1,7 +1,7 @@
 """Path and profile-name helpers shared by the CLI core.
 
 The application supports the XDG base directories; data lives in
-``$XDG_CONFIG_HOME/kde-theme-profile/themes`` and older folder names are moved
+``$XDG_CONFIG_HOME/kolira/themes`` and older folder names are moved
 there on start.  Profile names are validated here as a
 single, reusable rule; the same rule is implemented in the Rust CLI and the Python CLI core.
 """
@@ -37,8 +37,8 @@ def data_home() -> Path:
     return Path(value).expanduser() if value else home_dir() / ".local/share"
 
 
-_DATA_DIR = "kde-theme-profile"
-_OLD_DATA_DIR = "theme-profile"
+_DATA_DIR = "kolira"
+_OLD_DATA_DIRS = ("kde-theme-profile", "theme-profile")
 
 
 def _migrate_old_names(old_roots=None, new_root=None) -> None:

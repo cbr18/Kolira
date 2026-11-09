@@ -148,7 +148,7 @@ class SystemTrayController(QObject):
             raise RuntimeError(f"Failed to create system tray icon: {e}")
 
         self._tray_icon.setIcon(app_icon())
-        self._tray_icon.setToolTip("KDE Theme Manager")
+        self._tray_icon.setToolTip("kolira")
 
         # Контекстное меню
         _import_widgets()
@@ -254,7 +254,7 @@ class SystemTrayController(QObject):
 
         if self._tray_icon is not None:
             active = controller.activeProfile or "—"
-            self._tray_icon.setToolTip(f"KDE Theme Manager — {active}")
+            self._tray_icon.setToolTip(f"kolira — {active}")
 
     def _rebuild_wallpaper_menu(self) -> None:
         """Пересобрать подменю обоев."""

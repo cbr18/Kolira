@@ -281,7 +281,7 @@ pub fn live_palette_path() -> std::path::PathBuf {
 }
 
 /// Profile-snapshot path of the live palette.
-pub const LIVE_PALETTE_REL: &str = ".config/kde-theme-profile/palette.json";
+pub const LIVE_PALETTE_REL: &str = ".config/kolira/palette.json";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // KDE colour scheme
@@ -365,7 +365,7 @@ IntensityAmount=0
 IntensityEffect=0
 ";
 
-/// File stem of the generated scheme: `ThemeProfile<CamelName>` — never the
+/// File stem of the generated scheme: `Kolira<CamelName>` — never the
 /// name of a scheme the user made by hand (e.g. `Everforest.colors`).
 pub fn kde_scheme_id(p: &Palette) -> String {
     let camel: String = p
@@ -379,7 +379,7 @@ pub fn kde_scheme_id(p: &Palette) -> String {
         })
         .collect();
     format!(
-        "ThemeProfile{}",
+        "Kolira{}",
         if camel.is_empty() {
             "Palette".into()
         } else {
@@ -463,8 +463,8 @@ pub fn kde_color_scheme(p: &Palette) -> String {
 
 /// Markers of the palette block inside `kitty.conf`; everything outside them
 /// is the user's and is never touched.
-pub const KITTY_BEGIN: &str = "# BEGIN theme-profile palette (generated, edits are overwritten)";
-pub const KITTY_END: &str = "# END theme-profile palette";
+pub const KITTY_BEGIN: &str = "# BEGIN kolira palette (generated, edits are overwritten)";
+pub const KITTY_END: &str = "# END kolira palette";
 
 /// ANSI colours 0–15 from base16. `color0`/`color8` use `base02`/`base03`
 /// rather than `base00`, so "black" text stays visible on the background
@@ -527,7 +527,7 @@ pub fn kitty_conf_with_palette(existing: &str, p: &Palette) -> String {
     let mut kept: Vec<&str> = Vec::new();
     let mut inside = false;
     for line in existing.lines() {
-        if line.starts_with("# BEGIN theme-profile palette") {
+        if line.starts_with("# BEGIN kolira palette") {
             inside = true;
             continue;
         }
@@ -673,27 +673,29 @@ fn run(cmd: &str, args: &[&str]) -> bool {
 }
 
 /// Remote-control sockets of running kitty instances started with
-/// `listen_on unix:/tmp/kitty-theme-profile`. kitty appends `-<pid>` to the
+/// `listen_on unix:/tmp/kitty-kolira`. kitty appends `-<pid>` to the
 /// path, so the bare name alone never matches.
 pub fn kitty_sockets() -> Vec<String> {
     kitty_sockets_in(Path::new("/tmp"))
 }
 
 fn kitty_sockets_in(dir: &Path) -> Vec<String> {
-    const BASE: &str = "kitty-theme-profile";
+    const BASES: &[&str] = &["kitty-kolira", "kitty-theme-profile"];
     let mut sockets: Vec<String> = std::fs::read_dir(dir)
         .map(|entries| {
             entries
                 .flatten()
                 .filter_map(|e| {
                     let name = e.file_name().to_string_lossy().to_string();
-                    let is_ours = name == BASE
-                        || name
-                            .strip_prefix(BASE)
-                            .and_then(|rest| rest.strip_prefix('-'))
-                            .is_some_and(|pid| {
-                                !pid.is_empty() && pid.bytes().all(|b| b.is_ascii_digit())
-                            });
+                    let is_ours = BASES.iter().any(|base| {
+                        name == *base
+                            || name
+                                .strip_prefix(base)
+                                .and_then(|rest| rest.strip_prefix('-'))
+                                .is_some_and(|pid| {
+                                    !pid.is_empty() && pid.bytes().all(|b| b.is_ascii_digit())
+                                })
+                    });
                     is_ours.then(|| format!("unix:{}", dir.join(&name).display()))
                 })
                 .collect()
@@ -710,7 +712,7 @@ fn write_atomic(path: &Path, text: &str) -> Result<()> {
         std::fs::create_dir_all(parent)?;
     }
     let mode = std::fs::metadata(path).map(|m| m.permissions().mode()).ok();
-    let tmp = path.with_extension("tmp-theme-profile");
+    let tmp = path.with_extension("tmp-kolira");
     std::fs::write(&tmp, text)?;
     if let Some(mode) = mode {
         std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(mode))?;
@@ -729,7 +731,7 @@ fn backup(path: &Path, stamp: &str) -> Result<()> {
 }
 
 /// Generate and apply the palette to `targets`; returns one line per action.
-/// Generated files carry `ThemeProfile*` names and terminal configs only get
+/// Generated files carry `Kolira*` names and terminal configs only get
 /// their colour keys/blocks replaced (after a backup), so user-made assets are
 /// never overwritten. A missing terminal config is skipped, not created. The
 /// palette becomes the live palette (`palette.json`).
@@ -787,7 +789,7 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
     if wants("kitty") {
         let host = crate::paths::live_path(crate::appearance::KITTY_HOST);
         if host.is_file() {
-            // The palette goes into the include file (theme-profile.conf), not
+            // The palette goes into the include file (kolira.conf), not
             // into the user's kitty.conf (which only gains the include line).
             crate::profile::split_live_hosts(&[crate::appearance::KITTY_HOST.to_string()])?;
             let host_text = std::fs::read_to_string(&host)?;
@@ -799,7 +801,7 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
             }
             write_atomic(&path, &kitty_conf_with_palette(&existing, p))?;
             // Live reload needs a kitty started with allow_remote_control and
-            // listen_on unix:/tmp/kitty-theme-profile (see AGENTS.md).
+            // listen_on unix:/tmp/kitty-kolira (see AGENTS.md).
             let config = host.to_string_lossy().to_string();
             let sockets = if which::which("kitty").is_ok() {
                 kitty_sockets()
@@ -838,7 +840,7 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
     if wants("alacritty") {
         let host = crate::paths::live_path(crate::appearance::ALACRITTY_HOST);
         if host.is_file() {
-            // Colours go into the imported theme-profile.toml; alacritty.toml
+            // Colours go into the imported kolira.toml; alacritty.toml
             // only gains the import (Alacritty reloads both by itself).
             crate::profile::split_live_hosts(&[crate::appearance::ALACRITTY_HOST.to_string()])?;
             let host_text = std::fs::read_to_string(&host)?;
@@ -931,7 +933,11 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
     if wants("gtk") {
         let opacity = options.gtk_opacity.unwrap_or(1.0);
         let path = crate::extras::gtk_apply_palette(p, opacity)?;
-        report.push(format!("gtk: {} (+ gtk-3.0/theme-profile.css; GTK 3 and libadwaita apps, opacity {:.2}; reopen them)", path.display(), opacity.clamp(0.3, 1.0)));
+        report.push(format!(
+            "gtk: {} (+ gtk-3.0/kolira.css; GTK 3 and libadwaita apps, opacity {:.2}; reopen them)",
+            path.display(),
+            opacity.clamp(0.3, 1.0)
+        ));
     }
 
     if wants("kvantum") {
@@ -1090,7 +1096,7 @@ mod tests {
         assert!(sel.contains("BackgroundNormal=167,192,128\n"));
         assert!(sel.contains("ForegroundNormal=45,53,59\n"));
         let general = group(&s, "General");
-        assert!(general.contains("ColorScheme=ThemeProfileEverforest"));
+        assert!(general.contains("ColorScheme=KoliraEverforest"));
         assert!(general.contains("Name=Everforest"));
     }
 
@@ -1111,7 +1117,7 @@ mod tests {
             .map(|v| v.parse().unwrap())
             .collect();
         assert!(Rgb(rgb[0], rgb[1], rgb[2]).luminance() > Rgb(251, 241, 199).luminance());
-        assert_eq!(kde_scheme_id(&p), "ThemeProfileGruvboxLightMedium");
+        assert_eq!(kde_scheme_id(&p), "KoliraGruvboxLightMedium");
         assert!(
             p.contrast_warnings().is_empty(),
             "{:?}",
@@ -1125,9 +1131,7 @@ mod tests {
         p.set("accent", "#a7c080").unwrap();
         let user = "font_size 11\nbackground #000000\n";
         let once = kitty_conf_with_palette(user, &p);
-        assert!(
-            once.starts_with("font_size 11\nbackground #000000\n\n# BEGIN theme-profile palette")
-        );
+        assert!(once.starts_with("font_size 11\nbackground #000000\n\n# BEGIN kolira palette"));
         assert!(once.contains("\nbackground #2d353b\n"));
         assert!(once.contains("\nselection_background #a7c080\n"));
         assert!(
@@ -1137,7 +1141,7 @@ mod tests {
         assert!(once.contains("\ncolor15 #fdf6e3\n"));
         let twice = kitty_conf_with_palette(&once, &p);
         assert_eq!(once, twice, "re-applying is idempotent");
-        assert_eq!(twice.matches("# BEGIN theme-profile palette").count(), 1);
+        assert_eq!(twice.matches("# BEGIN kolira palette").count(), 1);
         let light = parse_base16(GRUVBOX_LIGHT, "t").unwrap();
         let switched = kitty_conf_with_palette(&twice, &light);
         assert!(switched.contains("\nbackground #fbf1c7\n"));
@@ -1173,8 +1177,10 @@ mod tests {
     fn kitty_sockets_include_pid_suffixed_ones() {
         let tmp = tempfile::tempdir().unwrap();
         for name in [
-            "kitty-theme-profile-5466",
-            "kitty-theme-profile",
+            "kitty-kolira-5466",
+            "kitty-kolira",
+            "kitty-kolira-x1",
+            "kitty-theme-profile-2706",
             "kitty-theme-profile-x1",
             "kitty-other-1",
         ] {
@@ -1185,8 +1191,9 @@ mod tests {
         assert_eq!(
             found,
             vec![
-                format!("unix:{d}/kitty-theme-profile"),
-                format!("unix:{d}/kitty-theme-profile-5466")
+                format!("unix:{d}/kitty-kolira"),
+                format!("unix:{d}/kitty-kolira-5466"),
+                format!("unix:{d}/kitty-theme-profile-2706")
             ]
         );
     }

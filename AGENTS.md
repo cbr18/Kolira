@@ -1,23 +1,23 @@
-# AGENTS.md — theme-profile-kit
+# AGENTS.md — kolira
 
 Instructions for AI agents and contributors working in this repository.
 
 ## What this repository is
 
-`theme-profile-kit` is the **source of truth** for:
+`kolira` is the **source of truth** for:
 
 | Area | Source |
 |---|---|
-| Rust CLI | `gui/qt-app/src/core/rust_core/src/bin/` (`theme-profile`, `theme-menu`, `wallpaper-*`) |
-| Qt/QML GUI ("KDE Theme Manager") | `gui/qt-app/` |
+| Rust CLI | `gui/qt-app/src/core/rust_core/src/bin/` (`kolira`, `theme-menu`, `wallpaper-*`) |
+| Qt/QML GUI ("kolira") | `gui/qt-app/` |
 | Install / update / uninstall | `scripts/*.sh` |
 | Tests | `tests/test-scripts.sh`, `gui/qt-app/tests/` |
 
-Deployed copies live in `~/.local/bin/`, `~/.local/share/kde-theme-manager/`
+Deployed copies live in `~/.local/bin/`, `~/.local/share/kolira/`
 and `~/.local/share/applications/`. **Never edit deployed copies directly** —
 edit the kit and re-run the installer.
 
-The end-user data directory (`~/.config/kde-theme-profile/`: `themes/`, `backups/`, `manifests/`,
+The end-user data directory (`~/.config/kolira/`: `themes/`, `backups/`, `manifests/`,
 `active-profile`, `app-preferences.json`) is separate from the code and is never
 replaced as a deployed code directory. Install/update registers dependencies through
 Rust and synchronizes bundled themes according to the documented preservation rules.
@@ -30,17 +30,17 @@ Rust and synchronizes bundled themes according to the documented preservation ru
    rewritten in Rust, C++/Qt, nor any other GUI framework. There is no "Rust
    GUI" plan.
 2. **Core and CLI are 100 % Rust; the GUI has a single core.** `gui/qt-app/src/core/rust_core/`
-   provides the CLI binaries (`theme-profile`, `theme-menu`,
+   provides the CLI binaries (`kolira`, `theme-menu`,
    `wallpaper-picker/next/prev` in `src/bin/`); the GUI talks to them through
    one Python adapter (`core/cli_core.py`, backend name `core`). All profile
    mutations, `status`, wallpaper logic, settings and the app registry live in
-   Rust. The former second core — the `libkde_theme_core.so` shared library
+   Rust. The former second core — the `libkolira_core.so` shared library
    behind `ctypes` — was removed; do not reintroduce a second core.
 3. **Bash is an exception, not an option.** A bash script may exist only where
    Rust genuinely cannot express the task or would cost roughly 20× the code
    with no measurable benefit — today that is limited to:
    - deployment/update/uninstall (`scripts/*.sh`),
-   - the PySide6 launcher wrapper (`gui/qt-app/theme-profile-manager.sh`),
+   - the PySide6 launcher wrapper (`gui/qt-app/kolira-manager.sh`),
    - the test harness (`tests/test-scripts.sh`).
    No application logic lives in bash. External tools (kreadconfig6,
    kwriteconfig6, magick, plasma-apply-wallpaperimage, kitty, wofi) are
@@ -87,7 +87,7 @@ A change is not done until the docs agree with the code. At minimum:
 | `docs/TZ-QT-APP.md`, `docs/TZ-THEME-INSPECTOR.md` | Original specifications |
 | `docs/TZ-THEME-REBUILD.md` | Target product/design spec for the theme-bundle rebuild |
 | `docs/MCP.md` | Local MCP server usage, tool contract and safety notes |
-| `docs/PALETTE.md` | base16 palette model, `theme-profile palette` CLI, base16 → KDE role mapping |
+| `docs/PALETTE.md` | base16 palette model, `kolira palette` CLI, base16 → KDE role mapping |
 | `docs/THEMES.md` | Theme format (appearance-only snapshot + `theme.json`), per-file appearance policies, dependencies, save/apply/check/migrate, export/import |
 | `docs/DEPENDENCIES.md` | Dependency registry, ownership, operations, cancellation, GUI and CLI |
 | `gui/qt-app/README.md` | GUI details: cores, tray, theming, wallpapers, architecture, dev commands |
@@ -100,8 +100,8 @@ A change is not done until the docs agree with the code. At minimum:
   path components; reject anything else (traversal, separators, leading dot).
 - **XDG-aware paths**: live files resolve through `XDG_CONFIG_HOME` /
   `XDG_DATA_HOME` / `XDG_CACHE_HOME`. Data lives in
-  `$XDG_CONFIG_HOME/kde-theme-profile` (themes in `themes/`). Data under the
-  pre-0.6.0 names (`theme-profile/`, `profiles/`) is moved there on start, by
+  `$XDG_CONFIG_HOME/kolira` (themes in `themes/`). Data under the
+  historical names (`kde-theme-profile/`, `theme-profile/`, `profiles/`) is moved there on start, by
   Rust `paths.rs` (Python only resolves paths): nothing overwritten. A
   theme's *snapshot* keeps the `.config/...` layout inside.
 - **Wallpaper list ordering**: implemented once in Rust for CLI and GUI —
@@ -110,7 +110,7 @@ A change is not done until the docs agree with the code. At minimum:
   `gui/qt-app/README.md`.
 - **Profile scopes are read-only snapshots** in the Theme Inspector; only
   *Live* is editable. Mutating profile operations delegate to the Rust CLI
-  `theme-profile`.
+  `kolira`.
 - **`KTM_THEME_NO_APPLY=1`** disables external commands and D-Bus hooks (used by
   tests and dry runs).
 - **JSONC files** (Zed / VS Code / Cursor / Obsidian / fastfetch) are patched by
@@ -145,7 +145,7 @@ shellcheck scripts/*.sh tests/test-scripts.sh
 # QML lint
 find gui/qt-app/qml -name '*.qml' -print0 | xargs -0 qmllint
 
-# Translations (QML + Python → merged kde-theme-manager_ru.qm)
+# Translations (QML + Python → merged kolira_ru.qm)
 bash scripts/update-translations.sh
 ```
 
@@ -155,9 +155,9 @@ codebase to satisfy them unless asked.
 ## Editing rules
 
 1. Edit `gui/qt-app/src/core/rust_core/**` for the CLI and core; deploy with
-   `scripts/install-theme-profile-kit.sh` (builds with `cargo build --release`).
+   `scripts/install-kolira.sh` (builds with `cargo build --release`).
 2. Edit `gui/qt-app/**` for the GUI; deploy with
-   `scripts/install-theme-profile-kit.sh` (use `--only-gui` for the app alone).
+   `scripts/install-kolira.sh` (use `--only-gui` for the app alone).
 3. Do **not** edit `~/.config/kwinrc`, `plasmashellrc`, `kdeglobals` without a
    backup; do **not** edit Zen `prefs.js` (use the profile `user.js`).
 4. Prefer `uv` for Python and `cargo` for Rust on this machine.
@@ -166,4 +166,4 @@ codebase to satisfy them unless asked.
 
 ## License
 
-MIT — see `LICENSE`. Remote: `github.com/cbr18/kde-theme-manager`.
+MIT — see `LICENSE`. Remote: `github.com/cbr18/Kolira`.

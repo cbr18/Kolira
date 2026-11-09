@@ -133,7 +133,7 @@ ForegroundPositive=80,250,123
 ForegroundVisited=255,121,198
 
 [General]
-ColorScheme=ThemeProfileDracula
+ColorScheme=KoliraDracula
 ColorSchemeHash=35f6a5082733486678e30459a0341f5bba88bcff
 LastUsedCustomAccentColor=184,117,220
 accentColorFromWallpaper=false

@@ -20,7 +20,7 @@ A01 [аудита](../docs/audits/2026_11_08_codebase-audit.md).
 | Обои | общий `wallpaper.rs`, Rust wallpaper binaries | Расширения, symlink, порядок, текущие обои Plasma, preference каталога, прямое применение и NO_APPLY |
 | Удаление дублей | Python view adapters → один `cli_core.py` | Удалены Python writers, клоны, парсеры и локальная миграция, `fileutil.py`; скрытого fallback нет |
 
-Добавлен локальный `theme-profile core METHOD` с JSON API v1. Старые команды
+Добавлен локальный `kolira core METHOD` с JSON API v1. Старые команды
 CLI сохраняются. Python выполняет Qt-сериализацию, перевод, представление и
 GUI-навигацию. Экспорт отчёта Inspector тоже записывает Rust.
 

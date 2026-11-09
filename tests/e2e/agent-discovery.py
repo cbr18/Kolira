@@ -15,7 +15,7 @@ import threading
 import time
 
 root=Path(__file__).resolve().parents[2]
-cli=root/'gui/qt-app/src/core/rust_core/target/release/theme-profile'
+cli=root/'gui/qt-app/src/core/rust_core/target/release/kolira'
 work=Path(tempfile.mkdtemp(prefix='ktm-discovery-'))
 env=os.environ.copy()
 for key in list(env):
@@ -24,7 +24,7 @@ for key in list(env):
 env.update(HOME=str(work/'home'),XDG_CONFIG_HOME=str(work/'config'),XDG_DATA_HOME=str(work/'data'),XDG_CACHE_HOME=str(work/'cache'),CODEX_HOME=str(work/'codex'),KTM_THEME_NO_APPLY='1',KTM_OFFLINE='1')
 for name in ['home','config','data','cache','codex']:(work/name).mkdir()
 subprocess.run([str(cli),'core','agent.install'],input='{}',text=True,env=env,capture_output=True,check=True)
-themes=work/'config/kde-theme-profile/themes'
+themes=work/'config/kolira/themes'
 (themes/'nested').mkdir()
 captures=[]
 class Sink(http.server.BaseHTTPRequestHandler):
@@ -41,13 +41,13 @@ results=[]
 for cwd,markers in [(themes,False),(themes/'nested',False),(themes/'nested',True)]:
     captures.clear()
     command=['codex','exec','--skip-git-repo-check','--sandbox','read-only','--ephemeral','--json','-C',str(cwd),
-             '-c','model_provider="ktm_capture"','-c','model="ktm-capture"',
-             '-c','model_providers.ktm_capture.name="Instruction capture"',
-             '-c',f'model_providers.ktm_capture.base_url="{base}"',
-             '-c','model_providers.ktm_capture.wire_api="responses"',
-             '-c','model_providers.ktm_capture.requires_openai_auth=false',
-             '-c','model_providers.ktm_capture.request_max_retries=0',
-             '-c','model_providers.ktm_capture.stream_max_retries=0',
+             '-c','model_provider="kolira_capture"','-c','model="ktm-capture"',
+             '-c','model_providers.kolira_capture.name="Instruction capture"',
+             '-c',f'model_providers.kolira_capture.base_url="{base}"',
+             '-c','model_providers.kolira_capture.wire_api="responses"',
+             '-c','model_providers.kolira_capture.requires_openai_auth=false',
+             '-c','model_providers.kolira_capture.request_max_retries=0',
+             '-c','model_providers.kolira_capture.stream_max_retries=0',
              'Return READY. Do not use tools.']
     if markers:
         command[-1:-1]=['-c','project_root_markers=[".git","AGENTS.md"]']
@@ -55,7 +55,7 @@ for cwd,markers in [(themes,False),(themes/'nested',False),(themes/'nested',True
         proc=subprocess.run(command,env=env,text=True,capture_output=True,timeout=45)
         (work/(cwd.name+'-stderr.txt')).write_text(proc.stderr)
         content='\n'.join(captures)
-        found='KDE Theme Manager — theme workspace instructions (v1)' in content
+        found='kolira — theme workspace instructions (v1)' in content
         results.append({'cwd':'themes' if cwd==themes else 'themes/nested','root_markers_configured':markers,'captured_requests':len(captures),'instructions_found':found,'client_exit':proc.returncode})
     except subprocess.TimeoutExpired:
         results.append({'cwd':str(cwd),'instructions_found':False,'timeout':True})
@@ -73,7 +73,7 @@ for cwd,additional in [(themes,False),(themes/'nested',False),(themes/'nested',T
         proc=subprocess.run(command,env=env,cwd=cwd,text=True,capture_output=True,timeout=30)
         content='\n'.join(captures)
         (work/('claude-'+cwd.name+'-requests.txt')).write_text(content)
-        claude_results.append({'cwd':'themes' if cwd==themes else 'themes/nested','additional_root_configured':additional,'captured_requests':len(captures),'instructions_found':'KDE Theme Manager — theme workspace instructions (v1)' in content,'client_exit':proc.returncode})
+        claude_results.append({'cwd':'themes' if cwd==themes else 'themes/nested','additional_root_configured':additional,'captured_requests':len(captures),'instructions_found':'kolira — theme workspace instructions (v1)' in content,'client_exit':proc.returncode})
         (work/('claude-'+cwd.name+'-stderr.txt')).write_text(proc.stderr+'\n'+proc.stdout)
     except subprocess.TimeoutExpired:
         claude_results.append({'cwd':str(cwd),'instructions_found':False,'timeout':True})

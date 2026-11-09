@@ -308,7 +308,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
                 ".config/gtk-3.0/settings.ini".to_string(),
                 ".config/gtk-3.0/gtk.css".to_string(),
                 ".config/gtk-3.0/colors.css".to_string(),
-                ".config/gtk-3.0/theme-profile.css".to_string(),
+                ".config/gtk-3.0/kolira.css".to_string(),
             ],
             detect_command: None,
             flatpak_id: None,
@@ -325,7 +325,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
                 ".config/gtk-4.0/settings.ini".to_string(),
                 ".config/gtk-4.0/gtk.css".to_string(),
                 ".config/gtk-4.0/colors.css".to_string(),
-                ".config/gtk-4.0/theme-profile.css".to_string(),
+                ".config/gtk-4.0/kolira.css".to_string(),
             ],
             detect_command: None,
             flatpak_id: None,
@@ -394,11 +394,11 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             name: "Kitty".to_string(),
             category: "Terminals".to_string(),
             // kitty.conf is only an include host (never stored); the look lives
-            // in theme-profile.conf (appearance.rs). Host first: apply derives
+            // in kolira.conf (appearance.rs). Host first: apply derives
             // the include from old themes before the include entry runs.
             config_paths: vec![
                 ".config/kitty/kitty.conf".to_string(),
-                ".config/kitty/theme-profile.conf".to_string(),
+                ".config/kitty/kolira.conf".to_string(),
             ],
             detect_command: Some("kitty".to_string()),
             flatpak_id: None,
@@ -413,7 +413,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             category: "Terminals".to_string(),
             config_paths: vec![
                 ".config/alacritty/alacritty.toml".to_string(),
-                ".config/alacritty/theme-profile.toml".to_string(),
+                ".config/alacritty/kolira.toml".to_string(),
             ],
             detect_command: Some("alacritty".to_string()),
             flatpak_id: None,
@@ -570,7 +570,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             detect_command: Some("ghostty".to_string()),
             flatpak_id: None,
             supports_live_reload: false,
-            description: "Look in ghostty/theme-profile, included by the config".to_string(),
+            description: "Look in ghostty/kolira, included by the config".to_string(),
             icon: "utilities-terminal".to_string(),
             docs_url: "https://ghostty.org/docs/config".to_string(),
         },
@@ -665,7 +665,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             id: "palette".to_string(),
             name: "Palette".to_string(),
             category: "System Profiles".to_string(),
-            config_paths: vec![".config/kde-theme-profile/palette.json".to_string()],
+            config_paths: vec![".config/kolira/palette.json".to_string()],
             detect_command: None,
             flatpak_id: None,
             supports_live_reload: false,

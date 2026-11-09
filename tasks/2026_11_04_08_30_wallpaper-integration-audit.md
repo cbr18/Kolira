@@ -26,7 +26,7 @@ Status: DONE (ветка feat/wallpaper-integration)
    применение молча; `validate_profile_bundle` существование обоев не
    проверяет.
 3. **Обои применяются только через GUI-путь.** `ThemeBundleCore.apply_profile`
-   вызывает `set_wallpaper`, а `theme-profile apply NAME` (CLI, `theme-menu`,
+   вызывает `set_wallpaper`, а `kolira apply NAME` (CLI, `theme-menu`,
    трей?) поле `wallpaper` из bundle игнорирует — восстанавливается только
    то, что лежит в снапшоте `plasma-org.kde.plasma.desktop-appletsrc`.
    У bundle профиля glass поля `wallpaper` нет вовсе (сообщение `apply glass`
@@ -58,17 +58,17 @@ Status: DONE (ветка feat/wallpaper-integration)
 
 ## Что сделано
 
-- [x] Одна реализация каталога в Rust (`wallpaper::wallpaper_dir`, `theme-profile wallpaper dir`);
+- [x] Одна реализация каталога в Rust (`wallpaper::wallpaper_dir`, `kolira wallpaper dir`);
       бинарники `wallpaper-*` и GUI используют её; дефолт настройки GUI — `""` (авто).
 - [x] Копия обоев в профиле при `save` (если сохраняется `plasma_shell`);
       `apply` берёт оригинал, иначе возвращает копию (старый путь → каталог обоев,
       существующие файлы не перезаписываются) и применяет с ретраями после
       старта plasmashell. Старые профили — fallback на `wallpaper` из bundle.
-- [x] `theme-profile apply` применяет обои сам; шаг `set_wallpaper` в Python убран.
+- [x] `kolira apply` применяет обои сам; шаг `set_wallpaper` в Python убран.
 - [x] Убраны `first_wallpaper_image*` (баг `~/.config/.config`), `wallpaper_accent_hex`,
       `parse_imagemagick_pixel`; поиск текущих обоев — одна функция
       `plasma_wallpaper_from` (основной экран, при активностях — последний `Image=`);
-      GUI спрашивает `theme-profile wallpaper current` вместо своего парсера.
+      GUI спрашивает `kolira wallpaper current` вместо своего парсера.
 - [x] Мультимонитор: одни обои на все, текущие — `lastScreen=0`; тест.
 - [x] magick больше не нужен для акцента; без magick/wofi picker сообщает
       «No displayable wallpapers» / «could not start wofi».

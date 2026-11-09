@@ -1,2 +1,2 @@
 [Appearance]
-ColorScheme=ThemeProfileFrutigerAeroLight
+ColorScheme=KoliraFrutigerAeroLight

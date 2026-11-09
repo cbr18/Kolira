@@ -89,7 +89,7 @@ wheels = [
 ]
 
 [[package]]
-name = "kde-theme-manager"
+name = "kolira"
 version = "0.6.0"
 source = { editable = "." }
 dependencies = [

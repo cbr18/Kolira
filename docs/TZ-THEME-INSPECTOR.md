@@ -4,7 +4,7 @@
 > **Приоритет**: P1 (после текущих багфиксов)
 > **Оценка**: Phase 0 — 1 ч · Phase 1 — 1.5–2 дня · Phase 2 — 2–3 дня · Phase 3 — ~2 дня
 > **Дизайн и обоснование**: [THEME_INSPECTOR.md](THEME_INSPECTOR.md)
-> **Ветка**: `main` (репозиторий `github.com/cbr18/kde-theme-manager`)
+> **Ветка**: `main` (репозиторий `github.com/cbr18/Kolira`)
 
 ---
 
@@ -51,7 +51,7 @@
 
 - **Phase 0**: `apply_live_hooks` читает L&F из профиля правильным вызовом
   `kreadconfig6`; live и профиль `glass` восстановлены (`LookAndFeelPackage=glass`);
-  `theme-profile status` парсит Zed/VS Code/Cursor/Obsidian без обрывков JSON;
+  `kolira status` парсит Zed/VS Code/Cursor/Obsidian без обрывков JSON;
   регрессионный тест в `tests/test-scripts.sh` (Section 13). Тесты дополнительно
   изолированы от `XDG_CONFIG_HOME` — раньше `HOME=...` не защищал реальный конфиг.
 - **Курсор (T0.4)**: `kcminputrc` содержит не только тему курсора, но и
@@ -92,7 +92,7 @@
 
 ### T0.1. Починить `LookAndFeelPackage` в `apply_live_hooks`
 
-`files/bin/theme-profile`:
+`files/bin/kolira`:
 
 ```bash
 # было (лишний позиционный аргумент → kreadconfig6 печатает --help):
@@ -104,7 +104,7 @@ look_and_feel="$(kreadconfig6 --file "$source/.config/kdeglobals" --group KDE --
 
 - [ ] Исправить вызов.
 - [ ] Проверить, что `kreadconfig6 --file <abs path>` отдаёт значение, а не usage.
-- [ ] Добавить регрессионный тест в `tests/test-scripts.sh`: `theme-profile` не пишет в `kdeglobals` текст, содержащий `Usage:`/`Options:`.
+- [ ] Добавить регрессионный тест в `tests/test-scripts.sh`: `kolira` не пишет в `kdeglobals` текст, содержащий `Usage:`/`Options:`.
 
 ### T0.2. Восстановить испорченное значение
 
@@ -115,7 +115,7 @@ look_and_feel="$(kreadconfig6 --file "$source/.config/kdeglobals" --group KDE --
 - [ ] Проверить: `kreadconfig6 --file kdeglobals --group KDE --key LookAndFeelPackage` → `glass`.
 - [ ] Убедиться, что `plasma-apply-lookandfeel --list` содержит `glass`.
 
-### T0.3. Починить `theme-profile status`
+### T0.3. Починить `kolira status`
 
 - [ ] `zed_*`: вытаскивать значения без `"light":` / `"mode":` (парсить JSON, а не awk).
 - [ ] `code_theme` / `cursor_theme`: только значение в кавычках, без имени ключа.
@@ -127,9 +127,9 @@ look_and_feel="$(kreadconfig6 --file "$source/.config/kdeglobals" --group KDE --
 `kcminputrc` не входит в `COMPONENT_PATHS`, поэтому KDE-курсор не сохраняется в профиль.
 
 - [ ] Решить: добавлять компонент `cursor` (меняет состав профилей) или оставить read-only в инспекторе.
-- [ ] Если добавляем — обновить `COMPONENT_PATHS` в `theme-profile`, `TRACKED_APPS` в Python и Rust, тесты паритета.
+- [ ] Если добавляем — обновить `COMPONENT_PATHS` в `kolira`, `TRACKED_APPS` в Python и Rust, тесты паритета.
 
-**Acceptance Phase 0:** `theme-profile status` больше не содержит `Usage:`, L&F = `glass`, тесты зелёные.
+**Acceptance Phase 0:** `kolira status` больше не содержит `Usage:`, L&F = `glass`, тесты зелёные.
 
 ---
 
@@ -220,7 +220,7 @@ ThemeField(
 ### T1.7. Тесты
 
 - [ ] `test_theme_inspector.py`: схема (уникальные id, валидные секции, у каждого поля есть source).
-- [ ] Golden-паритет с `theme-profile status` там, где значения пересекаются.
+- [ ] Golden-паритет с `kolira status` там, где значения пересекаются.
 - [ ] Валидация на синтетическом `$HOME` (подмена `Path.home`): битый L&F, отсутствующая схема, Kvantum-вариант.
 - [ ] QML: файлы существуют, `qmldir` содержит новые типы, offscreen-рендер страницы без QML-предупреждений.
 - [ ] «Не блокирует GUI»: чтение секции не дольше N мс на кэше (мягкий тест).
@@ -347,14 +347,14 @@ shellcheck files/bin/* scripts/*.sh
 cd gui/qt-app/src/core/rust_core && cargo build --release
 
 # Живой запуск / скриншот
-cd gui/qt-app && KTM_SCREENSHOT=/tmp/theme-page.png .venv/bin/kde-theme-manager
+cd gui/qt-app && KTM_SCREENSHOT=/tmp/theme-page.png .venv/bin/kolira
 ```
 
 Установка и деплой — только из исходников:
 
 ```bash
-scripts/install-theme-profile-kit.sh          # CLI + GUI
-scripts/install-theme-profile-kit.sh --only-gui
+scripts/install-kolira.sh          # CLI + GUI
+scripts/install-kolira.sh --only-gui
 ```
 
 ---
