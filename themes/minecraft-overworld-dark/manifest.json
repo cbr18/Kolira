@@ -1,164 +1,141 @@
 {
-    "schema_version": 1,
-    "created_at": "2026-11-09T14:00:00+10:00",
-    "tool_version": "0.6.0",
-    "name": "minecraft-overworld-dark",
-    "description": "Minecraft Overworld Dark: pixel-art KDE Plasma 6 theme",
-    "wallpaper": "wallpaper/minecraft-overworld-night.jpg",
-    "accent_from_wallpaper": false,
-    "components": [
-        {
-            "id": "kwin",
-            "paths": [
-                ".config/kwinrc",
-                ".config/kwinrulesrc"
-            ]
-        },
-        {
-            "id": "plasma_shell",
-            "paths": [
-                ".config/plasmarc",
-                ".config/plasmashellrc",
-                ".config/plasma-org.kde.plasma.desktop-appletsrc"
-            ]
-        },
-        {
-            "id": "kdeglobals",
-            "paths": [
-                ".config/kdeglobals",
-                ".config/kcminputrc"
-            ]
-        },
-        {
-            "id": "gtk3",
-            "paths": [
-                ".config/gtk-3.0/settings.ini",
-                ".config/gtk-3.0/gtk.css",
-                ".config/gtk-3.0/colors.css"
-            ]
-        },
-        {
-            "id": "gtk4",
-            "paths": [
-                ".config/gtk-4.0/settings.ini",
-                ".config/gtk-4.0/gtk.css",
-                ".config/gtk-4.0/colors.css"
-            ]
-        },
-        {
-            "id": "qt5ct",
-            "paths": [
-                ".config/Trolltech.conf"
-            ]
-        },
-        {
-            "id": "breeze",
-            "paths": [
-                ".config/breezerc"
-            ]
-        },
-        {
-            "id": "klassy",
-            "paths": [
-                ".config/klassy/klassyrc",
-                ".config/klassy/windecopresetsrc"
-            ]
-        },
-        {
-            "id": "kvantum",
-            "paths": [
-                ".config/Kvantum/kvantum.kvconfig",
-                ".config/Kvantum/MinecraftOverworld"
-            ]
-        },
-        {
-            "id": "kitty",
-            "paths": [
-                ".config/kitty/kitty.conf",
-                ".config/kitty/kolira.conf"
-            ]
-        },
-        {
-            "id": "alacritty",
-            "paths": [
-                ".config/alacritty/alacritty.toml",
-                ".config/alacritty/kolira.toml"
-            ]
-        },
-        {
-            "id": "wofi",
-            "paths": [
-                ".config/wofi/style.css",
-                ".config/wofi/wallpaper.css"
-            ]
-        },
-        {
-            "id": "btop",
-            "paths": [
-                ".config/btop/btop.conf",
-                ".config/btop/themes/minecraft-overworld-dark.theme"
-            ]
-        },
-        {
-            "id": "fastfetch",
-            "paths": [
-                ".config/fastfetch/config.jsonc"
-            ]
-        },
-        {
-            "id": "zed",
-            "paths": [
-                ".config/zed/settings.json",
-                ".config/zed/themes/minecraft.json"
-            ]
-        },
-        {
-            "id": "vscode",
-            "paths": [
-                ".config/Code/User/settings.json"
-            ]
-        },
-        {
-            "id": "cursor",
-            "paths": [
-                ".config/Cursor/User/settings.json"
-            ]
-        },
-        {
-            "id": "cava",
-            "paths": [
-                ".config/cava/config"
-            ]
-        },
-        {
-            "id": "yazi",
-            "paths": [
-                ".config/yazi/theme.toml"
-            ]
-        },
-        {
-            "id": "bat",
-            "paths": [
-                ".config/bat/config"
-            ]
-        },
-        {
-            "id": "color_schemes",
-            "paths": [
-                ".local/share/color-schemes/Minecraft Overworld Dark.colors"
-            ]
-        },
-        {
-            "id": "look_and_feel",
-            "paths": [
-                ".local/share/plasma/look-and-feel/minecraft-overworld-dark"
-            ]
-        },
-        {
-            "id": "icons",
-            "paths": [
-                ".local/share/icons/minecraft-overworld-dark"
-            ]
-        }
-    ]
+  "schema_version": 1,
+  "created_at": "2026-11-09T14:00:00+10:00",
+  "tool_version": "0.6.0",
+  "name": "minecraft-overworld-dark",
+  "description": "Minecraft-inspired voxel night landscape, stone-grey surfaces, grass-green accents, square bevelled Qt/GTK controls, pixel icons and Monocraft. Opaque windows and disabled KWin animations; Klassy decoration and Kvantum widget style.",
+  "wallpaper": "wallpaper/minecraft-overworld-night.png",
+  "accent_from_wallpaper": false,
+  "components": [
+    {
+      "id": "kwin",
+      "paths": [
+        ".config/kwinrc"
+      ]
+    },
+    {
+      "id": "kdeglobals",
+      "paths": [
+        ".config/kdeglobals",
+        ".config/kcminputrc"
+      ]
+    },
+    {
+      "id": "gtk3",
+      "paths": [
+        ".config/gtk-3.0/settings.ini",
+        ".config/gtk-3.0/gtk.css",
+        ".config/gtk-3.0/colors.css"
+      ]
+    },
+    {
+      "id": "gtk4",
+      "paths": [
+        ".config/gtk-4.0/settings.ini",
+        ".config/gtk-4.0/gtk.css",
+        ".config/gtk-4.0/colors.css"
+      ]
+    },
+    {
+      "id": "klassy",
+      "paths": [
+        ".config/klassy/klassyrc"
+      ]
+    },
+    {
+      "id": "kvantum",
+      "paths": [
+        ".config/Kvantum/kvantum.kvconfig",
+        ".config/Kvantum/MinecraftOverworld"
+      ]
+    },
+    {
+      "id": "kitty",
+      "paths": [
+        ".config/kitty/kolira.conf"
+      ]
+    },
+    {
+      "id": "alacritty",
+      "paths": [
+        ".config/alacritty/kolira.toml"
+      ]
+    },
+    {
+      "id": "wofi",
+      "paths": [
+        ".config/wofi/style.css",
+        ".config/wofi/wallpaper.css"
+      ]
+    },
+    {
+      "id": "btop",
+      "paths": [
+        ".config/btop/btop.conf",
+        ".config/btop/themes/minecraft-overworld-dark.theme"
+      ]
+    },
+    {
+      "id": "zed",
+      "paths": [
+        ".config/zed/settings.json",
+        ".config/zed/themes/minecraft-overworld-dark.json"
+      ]
+    },
+    {
+      "id": "vscode",
+      "paths": [
+        ".config/Code/User/settings.json"
+      ]
+    },
+    {
+      "id": "cursor",
+      "paths": [
+        ".config/Cursor/User/settings.json"
+      ]
+    },
+    {
+      "id": "cava",
+      "paths": [
+        ".config/cava/config"
+      ]
+    },
+    {
+      "id": "yazi",
+      "paths": [
+        ".config/yazi/theme.toml"
+      ]
+    },
+    {
+      "id": "bat",
+      "paths": [
+        ".config/bat/config"
+      ]
+    },
+    {
+      "id": "color_schemes",
+      "paths": [
+        ".local/share/color-schemes/Minecraft Overworld Dark.colors"
+      ]
+    },
+    {
+      "id": "look_and_feel",
+      "paths": [
+        ".local/share/plasma/look-and-feel/minecraft-overworld-dark"
+      ]
+    },
+    {
+      "id": "icons",
+      "paths": [
+        ".local/share/icons/minecraft-overworld-dark"
+      ]
+    },
+    {
+      "id": "konsole",
+      "paths": [
+        ".local/share/konsole/Minecraft Overworld Dark.profile",
+        ".local/share/konsole/Minecraft Overworld Dark.colorscheme"
+      ]
+    }
+  ]
 }

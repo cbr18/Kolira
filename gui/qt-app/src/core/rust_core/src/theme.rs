@@ -43,7 +43,7 @@ pub fn supported_schema(schema: &str) -> bool {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Asset {
-    /// color-scheme | kvantum | look-and-feel | desktoptheme | btop | zed | wallpaper
+    /// color-scheme | kvantum | look-and-feel | desktoptheme | icons | btop | zed | wallpaper
     pub kind: String,
     pub name: String,
     /// Path inside the package (`$HOME`-relative for snapshot files).
@@ -204,15 +204,17 @@ fn apply_dependency_policies(name: &str, report: &mut ApplyReport) -> Result<()>
     report.optional_warnings = optional
         .into_iter()
         .filter(|n| of(n) == Policy::Ask || (of(n) == Policy::Always && !n.dependency.exact))
-        .map(|n| format!(
-            "optional: {} ({}) — {}",
-            n.dependency.name,
-            n.dependency.kind,
-            n.command
-                .as_deref()
-                .map(|c| format!("install: {c}"))
-                .unwrap_or_else(|| format!("get: {}", n.dependency.url))
-        ))
+        .map(|n| {
+            format!(
+                "optional: {} ({}) — {}",
+                n.dependency.name,
+                n.dependency.kind,
+                n.command
+                    .as_deref()
+                    .map(|c| format!("install: {c}"))
+                    .unwrap_or_else(|| format!("get: {}", n.dependency.url))
+            )
+        })
         .collect();
     Ok(())
 }
@@ -244,8 +246,16 @@ pub fn needed_split(name: &str) -> Result<(Vec<Needed>, Vec<Needed>)> {
             command: crate::deps::package_command(d),
         })
         .collect();
-    let required: Vec<_> = all.iter().filter(|n| !n.dependency.optional).cloned().collect();
-    let optional: Vec<_> = all.iter().filter(|n| n.dependency.optional).cloned().collect();
+    let required: Vec<_> = all
+        .iter()
+        .filter(|n| !n.dependency.optional)
+        .cloned()
+        .collect();
+    let optional: Vec<_> = all
+        .iter()
+        .filter(|n| n.dependency.optional)
+        .cloned()
+        .collect();
     Ok((required, optional))
 }
 
@@ -412,6 +422,7 @@ fn asset_root(kind: &str, path: &str) -> Option<&'static str> {
         "aurorae" => (".local/share/aurorae/themes", ""),
         "zed" => (".config/zed/themes", ".json"),
         "konsole-scheme" => (".local/share/konsole", ".colorscheme"),
+        "icons" => (".local/share/icons", ""),
         "wallpaper" => ("wallpaper", ""),
         _ => return None,
     };
@@ -439,6 +450,7 @@ pub(crate) fn validate_asset_restore(dir: &Path, relative: &str) -> Result<()> {
         "aurorae",
         "zed",
         "konsole-scheme",
+        "icons",
     ]
     .into_iter()
     .find_map(|kind| asset_root(kind, relative))
@@ -529,6 +541,14 @@ impl AssetKind {
 }
 
 const BUNDLED_KINDS: &[AssetKind] = &[
+    AssetKind {
+        field: "icon_theme",
+        kind: "icons",
+        user_rel: ".local/share/icons",
+        system: &["/usr/share/icons"],
+        suffix: "",
+        prefix: "",
+    },
     AssetKind {
         field: "color_scheme",
         kind: "color-scheme",
@@ -1405,15 +1425,17 @@ fn apply_inner(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
         report.dependencies = required;
         report.optional_warnings = optional
             .into_iter()
-            .map(|n| format!(
-                "optional: {} ({}) — {}",
-                n.dependency.name,
-                n.dependency.kind,
-                n.command
-                    .as_deref()
-                    .map(|c| format!("install: {c}"))
-                    .unwrap_or_else(|| format!("get: {}", n.dependency.url))
-            ))
+            .map(|n| {
+                format!(
+                    "optional: {} ({}) — {}",
+                    n.dependency.name,
+                    n.dependency.kind,
+                    n.command
+                        .as_deref()
+                        .map(|c| format!("install: {c}"))
+                        .unwrap_or_else(|| format!("get: {}", n.dependency.url))
+                )
+            })
             .collect();
         let outcome = apply_dependency_policies(name, &mut report);
         crate::operation::note_report(serde_json::to_value(&report)?)?;
@@ -1792,6 +1814,38 @@ mod tests {
         assert!(!kind_available(k, "../x"));
         assert!(!safe_name(".."));
         assert!(!safe_name("a/b"));
+    }
+
+    #[test]
+    fn bundled_icons_are_captured_without_an_external_dependency() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path();
+        fs::create_dir_all(root.join(".config")).unwrap();
+        fs::write(
+            root.join(".config/kdeglobals"),
+            "[Icons]\nTheme=KoliraTestPixels\n",
+        )
+        .unwrap();
+        let icons = root.join(".local/share/icons/KoliraTestPixels");
+        fs::create_dir_all(&icons).unwrap();
+        fs::write(icons.join("index.theme"), "[Icon Theme]\nName=Pixels\n").unwrap();
+        let package = build("pixels", root, &SaveOptions::default()).unwrap();
+        assert!(package
+            .assets
+            .iter()
+            .any(|a| { a.kind == "icons" && a.path == ".local/share/icons/KoliraTestPixels" }));
+        assert!(!package.dependencies.iter().any(|d| d.kind == "icons"));
+        validate_assets(&package).unwrap();
+        let mut unsafe_package = package.clone();
+        unsafe_package.assets[0].path = ".local/share/icons/../outside".into();
+        assert!(validate_assets(&unsafe_package).is_err());
+        unsafe_package.assets[0].path = ".local/share/icons".into();
+        assert!(validate_assets(&unsafe_package).is_err());
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink("/tmp", icons.join("redirect")).unwrap();
+            assert!(validate_asset_restore(root, ".local/share/icons/KoliraTestPixels").is_err());
+        }
     }
 
     #[test]

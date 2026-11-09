@@ -290,14 +290,22 @@ fn concurrent_cli_core_and_inspector_are_refused_without_losing_staging() {
     );
     let field = h.run(&["field", "set", "window_bg=#ffffff"]);
     assert!(!field.status.success());
+    assert!(!h.run(&["delete", "probe"]).status.success());
+    assert!(h.path(".config/kolira/themes/probe").exists());
     running.kill();
     assert!(h.records()["operations"]
         .as_array()
         .unwrap()
         .iter()
         .any(|r| r["interrupted"] == true));
-    let blocked = h.apply();
-    assert!(String::from_utf8_lossy(&blocked.stderr).contains("requires recovery"));
+    assert_eq!(h.records()["busy"], false);
+    assert!(h.apply().status.success());
+    assert!(h.run(&["delete", "probe"]).status.success());
+    assert!(h.records()["operations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["interrupted"] == true));
 }
 
 #[test]
@@ -367,6 +375,37 @@ fn corrupt_backup_is_reported_and_never_used_for_restoration() {
 }
 
 #[test]
+fn interrupted_records_do_not_block_deleting_saved_themes() {
+    for state in ["preparing", "applying", "recovering", "recovery_failed"] {
+        let h = Home::new();
+        let live = fs::read(h.path(".config/kdeglobals")).unwrap();
+        let marker = fs::read(h.path(".config/kolira/active-profile")).unwrap();
+        let record = json!({
+            "id":"apply-old","profile":"probe","state":state,
+            "started":"2026-11-08T00:00:00Z","updated":"2026-11-08T00:00:00Z",
+            "backup":null,"error":"interrupted","recovery_errors":[]
+        })
+        .to_string();
+        h.write(".config/kolira/operations/apply-old.json", &record);
+        let out = h.run(&["delete", "probe"]);
+        assert!(
+            out.status.success(),
+            "{state}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        assert_eq!(fs::read(h.path(".config/kdeglobals")).unwrap(), live);
+        assert_eq!(
+            fs::read(h.path(".config/kolira/active-profile")).unwrap(),
+            marker
+        );
+        assert_eq!(
+            fs::read_to_string(h.path(".config/kolira/operations/apply-old.json")).unwrap(),
+            record
+        );
+    }
+}
+
+#[test]
 fn interrupted_preparation_can_be_acknowledged_without_touching_live_files() {
     let h = Home::new();
     let live = fs::read(h.path(".config/kdeglobals")).unwrap();
@@ -375,13 +414,35 @@ fn interrupted_preparation_can_be_acknowledged_without_touching_live_files() {
         "updated":"2026-11-08T00:00:00Z","backup":null,"error":null,"recovery_errors":[]
     }).to_string());
     assert_eq!(h.records()["operations"][0]["interrupted"], true);
-    assert!(!h.apply().status.success());
     let out = h.run(&["operations", "recover", "apply-preparation"]);
     assert!(out.status.success());
     let result: Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(result["state"], "cancelled_preparation");
     assert_eq!(fs::read(h.path(".config/kdeglobals")).unwrap(), live);
     assert!(h.apply().status.success());
+}
+
+#[test]
+fn plasmashell_outside_systemd_does_not_block_apply() {
+    let h = Home::new();
+    h.executable(
+        "systemctl",
+        "#!/bin/sh\nif [ \"$2\" = is-active ]; then exit 3; fi\nif [ \"$2\" = start ]; then : > \"$HOME/duplicate-start\"; fi\nexit 0\n",
+    );
+    h.executable("qdbus6", "#!/bin/sh\nexit 0\n");
+    let out = h
+        .command(&["apply", "probe", "--without-dependencies", "--json"])
+        .env_remove("KTM_THEME_NO_APPLY")
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(h.records()["operations"][0]["state"], "succeeded");
+    assert!(!h.path("duplicate-start").exists());
+    assert!(h.run(&["delete", "probe"]).status.success());
 }
 
 #[test]
@@ -407,6 +468,16 @@ fn plasmashell_restart_failure_has_separate_recovery_diagnostics() {
         .iter()
         .any(|e| e.as_str().unwrap().contains("plasmashell")));
     assert_eq!(fs::read(h.path(".config/kdeglobals")).unwrap(), before);
+    let id = record["id"].as_str().unwrap();
+    let backup = record["backup"].as_str().unwrap();
+    assert!(h.apply().status.success());
+    assert!(h.run(&["delete", "probe"]).status.success());
+    assert!(std::path::Path::new(backup).exists());
+    assert!(h.records()["operations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["id"] == id && r["state"] == "recovery_failed"));
 }
 
 #[test]

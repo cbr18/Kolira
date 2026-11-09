@@ -197,3 +197,22 @@ Frutiger Aero Light — Windows 7 as it shipped: white windows with black text, 
    `kolira license NAME ASSET --license=SPDX --source=URL` (`kind:name` when two
    assets share a name). Anything unmarked stays out and becomes a dependency.
 3. `kolira export NAME --dir=themes/NAME --public`, check the folder, open a PR.
+
+## minecraft-overworld-dark
+
+Opaque stone-grey surfaces with grass-green accents, square bevelled Qt/GTK
+controls, oak toolbar details and a voxel night landscape. KWin blur and
+animation switches are off. Panel layouts and fastfetch are preserved.
+
+Included MIT assets: original `MinecraftOverworld` Kvantum SVG/config, KDE
+colour scheme, 16 pixel SVG icons (with `breeze,hicolor` fallback), Look & Feel
+defaults, Zed family, btop/Konsole palettes and an AI-generated night wallpaper.
+Provenance: `minecraft-overworld-dark/LICENSE`, included in exports.
+
+External dependencies: Kvantum widget plugin, Klassy decoration and Monocraft
+font (`otf-monocraft` in AUR); GTK uses the system Breeze base. VS Code/Cursor use their built-in
+Default Dark Modern theme with local colour overrides. Nothing is downloaded
+from an editor store for this theme. Font sizes stay the user's on apply.
+
+The bundled `export.json` covers the files with SHA-256, so the installer and
+`kolira import themes/minecraft-overworld-dark` use the same verified package.

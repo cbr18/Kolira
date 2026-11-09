@@ -1,5 +1,12 @@
 [Icon Theme]
 Name=Minecraft Overworld Dark
-Comment=Minecraft Java Edition inspired pixel icon theme
-Inherits=Breeze,hicolor
+Comment=Original pixel icons with Breeze fallback
+Inherits=breeze,hicolor
+Directories=scalable
 Example=folder
+
+[scalable]
+Size=48
+MinSize=16
+MaxSize=256
+Type=Scalable

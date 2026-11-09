@@ -1,19 +1,9 @@
 [color]
-# Colors can be one of seven predefined: black, blue, cyan, green, magenta, red, white, yellow.
-# Or defined by hex code '#xxxxxx' (hex code must be within ''). User defined colors requires
-# a terminal that can change color definitions such as Gnome-terminal or rxvt.
-# default is to keep current terminal color
-
-[color]
-gradient_color_1 = "#70B237"
-gradient_color_2 = "#41A83B"
-gradient_color_3 = "#A98558"
-gradient_color_4 = "#F6C453"
-gradient_color_5 = "#C83C32"
-gradient_color_6 = "#55D6D0"
-gradient_color_7 = "#F0F0F0"
-gradient_color_8 = "#B8B8B8"
-
-[general]
-bars_inside_backlog = true
-autoscroll = false
+background = '#252525'
+foreground = '#70B237'
+gradient = 1
+gradient_count = 4
+gradient_color_1 = '#70B237'
+gradient_color_2 = '#55D6D0'
+gradient_color_3 = '#F6C453'
+gradient_color_4 = '#F06F65'

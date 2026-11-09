@@ -1,10 +1,4 @@
-Minecraft Overworld Dark Theme
-- Monocraft font (pixel/blocky, Minecraft style)
-- Gray palette: #252525 background, #383838 panels, #555555 buttons
-- Green accent: #70B237
-- Minecraft color scheme
-- Minecraft Kvantum theme
-- Minecraft Look & Feel
-- Minecraft wallpaper (night forest)
-- Minecraft btop theme
-- Pixel icons in Minecraft style
+Minecraft Overworld Dark
+Original voxel night wallpaper, pixel icons, stone-grey surfaces and grass-green accents.
+Kvantum MinecraftOverworld, Klassy square corners; no blur or KWin animation.
+Monocraft is an external font dependency. Fastfetch and panel layouts are preserved.

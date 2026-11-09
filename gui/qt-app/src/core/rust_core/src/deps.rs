@@ -538,6 +538,7 @@ pub fn for_asset(asset_kind: &str, name: &str, asset_path: &str) -> Option<Depen
         "kvantum" => "kvantum",
         "look-and-feel" => "look-and-feel",
         "desktoptheme" => "plasma-theme",
+        "icons" => "icons",
         _ => return None,
     };
     let live = home_dir().join(asset_path);
@@ -616,6 +617,15 @@ pub fn detect(
             continue;
         };
         if builtin(kind, &name) {
+            continue;
+        }
+        if *kind == "icons"
+            && dir
+                .join(".local/share/icons")
+                .join(&name)
+                .join("index.theme")
+                .is_file()
+        {
             continue;
         }
         let paths = locate_all(kind, &name);
@@ -832,7 +842,6 @@ pub fn detect(
                     url: format!("https://archlinux.org/packages/?q=ttf-{family}").to_lowercase(),
                     exact: true,
                     optional: false,
-                    ..Default::default()
                 });
             }
         }
@@ -850,7 +859,6 @@ pub fn detect(
                 url: format!("https://archlinux.org/packages/?q=ttf-{family}").to_lowercase(),
                 exact: true,
                 optional: false,
-                ..Default::default()
             });
         }
     }
@@ -872,13 +880,19 @@ pub fn missing(deps: &[Dependency]) -> Vec<(usize, &Dependency)> {
 
 /// Missing dependencies that are required (not optional), with their index in `deps`.
 pub fn missing_required(deps: &[Dependency]) -> Vec<(usize, &Dependency)> {
-    missing(deps).into_iter().filter(|(_, d)| !d.optional).collect()
+    missing(deps)
+        .into_iter()
+        .filter(|(_, d)| !d.optional)
+        .collect()
 }
 
 /// Missing dependencies that are optional (the theme works without them),
 /// with their index in `deps`.
 pub fn missing_optional(deps: &[Dependency]) -> Vec<(usize, &Dependency)> {
-    missing(deps).into_iter().filter(|(_, d)| d.optional).collect()
+    missing(deps)
+        .into_iter()
+        .filter(|(_, d)| d.optional)
+        .collect()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -66,6 +66,8 @@ fn arbitrary_asset_import_and_direct_apply_are_rejected_without_writes() {
         ("kvantum", ".config"),
         ("kvantum", ".config/Kvantum"),
         ("kvantum", ".config/Kvantum/../other"),
+        ("icons", ".local/share/icons"),
+        ("icons", ".local/share/icons/../other"),
         ("wallpaper", "../outside"),
     ] {
         let h = Home::new();

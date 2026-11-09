@@ -1,5 +1,5 @@
-window_padding_width 10
-background_opacity 0.5
-background_blur 30
-cursor_shape beam
-cursor_trail 1
+window { background-color: #252525; color: #cccccc; border: 2px solid #747474; border-radius: 0; }
+#input { margin: 8px; padding: 8px; background-color: #383838; color: #cccccc; border: 2px solid #747474; border-radius: 0; }
+#entry { padding: 8px; }
+#entry:selected { background-color: #70b237; color: #000000; }
+#text:selected { color: #000000; }

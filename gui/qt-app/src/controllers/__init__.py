@@ -291,7 +291,7 @@ class ProfileController(QObject):
             if record["id"] not in seen:
                 seen.add(record["id"])
                 self._reported_interrupted = seen
-                self.operationFinished.emit(False, self.tr("Interrupted apply %1 requires recovery. Backup: %2. Run: kolira operations recover %1")
+                self.operationFinished.emit(False, self.tr("Interrupted apply %1. Backup: %2. You can continue or restore it with: kolira operations recover %1")
                     .replace("%1", record["id"]).replace("%2", str(record.get("backup") or "")))
         if stale:
             self.operationFinished.emit(

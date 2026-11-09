@@ -159,7 +159,7 @@ dependency; a derivative with a free licence (frutiger-aero-light's
 
 Asset destinations are validated by Rust at import/load and again before apply:
 each kind has an appearance-only container (colour schemes, Kvantum, Look & Feel,
-Plasma styles, Aurorae, btop/Zed themes, Konsole `.colorscheme`, or `wallpaper/`).
+Plasma styles, Aurorae, icon themes, btop/Zed themes, Konsole `.colorscheme`, or `wallpaper/`).
 Unknown kinds, absolute/traversing paths and container ancestors are rejected;
 an asset cannot request a write to an unrelated HOME file. Apply checks source
 and destination asset links before dependency installation or backups. Links
@@ -532,3 +532,30 @@ also honour `--keep-wallpaper`. Konsole profile paths respect XDG_CONFIG_HOME.
 их `.kit-new`, `.codex`, `.claude`, `.agents`, `.git`) на любой глубине пакета.
 Экспорт исключает такие метаданные из деревьев ресурсов. Таким образом чужой
 пакет не становится источником доверенных инструкций или клиентских hooks.
+
+## Bundled pixel theme: Minecraft Overworld Dark
+
+`themes/minecraft-overworld-dark` ships original stone/oak Kvantum SVG parts,
+a KDE colour scheme, a small SVG icon theme inheriting `breeze,hicolor`,
+a Zed theme family, btop and Konsole palettes, GTK CSS and a generated voxel
+night wallpaper. The MIT asset provenance is recorded in its `LICENSE`.
+Kvantum (`MinecraftOverworld`), Klassy and Monocraft are external dependencies;
+GTK uses the system Breeze base with local overrides. VS Code and Cursor use
+built-in Default Dark Modern plus local colour customizations. No store
+extension UUID or unrelated prompt package is required. Fastfetch, desktop
+geometry, panel layouts and application behaviour are not part of the theme.
+
+`icons` assets name one directory below `.local/share/icons/`. Rust captures
+user icon themes, checks bundled icons without requiring a prior installation,
+restores them through XDG_DATA_HOME and includes only declared icon packages
+in exports. Traversal, container-root destinations and symlinks are rejected
+with the same checks as other directory assets. Unbundled icon themes remain
+external references; public export respects each asset's redistribution flag.
+
+The package's `values` are captured from its snapshot through Rust `field get`,
+so Inspector values and dependency checks describe the files actually applied.
+File-level/offscreen checks do not establish the appearance of every application
+in a live Plasma session.
+
+A package-level `LICENSE`, when present, travels with exports alongside the
+legacy manifests; asset-specific licences in `theme.json` still apply.

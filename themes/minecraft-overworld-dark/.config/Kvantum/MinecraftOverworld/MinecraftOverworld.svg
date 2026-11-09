@@ -1,7 +1,3407 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect x="0" y="0" width="32" height="32" fill="#383838" stroke="#747474" stroke-width="2"/>
-  <rect x="4" y="4" width="24" height="24" fill="#555555" stroke="#747474" stroke-width="1"/>
-  <rect x="8" y="8" width="8" height="8" fill="#70B237"/>
-  <rect x="16" y="8" width="8" height="8" fill="#A98558"/>
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="2048" viewBox="0 0 1024 2048">
+  <g id="button-normal" transform="translate(0,0)">
+    <rect x="0" y="0" width="16" height="16" fill="#555555" />
+    <rect x="2" y="2" width="4" height="2" fill="#5d5d5d" />
+    <rect x="9" y="5" width="5" height="2" fill="#5d5d5d" />
+    <rect x="3" y="11" width="5" height="2" fill="#5d5d5d" />
+  </g>
+  <g id="button-normal-top" transform="translate(32,0)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="button-normal-bottom" transform="translate(64,0)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="button-normal-left" transform="translate(96,0)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="button-normal-right" transform="translate(128,0)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="button-normal-topleft" transform="translate(160,0)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="button-normal-topright" transform="translate(192,0)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="button-normal-bottomleft" transform="translate(224,0)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="button-normal-bottomright" transform="translate(256,0)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="button-focused" transform="translate(288,0)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+    <rect x="2" y="2" width="4" height="2" fill="#5d5d5d" />
+    <rect x="9" y="5" width="5" height="2" fill="#5d5d5d" />
+    <rect x="3" y="11" width="5" height="2" fill="#5d5d5d" />
+  </g>
+  <g id="button-focused-top" transform="translate(320,0)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="button-focused-bottom" transform="translate(352,0)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="button-focused-left" transform="translate(384,0)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="button-focused-right" transform="translate(416,0)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="button-focused-topleft" transform="translate(448,0)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="button-focused-topright" transform="translate(480,0)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="button-focused-bottomleft" transform="translate(512,0)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="button-focused-bottomright" transform="translate(544,0)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="button-pressed" transform="translate(576,0)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="button-pressed-top" transform="translate(608,0)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="button-pressed-bottom" transform="translate(640,0)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="button-pressed-left" transform="translate(672,0)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="button-pressed-right" transform="translate(704,0)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="button-pressed-topleft" transform="translate(736,0)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="button-pressed-topright" transform="translate(768,0)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="button-pressed-bottomleft" transform="translate(800,0)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="button-pressed-bottomright" transform="translate(832,0)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="button-toggled" transform="translate(864,0)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="button-toggled-top" transform="translate(896,0)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="button-toggled-bottom" transform="translate(928,0)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="button-toggled-left" transform="translate(960,0)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="button-toggled-right" transform="translate(992,0)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="button-toggled-topleft" transform="translate(0,32)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="button-toggled-topright" transform="translate(32,32)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="button-toggled-bottomleft" transform="translate(64,32)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="button-toggled-bottomright" transform="translate(96,32)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="button-normal-inactive" transform="translate(128,32)">
+    <rect x="0" y="0" width="16" height="16" fill="#555555" />
+    <rect x="2" y="2" width="4" height="2" fill="#5d5d5d" />
+    <rect x="9" y="5" width="5" height="2" fill="#5d5d5d" />
+    <rect x="3" y="11" width="5" height="2" fill="#5d5d5d" />
+  </g>
+  <g id="button-normal-inactive-top" transform="translate(160,32)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="button-normal-inactive-bottom" transform="translate(192,32)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="button-normal-inactive-left" transform="translate(224,32)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="button-normal-inactive-right" transform="translate(256,32)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="button-normal-inactive-topleft" transform="translate(288,32)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="button-normal-inactive-topright" transform="translate(320,32)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="button-normal-inactive-bottomleft" transform="translate(352,32)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="button-normal-inactive-bottomright" transform="translate(384,32)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="button-focused-inactive" transform="translate(416,32)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+    <rect x="2" y="2" width="4" height="2" fill="#5d5d5d" />
+    <rect x="9" y="5" width="5" height="2" fill="#5d5d5d" />
+    <rect x="3" y="11" width="5" height="2" fill="#5d5d5d" />
+  </g>
+  <g id="button-focused-inactive-top" transform="translate(448,32)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="button-focused-inactive-bottom" transform="translate(480,32)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="button-focused-inactive-left" transform="translate(512,32)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="button-focused-inactive-right" transform="translate(544,32)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="button-focused-inactive-topleft" transform="translate(576,32)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="button-focused-inactive-topright" transform="translate(608,32)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="button-focused-inactive-bottomleft" transform="translate(640,32)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="button-focused-inactive-bottomright" transform="translate(672,32)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="button-pressed-inactive" transform="translate(704,32)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="button-pressed-inactive-top" transform="translate(736,32)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="button-pressed-inactive-bottom" transform="translate(768,32)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="button-pressed-inactive-left" transform="translate(800,32)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="button-pressed-inactive-right" transform="translate(832,32)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="button-pressed-inactive-topleft" transform="translate(864,32)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="button-pressed-inactive-topright" transform="translate(896,32)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="button-pressed-inactive-bottomleft" transform="translate(928,32)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="button-pressed-inactive-bottomright" transform="translate(960,32)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="button-toggled-inactive" transform="translate(992,32)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="button-toggled-inactive-top" transform="translate(0,64)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="button-toggled-inactive-bottom" transform="translate(32,64)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="button-toggled-inactive-left" transform="translate(64,64)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="button-toggled-inactive-right" transform="translate(96,64)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="button-toggled-inactive-topleft" transform="translate(128,64)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="button-toggled-inactive-topright" transform="translate(160,64)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="button-toggled-inactive-bottomleft" transform="translate(192,64)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="button-toggled-inactive-bottomright" transform="translate(224,64)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="button-disabled" transform="translate(256,64)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+    <rect x="2" y="2" width="4" height="2" fill="#5d5d5d" />
+    <rect x="9" y="5" width="5" height="2" fill="#5d5d5d" />
+    <rect x="3" y="11" width="5" height="2" fill="#5d5d5d" />
+  </g>
+  <g id="button-disabled-top" transform="translate(288,64)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="button-disabled-bottom" transform="translate(320,64)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="button-disabled-left" transform="translate(352,64)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="button-disabled-right" transform="translate(384,64)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="button-disabled-topleft" transform="translate(416,64)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="button-disabled-topright" transform="translate(448,64)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="button-disabled-bottomleft" transform="translate(480,64)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="button-disabled-bottomright" transform="translate(512,64)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="common-normal" transform="translate(544,64)">
+    <rect x="0" y="0" width="16" height="16" fill="#555555" />
+  </g>
+  <g id="common-normal-top" transform="translate(576,64)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="common-normal-bottom" transform="translate(608,64)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="common-normal-left" transform="translate(640,64)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="common-normal-right" transform="translate(672,64)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="common-normal-topleft" transform="translate(704,64)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="common-normal-topright" transform="translate(736,64)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="common-normal-bottomleft" transform="translate(768,64)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="common-normal-bottomright" transform="translate(800,64)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="common-focused" transform="translate(832,64)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+  </g>
+  <g id="common-focused-top" transform="translate(864,64)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="common-focused-bottom" transform="translate(896,64)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="common-focused-left" transform="translate(928,64)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="common-focused-right" transform="translate(960,64)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="common-focused-topleft" transform="translate(992,64)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="common-focused-topright" transform="translate(0,96)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="common-focused-bottomleft" transform="translate(32,96)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="common-focused-bottomright" transform="translate(64,96)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="common-pressed" transform="translate(96,96)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="common-pressed-top" transform="translate(128,96)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="common-pressed-bottom" transform="translate(160,96)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="common-pressed-left" transform="translate(192,96)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="common-pressed-right" transform="translate(224,96)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="common-pressed-topleft" transform="translate(256,96)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="common-pressed-topright" transform="translate(288,96)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="common-pressed-bottomleft" transform="translate(320,96)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="common-pressed-bottomright" transform="translate(352,96)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="common-toggled" transform="translate(384,96)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="common-toggled-top" transform="translate(416,96)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="common-toggled-bottom" transform="translate(448,96)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="common-toggled-left" transform="translate(480,96)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="common-toggled-right" transform="translate(512,96)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="common-toggled-topleft" transform="translate(544,96)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="common-toggled-topright" transform="translate(576,96)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="common-toggled-bottomleft" transform="translate(608,96)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="common-toggled-bottomright" transform="translate(640,96)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="common-normal-inactive" transform="translate(672,96)">
+    <rect x="0" y="0" width="16" height="16" fill="#555555" />
+  </g>
+  <g id="common-normal-inactive-top" transform="translate(704,96)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="common-normal-inactive-bottom" transform="translate(736,96)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="common-normal-inactive-left" transform="translate(768,96)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="common-normal-inactive-right" transform="translate(800,96)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="common-normal-inactive-topleft" transform="translate(832,96)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="common-normal-inactive-topright" transform="translate(864,96)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="common-normal-inactive-bottomleft" transform="translate(896,96)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="common-normal-inactive-bottomright" transform="translate(928,96)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="common-focused-inactive" transform="translate(960,96)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+  </g>
+  <g id="common-focused-inactive-top" transform="translate(992,96)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="common-focused-inactive-bottom" transform="translate(0,128)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="common-focused-inactive-left" transform="translate(32,128)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="common-focused-inactive-right" transform="translate(64,128)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="common-focused-inactive-topleft" transform="translate(96,128)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="common-focused-inactive-topright" transform="translate(128,128)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="common-focused-inactive-bottomleft" transform="translate(160,128)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="common-focused-inactive-bottomright" transform="translate(192,128)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="common-pressed-inactive" transform="translate(224,128)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="common-pressed-inactive-top" transform="translate(256,128)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="common-pressed-inactive-bottom" transform="translate(288,128)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="common-pressed-inactive-left" transform="translate(320,128)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="common-pressed-inactive-right" transform="translate(352,128)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="common-pressed-inactive-topleft" transform="translate(384,128)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="common-pressed-inactive-topright" transform="translate(416,128)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="common-pressed-inactive-bottomleft" transform="translate(448,128)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="common-pressed-inactive-bottomright" transform="translate(480,128)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="common-toggled-inactive" transform="translate(512,128)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="common-toggled-inactive-top" transform="translate(544,128)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="common-toggled-inactive-bottom" transform="translate(576,128)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="common-toggled-inactive-left" transform="translate(608,128)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="common-toggled-inactive-right" transform="translate(640,128)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="common-toggled-inactive-topleft" transform="translate(672,128)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="common-toggled-inactive-topright" transform="translate(704,128)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="common-toggled-inactive-bottomleft" transform="translate(736,128)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="common-toggled-inactive-bottomright" transform="translate(768,128)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="common-disabled" transform="translate(800,128)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+  </g>
+  <g id="common-disabled-top" transform="translate(832,128)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="common-disabled-bottom" transform="translate(864,128)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="common-disabled-left" transform="translate(896,128)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="common-disabled-right" transform="translate(928,128)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="common-disabled-topleft" transform="translate(960,128)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="common-disabled-topright" transform="translate(992,128)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="common-disabled-bottomleft" transform="translate(0,160)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="common-disabled-bottomright" transform="translate(32,160)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="groove-normal" transform="translate(64,160)">
+    <rect x="0" y="0" width="16" height="16" fill="#252525" />
+  </g>
+  <g id="groove-normal-top" transform="translate(96,160)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="groove-normal-bottom" transform="translate(128,160)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="groove-normal-left" transform="translate(160,160)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="groove-normal-right" transform="translate(192,160)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="groove-normal-topleft" transform="translate(224,160)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="groove-normal-topright" transform="translate(256,160)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="groove-normal-bottomleft" transform="translate(288,160)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="groove-normal-bottomright" transform="translate(320,160)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="groove-focused" transform="translate(352,160)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+  </g>
+  <g id="groove-focused-top" transform="translate(384,160)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="groove-focused-bottom" transform="translate(416,160)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="groove-focused-left" transform="translate(448,160)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="groove-focused-right" transform="translate(480,160)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="groove-focused-topleft" transform="translate(512,160)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="groove-focused-topright" transform="translate(544,160)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="groove-focused-bottomleft" transform="translate(576,160)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="groove-focused-bottomright" transform="translate(608,160)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="groove-pressed" transform="translate(640,160)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="groove-pressed-top" transform="translate(672,160)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="groove-pressed-bottom" transform="translate(704,160)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="groove-pressed-left" transform="translate(736,160)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="groove-pressed-right" transform="translate(768,160)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="groove-pressed-topleft" transform="translate(800,160)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="groove-pressed-topright" transform="translate(832,160)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="groove-pressed-bottomleft" transform="translate(864,160)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="groove-pressed-bottomright" transform="translate(896,160)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="groove-toggled" transform="translate(928,160)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="groove-toggled-top" transform="translate(960,160)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="groove-toggled-bottom" transform="translate(992,160)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="groove-toggled-left" transform="translate(0,192)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="groove-toggled-right" transform="translate(32,192)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="groove-toggled-topleft" transform="translate(64,192)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="groove-toggled-topright" transform="translate(96,192)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="groove-toggled-bottomleft" transform="translate(128,192)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="groove-toggled-bottomright" transform="translate(160,192)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="groove-normal-inactive" transform="translate(192,192)">
+    <rect x="0" y="0" width="16" height="16" fill="#252525" />
+  </g>
+  <g id="groove-normal-inactive-top" transform="translate(224,192)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="groove-normal-inactive-bottom" transform="translate(256,192)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="groove-normal-inactive-left" transform="translate(288,192)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="groove-normal-inactive-right" transform="translate(320,192)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="groove-normal-inactive-topleft" transform="translate(352,192)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="groove-normal-inactive-topright" transform="translate(384,192)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="groove-normal-inactive-bottomleft" transform="translate(416,192)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="groove-normal-inactive-bottomright" transform="translate(448,192)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="groove-focused-inactive" transform="translate(480,192)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+  </g>
+  <g id="groove-focused-inactive-top" transform="translate(512,192)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="groove-focused-inactive-bottom" transform="translate(544,192)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="groove-focused-inactive-left" transform="translate(576,192)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="groove-focused-inactive-right" transform="translate(608,192)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="groove-focused-inactive-topleft" transform="translate(640,192)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="groove-focused-inactive-topright" transform="translate(672,192)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="groove-focused-inactive-bottomleft" transform="translate(704,192)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="groove-focused-inactive-bottomright" transform="translate(736,192)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="groove-pressed-inactive" transform="translate(768,192)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="groove-pressed-inactive-top" transform="translate(800,192)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="groove-pressed-inactive-bottom" transform="translate(832,192)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="groove-pressed-inactive-left" transform="translate(864,192)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="groove-pressed-inactive-right" transform="translate(896,192)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="groove-pressed-inactive-topleft" transform="translate(928,192)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="groove-pressed-inactive-topright" transform="translate(960,192)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="groove-pressed-inactive-bottomleft" transform="translate(992,192)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="groove-pressed-inactive-bottomright" transform="translate(0,224)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="groove-toggled-inactive" transform="translate(32,224)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="groove-toggled-inactive-top" transform="translate(64,224)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="groove-toggled-inactive-bottom" transform="translate(96,224)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="groove-toggled-inactive-left" transform="translate(128,224)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="groove-toggled-inactive-right" transform="translate(160,224)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="groove-toggled-inactive-topleft" transform="translate(192,224)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="groove-toggled-inactive-topright" transform="translate(224,224)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="groove-toggled-inactive-bottomleft" transform="translate(256,224)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="groove-toggled-inactive-bottomright" transform="translate(288,224)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="groove-disabled" transform="translate(320,224)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+  </g>
+  <g id="groove-disabled-top" transform="translate(352,224)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="groove-disabled-bottom" transform="translate(384,224)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="groove-disabled-left" transform="translate(416,224)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="groove-disabled-right" transform="translate(448,224)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="groove-disabled-topleft" transform="translate(480,224)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="groove-disabled-topright" transform="translate(512,224)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="groove-disabled-bottomleft" transform="translate(544,224)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="groove-disabled-bottomright" transform="translate(576,224)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="handle-normal" transform="translate(608,224)">
+    <rect x="0" y="0" width="16" height="16" fill="#555555" />
+  </g>
+  <g id="handle-normal-top" transform="translate(640,224)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="handle-normal-bottom" transform="translate(672,224)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="handle-normal-left" transform="translate(704,224)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="handle-normal-right" transform="translate(736,224)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="handle-normal-topleft" transform="translate(768,224)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="handle-normal-topright" transform="translate(800,224)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="handle-normal-bottomleft" transform="translate(832,224)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="handle-normal-bottomright" transform="translate(864,224)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="handle-focused" transform="translate(896,224)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+  </g>
+  <g id="handle-focused-top" transform="translate(928,224)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="handle-focused-bottom" transform="translate(960,224)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="handle-focused-left" transform="translate(992,224)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="handle-focused-right" transform="translate(0,256)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="handle-focused-topleft" transform="translate(32,256)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="handle-focused-topright" transform="translate(64,256)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="handle-focused-bottomleft" transform="translate(96,256)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="handle-focused-bottomright" transform="translate(128,256)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="handle-pressed" transform="translate(160,256)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="handle-pressed-top" transform="translate(192,256)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="handle-pressed-bottom" transform="translate(224,256)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="handle-pressed-left" transform="translate(256,256)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="handle-pressed-right" transform="translate(288,256)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="handle-pressed-topleft" transform="translate(320,256)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="handle-pressed-topright" transform="translate(352,256)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="handle-pressed-bottomleft" transform="translate(384,256)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="handle-pressed-bottomright" transform="translate(416,256)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="handle-toggled" transform="translate(448,256)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="handle-toggled-top" transform="translate(480,256)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="handle-toggled-bottom" transform="translate(512,256)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="handle-toggled-left" transform="translate(544,256)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="handle-toggled-right" transform="translate(576,256)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="handle-toggled-topleft" transform="translate(608,256)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="handle-toggled-topright" transform="translate(640,256)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="handle-toggled-bottomleft" transform="translate(672,256)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="handle-toggled-bottomright" transform="translate(704,256)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="handle-normal-inactive" transform="translate(736,256)">
+    <rect x="0" y="0" width="16" height="16" fill="#555555" />
+  </g>
+  <g id="handle-normal-inactive-top" transform="translate(768,256)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="handle-normal-inactive-bottom" transform="translate(800,256)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="handle-normal-inactive-left" transform="translate(832,256)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="handle-normal-inactive-right" transform="translate(864,256)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="handle-normal-inactive-topleft" transform="translate(896,256)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="handle-normal-inactive-topright" transform="translate(928,256)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="handle-normal-inactive-bottomleft" transform="translate(960,256)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="handle-normal-inactive-bottomright" transform="translate(992,256)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="handle-focused-inactive" transform="translate(0,288)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+  </g>
+  <g id="handle-focused-inactive-top" transform="translate(32,288)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="handle-focused-inactive-bottom" transform="translate(64,288)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="handle-focused-inactive-left" transform="translate(96,288)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="handle-focused-inactive-right" transform="translate(128,288)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="handle-focused-inactive-topleft" transform="translate(160,288)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="handle-focused-inactive-topright" transform="translate(192,288)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="handle-focused-inactive-bottomleft" transform="translate(224,288)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="handle-focused-inactive-bottomright" transform="translate(256,288)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="handle-pressed-inactive" transform="translate(288,288)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="handle-pressed-inactive-top" transform="translate(320,288)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="handle-pressed-inactive-bottom" transform="translate(352,288)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="handle-pressed-inactive-left" transform="translate(384,288)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="handle-pressed-inactive-right" transform="translate(416,288)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="handle-pressed-inactive-topleft" transform="translate(448,288)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="handle-pressed-inactive-topright" transform="translate(480,288)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="handle-pressed-inactive-bottomleft" transform="translate(512,288)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="handle-pressed-inactive-bottomright" transform="translate(544,288)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="handle-toggled-inactive" transform="translate(576,288)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="handle-toggled-inactive-top" transform="translate(608,288)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="handle-toggled-inactive-bottom" transform="translate(640,288)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="handle-toggled-inactive-left" transform="translate(672,288)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="handle-toggled-inactive-right" transform="translate(704,288)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="handle-toggled-inactive-topleft" transform="translate(736,288)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="handle-toggled-inactive-topright" transform="translate(768,288)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="handle-toggled-inactive-bottomleft" transform="translate(800,288)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="handle-toggled-inactive-bottomright" transform="translate(832,288)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="handle-disabled" transform="translate(864,288)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+  </g>
+  <g id="handle-disabled-top" transform="translate(896,288)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="handle-disabled-bottom" transform="translate(928,288)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="handle-disabled-left" transform="translate(960,288)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="handle-disabled-right" transform="translate(992,288)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="handle-disabled-topleft" transform="translate(0,320)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="handle-disabled-topright" transform="translate(32,320)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="handle-disabled-bottomleft" transform="translate(64,320)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="handle-disabled-bottomright" transform="translate(96,320)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-normal" transform="translate(128,320)">
+    <rect x="0" y="0" width="16" height="16" fill="#252525" />
+  </g>
+  <g id="itemview-normal-top" transform="translate(160,320)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="itemview-normal-bottom" transform="translate(192,320)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-normal-left" transform="translate(224,320)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="itemview-normal-right" transform="translate(256,320)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="itemview-normal-topleft" transform="translate(288,320)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="itemview-normal-topright" transform="translate(320,320)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="itemview-normal-bottomleft" transform="translate(352,320)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-normal-bottomright" transform="translate(384,320)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-focused" transform="translate(416,320)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="itemview-focused-top" transform="translate(448,320)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="itemview-focused-bottom" transform="translate(480,320)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="itemview-focused-left" transform="translate(512,320)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="itemview-focused-right" transform="translate(544,320)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="itemview-focused-topleft" transform="translate(576,320)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="itemview-focused-topright" transform="translate(608,320)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="itemview-focused-bottomleft" transform="translate(640,320)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="itemview-focused-bottomright" transform="translate(672,320)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="itemview-pressed" transform="translate(704,320)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="itemview-pressed-top" transform="translate(736,320)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-pressed-bottom" transform="translate(768,320)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="itemview-pressed-left" transform="translate(800,320)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="itemview-pressed-right" transform="translate(832,320)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="itemview-pressed-topleft" transform="translate(864,320)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-pressed-topright" transform="translate(896,320)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-pressed-bottomleft" transform="translate(928,320)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="itemview-pressed-bottomright" transform="translate(960,320)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="itemview-toggled" transform="translate(992,320)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="itemview-toggled-top" transform="translate(0,352)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="itemview-toggled-bottom" transform="translate(32,352)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-toggled-left" transform="translate(64,352)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="itemview-toggled-right" transform="translate(96,352)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="itemview-toggled-topleft" transform="translate(128,352)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="itemview-toggled-topright" transform="translate(160,352)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="itemview-toggled-bottomleft" transform="translate(192,352)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-toggled-bottomright" transform="translate(224,352)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-normal-inactive" transform="translate(256,352)">
+    <rect x="0" y="0" width="16" height="16" fill="#252525" />
+  </g>
+  <g id="itemview-normal-inactive-top" transform="translate(288,352)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="itemview-normal-inactive-bottom" transform="translate(320,352)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-normal-inactive-left" transform="translate(352,352)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="itemview-normal-inactive-right" transform="translate(384,352)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="itemview-normal-inactive-topleft" transform="translate(416,352)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="itemview-normal-inactive-topright" transform="translate(448,352)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="itemview-normal-inactive-bottomleft" transform="translate(480,352)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-normal-inactive-bottomright" transform="translate(512,352)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-focused-inactive" transform="translate(544,352)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="itemview-focused-inactive-top" transform="translate(576,352)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="itemview-focused-inactive-bottom" transform="translate(608,352)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="itemview-focused-inactive-left" transform="translate(640,352)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="itemview-focused-inactive-right" transform="translate(672,352)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="itemview-focused-inactive-topleft" transform="translate(704,352)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="itemview-focused-inactive-topright" transform="translate(736,352)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="itemview-focused-inactive-bottomleft" transform="translate(768,352)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="itemview-focused-inactive-bottomright" transform="translate(800,352)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="itemview-pressed-inactive" transform="translate(832,352)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="itemview-pressed-inactive-top" transform="translate(864,352)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-pressed-inactive-bottom" transform="translate(896,352)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="itemview-pressed-inactive-left" transform="translate(928,352)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="itemview-pressed-inactive-right" transform="translate(960,352)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="itemview-pressed-inactive-topleft" transform="translate(992,352)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-pressed-inactive-topright" transform="translate(0,384)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-pressed-inactive-bottomleft" transform="translate(32,384)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="itemview-pressed-inactive-bottomright" transform="translate(64,384)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="itemview-toggled-inactive" transform="translate(96,384)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="itemview-toggled-inactive-top" transform="translate(128,384)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="itemview-toggled-inactive-bottom" transform="translate(160,384)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-toggled-inactive-left" transform="translate(192,384)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="itemview-toggled-inactive-right" transform="translate(224,384)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="itemview-toggled-inactive-topleft" transform="translate(256,384)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="itemview-toggled-inactive-topright" transform="translate(288,384)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="itemview-toggled-inactive-bottomleft" transform="translate(320,384)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-toggled-inactive-bottomright" transform="translate(352,384)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-disabled" transform="translate(384,384)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+  </g>
+  <g id="itemview-disabled-top" transform="translate(416,384)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="itemview-disabled-bottom" transform="translate(448,384)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-disabled-left" transform="translate(480,384)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="itemview-disabled-right" transform="translate(512,384)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="itemview-disabled-topleft" transform="translate(544,384)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="itemview-disabled-topright" transform="translate(576,384)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="itemview-disabled-bottomleft" transform="translate(608,384)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="itemview-disabled-bottomright" transform="translate(640,384)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-normal" transform="translate(672,384)">
+    <rect x="0" y="0" width="16" height="16" fill="#252525" />
+  </g>
+  <g id="lineedit-normal-top" transform="translate(704,384)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="lineedit-normal-bottom" transform="translate(736,384)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-normal-left" transform="translate(768,384)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="lineedit-normal-right" transform="translate(800,384)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="lineedit-normal-topleft" transform="translate(832,384)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="lineedit-normal-topright" transform="translate(864,384)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="lineedit-normal-bottomleft" transform="translate(896,384)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-normal-bottomright" transform="translate(928,384)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-focused" transform="translate(960,384)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+  </g>
+  <g id="lineedit-focused-top" transform="translate(992,384)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="lineedit-focused-bottom" transform="translate(0,416)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="lineedit-focused-left" transform="translate(32,416)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="lineedit-focused-right" transform="translate(64,416)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="lineedit-focused-topleft" transform="translate(96,416)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="lineedit-focused-topright" transform="translate(128,416)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="lineedit-focused-bottomleft" transform="translate(160,416)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="lineedit-focused-bottomright" transform="translate(192,416)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="lineedit-pressed" transform="translate(224,416)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="lineedit-pressed-top" transform="translate(256,416)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-pressed-bottom" transform="translate(288,416)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="lineedit-pressed-left" transform="translate(320,416)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="lineedit-pressed-right" transform="translate(352,416)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="lineedit-pressed-topleft" transform="translate(384,416)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-pressed-topright" transform="translate(416,416)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-pressed-bottomleft" transform="translate(448,416)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="lineedit-pressed-bottomright" transform="translate(480,416)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="lineedit-toggled" transform="translate(512,416)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="lineedit-toggled-top" transform="translate(544,416)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="lineedit-toggled-bottom" transform="translate(576,416)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-toggled-left" transform="translate(608,416)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="lineedit-toggled-right" transform="translate(640,416)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="lineedit-toggled-topleft" transform="translate(672,416)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="lineedit-toggled-topright" transform="translate(704,416)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="lineedit-toggled-bottomleft" transform="translate(736,416)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-toggled-bottomright" transform="translate(768,416)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-normal-inactive" transform="translate(800,416)">
+    <rect x="0" y="0" width="16" height="16" fill="#252525" />
+  </g>
+  <g id="lineedit-normal-inactive-top" transform="translate(832,416)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="lineedit-normal-inactive-bottom" transform="translate(864,416)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-normal-inactive-left" transform="translate(896,416)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="lineedit-normal-inactive-right" transform="translate(928,416)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="lineedit-normal-inactive-topleft" transform="translate(960,416)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="lineedit-normal-inactive-topright" transform="translate(992,416)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="lineedit-normal-inactive-bottomleft" transform="translate(0,448)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-normal-inactive-bottomright" transform="translate(32,448)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-focused-inactive" transform="translate(64,448)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+  </g>
+  <g id="lineedit-focused-inactive-top" transform="translate(96,448)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="lineedit-focused-inactive-bottom" transform="translate(128,448)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="lineedit-focused-inactive-left" transform="translate(160,448)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="lineedit-focused-inactive-right" transform="translate(192,448)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="lineedit-focused-inactive-topleft" transform="translate(224,448)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="lineedit-focused-inactive-topright" transform="translate(256,448)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="lineedit-focused-inactive-bottomleft" transform="translate(288,448)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="lineedit-focused-inactive-bottomright" transform="translate(320,448)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="lineedit-pressed-inactive" transform="translate(352,448)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="lineedit-pressed-inactive-top" transform="translate(384,448)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-pressed-inactive-bottom" transform="translate(416,448)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="lineedit-pressed-inactive-left" transform="translate(448,448)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="lineedit-pressed-inactive-right" transform="translate(480,448)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="lineedit-pressed-inactive-topleft" transform="translate(512,448)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-pressed-inactive-topright" transform="translate(544,448)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-pressed-inactive-bottomleft" transform="translate(576,448)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="lineedit-pressed-inactive-bottomright" transform="translate(608,448)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="lineedit-toggled-inactive" transform="translate(640,448)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="lineedit-toggled-inactive-top" transform="translate(672,448)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="lineedit-toggled-inactive-bottom" transform="translate(704,448)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-toggled-inactive-left" transform="translate(736,448)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="lineedit-toggled-inactive-right" transform="translate(768,448)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="lineedit-toggled-inactive-topleft" transform="translate(800,448)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="lineedit-toggled-inactive-topright" transform="translate(832,448)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="lineedit-toggled-inactive-bottomleft" transform="translate(864,448)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-toggled-inactive-bottomright" transform="translate(896,448)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-disabled" transform="translate(928,448)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+  </g>
+  <g id="lineedit-disabled-top" transform="translate(960,448)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="lineedit-disabled-bottom" transform="translate(992,448)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-disabled-left" transform="translate(0,480)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="lineedit-disabled-right" transform="translate(32,480)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="lineedit-disabled-topleft" transform="translate(64,480)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="lineedit-disabled-topright" transform="translate(96,480)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="lineedit-disabled-bottomleft" transform="translate(128,480)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="lineedit-disabled-bottomright" transform="translate(160,480)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menu-normal" transform="translate(192,480)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+  </g>
+  <g id="menu-normal-top" transform="translate(224,480)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="menu-normal-bottom" transform="translate(256,480)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="menu-normal-left" transform="translate(288,480)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="menu-normal-right" transform="translate(320,480)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="menu-normal-topleft" transform="translate(352,480)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menu-normal-topright" transform="translate(384,480)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menu-normal-bottomleft" transform="translate(416,480)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menu-normal-bottomright" transform="translate(448,480)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menu-focused" transform="translate(480,480)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+  </g>
+  <g id="menu-focused-top" transform="translate(512,480)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="menu-focused-bottom" transform="translate(544,480)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="menu-focused-left" transform="translate(576,480)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="menu-focused-right" transform="translate(608,480)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="menu-focused-topleft" transform="translate(640,480)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="menu-focused-topright" transform="translate(672,480)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="menu-focused-bottomleft" transform="translate(704,480)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="menu-focused-bottomright" transform="translate(736,480)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="menu-pressed" transform="translate(768,480)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="menu-pressed-top" transform="translate(800,480)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="menu-pressed-bottom" transform="translate(832,480)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="menu-pressed-left" transform="translate(864,480)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="menu-pressed-right" transform="translate(896,480)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="menu-pressed-topleft" transform="translate(928,480)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menu-pressed-topright" transform="translate(960,480)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menu-pressed-bottomleft" transform="translate(992,480)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="menu-pressed-bottomright" transform="translate(0,512)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="menu-toggled" transform="translate(32,512)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="menu-toggled-top" transform="translate(64,512)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="menu-toggled-bottom" transform="translate(96,512)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="menu-toggled-left" transform="translate(128,512)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="menu-toggled-right" transform="translate(160,512)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="menu-toggled-topleft" transform="translate(192,512)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menu-toggled-topright" transform="translate(224,512)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menu-toggled-bottomleft" transform="translate(256,512)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menu-toggled-bottomright" transform="translate(288,512)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menu-normal-inactive" transform="translate(320,512)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+  </g>
+  <g id="menu-normal-inactive-top" transform="translate(352,512)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="menu-normal-inactive-bottom" transform="translate(384,512)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="menu-normal-inactive-left" transform="translate(416,512)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="menu-normal-inactive-right" transform="translate(448,512)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="menu-normal-inactive-topleft" transform="translate(480,512)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menu-normal-inactive-topright" transform="translate(512,512)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menu-normal-inactive-bottomleft" transform="translate(544,512)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menu-normal-inactive-bottomright" transform="translate(576,512)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menu-focused-inactive" transform="translate(608,512)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+  </g>
+  <g id="menu-focused-inactive-top" transform="translate(640,512)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="menu-focused-inactive-bottom" transform="translate(672,512)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="menu-focused-inactive-left" transform="translate(704,512)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="menu-focused-inactive-right" transform="translate(736,512)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="menu-focused-inactive-topleft" transform="translate(768,512)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="menu-focused-inactive-topright" transform="translate(800,512)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="menu-focused-inactive-bottomleft" transform="translate(832,512)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="menu-focused-inactive-bottomright" transform="translate(864,512)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="menu-pressed-inactive" transform="translate(896,512)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="menu-pressed-inactive-top" transform="translate(928,512)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="menu-pressed-inactive-bottom" transform="translate(960,512)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="menu-pressed-inactive-left" transform="translate(992,512)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="menu-pressed-inactive-right" transform="translate(0,544)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="menu-pressed-inactive-topleft" transform="translate(32,544)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menu-pressed-inactive-topright" transform="translate(64,544)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menu-pressed-inactive-bottomleft" transform="translate(96,544)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="menu-pressed-inactive-bottomright" transform="translate(128,544)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="menu-toggled-inactive" transform="translate(160,544)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="menu-toggled-inactive-top" transform="translate(192,544)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="menu-toggled-inactive-bottom" transform="translate(224,544)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="menu-toggled-inactive-left" transform="translate(256,544)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="menu-toggled-inactive-right" transform="translate(288,544)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="menu-toggled-inactive-topleft" transform="translate(320,544)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menu-toggled-inactive-topright" transform="translate(352,544)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menu-toggled-inactive-bottomleft" transform="translate(384,544)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menu-toggled-inactive-bottomright" transform="translate(416,544)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menu-disabled" transform="translate(448,544)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+  </g>
+  <g id="menu-disabled-top" transform="translate(480,544)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="menu-disabled-bottom" transform="translate(512,544)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="menu-disabled-left" transform="translate(544,544)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="menu-disabled-right" transform="translate(576,544)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="menu-disabled-topleft" transform="translate(608,544)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menu-disabled-topright" transform="translate(640,544)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menu-disabled-bottomleft" transform="translate(672,544)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menu-disabled-bottomright" transform="translate(704,544)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-normal" transform="translate(736,544)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+  </g>
+  <g id="menuitem-normal-top" transform="translate(768,544)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="menuitem-normal-bottom" transform="translate(800,544)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-normal-left" transform="translate(832,544)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="menuitem-normal-right" transform="translate(864,544)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="menuitem-normal-topleft" transform="translate(896,544)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menuitem-normal-topright" transform="translate(928,544)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menuitem-normal-bottomleft" transform="translate(960,544)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-normal-bottomright" transform="translate(992,544)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-focused" transform="translate(0,576)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="menuitem-focused-top" transform="translate(32,576)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="menuitem-focused-bottom" transform="translate(64,576)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="menuitem-focused-left" transform="translate(96,576)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="menuitem-focused-right" transform="translate(128,576)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="menuitem-focused-topleft" transform="translate(160,576)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="menuitem-focused-topright" transform="translate(192,576)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="menuitem-focused-bottomleft" transform="translate(224,576)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="menuitem-focused-bottomright" transform="translate(256,576)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="menuitem-pressed" transform="translate(288,576)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="menuitem-pressed-top" transform="translate(320,576)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-pressed-bottom" transform="translate(352,576)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="menuitem-pressed-left" transform="translate(384,576)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="menuitem-pressed-right" transform="translate(416,576)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="menuitem-pressed-topleft" transform="translate(448,576)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-pressed-topright" transform="translate(480,576)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-pressed-bottomleft" transform="translate(512,576)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="menuitem-pressed-bottomright" transform="translate(544,576)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="menuitem-toggled" transform="translate(576,576)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="menuitem-toggled-top" transform="translate(608,576)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="menuitem-toggled-bottom" transform="translate(640,576)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-toggled-left" transform="translate(672,576)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="menuitem-toggled-right" transform="translate(704,576)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="menuitem-toggled-topleft" transform="translate(736,576)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menuitem-toggled-topright" transform="translate(768,576)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menuitem-toggled-bottomleft" transform="translate(800,576)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-toggled-bottomright" transform="translate(832,576)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-normal-inactive" transform="translate(864,576)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+  </g>
+  <g id="menuitem-normal-inactive-top" transform="translate(896,576)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="menuitem-normal-inactive-bottom" transform="translate(928,576)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-normal-inactive-left" transform="translate(960,576)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="menuitem-normal-inactive-right" transform="translate(992,576)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="menuitem-normal-inactive-topleft" transform="translate(0,608)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menuitem-normal-inactive-topright" transform="translate(32,608)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menuitem-normal-inactive-bottomleft" transform="translate(64,608)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-normal-inactive-bottomright" transform="translate(96,608)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-focused-inactive" transform="translate(128,608)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="menuitem-focused-inactive-top" transform="translate(160,608)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="menuitem-focused-inactive-bottom" transform="translate(192,608)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="menuitem-focused-inactive-left" transform="translate(224,608)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="menuitem-focused-inactive-right" transform="translate(256,608)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="menuitem-focused-inactive-topleft" transform="translate(288,608)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="menuitem-focused-inactive-topright" transform="translate(320,608)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="menuitem-focused-inactive-bottomleft" transform="translate(352,608)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="menuitem-focused-inactive-bottomright" transform="translate(384,608)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="menuitem-pressed-inactive" transform="translate(416,608)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="menuitem-pressed-inactive-top" transform="translate(448,608)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-pressed-inactive-bottom" transform="translate(480,608)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="menuitem-pressed-inactive-left" transform="translate(512,608)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="menuitem-pressed-inactive-right" transform="translate(544,608)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="menuitem-pressed-inactive-topleft" transform="translate(576,608)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-pressed-inactive-topright" transform="translate(608,608)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-pressed-inactive-bottomleft" transform="translate(640,608)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="menuitem-pressed-inactive-bottomright" transform="translate(672,608)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="menuitem-toggled-inactive" transform="translate(704,608)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="menuitem-toggled-inactive-top" transform="translate(736,608)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="menuitem-toggled-inactive-bottom" transform="translate(768,608)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-toggled-inactive-left" transform="translate(800,608)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="menuitem-toggled-inactive-right" transform="translate(832,608)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="menuitem-toggled-inactive-topleft" transform="translate(864,608)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menuitem-toggled-inactive-topright" transform="translate(896,608)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menuitem-toggled-inactive-bottomleft" transform="translate(928,608)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-toggled-inactive-bottomright" transform="translate(960,608)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-disabled" transform="translate(992,608)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+  </g>
+  <g id="menuitem-disabled-top" transform="translate(0,640)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="menuitem-disabled-bottom" transform="translate(32,640)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-disabled-left" transform="translate(64,640)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="menuitem-disabled-right" transform="translate(96,640)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="menuitem-disabled-topleft" transform="translate(128,640)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menuitem-disabled-topright" transform="translate(160,640)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="menuitem-disabled-bottomleft" transform="translate(192,640)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="menuitem-disabled-bottomright" transform="translate(224,640)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="progress-normal" transform="translate(256,640)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="progress-normal-top" transform="translate(288,640)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-normal-bottom" transform="translate(320,640)">
+    <rect x="0" y="0" width="16" height="3" fill="#487522" />
+  </g>
+  <g id="progress-normal-left" transform="translate(352,640)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="progress-normal-right" transform="translate(384,640)">
+    <rect x="0" y="0" width="3" height="16" fill="#487522" />
+  </g>
+  <g id="progress-normal-topleft" transform="translate(416,640)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-normal-topright" transform="translate(448,640)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-normal-bottomleft" transform="translate(480,640)">
+    <rect x="0" y="0" width="3" height="3" fill="#487522" />
+  </g>
+  <g id="progress-normal-bottomright" transform="translate(512,640)">
+    <rect x="0" y="0" width="3" height="3" fill="#487522" />
+  </g>
+  <g id="progress-focused" transform="translate(544,640)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+  </g>
+  <g id="progress-focused-top" transform="translate(576,640)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="progress-focused-bottom" transform="translate(608,640)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="progress-focused-left" transform="translate(640,640)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="progress-focused-right" transform="translate(672,640)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="progress-focused-topleft" transform="translate(704,640)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="progress-focused-topright" transform="translate(736,640)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="progress-focused-bottomleft" transform="translate(768,640)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="progress-focused-bottomright" transform="translate(800,640)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="progress-pressed" transform="translate(832,640)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="progress-pressed-top" transform="translate(864,640)">
+    <rect x="0" y="0" width="16" height="3" fill="#487522" />
+  </g>
+  <g id="progress-pressed-bottom" transform="translate(896,640)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-pressed-left" transform="translate(928,640)">
+    <rect x="0" y="0" width="3" height="16" fill="#487522" />
+  </g>
+  <g id="progress-pressed-right" transform="translate(960,640)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="progress-pressed-topleft" transform="translate(992,640)">
+    <rect x="0" y="0" width="3" height="3" fill="#487522" />
+  </g>
+  <g id="progress-pressed-topright" transform="translate(0,672)">
+    <rect x="0" y="0" width="3" height="3" fill="#487522" />
+  </g>
+  <g id="progress-pressed-bottomleft" transform="translate(32,672)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-pressed-bottomright" transform="translate(64,672)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-toggled" transform="translate(96,672)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="progress-toggled-top" transform="translate(128,672)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-toggled-bottom" transform="translate(160,672)">
+    <rect x="0" y="0" width="16" height="3" fill="#487522" />
+  </g>
+  <g id="progress-toggled-left" transform="translate(192,672)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="progress-toggled-right" transform="translate(224,672)">
+    <rect x="0" y="0" width="3" height="16" fill="#487522" />
+  </g>
+  <g id="progress-toggled-topleft" transform="translate(256,672)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-toggled-topright" transform="translate(288,672)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-toggled-bottomleft" transform="translate(320,672)">
+    <rect x="0" y="0" width="3" height="3" fill="#487522" />
+  </g>
+  <g id="progress-toggled-bottomright" transform="translate(352,672)">
+    <rect x="0" y="0" width="3" height="3" fill="#487522" />
+  </g>
+  <g id="progress-normal-inactive" transform="translate(384,672)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="progress-normal-inactive-top" transform="translate(416,672)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-normal-inactive-bottom" transform="translate(448,672)">
+    <rect x="0" y="0" width="16" height="3" fill="#487522" />
+  </g>
+  <g id="progress-normal-inactive-left" transform="translate(480,672)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="progress-normal-inactive-right" transform="translate(512,672)">
+    <rect x="0" y="0" width="3" height="16" fill="#487522" />
+  </g>
+  <g id="progress-normal-inactive-topleft" transform="translate(544,672)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-normal-inactive-topright" transform="translate(576,672)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-normal-inactive-bottomleft" transform="translate(608,672)">
+    <rect x="0" y="0" width="3" height="3" fill="#487522" />
+  </g>
+  <g id="progress-normal-inactive-bottomright" transform="translate(640,672)">
+    <rect x="0" y="0" width="3" height="3" fill="#487522" />
+  </g>
+  <g id="progress-focused-inactive" transform="translate(672,672)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+  </g>
+  <g id="progress-focused-inactive-top" transform="translate(704,672)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="progress-focused-inactive-bottom" transform="translate(736,672)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="progress-focused-inactive-left" transform="translate(768,672)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="progress-focused-inactive-right" transform="translate(800,672)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="progress-focused-inactive-topleft" transform="translate(832,672)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="progress-focused-inactive-topright" transform="translate(864,672)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="progress-focused-inactive-bottomleft" transform="translate(896,672)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="progress-focused-inactive-bottomright" transform="translate(928,672)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="progress-pressed-inactive" transform="translate(960,672)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="progress-pressed-inactive-top" transform="translate(992,672)">
+    <rect x="0" y="0" width="16" height="3" fill="#487522" />
+  </g>
+  <g id="progress-pressed-inactive-bottom" transform="translate(0,704)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-pressed-inactive-left" transform="translate(32,704)">
+    <rect x="0" y="0" width="3" height="16" fill="#487522" />
+  </g>
+  <g id="progress-pressed-inactive-right" transform="translate(64,704)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="progress-pressed-inactive-topleft" transform="translate(96,704)">
+    <rect x="0" y="0" width="3" height="3" fill="#487522" />
+  </g>
+  <g id="progress-pressed-inactive-topright" transform="translate(128,704)">
+    <rect x="0" y="0" width="3" height="3" fill="#487522" />
+  </g>
+  <g id="progress-pressed-inactive-bottomleft" transform="translate(160,704)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-pressed-inactive-bottomright" transform="translate(192,704)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-toggled-inactive" transform="translate(224,704)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="progress-toggled-inactive-top" transform="translate(256,704)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-toggled-inactive-bottom" transform="translate(288,704)">
+    <rect x="0" y="0" width="16" height="3" fill="#487522" />
+  </g>
+  <g id="progress-toggled-inactive-left" transform="translate(320,704)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="progress-toggled-inactive-right" transform="translate(352,704)">
+    <rect x="0" y="0" width="3" height="16" fill="#487522" />
+  </g>
+  <g id="progress-toggled-inactive-topleft" transform="translate(384,704)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-toggled-inactive-topright" transform="translate(416,704)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-toggled-inactive-bottomleft" transform="translate(448,704)">
+    <rect x="0" y="0" width="3" height="3" fill="#487522" />
+  </g>
+  <g id="progress-toggled-inactive-bottomright" transform="translate(480,704)">
+    <rect x="0" y="0" width="3" height="3" fill="#487522" />
+  </g>
+  <g id="progress-disabled" transform="translate(512,704)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+  </g>
+  <g id="progress-disabled-top" transform="translate(544,704)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-disabled-bottom" transform="translate(576,704)">
+    <rect x="0" y="0" width="16" height="3" fill="#487522" />
+  </g>
+  <g id="progress-disabled-left" transform="translate(608,704)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="progress-disabled-right" transform="translate(640,704)">
+    <rect x="0" y="0" width="3" height="16" fill="#487522" />
+  </g>
+  <g id="progress-disabled-topleft" transform="translate(672,704)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-disabled-topright" transform="translate(704,704)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="progress-disabled-bottomleft" transform="translate(736,704)">
+    <rect x="0" y="0" width="3" height="3" fill="#487522" />
+  </g>
+  <g id="progress-disabled-bottomright" transform="translate(768,704)">
+    <rect x="0" y="0" width="3" height="3" fill="#487522" />
+  </g>
+  <g id="tab-normal" transform="translate(800,704)">
+    <rect x="0" y="0" width="16" height="16" fill="#555555" />
+    <rect x="2" y="2" width="4" height="2" fill="#414141" />
+    <rect x="9" y="5" width="5" height="2" fill="#414141" />
+    <rect x="3" y="11" width="5" height="2" fill="#414141" />
+  </g>
+  <g id="tab-normal-top" transform="translate(832,704)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="tab-normal-bottom" transform="translate(864,704)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="tab-normal-left" transform="translate(896,704)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="tab-normal-right" transform="translate(928,704)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="tab-normal-topleft" transform="translate(960,704)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tab-normal-topright" transform="translate(992,704)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tab-normal-bottomleft" transform="translate(0,736)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tab-normal-bottomright" transform="translate(32,736)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tab-focused" transform="translate(64,736)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+    <rect x="2" y="2" width="4" height="2" fill="#414141" />
+    <rect x="9" y="5" width="5" height="2" fill="#414141" />
+    <rect x="3" y="11" width="5" height="2" fill="#414141" />
+  </g>
+  <g id="tab-focused-top" transform="translate(96,736)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="tab-focused-bottom" transform="translate(128,736)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="tab-focused-left" transform="translate(160,736)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="tab-focused-right" transform="translate(192,736)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="tab-focused-topleft" transform="translate(224,736)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="tab-focused-topright" transform="translate(256,736)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="tab-focused-bottomleft" transform="translate(288,736)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="tab-focused-bottomright" transform="translate(320,736)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="tab-pressed" transform="translate(352,736)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="tab-pressed-top" transform="translate(384,736)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="tab-pressed-bottom" transform="translate(416,736)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="tab-pressed-left" transform="translate(448,736)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="tab-pressed-right" transform="translate(480,736)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="tab-pressed-topleft" transform="translate(512,736)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tab-pressed-topright" transform="translate(544,736)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tab-pressed-bottomleft" transform="translate(576,736)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="tab-pressed-bottomright" transform="translate(608,736)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="tab-toggled" transform="translate(640,736)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="tab-toggled-top" transform="translate(672,736)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="tab-toggled-bottom" transform="translate(704,736)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="tab-toggled-left" transform="translate(736,736)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="tab-toggled-right" transform="translate(768,736)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="tab-toggled-topleft" transform="translate(800,736)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tab-toggled-topright" transform="translate(832,736)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tab-toggled-bottomleft" transform="translate(864,736)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tab-toggled-bottomright" transform="translate(896,736)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tab-normal-inactive" transform="translate(928,736)">
+    <rect x="0" y="0" width="16" height="16" fill="#555555" />
+    <rect x="2" y="2" width="4" height="2" fill="#414141" />
+    <rect x="9" y="5" width="5" height="2" fill="#414141" />
+    <rect x="3" y="11" width="5" height="2" fill="#414141" />
+  </g>
+  <g id="tab-normal-inactive-top" transform="translate(960,736)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="tab-normal-inactive-bottom" transform="translate(992,736)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="tab-normal-inactive-left" transform="translate(0,768)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="tab-normal-inactive-right" transform="translate(32,768)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="tab-normal-inactive-topleft" transform="translate(64,768)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tab-normal-inactive-topright" transform="translate(96,768)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tab-normal-inactive-bottomleft" transform="translate(128,768)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tab-normal-inactive-bottomright" transform="translate(160,768)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tab-focused-inactive" transform="translate(192,768)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+    <rect x="2" y="2" width="4" height="2" fill="#414141" />
+    <rect x="9" y="5" width="5" height="2" fill="#414141" />
+    <rect x="3" y="11" width="5" height="2" fill="#414141" />
+  </g>
+  <g id="tab-focused-inactive-top" transform="translate(224,768)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="tab-focused-inactive-bottom" transform="translate(256,768)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="tab-focused-inactive-left" transform="translate(288,768)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="tab-focused-inactive-right" transform="translate(320,768)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="tab-focused-inactive-topleft" transform="translate(352,768)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="tab-focused-inactive-topright" transform="translate(384,768)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="tab-focused-inactive-bottomleft" transform="translate(416,768)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="tab-focused-inactive-bottomright" transform="translate(448,768)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="tab-pressed-inactive" transform="translate(480,768)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="tab-pressed-inactive-top" transform="translate(512,768)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="tab-pressed-inactive-bottom" transform="translate(544,768)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="tab-pressed-inactive-left" transform="translate(576,768)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="tab-pressed-inactive-right" transform="translate(608,768)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="tab-pressed-inactive-topleft" transform="translate(640,768)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tab-pressed-inactive-topright" transform="translate(672,768)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tab-pressed-inactive-bottomleft" transform="translate(704,768)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="tab-pressed-inactive-bottomright" transform="translate(736,768)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="tab-toggled-inactive" transform="translate(768,768)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="tab-toggled-inactive-top" transform="translate(800,768)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="tab-toggled-inactive-bottom" transform="translate(832,768)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="tab-toggled-inactive-left" transform="translate(864,768)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="tab-toggled-inactive-right" transform="translate(896,768)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="tab-toggled-inactive-topleft" transform="translate(928,768)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tab-toggled-inactive-topright" transform="translate(960,768)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tab-toggled-inactive-bottomleft" transform="translate(992,768)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tab-toggled-inactive-bottomright" transform="translate(0,800)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tab-disabled" transform="translate(32,800)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+    <rect x="2" y="2" width="4" height="2" fill="#414141" />
+    <rect x="9" y="5" width="5" height="2" fill="#414141" />
+    <rect x="3" y="11" width="5" height="2" fill="#414141" />
+  </g>
+  <g id="tab-disabled-top" transform="translate(64,800)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="tab-disabled-bottom" transform="translate(96,800)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="tab-disabled-left" transform="translate(128,800)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="tab-disabled-right" transform="translate(160,800)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="tab-disabled-topleft" transform="translate(192,800)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tab-disabled-topright" transform="translate(224,800)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tab-disabled-bottomleft" transform="translate(256,800)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tab-disabled-bottomright" transform="translate(288,800)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-normal" transform="translate(320,800)">
+    <rect x="0" y="0" width="16" height="16" fill="#282828" />
+  </g>
+  <g id="tooltip-normal-top" transform="translate(352,800)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="tooltip-normal-bottom" transform="translate(384,800)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-normal-left" transform="translate(416,800)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="tooltip-normal-right" transform="translate(448,800)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="tooltip-normal-topleft" transform="translate(480,800)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tooltip-normal-topright" transform="translate(512,800)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tooltip-normal-bottomleft" transform="translate(544,800)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-normal-bottomright" transform="translate(576,800)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-focused" transform="translate(608,800)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+  </g>
+  <g id="tooltip-focused-top" transform="translate(640,800)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="tooltip-focused-bottom" transform="translate(672,800)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="tooltip-focused-left" transform="translate(704,800)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="tooltip-focused-right" transform="translate(736,800)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="tooltip-focused-topleft" transform="translate(768,800)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="tooltip-focused-topright" transform="translate(800,800)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="tooltip-focused-bottomleft" transform="translate(832,800)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="tooltip-focused-bottomright" transform="translate(864,800)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="tooltip-pressed" transform="translate(896,800)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="tooltip-pressed-top" transform="translate(928,800)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-pressed-bottom" transform="translate(960,800)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="tooltip-pressed-left" transform="translate(992,800)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="tooltip-pressed-right" transform="translate(0,832)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="tooltip-pressed-topleft" transform="translate(32,832)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-pressed-topright" transform="translate(64,832)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-pressed-bottomleft" transform="translate(96,832)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="tooltip-pressed-bottomright" transform="translate(128,832)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="tooltip-toggled" transform="translate(160,832)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="tooltip-toggled-top" transform="translate(192,832)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="tooltip-toggled-bottom" transform="translate(224,832)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-toggled-left" transform="translate(256,832)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="tooltip-toggled-right" transform="translate(288,832)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="tooltip-toggled-topleft" transform="translate(320,832)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tooltip-toggled-topright" transform="translate(352,832)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tooltip-toggled-bottomleft" transform="translate(384,832)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-toggled-bottomright" transform="translate(416,832)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-normal-inactive" transform="translate(448,832)">
+    <rect x="0" y="0" width="16" height="16" fill="#282828" />
+  </g>
+  <g id="tooltip-normal-inactive-top" transform="translate(480,832)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="tooltip-normal-inactive-bottom" transform="translate(512,832)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-normal-inactive-left" transform="translate(544,832)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="tooltip-normal-inactive-right" transform="translate(576,832)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="tooltip-normal-inactive-topleft" transform="translate(608,832)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tooltip-normal-inactive-topright" transform="translate(640,832)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tooltip-normal-inactive-bottomleft" transform="translate(672,832)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-normal-inactive-bottomright" transform="translate(704,832)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-focused-inactive" transform="translate(736,832)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+  </g>
+  <g id="tooltip-focused-inactive-top" transform="translate(768,832)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="tooltip-focused-inactive-bottom" transform="translate(800,832)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="tooltip-focused-inactive-left" transform="translate(832,832)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="tooltip-focused-inactive-right" transform="translate(864,832)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="tooltip-focused-inactive-topleft" transform="translate(896,832)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="tooltip-focused-inactive-topright" transform="translate(928,832)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="tooltip-focused-inactive-bottomleft" transform="translate(960,832)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="tooltip-focused-inactive-bottomright" transform="translate(992,832)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="tooltip-pressed-inactive" transform="translate(0,864)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="tooltip-pressed-inactive-top" transform="translate(32,864)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-pressed-inactive-bottom" transform="translate(64,864)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="tooltip-pressed-inactive-left" transform="translate(96,864)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="tooltip-pressed-inactive-right" transform="translate(128,864)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="tooltip-pressed-inactive-topleft" transform="translate(160,864)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-pressed-inactive-topright" transform="translate(192,864)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-pressed-inactive-bottomleft" transform="translate(224,864)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="tooltip-pressed-inactive-bottomright" transform="translate(256,864)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="tooltip-toggled-inactive" transform="translate(288,864)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="tooltip-toggled-inactive-top" transform="translate(320,864)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="tooltip-toggled-inactive-bottom" transform="translate(352,864)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-toggled-inactive-left" transform="translate(384,864)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="tooltip-toggled-inactive-right" transform="translate(416,864)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="tooltip-toggled-inactive-topleft" transform="translate(448,864)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tooltip-toggled-inactive-topright" transform="translate(480,864)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tooltip-toggled-inactive-bottomleft" transform="translate(512,864)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-toggled-inactive-bottomright" transform="translate(544,864)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-disabled" transform="translate(576,864)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+  </g>
+  <g id="tooltip-disabled-top" transform="translate(608,864)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="tooltip-disabled-bottom" transform="translate(640,864)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-disabled-left" transform="translate(672,864)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="tooltip-disabled-right" transform="translate(704,864)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="tooltip-disabled-topleft" transform="translate(736,864)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tooltip-disabled-topright" transform="translate(768,864)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="tooltip-disabled-bottomleft" transform="translate(800,864)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="tooltip-disabled-bottomright" transform="translate(832,864)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="window-normal" transform="translate(864,864)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+  </g>
+  <g id="window-normal-top" transform="translate(896,864)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="window-normal-bottom" transform="translate(928,864)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="window-normal-left" transform="translate(960,864)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="window-normal-right" transform="translate(992,864)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="window-normal-topleft" transform="translate(0,896)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="window-normal-topright" transform="translate(32,896)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="window-normal-bottomleft" transform="translate(64,896)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="window-normal-bottomright" transform="translate(96,896)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="window-focused" transform="translate(128,896)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+  </g>
+  <g id="window-focused-top" transform="translate(160,896)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="window-focused-bottom" transform="translate(192,896)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="window-focused-left" transform="translate(224,896)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="window-focused-right" transform="translate(256,896)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="window-focused-topleft" transform="translate(288,896)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="window-focused-topright" transform="translate(320,896)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="window-focused-bottomleft" transform="translate(352,896)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="window-focused-bottomright" transform="translate(384,896)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="window-pressed" transform="translate(416,896)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="window-pressed-top" transform="translate(448,896)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="window-pressed-bottom" transform="translate(480,896)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="window-pressed-left" transform="translate(512,896)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="window-pressed-right" transform="translate(544,896)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="window-pressed-topleft" transform="translate(576,896)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="window-pressed-topright" transform="translate(608,896)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="window-pressed-bottomleft" transform="translate(640,896)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="window-pressed-bottomright" transform="translate(672,896)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="window-toggled" transform="translate(704,896)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="window-toggled-top" transform="translate(736,896)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="window-toggled-bottom" transform="translate(768,896)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="window-toggled-left" transform="translate(800,896)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="window-toggled-right" transform="translate(832,896)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="window-toggled-topleft" transform="translate(864,896)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="window-toggled-topright" transform="translate(896,896)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="window-toggled-bottomleft" transform="translate(928,896)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="window-toggled-bottomright" transform="translate(960,896)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="window-normal-inactive" transform="translate(992,896)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+  </g>
+  <g id="window-normal-inactive-top" transform="translate(0,928)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="window-normal-inactive-bottom" transform="translate(32,928)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="window-normal-inactive-left" transform="translate(64,928)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="window-normal-inactive-right" transform="translate(96,928)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="window-normal-inactive-topleft" transform="translate(128,928)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="window-normal-inactive-topright" transform="translate(160,928)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="window-normal-inactive-bottomleft" transform="translate(192,928)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="window-normal-inactive-bottomright" transform="translate(224,928)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="window-focused-inactive" transform="translate(256,928)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+  </g>
+  <g id="window-focused-inactive-top" transform="translate(288,928)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="window-focused-inactive-bottom" transform="translate(320,928)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="window-focused-inactive-left" transform="translate(352,928)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="window-focused-inactive-right" transform="translate(384,928)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="window-focused-inactive-topleft" transform="translate(416,928)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="window-focused-inactive-topright" transform="translate(448,928)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="window-focused-inactive-bottomleft" transform="translate(480,928)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="window-focused-inactive-bottomright" transform="translate(512,928)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="window-pressed-inactive" transform="translate(544,928)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="window-pressed-inactive-top" transform="translate(576,928)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="window-pressed-inactive-bottom" transform="translate(608,928)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="window-pressed-inactive-left" transform="translate(640,928)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="window-pressed-inactive-right" transform="translate(672,928)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="window-pressed-inactive-topleft" transform="translate(704,928)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="window-pressed-inactive-topright" transform="translate(736,928)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="window-pressed-inactive-bottomleft" transform="translate(768,928)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="window-pressed-inactive-bottomright" transform="translate(800,928)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="window-toggled-inactive" transform="translate(832,928)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="window-toggled-inactive-top" transform="translate(864,928)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="window-toggled-inactive-bottom" transform="translate(896,928)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="window-toggled-inactive-left" transform="translate(928,928)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="window-toggled-inactive-right" transform="translate(960,928)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="window-toggled-inactive-topleft" transform="translate(992,928)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="window-toggled-inactive-topright" transform="translate(0,960)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="window-toggled-inactive-bottomleft" transform="translate(32,960)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="window-toggled-inactive-bottomright" transform="translate(64,960)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="window-disabled" transform="translate(96,960)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+  </g>
+  <g id="window-disabled-top" transform="translate(128,960)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="window-disabled-bottom" transform="translate(160,960)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="window-disabled-left" transform="translate(192,960)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="window-disabled-right" transform="translate(224,960)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="window-disabled-topleft" transform="translate(256,960)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="window-disabled-topright" transform="translate(288,960)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="window-disabled-bottomleft" transform="translate(320,960)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="window-disabled-bottomright" transform="translate(352,960)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="wood-normal" transform="translate(384,960)">
+    <rect x="0" y="0" width="16" height="16" fill="#534335" />
+    <rect x="2" y="2" width="4" height="2" fill="#63503e" />
+    <rect x="9" y="5" width="5" height="2" fill="#63503e" />
+    <rect x="3" y="11" width="5" height="2" fill="#63503e" />
+  </g>
+  <g id="wood-normal-top" transform="translate(416,960)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="wood-normal-bottom" transform="translate(448,960)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="wood-normal-left" transform="translate(480,960)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="wood-normal-right" transform="translate(512,960)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="wood-normal-topleft" transform="translate(544,960)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="wood-normal-topright" transform="translate(576,960)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="wood-normal-bottomleft" transform="translate(608,960)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="wood-normal-bottomright" transform="translate(640,960)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="wood-focused" transform="translate(672,960)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+    <rect x="2" y="2" width="4" height="2" fill="#63503e" />
+    <rect x="9" y="5" width="5" height="2" fill="#63503e" />
+    <rect x="3" y="11" width="5" height="2" fill="#63503e" />
+  </g>
+  <g id="wood-focused-top" transform="translate(704,960)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="wood-focused-bottom" transform="translate(736,960)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="wood-focused-left" transform="translate(768,960)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="wood-focused-right" transform="translate(800,960)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="wood-focused-topleft" transform="translate(832,960)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="wood-focused-topright" transform="translate(864,960)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="wood-focused-bottomleft" transform="translate(896,960)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="wood-focused-bottomright" transform="translate(928,960)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="wood-pressed" transform="translate(960,960)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="wood-pressed-top" transform="translate(992,960)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="wood-pressed-bottom" transform="translate(0,992)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="wood-pressed-left" transform="translate(32,992)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="wood-pressed-right" transform="translate(64,992)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="wood-pressed-topleft" transform="translate(96,992)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="wood-pressed-topright" transform="translate(128,992)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="wood-pressed-bottomleft" transform="translate(160,992)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="wood-pressed-bottomright" transform="translate(192,992)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="wood-toggled" transform="translate(224,992)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="wood-toggled-top" transform="translate(256,992)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="wood-toggled-bottom" transform="translate(288,992)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="wood-toggled-left" transform="translate(320,992)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="wood-toggled-right" transform="translate(352,992)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="wood-toggled-topleft" transform="translate(384,992)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="wood-toggled-topright" transform="translate(416,992)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="wood-toggled-bottomleft" transform="translate(448,992)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="wood-toggled-bottomright" transform="translate(480,992)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="wood-normal-inactive" transform="translate(512,992)">
+    <rect x="0" y="0" width="16" height="16" fill="#534335" />
+    <rect x="2" y="2" width="4" height="2" fill="#63503e" />
+    <rect x="9" y="5" width="5" height="2" fill="#63503e" />
+    <rect x="3" y="11" width="5" height="2" fill="#63503e" />
+  </g>
+  <g id="wood-normal-inactive-top" transform="translate(544,992)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="wood-normal-inactive-bottom" transform="translate(576,992)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="wood-normal-inactive-left" transform="translate(608,992)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="wood-normal-inactive-right" transform="translate(640,992)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="wood-normal-inactive-topleft" transform="translate(672,992)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="wood-normal-inactive-topright" transform="translate(704,992)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="wood-normal-inactive-bottomleft" transform="translate(736,992)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="wood-normal-inactive-bottomright" transform="translate(768,992)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="wood-focused-inactive" transform="translate(800,992)">
+    <rect x="0" y="0" width="16" height="16" fill="#626262" />
+    <rect x="2" y="2" width="4" height="2" fill="#63503e" />
+    <rect x="9" y="5" width="5" height="2" fill="#63503e" />
+    <rect x="3" y="11" width="5" height="2" fill="#63503e" />
+  </g>
+  <g id="wood-focused-inactive-top" transform="translate(832,992)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="wood-focused-inactive-bottom" transform="translate(864,992)">
+    <rect x="0" y="0" width="16" height="3" fill="#70B237" />
+  </g>
+  <g id="wood-focused-inactive-left" transform="translate(896,992)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="wood-focused-inactive-right" transform="translate(928,992)">
+    <rect x="0" y="0" width="3" height="16" fill="#70B237" />
+  </g>
+  <g id="wood-focused-inactive-topleft" transform="translate(960,992)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="wood-focused-inactive-topright" transform="translate(992,992)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="wood-focused-inactive-bottomleft" transform="translate(0,1024)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="wood-focused-inactive-bottomright" transform="translate(32,1024)">
+    <rect x="0" y="0" width="3" height="3" fill="#70B237" />
+  </g>
+  <g id="wood-pressed-inactive" transform="translate(64,1024)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="wood-pressed-inactive-top" transform="translate(96,1024)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="wood-pressed-inactive-bottom" transform="translate(128,1024)">
+    <rect x="0" y="0" width="16" height="3" fill="#93CE4F" />
+  </g>
+  <g id="wood-pressed-inactive-left" transform="translate(160,1024)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="wood-pressed-inactive-right" transform="translate(192,1024)">
+    <rect x="0" y="0" width="3" height="16" fill="#93CE4F" />
+  </g>
+  <g id="wood-pressed-inactive-topleft" transform="translate(224,1024)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="wood-pressed-inactive-topright" transform="translate(256,1024)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="wood-pressed-inactive-bottomleft" transform="translate(288,1024)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="wood-pressed-inactive-bottomright" transform="translate(320,1024)">
+    <rect x="0" y="0" width="3" height="3" fill="#93CE4F" />
+  </g>
+  <g id="wood-toggled-inactive" transform="translate(352,1024)">
+    <rect x="0" y="0" width="16" height="16" fill="#70B237" />
+  </g>
+  <g id="wood-toggled-inactive-top" transform="translate(384,1024)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="wood-toggled-inactive-bottom" transform="translate(416,1024)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="wood-toggled-inactive-left" transform="translate(448,1024)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="wood-toggled-inactive-right" transform="translate(480,1024)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="wood-toggled-inactive-topleft" transform="translate(512,1024)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="wood-toggled-inactive-topright" transform="translate(544,1024)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="wood-toggled-inactive-bottomleft" transform="translate(576,1024)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="wood-toggled-inactive-bottomright" transform="translate(608,1024)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="wood-disabled" transform="translate(640,1024)">
+    <rect x="0" y="0" width="16" height="16" fill="#383838" />
+    <rect x="2" y="2" width="4" height="2" fill="#63503e" />
+    <rect x="9" y="5" width="5" height="2" fill="#63503e" />
+    <rect x="3" y="11" width="5" height="2" fill="#63503e" />
+  </g>
+  <g id="wood-disabled-top" transform="translate(672,1024)">
+    <rect x="0" y="0" width="16" height="3" fill="#929292" />
+  </g>
+  <g id="wood-disabled-bottom" transform="translate(704,1024)">
+    <rect x="0" y="0" width="16" height="3" fill="#202020" />
+  </g>
+  <g id="wood-disabled-left" transform="translate(736,1024)">
+    <rect x="0" y="0" width="3" height="16" fill="#929292" />
+  </g>
+  <g id="wood-disabled-right" transform="translate(768,1024)">
+    <rect x="0" y="0" width="3" height="16" fill="#202020" />
+  </g>
+  <g id="wood-disabled-topleft" transform="translate(800,1024)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="wood-disabled-topright" transform="translate(832,1024)">
+    <rect x="0" y="0" width="3" height="3" fill="#929292" />
+  </g>
+  <g id="wood-disabled-bottomleft" transform="translate(864,1024)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="wood-disabled-bottomright" transform="translate(896,1024)">
+    <rect x="0" y="0" width="3" height="3" fill="#202020" />
+  </g>
+  <g id="checkbox-normal" transform="translate(928,1024)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+  </g>
+  <g id="checkbox-checked-normal" transform="translate(960,1024)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <path d="M4 8h3v3h3V5h4v9H7v-3H4z" fill="#70B237" />
+  </g>
+  <g id="checkbox-tristate-normal" transform="translate(992,1024)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <rect x="4" y="7" width="10" height="4" fill="#70B237" />
+  </g>
+  <g id="checkbox-focused" transform="translate(0,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#70B237" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+  </g>
+  <g id="checkbox-checked-focused" transform="translate(32,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#70B237" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <path d="M4 8h3v3h3V5h4v9H7v-3H4z" fill="#70B237" />
+  </g>
+  <g id="checkbox-tristate-focused" transform="translate(64,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#70B237" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <rect x="4" y="7" width="10" height="4" fill="#70B237" />
+  </g>
+  <g id="checkbox-normal-inactive" transform="translate(96,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+  </g>
+  <g id="checkbox-checked-normal-inactive" transform="translate(128,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <path d="M4 8h3v3h3V5h4v9H7v-3H4z" fill="#70B237" />
+  </g>
+  <g id="checkbox-tristate-normal-inactive" transform="translate(160,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <rect x="4" y="7" width="10" height="4" fill="#70B237" />
+  </g>
+  <g id="checkbox-focused-inactive" transform="translate(192,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#70B237" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+  </g>
+  <g id="checkbox-checked-focused-inactive" transform="translate(224,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#70B237" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <path d="M4 8h3v3h3V5h4v9H7v-3H4z" fill="#70B237" />
+  </g>
+  <g id="checkbox-tristate-focused-inactive" transform="translate(256,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#70B237" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <rect x="4" y="7" width="10" height="4" fill="#70B237" />
+  </g>
+  <g id="checkbox-disabled" transform="translate(288,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+  </g>
+  <g id="checkbox-checked-disabled" transform="translate(320,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <path d="M4 8h3v3h3V5h4v9H7v-3H4z" fill="#70B237" />
+  </g>
+  <g id="checkbox-tristate-disabled" transform="translate(352,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <rect x="4" y="7" width="10" height="4" fill="#70B237" />
+  </g>
+  <g id="radio-normal" transform="translate(384,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+  </g>
+  <g id="radio-checked-normal" transform="translate(416,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <path d="M4 8h3v3h3V5h4v9H7v-3H4z" fill="#70B237" />
+  </g>
+  <g id="radio-tristate-normal" transform="translate(448,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <rect x="4" y="7" width="10" height="4" fill="#70B237" />
+  </g>
+  <g id="radio-focused" transform="translate(480,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#70B237" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+  </g>
+  <g id="radio-checked-focused" transform="translate(512,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#70B237" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <path d="M4 8h3v3h3V5h4v9H7v-3H4z" fill="#70B237" />
+  </g>
+  <g id="radio-tristate-focused" transform="translate(544,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#70B237" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <rect x="4" y="7" width="10" height="4" fill="#70B237" />
+  </g>
+  <g id="radio-normal-inactive" transform="translate(576,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+  </g>
+  <g id="radio-checked-normal-inactive" transform="translate(608,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <path d="M4 8h3v3h3V5h4v9H7v-3H4z" fill="#70B237" />
+  </g>
+  <g id="radio-tristate-normal-inactive" transform="translate(640,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <rect x="4" y="7" width="10" height="4" fill="#70B237" />
+  </g>
+  <g id="radio-focused-inactive" transform="translate(672,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#70B237" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+  </g>
+  <g id="radio-checked-focused-inactive" transform="translate(704,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#70B237" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <path d="M4 8h3v3h3V5h4v9H7v-3H4z" fill="#70B237" />
+  </g>
+  <g id="radio-tristate-focused-inactive" transform="translate(736,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#70B237" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <rect x="4" y="7" width="10" height="4" fill="#70B237" />
+  </g>
+  <g id="radio-disabled" transform="translate(768,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+  </g>
+  <g id="radio-checked-disabled" transform="translate(800,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <path d="M4 8h3v3h3V5h4v9H7v-3H4z" fill="#70B237" />
+  </g>
+  <g id="radio-tristate-disabled" transform="translate(832,1056)">
+    <rect x="0" y="0" width="18" height="18" fill="#747474" />
+    <rect x="2" y="2" width="14" height="14" fill="#252525" />
+    <rect x="4" y="7" width="10" height="4" fill="#70B237" />
+  </g>
+  <g id="arrow-up-normal" transform="translate(864,1056)">
+    <path d="M0 8L5 3L10 8z" fill="#CCCCCC" />
+  </g>
+  <g id="arrow-up-focused" transform="translate(896,1056)">
+    <path d="M0 8L5 3L10 8z" fill="#CCCCCC" />
+  </g>
+  <g id="arrow-up-pressed" transform="translate(928,1056)">
+    <path d="M0 8L5 3L10 8z" fill="#CCCCCC" />
+  </g>
+  <g id="arrow-up-toggled" transform="translate(960,1056)">
+    <path d="M0 8L5 3L10 8z" fill="#CCCCCC" />
+  </g>
+  <g id="arrow-up-disabled" transform="translate(992,1056)">
+    <path d="M0 8L5 3L10 8z" fill="#999999" />
+  </g>
+  <g id="arrow-down-normal" transform="translate(0,1088)">
+    <path d="M0 2L5 7L10 2z" fill="#CCCCCC" />
+  </g>
+  <g id="arrow-down-focused" transform="translate(32,1088)">
+    <path d="M0 2L5 7L10 2z" fill="#CCCCCC" />
+  </g>
+  <g id="arrow-down-pressed" transform="translate(64,1088)">
+    <path d="M0 2L5 7L10 2z" fill="#CCCCCC" />
+  </g>
+  <g id="arrow-down-toggled" transform="translate(96,1088)">
+    <path d="M0 2L5 7L10 2z" fill="#CCCCCC" />
+  </g>
+  <g id="arrow-down-disabled" transform="translate(128,1088)">
+    <path d="M0 2L5 7L10 2z" fill="#999999" />
+  </g>
+  <g id="arrow-left-normal" transform="translate(160,1088)">
+    <path d="M8 0L3 5L8 10z" fill="#CCCCCC" />
+  </g>
+  <g id="arrow-left-focused" transform="translate(192,1088)">
+    <path d="M8 0L3 5L8 10z" fill="#CCCCCC" />
+  </g>
+  <g id="arrow-left-pressed" transform="translate(224,1088)">
+    <path d="M8 0L3 5L8 10z" fill="#CCCCCC" />
+  </g>
+  <g id="arrow-left-toggled" transform="translate(256,1088)">
+    <path d="M8 0L3 5L8 10z" fill="#CCCCCC" />
+  </g>
+  <g id="arrow-left-disabled" transform="translate(288,1088)">
+    <path d="M8 0L3 5L8 10z" fill="#999999" />
+  </g>
+  <g id="arrow-right-normal" transform="translate(320,1088)">
+    <path d="M2 0L7 5L2 10z" fill="#CCCCCC" />
+  </g>
+  <g id="arrow-right-focused" transform="translate(352,1088)">
+    <path d="M2 0L7 5L2 10z" fill="#CCCCCC" />
+  </g>
+  <g id="arrow-right-pressed" transform="translate(384,1088)">
+    <path d="M2 0L7 5L2 10z" fill="#CCCCCC" />
+  </g>
+  <g id="arrow-right-toggled" transform="translate(416,1088)">
+    <path d="M2 0L7 5L2 10z" fill="#CCCCCC" />
+  </g>
+  <g id="arrow-right-disabled" transform="translate(448,1088)">
+    <path d="M2 0L7 5L2 10z" fill="#999999" />
+  </g>
 </svg>

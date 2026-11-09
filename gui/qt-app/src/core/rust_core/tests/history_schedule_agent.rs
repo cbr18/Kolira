@@ -330,11 +330,11 @@ fn interrupted_record_survives_history_pruning_until_explicit_recovery() {
         h.write(&format!(".config/kolira/operations/apply-old-{n}.json"),&json!({"id":format!("apply-old-{n}"),"profile":"probe","state":"succeeded","started":format!("2020-01-{:02}T00:00:00Z",n+1),"updated":"2020-01-01T00:00:00Z","backup":null,"error":null,"recovery_errors":[]}).to_string());
     }
     h.write(".config/kolira/operations/apply-pending.json",&json!({"id":"apply-pending","profile":"probe","state":"preparing","started":"2019-01-01T00:00:00Z","updated":"2019-01-01T00:00:00Z","backup":null,"error":null,"recovery_errors":[]}).to_string());
-    let blocked = h.rpc(
+    let applied = h.rpc(
         "profile.apply",
         json!({"name":"probe","skip_dependencies":true}),
     );
-    assert_eq!(blocked["ok"], false);
+    assert_eq!(applied["ok"], true);
     let rows = h.ok("operation.list", json!({}))["operations"]
         .as_array()
         .unwrap()

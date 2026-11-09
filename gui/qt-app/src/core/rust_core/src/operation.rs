@@ -144,9 +144,6 @@ pub struct MutationGuard {
 }
 impl MutationGuard {
     pub fn acquire() -> Result<Self> {
-        Self::acquire_with_pending(false)
-    }
-    fn acquire_with_pending(allow_pending: bool) -> Result<Self> {
         if DEPTH.with(|depth| *depth.borrow() > 0) {
             DEPTH.with(|depth| *depth.borrow_mut() += 1);
             return Ok(Self { _file: None });
@@ -155,11 +152,8 @@ impl MutationGuard {
         file.try_lock().map_err(|e| {
             anyhow!("Another appearance operation is running; retry after it finishes ({e})")
         })?;
-        if !allow_pending {
-            if let Some(record) = records()?.into_iter().find(pending) {
-                bail!("Interrupted appearance operation {} requires recovery; run kolira operations recover {} (backup: {})",record.id,record.id,record.backup.as_deref().unwrap_or(Path::new("")).display());
-            }
-        }
+        // Only a live owner blocks another mutation. Interrupted records retain
+        // their diagnostics and backups, but must not become a permanent lock.
         DEPTH.with(|depth| *depth.borrow_mut() = 1);
         Ok(Self { _file: Some(file) })
     }
@@ -739,7 +733,7 @@ pub fn restore_completed(id: &str, confirmed: bool) -> Result<serde_json::Value>
 }
 pub fn recover(id: &str, force: bool) -> Result<Record> {
     paths::validate_profile_name(id)?;
-    let _lock = MutationGuard::acquire_with_pending(true)?;
+    let _lock = MutationGuard::acquire()?;
     let mut record: Record =
         serde_json::from_slice(&fs::read(records_dir().join(format!("{id}.json")))?)?;
     if !pending(&record) {

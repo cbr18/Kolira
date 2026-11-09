@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- Potion bottle -->
+  <rect x="18" y="8" width="12" height="24" fill="#9C27B0" stroke="#7B1FA2" stroke-width="2"/>
+  <rect x="16" y="4" width="16" height="4" fill="#5D4037" stroke="#3E2723" stroke-width="1"/>
+  <rect x="16" y="32" width="16" height="8" fill="#5D4037" stroke="#3E2723" stroke-width="1"/>
+  <!-- Liquid -->
+  <rect x="18" y="10" width="12" height="20" fill="#CE93D8" opacity="0.8"/>
+  <!-- Cork -->
+  <rect x="20" y="2" width="8" height="2" fill="#4E342E"/>
+</svg>

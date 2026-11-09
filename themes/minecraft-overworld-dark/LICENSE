@@ -20,7 +20,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-Third-party assets:
-- Monocraft font: https://github.com/IdreesInc/Monocraft (see font license)
-- Wallpaper: Unsplash (free license) - https://unsplash.com/
-- Minecraft End screenshot: Wikimedia Commons CC BY 3.0
+Asset provenance:
+- Theme configs, pixel SVG icons and Kvantum SVG: original assets, MIT.
+- minecraft-overworld-night.png: AI-generated voxel landscape for this theme, MIT.
+- Monocraft, Kvantum, Klassy and Breeze are external dependencies, not bundled.
+  Their own licenses apply. No official Minecraft textures are included.

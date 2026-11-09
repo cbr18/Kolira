@@ -287,6 +287,8 @@ and dependencies: `themes/README.md`):
 - **`Paper`** — light, flat and warm, watercolour wallpaper
 - **`everforest`** — Everforest Dark Medium, misty pine forest
 - **`dracula`** — Dracula palette on glass, official Dracula wallpaper
+- **`minecraft-overworld-dark`** — stone-grey and grass-green pixel theme, Kvantum/Klassy,
+  original voxel night wallpaper; requires Monocraft (see `themes/README.md`)
 
 Start a new theme with `kolira new NAME --from=neutral-light`
 (or `neutral-dark`, or an existing theme to copy) — GUI: **New theme…** — then

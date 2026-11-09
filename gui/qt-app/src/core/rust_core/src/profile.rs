@@ -780,7 +780,7 @@ fn plasma_shell_active() -> bool {
     if no_apply() {
         return true;
     }
-    crate::paths::status_bounded(Command::new("systemctl").args([
+    if crate::paths::status_bounded(Command::new("systemctl").args([
         "--user",
         "is-active",
         "--quiet",
@@ -788,9 +788,24 @@ fn plasma_shell_active() -> bool {
     ]))
     .map(|s| s.success())
     .unwrap_or(true)
+    {
+        return true;
+    }
+    // Plasma can already be running outside the systemd unit (e.g. a manual
+    // recovery launch). Check the actual session service before reporting a
+    // failed restart and blocking all subsequent appearance mutations.
+    crate::paths::status_bounded(Command::new("qdbus6").args([
+        "org.kde.plasmashell",
+        "/PlasmaShell",
+        "org.freedesktop.DBus.Peer.Ping",
+    ]))
+    .is_some_and(|status| status.success())
 }
 
 fn start_plasma_shell() {
+    if plasma_shell_active() {
+        return;
+    }
     run_external(
         "systemctl",
         &["--user", "reset-failed", "plasma-plasmashell.service"],

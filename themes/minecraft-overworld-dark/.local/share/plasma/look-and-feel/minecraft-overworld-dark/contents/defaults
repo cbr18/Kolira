@@ -1,0 +1,12 @@
+[kdeglobals][General]
+ColorScheme=Minecraft Overworld Dark
+
+[kdeglobals][KDE]
+widgetStyle=kvantum
+
+[kdeglobals][Icons]
+Theme=minecraft-overworld-dark
+
+[kwinrc][org.kde.kdecoration2]
+library=org.kde.klassy
+theme=Klassy

@@ -717,8 +717,8 @@
     <name>ProfileController</name>
     <message>
         <location filename="../src/controllers/__init__.py" line="294" />
-        <source>Interrupted apply %1 requires recovery. Backup: %2. Run: kolira operations recover %1</source>
-        <translation>Прерванное применение %1 требует восстановления. Резервная копия: %2. Команда: kolira operations recover %1</translation>
+        <source>Interrupted apply %1. Backup: %2. You can continue or restore it with: kolira operations recover %1</source>
+        <translation>Прерванное применение %1. Резервная копия: %2. Можно продолжить работу или восстановить командой: kolira operations recover %1</translation>
     </message>
     <message>
         <location filename="../src/controllers/__init__.py" line="385" />

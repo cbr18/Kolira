@@ -118,7 +118,8 @@ A change is not done until the docs agree with the code. At minimum:
 - **Appearance mutation lock**: profile Apply, Inspector, fields, app themes,
   palettes and wallpapers share Rust `operation::MutationGuard`. Keep lock order
   global appearance → Inspector session. Profile transactions go through
-  `operation::run`; do not bypass pending recovery or discard recovery errors.
+  `operation::run`; only a live lock owner blocks mutations. Keep interrupted
+  records, backups and recovery errors visible without blocking later operations.
 - **Single core**: `gui/qt-app/src/core/cli_core.py` shells to the Rust CLI for
   profile/wallpaper operations; the backend name is `core` (`auto` is the same
   thing). Select with `--core`, `$KTM_CORE` or *Settings → Core*.

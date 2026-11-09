@@ -1,6 +1,20 @@
 {
-  "ui_font_size": 16,
-  "buffer_font_size": 15,
-  "ui_font_family": "Monocraft",
-  "buffer_font_family": "Monocraft"
+  "workbench.colorTheme": "Default Dark Modern",
+  "workbench.colorCustomizations": {
+    "editor.background": "#252525",
+    "editor.foreground": "#CCCCCC",
+    "editor.selectionBackground": "#70B23770",
+    "editorCursor.foreground": "#70B237",
+    "sideBar.background": "#383838",
+    "activityBar.background": "#252525",
+    "statusBar.background": "#383838",
+    "statusBar.foreground": "#CCCCCC",
+    "button.background": "#70B237",
+    "button.foreground": "#000000",
+    "focusBorder": "#70B237",
+    "tab.activeBackground": "#555555"
+  },
+  "editor.fontFamily": "Monocraft, monospace",
+  "editor.fontLigatures": false,
+  "terminal.integrated.fontFamily": "Monocraft, monospace"
 }

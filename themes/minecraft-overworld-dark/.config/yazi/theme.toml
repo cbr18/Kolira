@@ -1,26 +1,31 @@
-[Theme]
-name=minecraft-overworld-dark
-author=Minecraft Overworld Dark Theme
-description=Minecraft Java Edition inspired dark theme
+[mgr]
+cwd = { fg = "#55D6D0" }
+find_keyword = { fg = "#F6C453", bold = true }
+marker_copied = { fg = "#70B237", bg = "#70B237" }
+marker_cut = { fg = "#F06F65", bg = "#F06F65" }
+marker_marked = { fg = "#55D6D0", bg = "#55D6D0" }
+marker_selected = { fg = "#F6C453", bg = "#F6C453" }
+border_symbol = "│"
+border_style = { fg = "#747474" }
 
-[colors]
-background = "#252525"
-foreground = "#F0F0F0"
-accent = "#70B237"
-accent_bright = "#41A83B"
-wood = "#A98558"
-warning = "#F6C453"
-error = "#C83C32"
-info = "#55D6D0"
-text = "#F0F0F0"
-text_secondary = "#B8B8B8"
+[tabs]
+active = { fg = "#000000", bg = "#70B237", bold = true }
+inactive = { fg = "#CCCCCC", bg = "#383838" }
 
-[font]
-family = Monocraft
-size = 12
+[status]
+sep_left = { open = "", close = "" }
+sep_right = { open = "", close = "" }
+overall = { fg = "#CCCCCC", bg = "#383838" }
 
-[style]
-round_corners = false
-gradient = false
-blur = false
-pixelated = true
+[filetype]
+rules = [
+  { url = "*/", fg = "#93CE4F" },
+  { mime = "image/*", fg = "#F6C453" },
+  { mime = "audio/*", fg = "#55D6D0" },
+  { mime = "video/*", fg = "#A98558" },
+  { url = "*", fg = "#CCCCCC" },
+]
+
+[indicator]
+current = { fg = "#000000", bg = "#70B237" }
+preview = { underline = true }

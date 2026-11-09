@@ -1,9 +1,5 @@
-* {
-  color: #F0F0F0;
-  background-color: #252525;
-}
-
-*:focus {
-  background-color: #70B237;
-  color: #000000;
-}
+window { background-color: #252525; color: #cccccc; border: 2px solid #747474; border-radius: 0; }
+#input { margin: 8px; padding: 8px; background-color: #383838; color: #cccccc; border: 2px solid #747474; border-radius: 0; }
+#entry { padding: 8px; }
+#entry:selected { background-color: #70b237; color: #000000; }
+#text:selected { color: #000000; }

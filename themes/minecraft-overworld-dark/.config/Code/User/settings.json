@@ -1,8 +1,20 @@
 {
-  "workbench.colorTheme": "dfd05a73-c189-4622-87c7-573fbb3a46b9",
-  "editor.fontFamily": "Monocraft",
-  "editor.fontWeight": "normal",
+  "workbench.colorTheme": "Default Dark Modern",
+  "workbench.colorCustomizations": {
+    "editor.background": "#252525",
+    "editor.foreground": "#CCCCCC",
+    "editor.selectionBackground": "#70B23770",
+    "editorCursor.foreground": "#70B237",
+    "sideBar.background": "#383838",
+    "activityBar.background": "#252525",
+    "statusBar.background": "#383838",
+    "statusBar.foreground": "#CCCCCC",
+    "button.background": "#70B237",
+    "button.foreground": "#000000",
+    "focusBorder": "#70B237",
+    "tab.activeBackground": "#555555"
+  },
+  "editor.fontFamily": "Monocraft, monospace",
   "editor.fontLigatures": false,
-  "terminal.integrated.fontFamily": "Monocraft",
-  "terminal.integrated.fontSize": 13
+  "terminal.integrated.fontFamily": "Monocraft, monospace"
 }

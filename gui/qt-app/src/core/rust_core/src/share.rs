@@ -43,6 +43,7 @@ const MAX_FILES: usize = 20_000;
 /// carries only the entries the theme uses (its `assets`) — the rest are
 /// other people's themes the receiver neither needs nor may get from us.
 const LIBRARY_ROOTS: &[&str] = &[
+    ".local/share/icons",
     ".local/share/color-schemes",
     ".config/Kvantum",
     ".local/share/plasma/look-and-feel",
@@ -219,7 +220,7 @@ fn withheld(package: &theme::Package) -> Vec<&theme::Asset> {
 fn theme_files_for(dir: &Path, include_wallpaper: bool, public: bool) -> Result<Vec<PathBuf>> {
     let package = theme::load(dir)?;
     let mut rels: Vec<PathBuf> = Vec::new();
-    for rel in ["manifest.json", "manifest.txt"] {
+    for rel in ["manifest.json", "manifest.txt", "LICENSE"] {
         if dir.join(rel).is_file() {
             rels.push(PathBuf::from(rel));
         }
@@ -232,6 +233,12 @@ fn theme_files_for(dir: &Path, include_wallpaper: bool, public: bool) -> Result<
             .filter(|a| a.kind != "wallpaper")
             .map(|a| a.path.clone()),
     );
+    // The exporting machine may use another default profile (or lack Konsole).
+    // Keep the snapshot's appearance profile so the receiver can map it to its own.
+    let profile = crate::profile::theme_file(dir, ".local/share/konsole/Theme Profile.profile");
+    if profile.is_file() {
+        roots.push(profile.strip_prefix(dir)?.to_string_lossy().into_owned());
+    }
     if include_wallpaper && package.wallpaper.is_some() {
         roots.push("wallpaper".into());
     }
@@ -745,8 +752,30 @@ mod tests {
     }
 
     #[test]
+    fn export_keeps_snapshot_konsole_profile_and_license() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path();
+        fs::write(
+            dir.join("theme.json"),
+            r#"{"schema":"kolira/theme@2","name":"test"}"#,
+        )
+        .unwrap();
+        fs::create_dir_all(dir.join(".local/share/konsole")).unwrap();
+        fs::write(
+            dir.join(".local/share/konsole/Original.profile"),
+            "[Appearance]\nColorScheme=Original\n",
+        )
+        .unwrap();
+        fs::write(dir.join("LICENSE"), "MIT").unwrap();
+        let files = theme_files(dir, true).unwrap();
+        assert!(files.contains(&PathBuf::from(".local/share/konsole/Original.profile")));
+        assert!(files.contains(&PathBuf::from("LICENSE")));
+    }
+
+    #[test]
     fn exports_carry_only_the_library_entries_the_theme_uses() {
         let assets = vec![
+            PathBuf::from(".local/share/icons/Mine"),
             PathBuf::from(".local/share/color-schemes/Mine.colors"),
             PathBuf::from(".config/Kvantum/Orchis"),
         ];
@@ -771,6 +800,14 @@ mod tests {
             &assets
         ));
         assert!(exported(Path::new(".config/kdeglobals"), &assets));
+        assert!(exported(
+            Path::new(".local/share/icons/Mine/scalable/folder.svg"),
+            &assets
+        ));
+        assert!(!exported(
+            Path::new(".local/share/icons/Other/index.theme"),
+            &assets
+        ));
     }
 
     #[test]

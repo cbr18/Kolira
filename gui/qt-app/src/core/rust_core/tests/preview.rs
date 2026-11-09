@@ -315,7 +315,7 @@ fn malicious_resource_symlink_is_rejected_by_preview_without_any_write() {
 }
 
 #[test]
-fn all_six_bundled_previews_match_the_applied_files() {
+fn all_bundled_previews_match_the_applied_files() {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../../..");
     let mut count = 0;
     for entry in fs::read_dir(repo.join("themes")).unwrap() {
@@ -336,7 +336,7 @@ fn all_six_bundled_previews_match_the_applied_files() {
         h.assert_files(&report);
         count += 1;
     }
-    assert_eq!(count, 6);
+    assert_eq!(count, 7);
 }
 
 #[test]

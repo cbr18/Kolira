@@ -1,54 +1,14 @@
-* {
-  color: #CCCCCC;
-  background-color: #252525;
-}
-
-button {
-  background-color: #555555;
-  border: 2px solid #747474;
-}
-
-.entry {
-  background-color: #404040;
-  color: #CCCCCC;
-  border: 1px solid #747474;
-}
-
-.treeview {
-  background-color: #383838;
-  color: #CCCCCC;
-}
-
-.menu {
-  background-color: #383838;
-  color: #CCCCCC;
-  border: 1px solid #747474;
-}
-
-.menuitem {
-  background-color: #383838;
-  color: #CCCCCC;
-}
-
-.toolbar {
-  background-color: #383838;
-}
-
-.header-bar {
-  background-color: #383838;
-  color: #CCCCCC;
-}
-
-.header-bar button {
-  background-color: #383838;
-  border: none;
-}
-
-.scrollbar {
-  background-color: #383838;
-}
-
-.scrollbar slider {
-  background-color: #555555;
-  border: 1px solid #747474;
-}
+@import url("colors.css");
+window, dialog { background-color: @theme_bg_color; color: @theme_fg_color; }
+button { background-image: none; background-color: #555555; color: #f0f0f0; border: 2px solid #202020; border-top-color: #929292; border-left-color: #929292; border-radius: 0; box-shadow: none; }
+button:hover { background-color: #626262; border-color: #70b237; }
+button:active, button:checked { background-color: #404040; border-top-color: #202020; border-left-color: #202020; border-bottom-color: #929292; border-right-color: #929292; }
+button:disabled { color: #999999; background-color: #383838; }
+button:focus { outline: 2px solid #70b237; outline-offset: 2px; }
+entry, textview, treeview { background-color: @theme_base_color; color: @theme_text_color; border-radius: 0; }
+entry { border: 2px solid #747474; }
+entry:focus { border-color: #70b237; }
+selection { background-color: @theme_selected_bg_color; color: @theme_selected_fg_color; }
+headerbar, toolbar, menubar, menu, popover { background-image: none; background-color: #383838; color: #cccccc; border-radius: 0; }
+menuitem:hover { background-color: #70b237; color: #000000; }
+scrollbar slider { background-color: #747474; border-radius: 0; }

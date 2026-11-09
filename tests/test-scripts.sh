@@ -1641,9 +1641,9 @@ REG
 dep_a() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$DEP_A" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 dep_b() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$DEP_B" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 dep_a save candy >/dev/null 2>&1
-if python3 -c 'import json,sys; d=json.load(open(sys.argv[1]))["dependencies"]; assert any(x["kind"]=="icons" and x["name"]=="Candy" and x["source"]=="kde-store" and x["id"]=="1305251" and x["exact"] for x in d), d' \
+if python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert any(a["kind"]=="icons" and a["name"]=="Candy" and not a["redistributable"] for a in p["assets"]); assert not any(d["kind"]=="icons" for d in p["dependencies"]), p' \
   "$DEP_A/.config/kolira/themes/candy/theme.json" 2>/dev/null; then
-  ok "save records the KDE Store id of icons installed via Get New… (KNewStuff registry)"
+  ok "save bundles user icons privately without an external dependency"
 else
   fail "dependency source not detected: $(cat "$DEP_A/.config/kolira/themes/candy/theme.json")"
 fi
@@ -1652,7 +1652,7 @@ if [ "$(dep_a deps candy)" = "All dependencies are installed." ]; then
 else
   fail "deps on the author's machine: $(dep_a deps candy)"
 fi
-dep_a export candy --out="$TMP_ROOT/candy.zip" >/dev/null 2>&1
+dep_a export candy --out="$TMP_ROOT/candy.zip" --public >/dev/null 2>&1
 report=$(dep_b import "$TMP_ROOT/candy.zip" --json 2>/dev/null)
 if printf '%s' "$report" | python3 -c 'import json,sys; r=json.load(sys.stdin); d=r["dependencies"]; assert d and d[0]["id"]=="1305251" and d[0]["url"].endswith("/p/1305251"), r' 2>/dev/null &&
   dep_b deps candy | grep -q "icons Candy — kde-store"; then
@@ -1914,14 +1914,15 @@ else
   fail "GTK settings not mirrored: $(cat "$GM/.config/gtk-3.0/settings.ini" "$GM/.config/gtk-4.0/settings.ini" | tr '\n' ' ')"
 fi
 # A KDE Store item installed by `deps --install` is remembered with its id, so
-# a later save records the exact source (KNewStuff knows only its own installs).
+# a public export records the exact source when withholding private icons.
 mkdir -p "$GM/.local/share/icons/Seven" "$GM/.config/kolira"
 printf '[Icon Theme]\nName=Seven\n' >"$GM/.local/share/icons/Seven/index.theme"
 printf '{"%s": {"store": "kde-store", "id": "1631627", "title": "Seven Icons"}}\n' "$GM/.local/share/icons/Seven" >"$GM/.config/kolira/installed-assets.json"
 gm save seven >/dev/null 2>&1
+gm export seven --dir="$TMP_ROOT/seven-public" --public >/dev/null 2>&1
 if python3 -c 'import json,sys; d=json.load(open(sys.argv[1]))["dependencies"]; assert any(x["name"]=="Seven" and x["id"]=="1631627" and x["exact"] for x in d), d' \
-  "$GM/.config/kolira/themes/seven/theme.json" 2>/dev/null; then
-  ok "save records the KDE Store id of assets that deps --install fetched"
+  "$TMP_ROOT/seven-public/theme.json" 2>/dev/null; then
+  ok "public export records the KDE Store id of private icons that deps --install fetched"
 else
   fail "own install record ignored: $(cat "$GM/.config/kolira/themes/seven/theme.json" 2>/dev/null | head -c 600)"
 fi
@@ -2478,10 +2479,13 @@ fi
 # --- Forced blur leaves panels and notifications their own area ---------------------
 BLUR_OK=1
 for theme in "$SCRIPT_DIR"/themes/*/; do
+  if grep -qxF 'better_blur_dxEnabled=false' "$theme/.config/kwinrc"; then
+    continue
+  fi
   grep -qxF 'WindowClasses=plasmashell\nswaync' "$theme/.config/kwinrc" || BLUR_OK=0
 done
 if [ "$BLUR_OK" = 1 ]; then
-  ok "every bundled theme excludes plasmashell and swaync from forced blur"
+  ok "bundled themes with forced blur exclude plasmashell and swaync"
 else
   fail "a bundled theme lacks the blur exceptions"
 fi
