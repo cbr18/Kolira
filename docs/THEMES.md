@@ -7,9 +7,9 @@ and (planned) `.zip` export/import all use one format: the **theme package**.
 
 A theme stores **everything that affects how the desktop looks — and nothing
 else**: KDE colours and fonts, KWin effects and decoration, the look of window rules,
-the look of panels and widgets (wallpaper, launcher icon, Panel Colorizer,
+the look of panels and widgets (wallpaper, Panel Colorizer,
 panel floating/opacity), GTK 3/4,
-Kvantum, terminal colours/fonts/opacity, launchers (wofi), btop, fastfetch,
+Kvantum, terminal colours/fonts/opacity, launchers (wofi), btop,
 editor themes (Zed, VS Code, Cursor), Zen (`user.js` and chrome CSS), Obsidian,
 plus user-defined components and the wallpaper. Applying someone's theme (or
 switching your own) never resets screen scaling, virtual desktops, tiling
@@ -31,7 +31,7 @@ takes the family from the theme and keeps the live size.
 | `kwinrulesrc` | rules with a look property, reduced to their match keys (`Description`, `wmclass*`, `title*`, `types`, …) and look properties (`opacityactive/inactive`, `noborder`, `decocolor`, `decorationpolicy` + their `…rule`); merged by id — a live rule with the same id keeps its behaviour keys. The rule list is written in the live file's format (KWin 6: `Order=`, older: `count`/`rules`) | the user's other rules; position, size, desktops, shortcuts and other behaviour properties |
 | `plasmarc` | `[Theme]` | `[Wallpapers]` list |
 | `plasmashellrc` | per panel `[PlasmaViews][Panel N]` `floating`, `panelOpacity`; a live panel takes the theme panel with the same id, else the one on the same screen edge, else the first | thickness, lengths, alignment, offsets, auto-hide (`panelVisibility`), `[Updates]` |
-| `plasma-org.kde.plasma.desktop-appletsrc` | per containment only `plugin`/`formfactor`/`location`/`lastScreen`/`wallpaperplugin` (to match, never restored); each desktop's active wallpaper plugin settings → the live desktop on the same screen (else the first); look keys of widgets the user already has — launcher (`kickoff`, `kicker`, `kickerdash`) `icon`/`useCustomButtonImage`/`customButtonImage`, Panel Colorizer `globalSettings`/`configurationOverrides`/`isEnabled`/`hideWidget` — the n-th live widget of a kind takes the theme's n-th (else first). A Panel Colorizer switched off in the theme keeps only `isEnabled=false`: applying turns the user's off, keeps their styling, and it is not a dependency | which panels and widgets exist, their order and place, every other widget setting (favourites, weather location, clock format…), activities, desktop icons; a theme never adds a widget — a styled one the user lacks is simply not styled |
+| `plasma-org.kde.plasma.desktop-appletsrc` | per containment only `plugin`/`formfactor`/`location`/`lastScreen`/`wallpaperplugin` (to match, never restored); each desktop's active wallpaper plugin settings → the live desktop on the same screen (else the first); look keys of widgets the user already has — Panel Colorizer `globalSettings`/`configurationOverrides`/`isEnabled`/`hideWidget` — the n-th live widget of a kind takes the theme's n-th (else first). A Panel Colorizer switched off in the theme keeps only `isEnabled=false`: applying turns the user's off, keeps their styling, and it is not a dependency | which panels and widgets exist, their order and place, every other widget setting (favourites, weather location, clock format…), activities, desktop icons; a theme never adds a widget — a styled one the user lacks is simply not styled |
 | GTK `settings.ini` | theme, icons, cursor theme, font family (live size kept), dark preference, title-bar buttons, animations, font rendering; apply and `field set` also write `gtk-theme` and `color-scheme` to GSettings `org.gnome.desktop.interface` (Wayland GTK 3 apps, Firefox and Zen included, read the theme there, and a stale dark theme gives a light browser white system text) | cursor size, cursor blinking, sounds, `gtk-modules`, … |
 | `kcminputrc` | `[Mouse] cursorTheme` | cursor size, mouse settings |
 | `btop.conf` | `color_theme`, `theme_background`, `truecolor`, `rounded_corners`, `graph_symbol*` | ~70 behaviour keys |
@@ -50,7 +50,7 @@ takes the family from the theme and keeps the live size.
 | Konsole | the default profile's `[Appearance]` (`ColorScheme`, font family — live size kept) + its `.colorscheme` (whole: colours, opacity, blur; travels as an asset) | the profile's command, scrolling, keys…; without a profile a `Theme Profile` (`Parent=FALLBACK/`) is created and made default |
 | Firefox (default profile from `installs.ini`/`profiles.ini`) | `chrome/userChrome.css`, `chrome/userContent.css` (whole); `user.js` only look prefs (`browser.theme.*`, `toolkit.legacyUserProfileCustomizations.stylesheets`, `extensions.activeThemeID`, …) | privacy/behaviour prefs in `user.js` |
 | Alacritty | `alacritty/theme-profile.toml` (`[colors.*]`, `[font]` faces, window opacity/blur/padding/decorations, cursor style) | `[font] size`/offsets; `alacritty.toml` gains `general.import` |
-| everything else (Klassy, Breeze, GTK CSS, wofi CSS, Zen, Obsidian appearance, Trolltech palette, Kvantum, colour schemes, L&F, fastfetch) | whole file (a Look & Feel package without its `contents/layouts/` scripts). `breezerc` only when the widget style or window decoration is Breeze (absent keys mean Breeze), `klassy/` only when either is Klassy | when not stored: the user's own `breezerc` / `klassy/` |
+| everything else (Klassy, Breeze, GTK CSS, wofi CSS, Zen, Obsidian appearance, Trolltech palette, Kvantum, colour schemes, L&F) | whole file (a Look & Feel package without its `contents/layouts/` scripts). `breezerc` only when the widget style or window decoration is Breeze (absent keys mean Breeze), `klassy/` only when either is Klassy | when not stored: the user's own `breezerc` / `klassy/` |
 
 Browser profile folders have a random name per install (`gp0y8wrv.Default
 (release)`): a theme made elsewhere stores its files under the author's
@@ -114,8 +114,7 @@ a journal in `<theme root>/apply-journal/` (local state, never in a theme):
 Only what the theme left untouched is undone: a file or block edited since then
 stays. Applying also skips the config folder of a program this machine lacks (no
 `~/.config/Cursor`, no `~/obsidian`), writes Zen files to the receiver's default
-profile, keeps the receiver's launcher icon when the theme's icon does not exist
-here, and a save records the GTK theme GSettings really reports when it differs
+profile, keeps the receiver's launcher unchanged, and a save records the GTK theme GSettings really reports when it differs
 from `settings.ini` (`gsettings_gtk_theme` in `theme.json`). External tools cannot
 hang an apply: each is stopped after 60 s (`KTM_COMMAND_TIMEOUT`), and a Kvantum
 theme that is not installed is not handed to `kvantummanager`. Checked by
@@ -139,7 +138,7 @@ with a real KWin and plasmashell (see `tests/e2e/Dockerfile`).
 **Only the theme's own assets.** From folders that collect many themes
 (colour schemes, Kvantum, Look & Feel, btop/Zed themes) a theme stores just
 what it uses — the active scheme, Kvantum family, Global Theme, btop/Zed theme
-file, the fastfetch logo next to its config — and applying restores exactly
+file — and applying restores exactly
 those (listed in `theme.json` `assets`), backed up like every other file. (Until
 2026-11-05 the registry hard-coded one user's assets, so every theme carried
 every other theme's Sandstone, glass/paper Look & Feel, noctalia/paper btop
@@ -157,6 +156,21 @@ decoration `.local/share/aurorae/themes/<name>/` (field `decoration_theme` =
 author may not redistribute is withheld by `export --public` and becomes a
 dependency; a derivative with a free licence (frutiger-aero-light's
 `Se7enAeroLight`, GPL-2) travels inside the theme.
+
+Asset destinations are validated by Rust at import/load and again before apply:
+each kind has an appearance-only container (colour schemes, Kvantum, Look & Feel,
+Plasma styles, Aurorae, btop/Zed themes, Konsole `.colorscheme`, or `wallpaper/`).
+Unknown kinds, absolute/traversing paths and container ancestors are rejected;
+an asset cannot request a write to an unrelated HOME file. Apply checks source
+and destination asset links before dependency installation or backups. Links
+inside an asset or below its destination container are rejected; relocating the
+container itself, including through XDG, remains supported. Legacy fastfetch
+assets are ignored as before. These checks do not make external dependencies
+or a complete theme application transactional.
+
+`bat cache --build` uses the common external-command timeout. Its failure or
+timeout is included in `apply --json` `errors`; the completed file restoration
+and its backup remain available.
 
 ## `theme.json`
 
@@ -189,6 +203,7 @@ theme-profile prune NAME|--all             # drop what is not part of the theme,
 theme-profile export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper] [--public]
 theme-profile license NAME ASSET --license=SPDX [--source=URL] [--no-redistribute]
 theme-profile import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
+theme-profile bundled sync THEMES_DIR      # add new ready themes, update unchanged ones
 theme-profile deps NAME [--refresh] [--install[=all|0,2]] [--json]
 theme-profile actions NAME [--json]        # what applying leaves to do (restarts, Telegram)
 theme-profile action ID                    # do one: vesktop, discord, zen, firefox
@@ -290,7 +305,8 @@ list it are read without it). KDE's own assets (Breeze, Oxygen,
    (`~/.local/share/knewstuff3/*.knsregistry`, written by *Get New…*) record the
    store id of everything installed that way; items fetched by `deps --install`
    are recorded the same way in `<theme-profile data>/installed-assets.json`
-   (path → store id, title), so re-saving a theme keeps their exact source;
+   (schema 2: `sources` keeps path → store id/title, `resources` keeps dependency
+   requirements, ownership and factual state), so re-saving a theme keeps their exact source;
 2. **package** — `pacman -Qqo` on any installed copy (repo or AUR; a user copy
    shadowing a packaged one — Klassy's generated icons — is looked through);
 3. **editor stores** — the installed VS Code / Cursor extension or Zed
@@ -317,8 +333,10 @@ copied; editor themes via their stores. **System packages**
 or ghostty, the first installed — running one command for all of them
 (`yay`/`paru -S --needed …`, or `sudo pacman -S --needed …` for repository-only
 packages without an AUR helper); the user types their
-own password there, the app itself never runs sudo. Package names that are not
-plain package names never reach the shell. Aurorae decorations are looked up in
+own password there; the Rust terminal worker invokes the package manager and
+publishes its result without waiting for an extra Enter. The GUI never asks for
+or stores the password. Package identifiers are validated before invocation.
+Aurorae decorations are looked up in
 both the "Aurorae" and "Window Decorations" store categories. An icon theme
 made for GNOME (Seven Icons: `Inherits=Humanity,…,gnome,hicolor`) lacks KDE's
 action icons — `configure`, `document-edit` — and icon-only buttons in Plasma
@@ -329,7 +347,18 @@ follows *Settings → Network* (`KTM_OFFLINE=1` turns it off); `--refresh`
 re-detects the dependencies of a theme saved earlier (a display name found
 before is kept when this machine cannot tell it, e.g. VS Code not installed).
 
+The **Dependencies** page manages a persistent registry shared by CLI, installer
+and GUI: checkbox selection, separate name/category columns, bulk installation,
+removal and reinstall, affected-theme confirmation, progress and cancellation.
+Existing external or modified resources are protected. Remembered store/package
+choices use the existing automation policies; search candidates still require
+confirmation. See [Dependency management](DEPENDENCIES.md) for migration, ownership,
+the `dependencies` CLI group, JSONL operations and recovery. The legacy `deps NAME`
+commands remain available; `deps NAME --pending --json` filters proposals in Rust.
+`apply NAME --without-dependencies` explicitly skips all automatic installations.
+
 ### Widget style
+
 
 A Qt widget style that is a plugin of its own — Kvantum — is a dependency
 (`widget-style`, the package owning `qt6/plugins/styles/libkvantum.so`; where
@@ -461,3 +490,45 @@ data), not for the whole transfer: a big icon-theme archive from a slow store
 mirror keeps downloading as long as data flows. A theme's wallpaper copy goes back to its original folder only if
 that folder exists here — a theme from another machine never creates e.g.
 `~/Изображения`; this machine's wallpaper folder is used instead.
+
+Fastfetch (config and logo) and the Plasma application launcher (including its
+button icon/image) are excluded from themes and remain unchanged, including when
+applying legacy themes. Simple Application Launcher is not required or installed.
+
+## Защита применения
+
+GUI и CLI используют общую блокировку оформления. До записи проверяются
+конфиги/ресурсы и сохраняется исходное состояние. Ошибка записи или обязательного
+внешнего шага возвращает неуспех и запускает восстановление; JSON-отчёт успешного
+Apply дополнен `operation_id`. `operations list/show/recover` позволяют проверить
+результат и восстановить прерванный Apply. [Подробный контракт](APPLY_PROTECTION.md).
+
+## Pre-apply review
+
+`theme-profile preview NAME --json` calculates a read-only plan using the same
+restore/reset policies as Apply. Pass its token with `apply NAME --preview-token=TOKEN`
+and identical wallpaper/component options; changed state returns `PREVIEW_STALE`.
+Confirmed application never installs dependencies implicitly. Legacy snapshots
+also honour `--keep-wallpaper`. Konsole profile paths respect XDG_CONFIG_HOME.
+[GUI, file report and limits](APPLY_PREVIEW.md).
+
+## Offline-подготовка агентом
+
+`core agent.prepare` / MCP `prepare_theme` создаёт новый appearance-only пакет
+из значений полей и опциональной сохранённой палитры, без применения к desktop.
+Пакет публикуется атомарно; существующие имена не заменяются. Корневые
+`themes/AGENTS.md`, `CLAUDE.md` и `.kit-new` — метаданные каталога, не темы;
+экспорт отдельного пакета их не включает. Импорт остаётся ограничен выбранным
+каталогом темы и не заменяет корневые workspace-инструкции. Инструкции внутри
+чужого пакета не становятся доверенными правилами агента. [Рецепт](MCP.md).
+
+Корневые пути `AGENTS.md`, `CLAUDE.md` и их `.kit-new` (без учёта регистра)
+зарезервированы для workspace-инструкций: создать/импортировать тему по этим
+путям нельзя. Синтаксический валидатор имён сохраняет общий regex; назначение
+пути дополнительно проверяется Rust до подготовки или живых изменений.
+
+Импорт также отвергает упакованные инструкции/настройки клиентов и служебные
+каталоги (`AGENTS.md`, `AGENTS.override.md`, `CLAUDE.md`, `CLAUDE.local.md`,
+их `.kit-new`, `.codex`, `.claude`, `.agents`, `.git`) на любой глубине пакета.
+Экспорт исключает такие метаданные из деревьев ресурсов. Таким образом чужой
+пакет не становится источником доверенных инструкций или клиентских hooks.

@@ -47,10 +47,18 @@ SHIM="$HOME/.shim"
 mkdir -p "$SHIM"
 cat >"$SHIM/systemctl" <<'EOF'
 #!/usr/bin/env bash
+running() { ps -C plasmashell -o stat= | grep -qv '^[[:space:]]*Z'; }
 case "$*" in
-  *"stop plasma-plasmashell.service"*) pkill -TERM -x plasmashell; for _ in $(seq 50); do pgrep -x plasmashell >/dev/null || exit 0; sleep 0.1; done; pkill -KILL -x plasmashell ;;
-  *"start plasma-plasmashell.service"*) pgrep -x plasmashell >/dev/null || (nohup plasmashell >>"$E2E_OUT/plasmashell.log" 2>&1 &) ;;
-  *"is-active"*) pgrep -x plasmashell >/dev/null || exit 3 ;;
+  *"stop plasma-plasmashell.service"*) pkill -TERM -x plasmashell; for _ in $(seq 50); do running || exit 0; sleep 0.1; done; pkill -KILL -x plasmashell ;;
+  # The core reaps each helper's process group. A real systemd service belongs
+  # to the service manager; emulate that separation rather than losing the
+  # shell when this short-lived shim exits. Wait until the detached child runs.
+  *"start plasma-plasmashell.service"*)
+    running && exit 0
+    setsid -f plasmashell </dev/null >>"$E2E_OUT/plasmashell.log" 2>&1
+    for _ in $(seq 50); do running && exit 0; sleep 0.1; done
+    exit 1 ;;
+  *"is-active"*) running || exit 3 ;;
 esac
 exit 0
 EOF

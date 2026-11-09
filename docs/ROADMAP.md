@@ -1,332 +1,135 @@
-# KDE Theme Manager — Полный план разработки (Roadmap)
+# KDE Theme Manager — Roadmap
 
-> **Версионирование:** актуальная линия — `0.6.0`. Экспериментальные теги
-> `v1.0.0`–`v1.1.2` оставлены в истории, но публично откатаны: они не являются
-> стабильной линией. Новые релизы продолжаются с `v0.6.0`.
+Актуализировано 2026-11-09 по текущему дереву и локальным карточкам задач.
+Актуальная линия — **0.6.0**. Экспериментальные теги `v1.0.0`–`v1.1.2`
+остаются в истории и не обозначают стабильную линию.
 
----
+## Текущие задачи
 
-## v0.6.0 — темы как снимок всего вида (текущий этап)
+Источник текущих статусов — [tasks/README.md](../tasks/README.md).
+Исправления интерфейса согласованы с текущим main; результаты и границы:
+[задача UI](../tasks/2026_11_08_ui-consistency-and-localization.md).
 
-- Формат темы `theme@2`: только оформление, зависимости с источниками, экспорт и импорт, шесть готовых тем.
-- Палитра base16 и генераторы, конструктор тем, предпросмотр, свой Look & Feel.
-- Журнал применения: возврат к своей теме не оставляет чужого; что тема не указала, возвращается к стандарту.
-- `my-original-look` при первой установке; выбор автоматизации на пользователя; MCP; русский перевод данных.
-- Расположения панелей вне тем. Убраны из приложения: Steam, SDDM, Neovim.
+- Выполнен [аудит текущей кодовой базы](audits/2026_11_08_codebase-audit.md).
+  [Исправлены F01–F11](audits/2026_11_08_audit-fixes.md): границы записи ресурсов,
+  обработка ошибок, MCP и GUI; cleanup и обязательные проверки CI обновлены.
+  Оставшаяся бизнес-логика перенесена в Rust;
+  [результат переноса](../plans/2026_11_08_single-core-completion.md).
 
-## v0.5.0 — Qt/QML
+- [Сценарий палитры](../tasks/2026_11_08_palette-workflow.md): связать генерацию,
+  предпросмотр и сохранение; готовые компоненты выбирать из установленных.
 
-### ✅ Готово
-- [x] Clean Architecture: `core/protocol.py` (ABC contracts)
-- [x] RustCore + Rust CLI: нативные мутации/status, CLI-адаптер (`cli_core.py`)
-- [x] TrackedAppsCore: 20 приложений с авто-детектом
-- [x] Controllers: Profile, Wallpaper, TrackedApps, Settings, Main
-- [x] ThemeController: dogfooding (glass/paper/dark/light/system)
-- [x] QML UI: MainPage (профили + обои), SettingsPage (гранулярные чекбоксы)
-- [x] Theme Inspector: страница Theme, 69 полей, diff live↔profile, валидация, live-правки с Undo/Revert, экспорт JSON, ссылки в KCM
-- [x] Components: ProfileCardDelegate, ProfileRadioButton, ComponentCategoryGroup, ComponentCheckbox
-- [x] Install/Update/Uninstall скрипты для Qt app
-- [x] pyproject.toml, README, .gitignore
-- [x] Git tags: v0.1.0 (bash), v0.2.0-dev, v0.3.0, v0.5.0 (Qt)
-- [x] Конструктор тем: `theme-profile new` (нейтральная основа или копия), свой Look & Feel, предпросмотр палитры (2026-11-05)
-- [x] Расположения вне тем: тема несёт только вид панелей/виджетов/правил окон, раскладка остаётся пользовательской (`layout.rs`, 2026-11-05)
+- [Реальный цикл зависимостей из AUR](../tasks/2026_11_08_aur-dependency-cycle.md):
+  сборка, установка, удаление/переустановка, реестр и обработка сбоев в изоляции.
+- Расследование зависания у друга [закрыто пользователем](../tasks/2026_11_07_16_00_friend-report.md):
+  логов не будет, причина не подтверждена.
+- Проверка последних правок на чистой машине закрыта пользователем **без прогона**:
+  [границы проверки](../tasks/2026_11_07_14_30_test-current-edits.md).
 
-### 🔄 В процессе / Нужно доделать
+## Реализовано в текущей линии
 
-#### 1. Одно ядро вместо двух — ✅ сделано и закоммичено (`42675f5`)
-Два ядра (Rust-библиотека + CLI-адаптер) сведены к одному — CLI-адаптер
-(`core/cli_core.py`, бэкенд `core`). Удалено: `core/rust_core.py`, FFI-слой
-(`libkde_theme_core.so`, cdylib), Rust-трейты без потребителей, `rustCoreBuilt`
-в контроллерах/QML, persist-ветка в `__main__`, флаги `--with-rust/--no-rust`
-в установщике. Тесты переписаны под одно ядро (скипов нет).
-По `docs/PLAN-THEME-MODEL.md` этапы A/B/C тоже выполнены и закоммичены:
-GUI описаний и страница «Приложения», `reload_command`, редактор
-параметров (C1–C3).
+- [Аудит смен тем](../tasks/2026_11_08_theme-change-audit.md), DONE (2026-11-09): реализованы история/копии/восстановление и отдельная страница,
+  10 последних операций с привязкой к бэкапам; автоматический отчёт только при ошибках.
+- [MCP и инструкции агентам](../tasks/2026_11_08_mcp-agent-workflow-core-audit.md), DONE (2026-11-09):
+  аудит полноты Rust core/CLI/MCP, цельный сценарий создания темы и актуальные
+  AGENTS.md/аналоги в пользовательском каталоге тем.
+- [Переключение тем по расписанию](../tasks/2026_11_08_scheduled-theme-switching.md), DONE (2026-11-09):
+  правила времени и дней недели, фоновое выполнение, GUI и обработка конфликтов.
 
-#### 2. Исправить QML баги и UX
-- [x] ProfileRadioButton: группировка (модель-authoritative `selected` + Binding re-arm вместо ExclusiveGroup)
-- [x] ComponentCheckbox: связка с SettingsController.customComponents
-- [x] SettingsPage: ComponentCategoryGroup — передача selectionChanged
-- [x] Wallpaper preview: асинхронная загрузка (`asynchronous: true`), BusyIndicator-placeholder
-- [ ] DiffDialog: подсветка синтаксиса diff (моноширинный шрифт уже есть)
 
-#### 3. Dogfooding — полноценная темизация приложения
-- [x] Glass: прозрачность окна + KWin blur (translucency из QML + blur через D-Bus в `theme_controller.py`)
-- [x] Paper: светлая тема Material
-- [x] Dark/Light: переключение QtQuick.Controls.Material
-- [x] System: следование за системной темой (KDE color scheme, live-подписка на colorSchemeChanged)
-- [x] Сохранение выбранной темы в настройках (`AppSettings.theme`, восстановление при старте)
+- [UI и локализация](../tasks/2026_11_08_ui-consistency-and-localization.md):
+  поля диалогов, скроллбары вне контента, адаптивные действия, актуальные значения,
+  видимые ошибки, клавиатурная палитра/фокус, русский перевод статусов и фоновые
+  пакетные сводки Rust. Границы проверки указаны в задаче.
 
-#### 4. System Tray
-- [x] System tray icon (Kirigami.ApplicationWindow + QSystemTrayIcon)
-- [x] Minimize to tray вместо закрытия
-- [x] ~~Global hotkey: Meta+T → toggle window~~ — **убрано**: KGlobalAccel создаёт
-  компонент только для `.desktop` с `X-KDE-GlobalAccel-CommandShortcut=true`, а
-  голый `doRegister` не давал рабочего шортката. См. `gui/qt-app/README.md`.
+- [Предварительный diff](APPLY_PREVIEW.md): асинхронный план файлов/сбросов,
+  зависимостей и перезапусков; сохранение текущего оформления, проверяемое
+  подтверждение GUI/CLI/MCP и новый просмотр при изменении состояния.
 
-#### 5. Авто-детект Zen Browser профиля — ✅ сделано в 0.5.0
-`zen_profile_dir()` в Rust (`tracked_apps.rs`) и Python (`tracked_apps.py`)
-сканирует `~/.zen` и берёт первый профиль с `user.js`.
+- [Защита применения](APPLY_PROTECTION.md): общая блокировка Rust для GUI/CLI,
+  предварительная проверка и копия исходной темы, откат файлов при ошибке,
+  обнаружение прерванных операций, CLI-восстановление с защитой личных изменений.
+  Результат связан с ID и бэкапом; история 10 операций, GUI и восстановление
+  завершённой смены реализованы отдельной задачей.
 
-#### 6. Тесты и CI
-- [x] GitHub Actions: rust (hard gate) + python-gui + security (non-strict)
-- [x] pytest для core логики (`tests/test_gui.py`: 200 passed, skipped нет —
-      свёртка двух ядер в одно завершена; покрыты manifest.json и CRUD
-      пользовательских компонентов)
-- [ ] pytest-qt для контроллеров
+- [Управление зависимостями](../tasks/2026_11_07_dependency-management.md): единый
+  реестр Rust, страница с выбором и удалением, отдельные столбцы названия/категории,
+  проверка установки, прогресс/отмена и запоминание автоматизации. Реальные циклы
+  KDE Store, Zed и pacman проверены в изоляции; GUI — в Plasma. Подробности и
+  ограничения: [контракт](DEPENDENCIES.md), карточка задачи.
 
----
+- Fastfetch и меню запуска Plasma (включая значок/изображение кнопки) остаются
+  пользовательскими. Старые темы не перезаписывают их; Simple Application Launcher не требуется.
 
-## v0.3.0 — Polish & Features (история)
+- Обновление кнопок после смены темы без перезапуска: пользователь подтвердил
+  работу в живой сессии 2026-11-07, [задача закрыта](../tasks/2026_11_07_10_26_app-buttons-stale-after-apply.md).
+  Изменения извне отслеживает `watch_desktop_look`.
 
-### UX Improvements
-- [ ] **Profile Preview**: показывать diff перед apply (модальное окно)
-- [ ] **Wallpaper Grid**: полноценный пикер в приложении (не wofi)
-- [ ] **Profile Import/Export**: JSON/YAML бэкапы профилей
-- [ ] **Auto-sync**: следить за изменениями в системе, предлагать сохранить
-- [ ] **Notifications**: KNotification при успехе/ошибке apply
+- Единый Rust core/CLI; Python GUI (PySide6 + QML) использует `core/cli_core.py`.
+  Второе FFI-ядро и Python writers удалены. Inspector, приложения, настройки,
+  реестры, клонирование ресурсов и обои исполняются в Rust; [API](CORE_API.md).
+- Формат `theme@2`: снимок оформления, `theme.json`, зависимости с источниками,
+  проверка, миграция, экспорт/импорт ZIP, шесть готовых тем в `themes/`.
+- Сохранение копии обоев и восстановление при применении; XDG-aware каталог.
+  Сейчас одни обои применяются ко всем мониторам.
+- Палитра base16, генераторы, извлечение палитры из картинки (`extract.rs`),
+  конструктор новой темы, предпросмотр палитры, свой Look & Feel.
+- Theme Inspector: live-редактирование, read-only снимки, diff, валидация,
+  Undo/Revert и экспорт JSON. GUI diff выполняется асинхронно.
+- Реестр приложений и пользовательские компоненты; автоматизация ask/always/never;
+  MCP и русский перевод.
+- Журнал применения для возврата к своему оформлению; сброс неуказанных темой
+  параметров к стандарту; `my-original-look` при первой установке.
+- Расположения панелей остаются пользовательскими. Steam, SDDM и Neovim убраны.
+- Темизация приложения (glass/paper/dark/light/system), трей, сворачивание в трей.
+- Rust, Python/Qt и installer-тесты; CI. В Python уже есть `pytest-qt`/`qtbot`
+  для контроллеров, включая асинхронную загрузку зависимостей перед применением.
 
-### Wallpaper Integration
-- [ ] Опция "Link wallpaper to profile" — сохранять выбранные обои в профиль
-- [ ] При apply профиля — автоматически ставить сохранённые обои (если включено)
-- [ ] Поддержка нескольких мониторов (кнопка "Configure per screen")
+Подробности: [темы](THEMES.md), [палитра](PALETTE.md),
+[текущее приложение](CURRENT_APP.md), [GUI](../gui/qt-app/README.md).
+Это сводка реализации; тесты при актуализации документации не запускались.
 
-### Settings
-- [ ] Редактор путей к конфигам (advanced mode)
-- [ ] Кастомные категории компонентов
-- [ ] Профиль "Auto" — переключение glass↔paper по времени/системной теме
+## Backlog без назначенного релиза
 
----
+Эти идеи из прежнего roadmap требуют отдельной карточки и проверки текущего
+состояния перед реализацией; они не обозначают утверждённые ближайшие задачи.
 
-## v0.5.0 — Rust Core polish & Single Binary
+- Подсветка diff: сверить текущий диалог; старый пункт ссылался на отсутствующий
+  отдельный `DiffDialog.qml`.
+- Системные уведомления KNotification — с учётом согласованного правила:
+  успешная смена темы не требует всплывающего отчёта.
+- Расширенные настройки путей и категорий.
+- Упаковка AUR/Flatpak/KDE Store; синхронизация между машинами; RGB-интеграция.
+- Полнота адаптивности, accessibility и предпросмотра Kvantum относительно
+  [целевого ТЗ конструктора](TZ-THEME-REBUILD.md) требует отдельного аудита.
+  Первый программный контур v2 реализован; весь документ не объявляется выполненным.
 
-> **Сделано (0.5.0).** The bash scripts are gone: the CLI is a single Rust
-> binary set (`theme-profile`, `theme-menu`, `wallpaper-picker/next/prev`) built
-> from `src/core/rust_core/src/bin/`; mutations (`apply`/`save`/`diff`) run
-> natively in `profile.rs` (no delegation); `status` is a data-driven native
-> module (milliseconds instead of ~300 ms; one optional D-Bus call for
-> loaded effects) with strict JSONC/INI readers, a real
-> `kwin_glass` (better-blur-dx) and Zen auto-detection; the GUI diff runs
-> off-thread. Файлы Rust-крейта:
-> `src/core/rust_core/src/{lib,types,paths,profile,wallpaper,tracked_apps,
-> settings,config_parser,status}.rs` + `src/bin/`; Python-адаптер —
-> `src/core/cli_core.py`.
->
-> **Сделано (текущее дерево).** Два ядра сведены к одному: Rust-библиотека
-> (`libkde_theme_core.so`), FFI-слой и Python-биндинг `rust_core.py` удалены
-> полностью, остался единый бэкенд `core` — CLI-адаптер. Переключение:
-> `--core core|auto`, `$KTM_CORE`, *Settings → Core* (все значения именуют
-> одно ядро).
+## Зафиксированные решения
 
-### Архитектура
-```
-src/
-├── core/
-│   ├── protocol.py       # ABC (остаётся)
-│   ├── cli_core.py       # CLI adapter (theme-profile / wallpaper-*)
-│   └── rust_core/        # Новый Rust crate
-│       ├── Cargo.toml
-│       ├── src/
-│       │   ├── lib.rs       # FFI interface (cdylib)
-│       │   ├── profile.rs   # Profile operations
-│       │   ├── wallpaper.rs # Wallpaper operations
-│       │   ├── tracked.rs   # App detection
-│       │   ├── config.rs    # Config parsing (kwinrc, kdeglobals, etc.)
-│       │   └── settings.rs  # Settings
-│       └── build.rs
-├── controllers/          # Python (unchanged)
-│   └── ...
-```
+- Каталог компонентов Plasma/KDE Store не дублируем; в конструкторе выбираем
+  установленные компоненты. Установка/обновление полных тем по Git-ссылке не планируется.
+- Дополнительные источники обоев и улучшения библиотеки обоев отложены пользователем.
+- Результаты смен тем — на странице аудита (10 последних), с привязкой к бэкапам;
+  автоматический отчёт показывается только при ошибках.
 
-### Rust Implementation Plan
+- GUI остаётся Python + QML, core и CLI — Rust. Планы C++ GUI, Rust GUI,
+  `cdylib`/`ctypes`/`cffi`/`pyo3` и удаления Python отменены.
+- Логика приложения не переносится в bash; исключения перечислены в [AGENTS.md](../AGENTS.md).
+- Глобальный хоткей Meta+T снят с плана; детали в GUI README.
+- Старые предложения JSON/YAML-экспорта заменены реализованным форматом ZIP.
+- Старое предложение ручного baseline `default` не является текущей задачей:
+  установщик уже сохраняет `my-original-look` при первой установке.
 
-#### Phase 1: Core Library (cdylib + C FFI)
-- [ ] `cargo new --lib kde_theme_core`
-- [ ] FFI функции:
-  ```rust
-  // profile
-  extern "C" fn list_profiles() -> *mut ProfileList
-  extern "C" fn apply_profile(name: *const c_char, components: *const ComponentArray) -> ResultCode
-  extern "C" fn save_profile(name: *const c_char, components: *const ComponentArray) -> ResultCode
-  extern "C" fn diff_profiles(a: *const c_char, b: *const c_char) -> *mut c_char
-  
-  // wallpaper
-  extern "C" fn pick_wallpaper() -> *mut c_char
-  extern "C" fn next_wallpaper() -> ResultCode
-  extern "C" fn prev_wallpaper() -> ResultCode
-  extern "C" fn list_wallpapers() -> *mut WallpaperList
-  extern "C" fn set_wallpaper(path: *const c_char) -> ResultCode
-  
-  // tracked apps
-  extern "C" fn detect_apps() -> *mut ComponentList
-  extern "C" fn refresh_apps() -> *mut ComponentList
-  
-  // settings
-  extern "C" fn load_settings() -> Settings
-  extern "C" fn save_settings(settings: Settings) -> ResultCode
-  ```
-- [ ] Memory management: `free_profile_list`, `free_component_list`, etc.
-- [ ] Build: `cargo build --release` → ~~`libkde_theme_core.so`~~ (отменено:
-  FFI-ядро удалено вместе со вторым core; сборка даёт только CLI-бинарники)
+## Где искать планы и команды
 
-#### Phase 2: Python Bindings (cffi / pyo3)
-- [ ] Вариант A: `cffi` — загрузка `.so` через `ctypes`/`cffi`, сохраняем Python controllers
-- [ ] Вариант B: `pyo3` — нативный Python модуль, быстрее, но сложнее сборка
-- [x] Обновить `CoreFactory` для выбора `RustCore` vs `CliCore`
+- [Индекс задач](../tasks/README.md): открытые работы и ограничения проверок.
+- `tasks/*.md`: решения, реализация и результаты по каждой задаче.
+- `plans/*.md`: подробные планы, связанные с карточками.
+- [PLAN-THEME-MODEL.md](PLAN-THEME-MODEL.md): завершённые этапы A/B/C.
+- `TZ-*.md`: исходные и целевые спецификации; их старые чекбоксы не являются очередью задач.
+- [AGENTS.md](../AGENTS.md): архитектура, правила изменений и команды проверок.
+- [GUI README](../gui/qt-app/README.md): запуск и разработка приложения.
 
-#### Phase 3: Standalone Binary — ❌ закрыто решением по архитектуре
-GUI остаётся 100% Python (PySide6 + QML), см. `AGENTS.md`
-(«Architecture decision»). Одиночный бинарь и удаление Python не планируются.
-
-#### Phase 4: Config Parsing (Native)
-- [ ] Парсинг INI (kwinrc, kdeglobals, gtk settings.ini) — `configparser` crate
-- [ ] Парсинг TOML (alacritty) — `toml` crate
-- [ ] Парсинг JSON/JSONC (vscode, zed, fastfetch) — `serde_json`
-- [ ] Парсинг CSS (gtk.css, wofi) — свой парсер или `cssparser`
-- [ ] Парсинг user.js (Zen) — regex-based
-
----
-
-## v1.0.0 — Plasma Applet (Native Integration)
-
-### C++/Qt6 Plasma Plugin
-```
-plasma-applet/
-├── CMakeLists.txt
-├── metadata.json
-├── src/
-│   ├── ThemeManagerApplet.cpp/.h    # Plasma::Applet
-│   ├── ProfileModel.cpp/.h          # QAbstractListModel
-│   ├── WallpaperModel.cpp/.h
-│   └── SettingsDialog.cpp/.h        # KConfigDialog
-├── qml/
-│   ├── main.qml                     # Compact representation
-│   ├── FullRepresentation.qml       # Expanded panel
-│   └── Settings.qml
-└── contents/
-    └── ui/
-        └── main.qml
-```
-
-### Features
-- [ ] Встроен в панель (system tray или отдельный апплет)
-- [ ] Compact view: текущий профиль + клик → меню профилей
-- [ ] Hover/click → переключение профилей без открытия окна
-- [ ] Right-click → настройки, wallpaper next/prev
-- [ ] KConfigXT для настроек (интеграция с System Settings)
-- [ ] DBus API для внешних скриптов
-
-### Distribution
-- [ ] AUR package: `kde-theme-manager-applet`
-- [ ] Flatpak: `org.kde.ThemeManager`
-- [ ] KDE Store: store.kde.org
-
----
-
-## v2.0.0 — Ecosystem & Advanced
-
-### RGB Integration
-- [ ] Синхронизация с `rgb-control-kit` (Hyperion, OpenRazer, AULA)
-- [ ] Профиль темы → RGB режим (glass=slow_cycle, paper=accent)
-- [ ] UI для управления RGB в приложении
-
-### Cloud Sync
-- [ ] Экспорт профилей в GitHub Gist / Git repo
-- [ ] Синхронизация между машинами
-- [ ] Community profiles marketplace
-
-### Advanced Theming
-- [ ] Генерация тем из wallpaper (matugen / pywal интеграция)
-- [ ] Редактор цветовых схем в-app
-- [ ] Поддержка GTK4 libadwaita themes
-
----
-
-## Зависимости по версиям
-
-| Версия | Runtime | Build | Packaging |
-|--------|---------|-------|-----------|
-| v0.2.x | Python 3.11+, PySide6, uv | pip/uv | GitHub Releases |
-| v0.3.0 | + KNotification | | |
-| v0.5.0 | Python 3.11+, PySide6, Rust 1.75+ (default) | uv, cargo | GitHub Releases |
-| v1.0.0+ | Python (PySide6 GUI) + Rust core/CLI (без C++-переписывания) | uv, cargo | GitHub Releases |
-
----
-
-## Команда / Ресурсы
-
-| Задача | Навыки | Оценка |
-|--------|--------|--------|
-| `--components` в bash | Bash, KDE config | 1ч |
-| QML полировка | QML, Kirigami | 4-8ч |
-| Dogfooding (glass blur) | Qt Wayland, KWin | 2-4ч |
-| System Tray | QSystemTrayIcon | 4-6ч |
-| Rust Core FFI | ~~Rust, C FFI, cffi/pyo3~~ — отменено: ядро одно (CLI-адаптер) | — |
-| Config parsers (Rust) | Rust, serde, toml, ini | 10-20ч |
-| Plasma Applet | C++, Qt6, KDE Frameworks | 30-60ч |
-
----
-
-## Приоритеты (MoSCoW для 0.3.x, история)
-
-| Must Have | Should Have | Could Have | Won't (v0.3) |
-|-----------|-------------|------------|--------------|
-| `--components` в bash | Profile Preview | Wallpaper Grid | Rust Core |
-| QML багфиксы | Import/Export | Auto-sync | Plasma Applet |
-| Dogfooding (basic) | Notifications | Multi-monitor | Cloud Sync |
-| System Tray | Zen profile autodetect | | |
-
-> Глобальный хоткей (Meta+T) снят с плана: без desktop-entry с
-> `X-KDE-GlobalAccel-CommandShortcut=true` KGlobalAccel не создаёт компонент, а
-> для toggle-семантики нужен ещё и single-instance слой.
->
-> Профиль `default` (baseline текущей темы) отложен. Если делать — только
-> вручную, кнопкой «Сохранить как default», без автосоздания при запуске. Имя
-> `system` не используем, чтобы не путать с `AppSettings.theme = "system"`
-> (внешний вид приложения, а не профиль).
-
----
-
-## Команды для разработки
-
-```bash
-# Разработка Qt app
-cd ~/theme-profile-kit/qt-app
-uv pip install -e ".[dev]"
-python -m src
-
-# Линтинг
-ruff check src/
-mypy src/
-
-# Тесты
-pytest
-
-# Сборка Rust CLI
-cd ~/projects/kde_mods/theme-profile-kit/gui/qt-app/src/core/rust_core
-cargo build --release
-
-# Запуск (ядро одно — CLI-адаптер)
-python -m src --core core     # или: KTM_CORE=core python -m src
-
-# Установка в систему
-cd ~/theme-profile-kit
-./scripts/install-theme-profile-kit.sh
-```
-
----
-
-## Риски и митигация
-
-| Риск | Вероятность | Влияние | Митигация |
-|------|-------------|---------|-----------|
-| KWin blur не работает на Wayland | Высокая | Среднее | Fallback на прозрачность без blur, документация |
-| PySide6 версия в дистре старая | Средняя | Высокое | uv venv + uv pip install PySide6@latest |
-| Rust FFI сложности | Средняя | Высокое | Начать с cffi (проще), pyo3 позже |
-| Plasma 6 API изменения | Низкая | Среднее | Тестировать на Plasma 6.1+, пинить версии |
-| Zen Browser путь меняется | Высокая | Низкое | Автодетект через find, настройка в UI |
-
----
-
-*Последнее обновление: v0.6.0*
-*Репозиторий: https://github.com/cbr18/kde-theme-manager*
+Проверка приоритетов расписание/аудит/MCP завершена:
+[190 Rust, 330 Qt/Python, 256 shell и изолированная Plasma](audits/2026_11_09_priority-validation.md).
+Границы визуальной проверки объединённого UI описаны в его задаче.

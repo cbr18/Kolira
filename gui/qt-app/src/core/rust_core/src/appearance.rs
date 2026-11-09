@@ -20,7 +20,7 @@
 //! * [`Policy::KwinRules`] — window rules merged rule by rule, look
 //!   properties only;
 //! * [`Policy::Appletsrc`] / [`Policy::PanelViews`] — the Plasma shell's look
-//!   (wallpaper, launcher icon, Panel Colorizer, panel floating/opacity)
+//!   (wallpaper, Panel Colorizer, panel floating/opacity)
 //!   merged into the user's own layout (`layout.rs`).
 //!
 //! The same functions serve save (live → theme), apply (theme → live) and
@@ -28,6 +28,10 @@
 
 use anyhow::{Context, Result};
 use toml_edit::{Array, DocumentMut, Item, Table, Value as TomlValue};
+
+pub fn is_preserved(rel: &str) -> bool {
+    std::path::Path::new(rel).starts_with(".config/fastfetch")
+}
 
 pub const KITTY_HOST: &str = ".config/kitty/kitty.conf";
 pub const KITTY_THEME: &str = ".config/kitty/theme-profile.conf";
@@ -94,16 +98,31 @@ const KDEGLOBALS: &[Rule] = &[
     r(
         "General",
         Keys::Only(&[
-            "ColorScheme", "ColorSchemeHash", "AccentColor", "accentColorFromWallpaper",
-            "LastUsedCustomAccentColor", "font", "fixed", "smallestReadableFont", "toolBarFont",
-            "menuFont", "XftAntialias", "XftHintStyle", "XftSubPixel",
+            "ColorScheme",
+            "ColorSchemeHash",
+            "AccentColor",
+            "accentColorFromWallpaper",
+            "LastUsedCustomAccentColor",
+            "font",
+            "fixed",
+            "smallestReadableFont",
+            "toolBarFont",
+            "menuFont",
+            "XftAntialias",
+            "XftHintStyle",
+            "XftSubPixel",
         ]),
     ),
     r(
         "KDE",
         Keys::Only(&[
-            "LookAndFeelPackage", "widgetStyle", "contrast", "frameContrast",
-            "AnimationDurationFactor", "ShowIconsOnPushButtons", "ShowIconsInMenuItems",
+            "LookAndFeelPackage",
+            "widgetStyle",
+            "contrast",
+            "frameContrast",
+            "AnimationDurationFactor",
+            "ShowIconsOnPushButtons",
+            "ShowIconsInMenuItems",
         ]),
     ),
 ];
@@ -118,10 +137,20 @@ const PLASMARC: &[Rule] = &[r("Theme", Keys::All)];
 const GTK_SETTINGS: &[Rule] = &[r(
     "Settings",
     Keys::Only(&[
-        "gtk-theme-name", "gtk-icon-theme-name", "gtk-cursor-theme-name",
-        "gtk-font-name", "gtk-application-prefer-dark-theme", "gtk-decoration-layout",
-        "gtk-enable-animations", "gtk-button-images", "gtk-menu-images", "gtk-toolbar-style",
-        "gtk-xft-antialias", "gtk-xft-hinting", "gtk-xft-hintstyle", "gtk-xft-rgba",
+        "gtk-theme-name",
+        "gtk-icon-theme-name",
+        "gtk-cursor-theme-name",
+        "gtk-font-name",
+        "gtk-application-prefer-dark-theme",
+        "gtk-decoration-layout",
+        "gtk-enable-animations",
+        "gtk-button-images",
+        "gtk-menu-images",
+        "gtk-toolbar-style",
+        "gtk-xft-antialias",
+        "gtk-xft-hinting",
+        "gtk-xft-hintstyle",
+        "gtk-xft-rgba",
     ]),
 )];
 // Sizes (fonts, cursor) are never part of a theme: screens differ. Font
@@ -130,33 +159,70 @@ const GTK_SETTINGS: &[Rule] = &[r(
 const KONSOLE_PROFILE: &[Rule] = &[r("Appearance", Keys::Only(&["ColorScheme", "Font"]))];
 const SPICETIFY: &[Rule] = &[r(
     "Setting",
-    Keys::Only(&["current_theme", "color_scheme", "inject_css", "replace_colors", "overwrite_assets", "inject_theme_js"]),
+    Keys::Only(&[
+        "current_theme",
+        "color_scheme",
+        "inject_css",
+        "replace_colors",
+        "overwrite_assets",
+        "inject_theme_js",
+    ]),
 )];
 const CAVA_RULES: &[Rule] = &[r("color", Keys::All)];
 const KCMINPUTRC: &[Rule] = &[r("Mouse", Keys::Only(&["cursorTheme"]))];
-const BTOP: &[&str] = &["color_theme", "theme_background", "truecolor", "rounded_corners", "graph_symbol*"];
+const BTOP: &[&str] = &[
+    "color_theme",
+    "theme_background",
+    "truecolor",
+    "rounded_corners",
+    "graph_symbol*",
+];
 const VSCODE: &[&str] = &[
-    "workbench.colorTheme", "workbench.iconTheme", "workbench.productIconTheme",
-    "workbench.colorCustomizations", "workbench.preferredDarkColorTheme",
-    "workbench.preferredLightColorTheme", "window.autoDetectColorScheme",
-    "editor.tokenColorCustomizations", "editor.semanticTokenColorCustomizations",
-    "editor.fontFamily", "editor.fontWeight", "editor.fontLigatures",
-    "editor.lineHighlight*", "terminal.integrated.fontFamily",
+    "workbench.colorTheme",
+    "workbench.iconTheme",
+    "workbench.productIconTheme",
+    "workbench.colorCustomizations",
+    "workbench.preferredDarkColorTheme",
+    "workbench.preferredLightColorTheme",
+    "window.autoDetectColorScheme",
+    "editor.tokenColorCustomizations",
+    "editor.semanticTokenColorCustomizations",
+    "editor.fontFamily",
+    "editor.fontWeight",
+    "editor.fontLigatures",
+    "editor.lineHighlight*",
+    "terminal.integrated.fontFamily",
     // Appearance extensions: Custom UI Style, APC, VS Code Animations.
-    "apc.*", "animations.*", "custom-ui-style.*", "vscode_custom_css.*",
+    "apc.*",
+    "animations.*",
+    "custom-ui-style.*",
+    "vscode_custom_css.*",
 ];
 /// Firefox prefs that are look (user.js often also carries dozens of privacy
 /// / behaviour prefs — those stay the user's).
 const FIREFOX_PREFS: &[&str] = &[
-    "toolkit.legacyUserProfileCustomizations.stylesheets", "browser.theme.*",
-    "layout.css.prefers-color-scheme.content-override", "ui.systemUsesDarkTheme",
-    "browser.tabs.allow_transparent_browser", "extensions.activeThemeID",
-    "svg.context-properties.content.enabled", "browser.uidensity", "browser.compactmode.show",
-    "widget.gtk.rounded-bottom-corners.enabled", "widget.transparent-windows",
+    "toolkit.legacyUserProfileCustomizations.stylesheets",
+    "browser.theme.*",
+    "layout.css.prefers-color-scheme.content-override",
+    "ui.systemUsesDarkTheme",
+    "browser.tabs.allow_transparent_browser",
+    "extensions.activeThemeID",
+    "svg.context-properties.content.enabled",
+    "browser.uidensity",
+    "browser.compactmode.show",
+    "widget.gtk.rounded-bottom-corners.enabled",
+    "widget.transparent-windows",
 ];
 const ZED: &[&str] = &[
-    "theme", "icon_theme", "ui_font_family", "ui_font_features", "ui_font_weight",
-    "buffer_font_family", "buffer_font_features", "buffer_font_weight", "theme_overrides",
+    "theme",
+    "icon_theme",
+    "ui_font_family",
+    "ui_font_features",
+    "ui_font_weight",
+    "buffer_font_family",
+    "buffer_font_features",
+    "buffer_font_weight",
+    "theme_overrides",
     "experimental.theme_overrides",
 ];
 
@@ -185,7 +251,9 @@ pub fn policy(rel: &str) -> Policy {
         rel if crate::extras::SHELL_HOSTS.contains(&rel) => Policy::OmpHost,
         ".config/plasmashellrc" => Policy::PanelViews,
         crate::wallpaper::APPLETSRC_REL => Policy::Appletsrc,
-        ".config/gtk-3.0/settings.ini" | ".config/gtk-4.0/settings.ini" => Policy::Ini(GTK_SETTINGS),
+        ".config/gtk-3.0/settings.ini" | ".config/gtk-4.0/settings.ini" => {
+            Policy::Ini(GTK_SETTINGS)
+        }
         ".config/btop/btop.conf" => Policy::Kv(BTOP),
         ".config/Code/User/settings.json"
         | ".config/Code - OSS/User/settings.json"
@@ -220,7 +288,12 @@ impl Section {
     pub(crate) fn group(&self) -> &str {
         self.header
             .as_deref()
-            .map(|h| h.trim().strip_prefix('[').and_then(|h| h.strip_suffix(']')).unwrap_or(h))
+            .map(|h| {
+                h.trim()
+                    .strip_prefix('[')
+                    .and_then(|h| h.strip_suffix(']'))
+                    .unwrap_or(h)
+            })
             .unwrap_or("")
     }
 }
@@ -229,7 +302,10 @@ pub(crate) fn parse_ini(text: &str) -> Vec<Section> {
     let mut out = vec![Section::default()];
     for line in text.lines() {
         if line.starts_with('[') {
-            out.push(Section { header: Some(line.to_string()), lines: Vec::new() });
+            out.push(Section {
+                header: Some(line.to_string()),
+                lines: Vec::new(),
+            });
         } else if let Some(last) = out.last_mut() {
             last.lines.push(line.to_string());
         }
@@ -309,8 +385,16 @@ pub fn ini_filter(text: &str, rules: &[Rule]) -> String {
         .filter(|s| s.header.is_some())
         .filter_map(|s| {
             let group = s.group().to_string();
-            let lines: Vec<String> = s.lines.iter().filter(|l| allowed_line(rules, &group, l)).cloned().collect();
-            (!lines.is_empty()).then_some(Section { header: s.header, lines })
+            let lines: Vec<String> = s
+                .lines
+                .iter()
+                .filter(|l| allowed_line(rules, &group, l))
+                .cloned()
+                .collect();
+            (!lines.is_empty()).then_some(Section {
+                header: s.header,
+                lines,
+            })
         })
         .collect();
     render_ini(&sections)
@@ -318,23 +402,41 @@ pub fn ini_filter(text: &str, rules: &[Rule]) -> String {
 
 /// Font keys whose value holds a size: KDE `family,pointSize,pixelSize,…`
 /// and GTK `family[,] size`.
-const FONT_KEYS: &[&str] = &["font", "fixed", "smallestReadableFont", "toolBarFont", "menuFont", "activeFont", "Font", "gtk-font-name"];
+const FONT_KEYS: &[&str] = &[
+    "font",
+    "fixed",
+    "smallestReadableFont",
+    "toolBarFont",
+    "menuFont",
+    "activeFont",
+    "Font",
+    "gtk-font-name",
+];
 
 /// The theme's font with the live size: the family is the look, the size is
 /// the user's (their screen). Without a live value the theme's stays.
 pub fn keep_live_size(key: &str, theme_value: &str, live_value: Option<&str>) -> String {
-    let Some(live) = live_value else { return theme_value.to_string() };
+    let Some(live) = live_value else {
+        return theme_value.to_string();
+    };
     if key == "gtk-font-name" {
         let split = |v: &str| -> (String, String) {
             let v = v.trim();
             match v.rsplit_once([' ', ',']) {
-                Some((family, size)) if size.parse::<f32>().is_ok() => (family.trim_end_matches([',', ' ']).to_string(), size.to_string()),
+                Some((family, size)) if size.parse::<f32>().is_ok() => (
+                    family.trim_end_matches([',', ' ']).to_string(),
+                    size.to_string(),
+                ),
                 _ => (v.to_string(), String::new()),
             }
         };
         let (family, _) = split(theme_value);
         let (_, size) = split(live);
-        return if size.is_empty() { family } else { format!("{family}, {size}") };
+        return if size.is_empty() {
+            family
+        } else {
+            format!("{family}, {size}")
+        };
     }
     let mut theme: Vec<&str> = theme_value.split(',').collect();
     let live: Vec<&str> = live.split(',').collect();
@@ -410,7 +512,10 @@ fn kwinrc_merge(theme: &str, live: &str) -> String {
 /// (absent keys mean KDE's default, Breeze).
 pub fn unused_files(kdeglobals: &str, kwinrc: &str) -> Vec<&'static str> {
     let of = |text: &str, group: &str, key: &str, default: &str| {
-        ini_value(&parse_ini(text), group, key).filter(|v| !v.is_empty()).unwrap_or_else(|| default.to_string()).to_lowercase()
+        ini_value(&parse_ini(text), group, key)
+            .filter(|v| !v.is_empty())
+            .unwrap_or_else(|| default.to_string())
+            .to_lowercase()
     };
     let style = of(kdeglobals, "KDE", "widgetStyle", "breeze");
     let library = of(kwinrc, "org.kde.kdecoration2", "library", "org.kde.breeze");
@@ -427,7 +532,10 @@ pub fn unused_files(kdeglobals: &str, kwinrc: &str) -> Vec<&'static str> {
 /// [`unused_files`] of theme folder `dir`; nothing when it cannot tell (a
 /// partial snapshot without `kdeglobals` or `kwinrc`).
 pub fn unused_files_in(dir: &std::path::Path) -> Vec<&'static str> {
-    match (std::fs::read_to_string(dir.join(".config/kdeglobals")), std::fs::read_to_string(dir.join(".config/kwinrc"))) {
+    match (
+        std::fs::read_to_string(dir.join(".config/kdeglobals")),
+        std::fs::read_to_string(dir.join(".config/kwinrc")),
+    ) {
         (Ok(kdeglobals), Ok(kwinrc)) => unused_files(&kdeglobals, &kwinrc),
         _ => Vec::new(),
     }
@@ -440,18 +548,30 @@ pub fn ini_merge(theme: &str, live: &str, rules: &[Rule]) -> String {
     let theme = parse_ini(&ini_filter(theme, rules));
     let mut live = parse_ini(live);
     let live_font = |sections: &[Section], group: &str, key: &str| -> Option<String> {
-        sections.iter().filter(|s| s.group() == group).flat_map(|s| s.lines.iter()).find_map(|l| {
-            (base_key(l) == Some(key)).then(|| l.split_once('=').map(|(_, v)| v.to_string())).flatten()
-        })
+        sections
+            .iter()
+            .filter(|s| s.group() == group)
+            .flat_map(|s| s.lines.iter())
+            .find_map(|l| {
+                (base_key(l) == Some(key))
+                    .then(|| l.split_once('=').map(|(_, v)| v.to_string()))
+                    .flatten()
+            })
     };
     let theme: Vec<Section> = theme
         .into_iter()
         .map(|mut t| {
             let group = t.group().to_string();
             for line in t.lines.iter_mut() {
-                if let (Some(key), Some((k, v))) = (base_key(line).map(str::to_string), line.clone().split_once('=')) {
+                if let (Some(key), Some((k, v))) = (
+                    base_key(line).map(str::to_string),
+                    line.clone().split_once('='),
+                ) {
                     if FONT_KEYS.contains(&key.as_str()) {
-                        *line = format!("{k}={}", keep_live_size(&key, v, live_font(&live, &group, &key).as_deref()));
+                        *line = format!(
+                            "{k}={}",
+                            keep_live_size(&key, v, live_font(&live, &group, &key).as_deref())
+                        );
                     }
                 }
             }
@@ -464,7 +584,10 @@ pub fn ini_merge(theme: &str, live: &str, rules: &[Rule]) -> String {
     }
     for t in theme.into_iter().filter(|s| s.header.is_some()) {
         let group = t.group().to_string();
-        match live.iter_mut().find(|s| s.header.is_some() && s.group() == group) {
+        match live
+            .iter_mut()
+            .find(|s| s.header.is_some() && s.group() == group)
+        {
             Some(s) => {
                 while s.lines.last().is_some_and(|l| l.trim().is_empty()) {
                     s.lines.pop();
@@ -485,7 +608,11 @@ pub fn kwinrules_merge(theme: &str, live: &str) -> String {
     let theme = parse_ini(theme);
     let mut live = parse_ini(live);
     let ids = |sections: &[Section]| -> Vec<String> {
-        sections.iter().filter(|s| s.header.is_some() && s.group() != "General").map(|s| s.group().to_string()).collect()
+        sections
+            .iter()
+            .filter(|s| s.header.is_some() && s.group() != "General")
+            .map(|s| s.group().to_string())
+            .collect()
     };
     let mut order = ids(&live);
     for id in ids(&theme) {
@@ -493,21 +620,40 @@ pub fn kwinrules_merge(theme: &str, live: &str) -> String {
             order.push(id);
         }
     }
-    for t in theme.into_iter().filter(|s| s.header.is_some() && s.group() != "General") {
-        match live.iter_mut().find(|s| s.header.is_some() && s.group() == t.group()) {
+    for t in theme
+        .into_iter()
+        .filter(|s| s.header.is_some() && s.group() != "General")
+    {
+        match live
+            .iter_mut()
+            .find(|s| s.header.is_some() && s.group() == t.group())
+        {
             Some(s) => s.lines = crate::layout::kwinrule_lines(&t.lines, &s.lines),
             None => live.push(t),
         }
     }
-    let general = match live.iter_mut().find(|s| s.group() == "General" && s.header.is_some()) {
+    let general = match live
+        .iter_mut()
+        .find(|s| s.group() == "General" && s.header.is_some())
+    {
         Some(g) => g,
         None => {
-            live.insert(1.min(live.len()), Section { header: Some("[General]".into()), lines: Vec::new() });
-            live.iter_mut().find(|s| s.group() == "General" && s.header.is_some()).expect("just inserted")
+            live.insert(
+                1.min(live.len()),
+                Section {
+                    header: Some("[General]".into()),
+                    lines: Vec::new(),
+                },
+            );
+            live.iter_mut()
+                .find(|s| s.group() == "General" && s.header.is_some())
+                .expect("just inserted")
         }
     };
     let list = crate::layout::rule_list_lines(&order, &general.lines);
-    general.lines.retain(|l| !matches!(base_key(l), Some("count" | "rules" | "Order")));
+    general
+        .lines
+        .retain(|l| !matches!(base_key(l), Some("count" | "rules" | "Order")));
     for (i, line) in list.into_iter().enumerate() {
         general.lines.insert(i, line);
     }
@@ -531,7 +677,11 @@ fn kv_allowed(keys: &[&str], line: &str) -> bool {
 }
 
 pub fn kv_filter(text: &str, keys: &[&str]) -> String {
-    let mut out: String = text.lines().filter(|l| kv_allowed(keys, l)).collect::<Vec<_>>().join("\n");
+    let mut out: String = text
+        .lines()
+        .filter(|l| kv_allowed(keys, l))
+        .collect::<Vec<_>>()
+        .join("\n");
     out.push('\n');
     out
 }
@@ -577,7 +727,11 @@ fn pref_allowed(keys: &[&str], line: &str) -> bool {
 }
 
 pub fn prefs_filter(text: &str, keys: &[&str]) -> String {
-    let mut out = text.lines().filter(|l| pref_allowed(keys, l)).collect::<Vec<_>>().join("\n");
+    let mut out = text
+        .lines()
+        .filter(|l| pref_allowed(keys, l))
+        .collect::<Vec<_>>()
+        .join("\n");
     out.push('\n');
     out
 }
@@ -593,14 +747,23 @@ pub fn prefs_merge(theme: &str, live: &str, keys: &[&str]) -> String {
             out.push(line.to_string());
             continue;
         }
-        if let Some(i) = theme_lines.iter().position(|t| pref_name(t) == pref_name(line)) {
+        if let Some(i) = theme_lines
+            .iter()
+            .position(|t| pref_name(t) == pref_name(line))
+        {
             if !used[i] {
                 out.push(theme_lines[i].to_string());
                 used[i] = true;
             }
         }
     }
-    out.extend(theme_lines.iter().zip(&used).filter(|(_, u)| !**u).map(|(l, _)| l.to_string()));
+    out.extend(
+        theme_lines
+            .iter()
+            .zip(&used)
+            .filter(|(_, u)| !**u)
+            .map(|(l, _)| l.to_string()),
+    );
     let mut text = out.join("\n");
     text.push('\n');
     text
@@ -687,7 +850,10 @@ fn value_end(b: &[u8], i: usize) -> usize {
         }
         Some(_) => {
             let mut j = i;
-            while j < b.len() && !matches!(b[j], b',' | b'}' | b']' | b'\n' | b'\r') && !(b[j] == b'/' && matches!(b.get(j + 1), Some(b'/') | Some(b'*'))) {
+            while j < b.len()
+                && !matches!(b[j], b',' | b'}' | b']' | b'\n' | b'\r')
+                && !(b[j] == b'/' && matches!(b.get(j + 1), Some(b'/') | Some(b'*')))
+            {
                 j += 1;
             }
             while j > i && matches!(b[j - 1], b' ' | b'\t') {
@@ -723,7 +889,11 @@ fn members(text: &str) -> Vec<Member> {
         }
         let vstart = skip_ws(b, i);
         let vend = value_end(b, vstart);
-        out.push(Member { key, start, value: (vstart, vend) });
+        out.push(Member {
+            key,
+            start,
+            value: (vstart, vend),
+        });
         i = skip_ws(b, vend);
         if b.get(i) == Some(&b',') {
             i += 1;
@@ -740,7 +910,13 @@ pub fn jsonc_filter(text: &str, keys: &[&str]) -> String {
     let body: Vec<String> = members(text)
         .into_iter()
         .filter(|m| json_allowed(keys, &m.key))
-        .map(|m| format!("  {}: {}", serde_json::to_string(&m.key).unwrap_or_default(), &text[m.value.0..m.value.1]))
+        .map(|m| {
+            format!(
+                "  {}: {}",
+                serde_json::to_string(&m.key).unwrap_or_default(),
+                &text[m.value.0..m.value.1]
+            )
+        })
         .collect();
     if body.is_empty() {
         return "{}\n".into();
@@ -764,7 +940,10 @@ pub fn jsonc_merge(theme: &str, live: &str, keys: &[&str]) -> String {
     // Replace or remove, from the end so earlier spans stay valid.
     let mut live_members = members(&text);
     live_members.reverse();
-    for m in live_members.into_iter().filter(|m| json_allowed(keys, &m.key)) {
+    for m in live_members
+        .into_iter()
+        .filter(|m| json_allowed(keys, &m.key))
+    {
         if let Some((_, value)) = theme_members.iter().find(|(k, _)| *k == m.key) {
             text.replace_range(m.value.0..m.value.1, value);
             done.push(m.key);
@@ -785,14 +964,24 @@ pub fn jsonc_merge(theme: &str, live: &str, keys: &[&str]) -> String {
             text.replace_range(s..m.value.1, "");
         }
     }
-    let missing: Vec<&(String, String)> = theme_members.iter().filter(|(k, _)| !done.contains(k)).collect();
+    let missing: Vec<&(String, String)> = theme_members
+        .iter()
+        .filter(|(k, _)| !done.contains(k))
+        .collect();
     if !missing.is_empty() {
         if let Some(close) = text.rfind('}') {
             let body = text[..close].trim_end().to_string();
             let mut add = String::new();
-            let mut sep = if body.ends_with('{') || body.ends_with(',') { "" } else { "," };
+            let mut sep = if body.ends_with('{') || body.ends_with(',') {
+                ""
+            } else {
+                ","
+            };
             for (k, v) in missing {
-                add.push_str(&format!("{sep}\n  {}: {v}", serde_json::to_string(k).unwrap_or_default()));
+                add.push_str(&format!(
+                    "{sep}\n  {}: {v}",
+                    serde_json::to_string(k).unwrap_or_default()
+                ));
                 sep = ",";
             }
             text = format!("{body}{add}\n{}", &text[close..]);
@@ -806,20 +995,52 @@ pub fn jsonc_merge(theme: &str, live: &str, keys: &[&str]) -> String {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const KITTY_LOOK: &[&str] = &[
-    "font_family", "bold_font", "italic_font", "bold_italic_font", "font_features",
-    "disable_ligatures", "symbol_map", "narrow_symbols", "text_composition_strategy",
-    "foreground", "background", "background_*", "selection_*", "cursor", "cursor_*", "url_color",
-    "url_style", "mark1_*", "mark2_*", "mark3_*", "active_border_color", "inactive_border_color",
-    "bell_border_color", "window_border_width", "window_margin_width", "window_padding_width",
-    "single_window_*", "draw_minimal_borders", "hide_window_decorations", "tab_bar_*",
-    "tab_powerline_style", "tab_separator", "tab_activity_symbol", "active_tab_*",
-    "inactive_tab_*", "dim_opacity", "transparent_background_colors", "wayland_titlebar_color",
+    "font_family",
+    "bold_font",
+    "italic_font",
+    "bold_italic_font",
+    "font_features",
+    "disable_ligatures",
+    "symbol_map",
+    "narrow_symbols",
+    "text_composition_strategy",
+    "foreground",
+    "background",
+    "background_*",
+    "selection_*",
+    "cursor",
+    "cursor_*",
+    "url_color",
+    "url_style",
+    "mark1_*",
+    "mark2_*",
+    "mark3_*",
+    "active_border_color",
+    "inactive_border_color",
+    "bell_border_color",
+    "window_border_width",
+    "window_margin_width",
+    "window_padding_width",
+    "single_window_*",
+    "draw_minimal_borders",
+    "hide_window_decorations",
+    "tab_bar_*",
+    "tab_powerline_style",
+    "tab_separator",
+    "tab_activity_symbol",
+    "active_tab_*",
+    "inactive_tab_*",
+    "dim_opacity",
+    "transparent_background_colors",
+    "wayland_titlebar_color",
     "undercurl_style",
 ];
 
 fn kitty_look(line: &str) -> bool {
     let t = line.trim_start();
-    let Some(word) = t.split_whitespace().next() else { return false };
+    let Some(word) = t.split_whitespace().next() else {
+        return false;
+    };
     if word.starts_with('#') {
         return false;
     }
@@ -888,7 +1109,14 @@ pub fn kitty_host(host: &str) -> String {
 // Alacritty: appearance in alacritty/theme-profile.toml, imported by alacritty.toml
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ALACRITTY_WINDOW: &[&str] = &["opacity", "blur", "padding", "dynamic_padding", "decorations", "decorations_theme_variant"];
+const ALACRITTY_WINDOW: &[&str] = &[
+    "opacity",
+    "blur",
+    "padding",
+    "dynamic_padding",
+    "decorations",
+    "decorations_theme_variant",
+];
 const ALACRITTY_CURSOR: &[&str] = &["style", "unfocused_hollow", "thickness"];
 
 /// Split `alacritty.toml` into (appearance TOML, the rest with the import).
@@ -900,7 +1128,13 @@ pub fn alacritty_split(host: &str) -> Result<(String, String)> {
     }
     // [font]: the faces travel, size/offsets stay (screens differ).
     if let Some(font) = doc.get_mut("font").and_then(Item::as_table_like_mut) {
-        for face in ["normal", "bold", "italic", "bold_italic", "builtin_box_drawing"] {
+        for face in [
+            "normal",
+            "bold",
+            "italic",
+            "bold_italic",
+            "builtin_box_drawing",
+        ] {
             if let Some(item) = font.remove(face) {
                 if look.get("font").is_none() {
                     look["font"] = Item::Table(Table::new());
@@ -966,6 +1200,9 @@ fn non_empty(text: String) -> Option<String> {
 /// What a theme stores for tracked file `rel` given its current text; `None`
 /// means "store nothing" (include hosts).
 pub fn for_theme(rel: &str, text: &str) -> Option<String> {
+    if is_preserved(rel) {
+        return None;
+    }
     match policy(rel) {
         Policy::Whole => Some(text.to_string()),
         Policy::KwinRc => Some(kwinrc_filter(text)),
@@ -983,13 +1220,16 @@ pub fn for_theme(rel: &str, text: &str) -> Option<String> {
 
 /// The new live text of `rel` when applying `theme_text` over `live_text`.
 pub fn applied(rel: &str, theme_text: &str, live_text: Option<&str>) -> Result<String> {
+    if is_preserved(rel) {
+        return Ok(live_text.unwrap_or("").to_string());
+    }
     let live = live_text.unwrap_or("");
     Ok(match policy(rel) {
         Policy::Whole => theme_text.to_string(),
         Policy::KwinRc => kwinrc_merge(theme_text, live),
         Policy::Ini(rules) => ini_merge(theme_text, live, rules),
         Policy::KwinRules => kwinrules_merge(&crate::layout::kwinrules_for_theme(theme_text), live),
-        Policy::Appletsrc => crate::layout::appletsrc_merge_checked(theme_text, live, &crate::layout::icon_available),
+        Policy::Appletsrc => crate::layout::appletsrc_merge(theme_text, live),
         Policy::PanelViews => crate::layout::panel_views_merge(theme_text, live, None, None),
         Policy::Kv(keys) => kv_merge(theme_text, live, keys),
         Policy::Jsonc(keys) => jsonc_merge(theme_text, live, keys),
@@ -1049,7 +1289,9 @@ pub fn normalize(rel: &str, text: &str, has_include: bool) -> Result<Vec<(String
             Some((inc, look)) if !has_include => vec![(inc.to_string(), look)],
             _ => Vec::new(),
         },
-        _ => for_theme(rel, text).map(|t| vec![(rel.to_string(), t)]).unwrap_or_default(),
+        _ => for_theme(rel, text)
+            .map(|t| vec![(rel.to_string(), t)])
+            .unwrap_or_default(),
     })
 }
 
@@ -1063,7 +1305,11 @@ mod tests {
     #[test]
     fn ini_filter_keeps_only_appearance() {
         let f = ini_filter(KDEGLOBALS_THEME, KDEGLOBALS);
-        assert!(f.contains("ColorScheme=Dracula") && f.contains("[Colors:Window]") && f.contains("widgetStyle=kvantum"));
+        assert!(
+            f.contains("ColorScheme=Dracula")
+                && f.contains("[Colors:Window]")
+                && f.contains("widgetStyle=kvantum")
+        );
         assert!(!f.contains("Terminal") && !f.contains("KScreen") && !f.contains("Scale"));
     }
 
@@ -1071,10 +1317,22 @@ mod tests {
     fn ini_merge_keeps_personal_keys_and_replaces_the_look() {
         let m = ini_merge(KDEGLOBALS_THEME, KDEGLOBALS_LIVE, KDEGLOBALS);
         // Personal: untouched.
-        assert!(m.contains("TerminalApplication=kitty") && m.contains("ScreenScaleFactors=eDP-2=1.25;") && m.contains("SingleClick=false"));
+        assert!(
+            m.contains("TerminalApplication=kitty")
+                && m.contains("ScreenScaleFactors=eDP-2=1.25;")
+                && m.contains("SingleClick=false")
+        );
         // Look: from the theme; the theme's absent accent / colour group are removed.
-        assert!(m.contains("ColorScheme=Dracula") && m.contains("widgetStyle=kvantum") && m.contains("[Colors:Window]"));
-        assert!(!m.contains("AccentColor=1,2,3") && !m.contains("[Colors:View]") && !m.contains("ColorScheme=Mine"));
+        assert!(
+            m.contains("ColorScheme=Dracula")
+                && m.contains("widgetStyle=kvantum")
+                && m.contains("[Colors:Window]")
+        );
+        assert!(
+            !m.contains("AccentColor=1,2,3")
+                && !m.contains("[Colors:View]")
+                && !m.contains("ColorScheme=Mine")
+        );
         // Idempotent.
         assert_eq!(ini_merge(KDEGLOBALS_THEME, &m, KDEGLOBALS), m);
     }
@@ -1082,16 +1340,37 @@ mod tests {
     #[test]
     fn font_sizes_stay_the_users() {
         // KDE: family from the theme, point/pixel size from the live file.
-        assert_eq!(keep_live_size("font", "Inter,10,-1,5,50,0,0,0,0,0", Some("Noto Sans,13,-1,5,50,0,0,0,0,0")), "Inter,13,-1,5,50,0,0,0,0,0");
-        assert_eq!(keep_live_size("gtk-font-name", "Inter, 10", Some("Noto Sans,  13")), "Inter, 13");
+        assert_eq!(
+            keep_live_size(
+                "font",
+                "Inter,10,-1,5,50,0,0,0,0,0",
+                Some("Noto Sans,13,-1,5,50,0,0,0,0,0")
+            ),
+            "Inter,13,-1,5,50,0,0,0,0,0"
+        );
+        assert_eq!(
+            keep_live_size("gtk-font-name", "Inter, 10", Some("Noto Sans,  13")),
+            "Inter, 13"
+        );
         assert_eq!(keep_live_size("font", "Inter,10", None), "Inter,10");
-        let m = ini_merge("[General]\nfont=Inter,10,-1,5,50,0,0,0,0,0\n", "[General]\nfont=Noto Sans,14,-1,5,50,0,0,0,0,0\n", KDEGLOBALS);
+        let m = ini_merge(
+            "[General]\nfont=Inter,10,-1,5,50,0,0,0,0,0\n",
+            "[General]\nfont=Noto Sans,14,-1,5,50,0,0,0,0,0\n",
+            KDEGLOBALS,
+        );
         assert!(m.contains("font=Inter,14,"), "{m}");
         // Sizes never stored or moved.
-        assert!(!jsonc_filter("{\"ui_font_size\": 16, \"theme\": \"x\"}", ZED).contains("ui_font_size"));
+        assert!(
+            !jsonc_filter("{\"ui_font_size\": 16, \"theme\": \"x\"}", ZED).contains("ui_font_size")
+        );
         let (look, rest) = kitty_split("font_family Inter\nfont_size 13\n");
-        assert!(look.contains("font_family") && !look.contains("font_size") && rest.contains("font_size 13"));
-        let (look, _) = alacritty_split("[font]\nsize = 13\n[font.normal]\nfamily = \"Inter\"\n").unwrap();
+        assert!(
+            look.contains("font_family")
+                && !look.contains("font_size")
+                && rest.contains("font_size 13")
+        );
+        let (look, _) =
+            alacritty_split("[font]\nsize = 13\n[font.normal]\nfamily = \"Inter\"\n").unwrap();
         assert!(look.contains("Inter") && !look.contains("size"));
     }
 
@@ -1103,14 +1382,23 @@ mod tests {
         let theme = "user_pref(\"browser.theme.toolbar-theme\", 0);\nuser_pref(\"toolkit.legacyUserProfileCustomizations.stylesheets\", true);\nuser_pref(\"privacy.resistFingerprinting\", false);\n";
         let m = applied(rel, theme, Some(live)).unwrap();
         assert!(m.contains("// betterfox") && m.contains("\"privacy.resistFingerprinting\", true"));
-        assert!(m.contains("\"browser.theme.toolbar-theme\", 0") && m.contains("legacyUserProfileCustomizations"));
-        assert!(!m.contains("old@x"), "a look pref the theme lacks is removed");
+        assert!(
+            m.contains("\"browser.theme.toolbar-theme\", 0")
+                && m.contains("legacyUserProfileCustomizations")
+        );
+        assert!(
+            !m.contains("old@x"),
+            "a look pref the theme lacks is removed"
+        );
         assert!(!for_theme(rel, live).unwrap().contains("privacy"));
     }
 
     #[test]
     fn kwin_scripts_are_not_effects() {
-        let rule = Rule { group: "Plugins", keys: Keys::KwinEffects };
+        let rule = Rule {
+            group: "Plugins",
+            keys: Keys::KwinEffects,
+        };
         assert!(key_allowed(&rule, "blurEnabled"));
         assert!(!key_allowed(&rule, "blurStrength"));
     }
@@ -1120,7 +1408,12 @@ mod tests {
         let live = "[General]\ncount=1\nrules=a\n\n[a]\nDescription=mine\n";
         let theme = "[General]\ncount=1\nrules=b\n\n[b]\nDescription=theme\nopacityactive=90\n";
         let m = kwinrules_merge(theme, live);
-        assert!(m.contains("count=2") && m.contains("rules=a,b") && m.contains("Description=mine") && m.contains("opacityactive=90"));
+        assert!(
+            m.contains("count=2")
+                && m.contains("rules=a,b")
+                && m.contains("Description=mine")
+                && m.contains("opacityactive=90")
+        );
         assert!(!m.contains("Order="));
     }
 
@@ -1128,10 +1421,20 @@ mod tests {
     fn kwinrc_drops_settings_of_effects_that_are_off() {
         let theme = "[Effect-blur]\nBlurStrength=10\n\n[Effect-better-blur-dx]\nBlurStrength=5\n\n[Effect-blurplus]\nBlurStrength=14\n\n[Effect-translucency]\nMenus=96\n\n[Effect-overview]\nBorderActivate=9\n\n[Round-Corners]\nSize=10\n\n[Plugins]\nbetter_blur_dxEnabled=true\nblurEnabled=false\nkwin4_effect_shapecornersEnabled=false\n";
         let t = kwinrc_filter(theme);
-        for gone in ["[Effect-blur]", "[Effect-blurplus]", "[Effect-translucency]", "[Round-Corners]"] {
+        for gone in [
+            "[Effect-blur]",
+            "[Effect-blurplus]",
+            "[Effect-translucency]",
+            "[Round-Corners]",
+        ] {
             assert!(!t.contains(gone), "{gone} stored:\n{t}");
         }
-        assert!(t.contains("[Effect-better-blur-dx]") && t.contains("[Effect-overview]") && t.contains("blurEnabled=false"), "{t}");
+        assert!(
+            t.contains("[Effect-better-blur-dx]")
+                && t.contains("[Effect-overview]")
+                && t.contains("blurEnabled=false"),
+            "{t}"
+        );
         assert_eq!(kwinrc_filter(&t), t);
 
         // On in the theme, the theme's settings count.
@@ -1141,9 +1444,25 @@ mod tests {
         // The user's settings of an effect the theme keeps off stay; on ones follow the theme.
         let live = "[Effect-blur]\nBlurStrength=3\n\n[Effect-better-blur-dx]\nBlurStrength=9\n\n[Plugins]\nblurEnabled=true\n\n[Windows]\nFocusPolicy=mine\n";
         let m = kwinrc_merge(&t, live);
-        assert!(m.contains("[Effect-blur]\nBlurStrength=3") && m.contains("BlurStrength=5") && !m.contains("BlurStrength=9"), "{m}");
-        assert!(m.contains("blurEnabled=false") && !m.contains("blurEnabled=true") && m.contains("FocusPolicy=mine"), "{m}");
-        assert_eq!(kwinrc_merge(&t, &m).lines().filter(|l| l.starts_with('[')).count(), m.lines().filter(|l| l.starts_with('[')).count());
+        assert!(
+            m.contains("[Effect-blur]\nBlurStrength=3")
+                && m.contains("BlurStrength=5")
+                && !m.contains("BlurStrength=9"),
+            "{m}"
+        );
+        assert!(
+            m.contains("blurEnabled=false")
+                && !m.contains("blurEnabled=true")
+                && m.contains("FocusPolicy=mine"),
+            "{m}"
+        );
+        assert_eq!(
+            kwinrc_merge(&t, &m)
+                .lines()
+                .filter(|l| l.starts_with('['))
+                .count(),
+            m.lines().filter(|l| l.starts_with('[')).count()
+        );
     }
 
     #[test]
@@ -1152,12 +1471,22 @@ mod tests {
         let aurorae = "[org.kde.kdecoration2]\nlibrary=org.kde.kwin.aurorae\n";
         let klassy = "[org.kde.kdecoration2]\nlibrary=org.kde.klassy\n";
         let breeze = "[org.kde.kdecoration2]\nlibrary=org.kde.breeze\n";
-        let all = [".config/breezerc", ".config/klassy/klassyrc", ".config/klassy/windecopresetsrc"];
+        let all = [
+            ".config/breezerc",
+            ".config/klassy/klassyrc",
+            ".config/klassy/windecopresetsrc",
+        ];
         assert_eq!(unused_files(kv, aurorae), all);
         assert_eq!(unused_files(kv, klassy), [".config/breezerc"]);
         assert_eq!(unused_files(kv, breeze), &all[1..]);
-        assert_eq!(unused_files("[KDE]\nwidgetStyle=Breeze\n", klassy), Vec::<&str>::new());
-        assert_eq!(unused_files("[KDE]\nwidgetStyle=Klassy\n", aurorae), [".config/breezerc"]);
+        assert_eq!(
+            unused_files("[KDE]\nwidgetStyle=Breeze\n", klassy),
+            Vec::<&str>::new()
+        );
+        assert_eq!(
+            unused_files("[KDE]\nwidgetStyle=Klassy\n", aurorae),
+            [".config/breezerc"]
+        );
         // No keys: KDE's default is Breeze.
         assert_eq!(unused_files("", ""), &all[1..]);
     }
@@ -1167,9 +1496,13 @@ mod tests {
         // KWin 6.8 writes [General] Order=…; rewriting it as count/rules
         // would leave KWin without its rule list.
         let live = "[General]\nOrder=a\n\n[a]\nDescription=mine\nnoborder=true\nnoborderrule=2\n";
-        let theme = "[General]\nOrder=b\n\n[b]\nDescription=theme\nopacityactive=90\nopacityactiverule=2\n";
+        let theme =
+            "[General]\nOrder=b\n\n[b]\nDescription=theme\nopacityactive=90\nopacityactiverule=2\n";
         let m = kwinrules_merge(theme, live);
-        assert!(m.contains("Order=a,b") && !m.contains("count=") && !m.contains("rules="), "{m}");
+        assert!(
+            m.contains("Order=a,b") && !m.contains("count=") && !m.contains("rules="),
+            "{m}"
+        );
         assert_eq!(kwinrules_merge(theme, &m), m);
     }
 
@@ -1186,15 +1519,24 @@ mod tests {
         let live = "{\n  // mine\n  \"remote.SSH.remotePlatform\": {\"203.0.113.7\": \"linux\"},\n  \"workbench.colorTheme\": \"Doki\",\n  \"editor.wordWrap\": \"on\"\n}\n";
         let theme = "{\n  \"workbench.colorTheme\": \"Dracula Theme\",\n  \"workbench.colorCustomizations\": {\"editor.background\": \"#282a36\"},\n  \"editor.wordWrap\": \"off\"\n}";
         let m = jsonc_merge(theme, live, VSCODE);
-        assert!(m.contains("// mine") && m.contains("203.0.113.7") && m.contains("\"editor.wordWrap\": \"on\""));
+        assert!(
+            m.contains("// mine")
+                && m.contains("203.0.113.7")
+                && m.contains("\"editor.wordWrap\": \"on\"")
+        );
         assert!(m.contains("\"workbench.colorTheme\": \"Dracula Theme\"") && m.contains("#282a36"));
-        let parsed: serde_json::Value = serde_json::from_str(&m.replace("  // mine\n", "")).expect("valid JSON");
+        let parsed: serde_json::Value =
+            serde_json::from_str(&m.replace("  // mine\n", "")).expect("valid JSON");
         assert_eq!(parsed["workbench.colorTheme"], "Dracula Theme");
         // Filter stores only the look.
         let f = jsonc_filter(live, VSCODE);
         assert!(f.contains("Doki") && !f.contains("203.0.113") && !f.contains("wordWrap"));
         // A look key the theme lacks is removed.
-        let m2 = jsonc_merge("{\"theme\": \"One Dark\"}", "{\n  \"theme\": \"Ayu\",\n  \"icon_theme\": \"Zed\",\n  \"agent\": {\"x\": 1}\n}\n", ZED);
+        let m2 = jsonc_merge(
+            "{\"theme\": \"One Dark\"}",
+            "{\n  \"theme\": \"Ayu\",\n  \"icon_theme\": \"Zed\",\n  \"agent\": {\"x\": 1}\n}\n",
+            ZED,
+        );
         let p2: serde_json::Value = serde_json::from_str(&m2).expect("valid JSON");
         assert_eq!(p2["theme"], "One Dark");
         assert!(p2.get("icon_theme").is_none() && p2["agent"]["x"] == 1);
@@ -1204,9 +1546,16 @@ mod tests {
     fn kitty_split_moves_only_the_look() {
         let host = "font_size 11\nmap ctrl+c copy\nbackground #000000\ncolor1 #ff0000\nscrollback_lines 5000\nbackground_opacity 0.5\ndynamic_background_opacity yes\nconfirm_os_window_close 0\n";
         let (look, rest) = kitty_split(host);
-        assert_eq!(look, "background #000000\ncolor1 #ff0000\nbackground_opacity 0.5\n");
+        assert_eq!(
+            look,
+            "background #000000\ncolor1 #ff0000\nbackground_opacity 0.5\n"
+        );
         assert!(rest.contains("font_size 11"), "font sizes stay the user's");
-        assert!(rest.contains("map ctrl+c copy") && rest.contains("dynamic_background_opacity yes") && rest.contains("confirm_os_window_close"));
+        assert!(
+            rest.contains("map ctrl+c copy")
+                && rest.contains("dynamic_background_opacity yes")
+                && rest.contains("confirm_os_window_close")
+        );
         let h = kitty_host(host);
         assert!(h.trim_end().ends_with(KITTY_INCLUDE) && !h.contains("color1"));
         assert_eq!(kitty_host(&h), h, "idempotent");
@@ -1216,9 +1565,15 @@ mod tests {
     fn alacritty_split_and_import() {
         let host = "[env]\nTERM = \"xterm-256color\"\n\n[window]\nopacity = 0.5\nstartup_mode = \"Maximized\"\n\n[colors.primary]\nbackground = \"#000000\"\n\n[[keyboard.bindings]]\nkey = \"N\"\nmods = \"Control\"\naction = \"SpawnNewInstance\"\n";
         let (look, _) = alacritty_split(host).unwrap();
-        assert!(look.contains("opacity = 0.5") && look.contains("#000000") && !look.contains("TERM"));
+        assert!(
+            look.contains("opacity = 0.5") && look.contains("#000000") && !look.contains("TERM")
+        );
         let h = alacritty_host(host).unwrap();
-        assert!(h.contains("startup_mode") && h.contains("SpawnNewInstance") && h.contains(ALACRITTY_IMPORT));
+        assert!(
+            h.contains("startup_mode")
+                && h.contains("SpawnNewInstance")
+                && h.contains(ALACRITTY_IMPORT)
+        );
         assert!(!h.contains("opacity") && !h.contains("#000000"));
         assert_eq!(alacritty_host(&h).unwrap(), h, "idempotent");
     }

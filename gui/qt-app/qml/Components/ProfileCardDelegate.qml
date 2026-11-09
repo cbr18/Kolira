@@ -8,6 +8,7 @@ Kirigami.AbstractCard {
     id: card
 
     Layout.fillWidth: true
+    Layout.minimumWidth: 0
 
     // Explicit data (avoids relying on QML model-role semantics)
     property string profileName: ""
@@ -23,8 +24,7 @@ Kirigami.AbstractCard {
     // Fingerprint of the saved profile (palette, scheme, assets, effects).
     // Component chips were removed: every profile tracks the same component
     // set, so they said nothing about the theme.
-    property var summary: ({})
-    property string _summaryLoadedFor: ""
+    readonly property var summary: profileController.summaries[profileName] || ({})
 
     readonly property string displayName: profileName === "glass" ? qsTr("Glass")
         : profileName === "paper" ? qsTr("Paper")
@@ -64,32 +64,13 @@ Kirigami.AbstractCard {
         if (!iso) return ""
         var date = new Date(iso)
         if (isNaN(date.getTime())) return iso.substring(0, 10)
-        return Qt.formatDate(date, "dd MMM yyyy")
+        return date.toLocaleDateString(Qt.locale(), Locale.ShortFormat)
     }
 
     function formatSize(bytes) {
         if (!bytes || bytes <= 0) return ""
-        if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + " MB"
-        return Math.max(1, Math.round(bytes / 1024)) + " KB"
-    }
-
-    function reloadSummary(force) {
-        if (!profileName) {
-            summary = ({})
-            _summaryLoadedFor = ""
-            return
-        }
-        if (!force && _summaryLoadedFor === profileName) return
-        _summaryLoadedFor = profileName
-        summary = themeInspector.profileSummary(profileName)
-    }
-
-    Component.onCompleted: reloadSummary(false)
-    onProfileNameChanged: reloadSummary(true)
-
-    Connections {
-        target: profileController
-        function onProfilesChanged() { card.reloadSummary(true) }
+        if (bytes >= 1024 * 1024) return qsTr("%1 MiB").arg(Number(bytes / (1024 * 1024)).toLocaleString(Qt.locale(), "f", 1))
+        return qsTr("%1 KiB").arg(Number(Math.max(1, Math.round(bytes / 1024))).toLocaleString(Qt.locale(), "f", 0))
     }
 
     // Selecting is a separate, cheap action. Applying stays an explicit
@@ -98,6 +79,16 @@ Kirigami.AbstractCard {
         onTapped: card.selectedClicked(card.profileName)
     }
 
+    activeFocusOnTab: true
+    Accessible.role: Accessible.Button
+    Accessible.name: profileName
+    Accessible.onPressAction: selectedClicked(profileName)
+    Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+            selectedClicked(profileName)
+            event.accepted = true
+        }
+    }
     HoverHandler { id: hover }
 
     contentItem: ColumnLayout {
@@ -113,10 +104,18 @@ Kirigami.AbstractCard {
                 spacing: 2
 
                 RowLayout {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     spacing: Platform.Units.smallSpacing
 
                     Label {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        elide: Text.ElideRight
                         text: card.displayName
+                        ToolTip.visible: nameHover.hovered || card.activeFocus
+                        ToolTip.text: card.profileName
+                        HoverHandler { id: nameHover }
                         font.bold: true
                         font.pointSize: TypeScale.subtitle
                         color: ThemeColors.fgColor(card.glassMode)
@@ -174,8 +173,7 @@ Kirigami.AbstractCard {
         }
 
         // ─── Palette + theme fingerprint ───
-        RowLayout {
-            Layout.fillWidth: true
+        ActionFlow {
             Layout.topMargin: Platform.Units.smallSpacing
             spacing: Platform.Units.mediumSpacing
             visible: card.swatches.length > 0
@@ -232,12 +230,11 @@ Kirigami.AbstractCard {
         }
 
         // ─── Actions: 3 primary + overflow menu ───
-        RowLayout {
-            Layout.fillWidth: true
+        ActionFlow {
             Layout.topMargin: Platform.Units.smallSpacing
             spacing: Platform.Units.smallSpacing
 
-            Button {
+            AppButton {
                 text: card.profileIsActive ? qsTr("Re-apply") : qsTr("Apply")
                 icon.name: card.profileIsActive ? "view-refresh" : "dialog-ok-apply"
                 highlighted: !card.profileIsActive
@@ -245,7 +242,7 @@ Kirigami.AbstractCard {
                 onClicked: card.applyClicked(card.profileName)
             }
 
-            Button {
+            AppButton {
                 text: qsTr("Preview")
                 icon.name: "document-preview"
                 visible: !card.profileIsActive
@@ -253,14 +250,13 @@ Kirigami.AbstractCard {
                 onClicked: card.previewClicked(card.profileName)
             }
 
-            Button {
+            AppButton {
                 text: qsTr("Inspect")
                 icon.name: "preferences-desktop-theme"
                 enabled: !profileController.busy
                 onClicked: card.inspectClicked(card.profileName)
             }
 
-            Item { Layout.fillWidth: true }
 
             ToolButton {
                 id: overflowButton
@@ -311,12 +307,12 @@ Kirigami.AbstractCard {
 
     background: Rectangle {
         radius: 8
-        border.width: card.profileSelected ? 2 : 1
+        border.width: card.activeFocus || card.profileSelected ? 2 : 1
         color: card.profileSelected
             ? ThemeColors.cardHoverBg(card.glassMode)
             : (hover.hovered ? ThemeColors.cardHoverBg(card.glassMode)
                              : ThemeColors.cardBg(card.glassMode))
-        border.color: card.profileSelected
+        border.color: card.activeFocus ? ThemeColors.accent() : card.profileSelected
             ? (card.summary.accent ? card.summary.accent : ThemeColors.accent())
             : ThemeColors.cardBorder(card.glassMode)
     }

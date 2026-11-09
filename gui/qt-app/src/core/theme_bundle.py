@@ -9,28 +9,18 @@ metadata and user-created derived themes.
 from __future__ import annotations
 
 import json
-import os
-import re
-import shutil
 import subprocess
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from .app_theme_adapters import ADAPTERS, adapter_for, backup_file
-from .fileutil import atomic_write_text
+from .app_theme_adapters import adapter_for
 from .paths import (
-    active_profile_file,
-    data_home,
-    home_dir,
-    live_path,
     profile_dir,
-    profiles_dir,
     validate_profile_name,
 )
 from .protocol import ProfileCore, Result, ThemeCore, WallpaperCore
-from .theme_core import AppThemeCore, _read_text, _set_ini_text
+from .theme_core import AppThemeCore
 
 
 BUNDLE_SCHEMA = "theme-bundle/1"
@@ -228,88 +218,17 @@ COMPONENT_BY_ID = {
 GROUP_BY_ID = {group.id: group for group in GROUPS}
 
 
-def _data_dirs() -> list[Path]:
-    dirs = [data_home()]
-    for raw in os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share").split(":"):
-        raw = raw.strip()
-        if raw:
-            dirs.append(Path(raw))
-    return dirs
 
 
-def _theme_dirs(*suffixes: str) -> list[Path]:
-    return [directory / suffix for directory in _data_dirs() for suffix in suffixes]
 
 
-def _existing_file(candidates: list[Path]) -> Optional[Path]:
-    for path in candidates:
-        if path.is_file():
-            return path
-    return None
 
 
-def _line_preserving_set(text: str, group: str, key: str, value: str) -> str:
-    try:
-        return _set_ini_text(text, group, key, value)
-    except Exception:
-        pattern = re.compile(rf"(?m)^({re.escape(key)}\s*=).*$")
-        return pattern.sub(rf"\1 {value}", text)
 
 
-def _live_palette_entries() -> list[tuple[str, str, str]]:
-    """``(group, key, value)`` of the live palette groups in kdeglobals.
-
-    Plasma writes the full effective palette into ``[Colors:*]`` / ``[WM]`` when
-    a scheme is applied, and Theme Inspector colour edits land there too.
-    """
-    entries: list[tuple[str, str, str]] = []
-    group = ""
-    for line in (_read_text(live_path(".config/kdeglobals")) or "").splitlines():
-        stripped = line.strip()
-        if stripped.startswith("[") and stripped.endswith("]"):
-            group = stripped[1:-1]
-            continue
-        if not (group.startswith("Colors:") or group == "WM"):
-            continue
-        if "=" in stripped and not stripped.startswith(("#", ";")):
-            key, value = stripped.split("=", 1)
-            if key.strip():
-                entries.append((group, key.strip(), value.strip()))
-    return entries
-
-
-def _set_group_key(text: str, group: str, key: str, value: str) -> str:
-    lines = text.splitlines()
-    output: list[str] = []
-    current = ""
-    replaced = False
-    inserted = False
-    for line in lines:
-        stripped = line.strip()
-        if stripped.startswith("[") and stripped.endswith("]"):
-            if current == group and not inserted:
-                output.append(f"{key}={value}")
-                inserted = True
-            current = stripped[1:-1]
-            output.append(line)
-            continue
-        if current == group and stripped.startswith(f"{key}="):
-            if not replaced:
-                output.append(f"{key}={value}")
-                replaced = True
-            continue
-        output.append(line)
-    if current == group and not inserted:
-        output.append(f"{key}={value}")
-    elif group not in text:
-        if output and output[-1].strip():
-            output.append("")
-        output.extend([f"[{group}]", f"{key}={value}"])
-    return "\n".join(output).rstrip() + "\n"
-
-
-def _json_safe_dump(data: dict) -> str:
-    return json.dumps(data, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
+def _display_text(component, text):
+    from .core_messages import render_message
+    return render_message(text) if component.kind == "bool" or text == "System default" else text
 
 
 class ThemeBundleCore:
@@ -324,12 +243,12 @@ class ThemeBundleCore:
         self._theme: ThemeCore = theme_core or AppThemeCore()
         self._profiles = profile_core
         self._wallpapers = wallpaper_core
-        self._app_changes: dict[str, str] = {}
 
     # ── component registry ───────────────────────────────────────────────
 
     def groups(self, scope: str = "live") -> list[dict]:
-        return [self._group_to_dict(group, scope) for group in GROUPS]
+        with self._theme.read_batch():
+            return [self._group_to_dict(group, scope) for group in GROUPS]
 
     def _group_to_dict(self, group: BundleGroupDef, scope: str) -> dict:
         return {
@@ -385,7 +304,7 @@ class ThemeBundleCore:
             "kind": component.kind,
             "description": _tr(component.description),
             "currentValue": current,
-            "currentDisplay": current_display,
+            "currentDisplay": _display_text(component, current_display),
             "choices": choices,
             "minimum": value.get("min"),
             "maximum": value.get("max"),
@@ -406,69 +325,17 @@ class ThemeBundleCore:
                 return self._wallpapers.current() or ""
             except Exception:
                 return ""
-        # Same location the GUI wallpaper core refreshes.
-        try:
-            for line in _read_text(live_path(".cache/theme-profile-wallpaper")).splitlines():
-                if line.strip():
-                    return line.strip()
-        except (OSError, AttributeError):
-            pass
-        return ""
-
-    # ── applications ─────────────────────────────────────────────────────
+        from .cli_core import core_request
+        return core_request("wallpaper.current") or ""
 
     def applications(self) -> list[dict]:
-        apps: list[dict] = []
-        for app_id, adapter in ADAPTERS.items():
-            installed = adapter.detect()
-            capabilities = dict(adapter.capabilities)
-            current: dict[str, Any] = {"value": "", "label": ""}
-            themes: list[dict] = []
-            status = "ok"
-            status_text = ""
-            config_file = adapter.config_file()
-            if config_file is None and adapter.config_paths:
-                config_file = live_path(adapter.config_paths[0])
-
-            if not installed:
-                status = "not_installed"
-                status_text = (
-                    _tr(QT_TRANSLATE_NOOP("ThemeBundle", "Not installed — only an old config was found"))
-                    if adapter.has_config()
-                    else _tr(QT_TRANSLATE_NOOP("ThemeBundle", "Application not detected"))
-                )
-            elif capabilities.get("current_theme"):
-                current_result = adapter.current_theme()
-                if current_result.get("ok"):
-                    current = current_result
-                else:
-                    status = str(current_result.get("status") or "warning")
-                    status_text = str(current_result.get("message") or "")
-            if installed and capabilities.get("installed_themes"):
-                themes_result = adapter.installed_themes()
-                if themes_result.get("ok"):
-                    themes = list(themes_result.get("themes") or [])
-                elif status == "ok":
-                    status = str(themes_result.get("status") or "warning")
-                    status_text = str(themes_result.get("message") or "")
-
-            apps.append({
-                "id": app_id,
-                "name": adapter.name,
-                "icon": adapter.icon,
-                "installed": installed,
-                "integration": adapter.integration,
-                "capabilities": capabilities,
-                "configPath": str(config_file or ""),
-                "configDisplay": str(config_file.name if config_file else ""),
-                "currentValue": str(current.get("value") or ""),
-                "currentDisplay": str(current.get("label") or current.get("value") or ""),
-                "mode": str(current.get("mode") or ""),
-                "themes": themes,
-                "status": status,
-                "statusText": status_text,
-                "changed": self._app_changes.get(app_id, ""),
-            })
+        from .cli_core import core_request
+        apps = core_request("app.all")
+        for app in apps:
+            app["changed"] = self._app_changes.get(app["id"], "")
+            from .core_messages import render_message, localize
+            template = app.get("statusTemplate")
+            app["statusText"] = (render_message(template, app.get("statusArgs") or []) if template else localize(app["statusText"]))
         return apps
 
     # ── changes ──────────────────────────────────────────────────────────
@@ -479,50 +346,21 @@ class ThemeBundleCore:
     def undo_depth(self) -> int:
         return self._theme.undo_depth()
 
-    def set_component(self, component_id: str, value: Any) -> Result:
-        if component_id in ADAPTERS:
-            adapter = ADAPTERS[component_id]
-            if not adapter.detect():
-                return Result.err(f"{adapter.name} is not installed")
-            result = adapter.apply_theme(str(value))
-            if result.get("ok"):
-                self._app_changes[component_id] = str(value)
-                return Result.ok(str(result.get("message") or f"{adapter.name} theme updated"))
-            return Result.err(str(result.get("message") or "Theme update failed"))
+    @property
+    def _app_changes(self):
+        return self._theme._app_changes
 
-        component = COMPONENT_BY_ID.get(component_id)
-        if component is None:
-            return Result.err(f"Unknown component: {component_id}")
-        if component.kind == "wallpaper":
-            if self._wallpapers is None:
-                return Result.err("Wallpaper core is not available")
-            result = self._wallpapers.set_wallpaper(str(value))
-            if result.success:
-                self._app_changes[component_id] = str(value)
-            return result
-        if not component.field_id:
-            return Result.err(f"Component {component_id} is not writable")
-        return self._theme.set_value(component.field_id, value)
+    def set_component(self, component_id: str, value: Any) -> Result:
+        return self._theme._session_call("component", id=component_id, value=value)
 
     def apply(self) -> Result:
-        app_count = len(self._app_changes)
-        self._app_changes.clear()
-        result = self._theme.apply()
-        if result.success and app_count:
-            return Result.ok(f"{result.message} + {app_count} app theme(s)")
-        if result.success and app_count == 0:
-            return result
-        if app_count:
-            return Result.ok(f"Applied {app_count} app theme(s); core: {result.message}")
-        return result
+        return self._theme.apply()
 
     def undo(self) -> Result:
         return self._theme.undo()
 
     def revert(self) -> Result:
-        result = self._theme.revert()
-        self._app_changes.clear()
-        return result
+        return self._theme.revert()
 
     # ── profile bundles ──────────────────────────────────────────────────
 
@@ -545,62 +383,12 @@ class ThemeBundleCore:
             for profile in profiles
         ]
 
-    def _bundle_path(self, name: str) -> Path:
-        return profile_dir(name) / "theme-bundle.json"
-
     def profile_bundle(self, name: str) -> Result:
+        from .cli_core import core_request
         try:
-            name = validate_profile_name(name)
-        except ValueError as exc:
+            return Result.ok(data=core_request("bundle.metadata", name=name))
+        except (ValueError, RuntimeError) as exc:
             return Result.err(str(exc))
-        package_path = profile_dir(name) / "theme.json"
-        package: dict[str, Any] | None = None
-        if package_path.is_file():
-            try:
-                package = json.loads(package_path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError) as exc:
-                return Result.err(f"Invalid theme.json: {exc}")
-        path = self._bundle_path(name)
-        if package is None and path.is_file():
-            try:
-                data = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError) as exc:
-                return Result.err(f"Invalid bundle metadata: {exc}")
-            return Result.ok(data=data)
-
-        # Theme package or legacy snapshot: the profile scope reads the
-        # package values (or the stored configs) through the field engine.
-        scope = f"profile:{name}"
-        components: dict[str, Any] = {}
-        for group in GROUPS:
-            for component in group.components:
-                if not component.field_id:
-                    continue
-                item = self._component_to_dict(component, scope)
-                if item["currentDisplay"]:
-                    components[component.id] = item["currentValue"]
-        if package is not None:
-            return Result.ok(data={
-                "schema": str(package.get("schema") or ""),
-                "name": name,
-                "legacy": False,
-                "description": str(package.get("description") or ""),
-                "createdAt": str(package.get("created") or ""),
-                "components": components,
-                "values": dict(package.get("values") or {}),
-                "applications": {},
-                "wallpaper": str(package.get("wallpaper") or ""),
-                "assets": list(package.get("assets") or []),
-                "sources": dict(package.get("sources") or {}),
-            })
-        return Result.ok(data={
-            "schema": BUNDLE_SCHEMA,
-            "name": name,
-            "legacy": True,
-            "components": components,
-            "applications": {},
-            "wallpaper": "",
-        })
 
     def save_profile(self, name: str, description: str = "", wallpaper: str = "",
                      include_wallpaper: bool = True) -> Result:
@@ -625,226 +413,48 @@ class ThemeBundleCore:
         return Result.ok(saved.message or f"Saved profile: {name}",
                          data=view.data if view.success else None)
 
-    def _bundle_data(self, name: str, wallpaper: str = "", description: str = "") -> dict:
-        components: dict[str, Any] = {}
-        for group in self.groups("live"):
-            for component in group["components"]:
-                if component["profileTracked"] and component["currentDisplay"]:
-                    components[component["id"]] = component["currentValue"]
-        apps: dict[str, str] = {}
-        for app in self.applications():
-            # Only apps whose theme we can re-apply belong in the bundle;
-            # Discord's background colour etc. would just fail on apply.
-            if (app["installed"] and app["currentValue"]
-                    and app["capabilities"].get("apply_theme")):
-                apps[str(app["id"])] = str(app["currentValue"])
-        return {
-            "schema": BUNDLE_SCHEMA,
-            "name": name,
-            "description": description,
-            "createdAt": datetime.now().isoformat(timespec="seconds"),
-            "components": components,
-            "applications": apps,
-            "wallpaper": wallpaper or self._current_wallpaper(),
-        }
 
     def apply_profile(self, name: str, keep_wallpaper: bool = False,
                       install_missing: bool = False) -> Result:
         if self._profiles is None:
             return Result.err("Profile core is not available")
-        try:
-            name = validate_profile_name(name)
-        except ValueError as exc:
-            return Result.err(str(exc))
-        # Theme packages are applied completely by `theme-profile apply`
-        # (values, assets, wallpaper, missing report) — no second pass here.
-        if (profile_dir(name) / "theme.json").is_file():
-            return self._profiles.apply(
-                name, keep_wallpaper=keep_wallpaper, install_missing=install_missing
-            )
-        applied = self._profiles.apply(name)
-        if not applied.success:
-            return applied
-
-        bundle_result = self.profile_bundle(name)
-        if bundle_result.success and bundle_result.data:
-            data = bundle_result.data
-            messages = [applied.message]
-            for component_id, value in dict(data.get("components") or {}).items():
-                component = COMPONENT_BY_ID.get(component_id)
-                if component and component.field_id and value not in (None, ""):
-                    staged = self._theme.set_value(component.field_id, value)
-                    if not staged.success:
-                        messages.append(staged.message)
-            theme_applied = self._theme.apply()
-            messages.append(theme_applied.message)
-            for app_id, theme in dict(data.get("applications") or {}).items():
-                app_result = self.set_component(str(app_id), theme)
-                messages.append(f"{app_id}: {app_result.message}")
-            # The wallpaper is restored by `theme-profile apply` itself (saved
-            # copy in <profile>/wallpaper/, bundle path as fallback) so CLI,
-            # theme-menu and GUI behave the same.
-            return Result.ok("; ".join(messages))
-        return applied
+        return self._profiles.apply(name, keep_wallpaper=keep_wallpaper,
+                                    install_missing=install_missing)
 
     def validate_profile_bundle(self, name: str) -> Result:
+        from .cli_core import core_request
         try:
-            package = (profile_dir(name) / "theme.json").is_file()
-        except ValueError as exc:
+            data = core_request("bundle.validate", name=name)
+            return Result(data["ok"], data["message"], data=data)
+        except (ValueError, RuntimeError) as exc:
             return Result.err(str(exc))
-        if package and hasattr(self._profiles, "check"):
-            checked = self._profiles.check(name)
-            if not checked.success:
-                return checked
-            missing = (checked.data or {}).get("missing") or []
-            if missing:
-                return Result.err("Missing theme references: " + "; ".join(
-                    f"{m.get('name')}" + (f" ({m.get('source')})" if m.get("source") else "")
-                    for m in missing
-                ), data={"missing": missing})
-            return Result.ok("Theme bundle is complete")
-        result = self.profile_bundle(name)
-        if not result.success:
-            return result
-        data = result.data or {}
-        missing: list[str] = []
-        for component_id, value in dict(data.get("components") or {}).items():
-            component = COMPONENT_BY_ID.get(component_id)
-            if component and component.kind == "choice" and value:
-                item = self._component_to_dict(component, "live")
-                values = {str(choice["value"]) for choice in item["choices"]}
-                if values and str(value) not in values:
-                    missing.append(f"{_tr(component.label)}: {value}")
-        for app_id, theme in dict(data.get("applications") or {}).items():
-            app = next((item for item in self.applications() if item["id"] == app_id), None)
-            if app and app["themes"]:
-                labels = {str(theme_item["id"]) for theme_item in app["themes"]}
-                if str(theme) not in labels:
-                    missing.append(f"{app['name']}: {theme}")
-        wallpaper = str(data.get("wallpaper") or "")
-        saved_copy = profile_dir(name) / "wallpaper"
-        has_copy = saved_copy.is_dir() and any(
-            item.is_file() and item.name != "source" for item in saved_copy.iterdir()
-        )
-        if wallpaper and not has_copy and not Path(wallpaper).is_file():
-            missing.append(f"{_tr(QT_TRANSLATE_NOOP('ThemeBundle', 'Wallpaper'))}: {wallpaper}")
-        if missing:
-            return Result.err("Missing theme references: " + "; ".join(missing))
-        return Result.ok("Theme bundle is complete")
 
-    # ── derived user themes ──────────────────────────────────────────────
+    def create_profile(self, name, components=None, applications=None,
+                       description="", include_wallpaper=True):
+        return self._theme._session_call("create_profile", name=name,
+            components=components or {}, applications=applications or {},
+            description=description, include_wallpaper=include_wallpaper)
 
     def create_custom_theme(self, name: str) -> Result:
-        """Create user-owned derived color and Kvantum themes."""
+        from .cli_core import core_request
         try:
-            name = validate_profile_name(name)
-        except ValueError as exc:
+            data = core_request("resource.clone", name=name,
+                                session=getattr(self._theme, "_session", None))
+            return Result.ok(data["message"], data=data)
+        except (ValueError, RuntimeError) as exc:
             return Result.err(str(exc))
-
-        created: list[str] = []
-        color_result = self._create_color_scheme(name)
-        if color_result.success:
-            created.extend(color_result.data.get("assets", []))
-        elif "not based" not in color_result.message:
-            return color_result
-
-        kvantum_result = self._create_kvantum_theme(name)
-        if kvantum_result.success:
-            created.extend(kvantum_result.data.get("assets", []))
-        elif "not based" not in kvantum_result.message:
-            return kvantum_result
-
-        if not created:
-            return Result.err(
-                "Nothing to create: pick an installed base color scheme or Kvantum theme first"
-            )
-        return Result.ok(f"Created custom theme assets: {', '.join(created)}", data={"assets": created})
-
-    def _create_color_scheme(self, name: str) -> Result:
-        current = self._theme.get("color_scheme", "live") or {}
-        base = str(current.get("value") or "")
-        if not base:
-            return Result.err("No installed base color scheme")
-        source = _existing_file([
-            data_home() / "color-schemes" / f"{base}.colors",
-            *[directory / "color-schemes" / f"{base}.colors" for directory in _data_dirs()[1:]],
-        ])
-        if source is None:
-            return Result.err(f"Base color scheme not found: {base}")
-        target = data_home() / "color-schemes" / f"{name}.colors"
-        if target.exists():
-            return Result.err(f"Color scheme already exists: {name}")
-        try:
-            text = source.read_text(encoding="utf-8", errors="replace")
-            # Bake the live palette in: Theme Inspector colour edits (window_bg,
-            # selection_bg, …) live in kdeglobals, not in the base .colors file.
-            for group, key, value in _live_palette_entries():
-                text = _set_group_key(text, group, key, value)
-            text = _set_group_key(text, "General", "Name", name)
-            text = _set_group_key(text, "General", "ColorScheme", name)
-            accent = self._theme.get("accent_color", "live") or {}
-            if accent.get("raw"):
-                raw = str(accent["raw"])
-                if re.fullmatch(r"\d+,\d+,\d+", raw):
-                    text = _set_group_key(text, "General", "AccentColor", raw)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            atomic_write_text(target, text if text.endswith("\n") else text + "\n")
-        except OSError as exc:
-            return Result.err(f"Failed to create color scheme: {exc}")
-        return Result.ok(data={"assets": [str(target)]})
-
-    def _create_kvantum_theme(self, name: str) -> Result:
-        current = self._theme.get("kvantum_theme", "live") or {}
-        base = str(current.get("value") or "")
-        if not base or not isinstance(self._theme, AppThemeCore):
-            return Result.err("No installed base Kvantum theme")
-        source = self._theme._kvantum_file(base)  # noqa: SLF001 - same core package
-        if source is None:
-            return Result.err(f"Base Kvantum theme not found: {base}")
-        root = data_home() / "Kvantum" / name
-        target = root / f"{name}.kvconfig"
-        if target.exists():
-            return Result.err(f"Kvantum theme already exists: {name}")
-        try:
-            text = source.read_text(encoding="utf-8", errors="replace")
-            for field_id in ("kvantum_translucent", "kvantum_blurring", "kvantum_popup_blurring"):
-                item = self._theme.get(field_id, "live") or {}
-                value = item.get("value")
-                if value is None:
-                    continue
-                field = item
-                key = str(field.get("key") or "")
-                group = str(field.get("group") or "%General")
-                if key:
-                    text = _set_ini_text(text, group, key, "true" if value else "false")
-            root.mkdir(parents=True, exist_ok=True)
-            atomic_write_text(target, text if text.endswith("\n") else text + "\n")
-            for asset in source.parent.iterdir():
-                if asset.is_file() and asset.suffix in (".svg", ".png") and asset.name != target.name:
-                    shutil.copy2(asset, root / asset.name)
-        except OSError as exc:
-            return Result.err(f"Failed to create Kvantum theme: {exc}")
-        return Result.ok(data={"assets": [str(target)]})
 
     # ── editor theme stores (Rust CLI: `theme-profile apps …`) ───────────
 
     def _cli_json(self, args: list[str], timeout: int = 180) -> Result:
-        from .cli_core import resolve_cli_bin
-
+        from .cli_core import run_cli
+        result = run_cli([*args, "--json"], timeout=timeout)
+        if not result.success:
+            return result
         try:
-            proc = subprocess.run(
-                [resolve_cli_bin(), *args, "--json"],
-                capture_output=True, text=True, timeout=timeout,
-            )
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            return Result.err(str(exc))
-        if proc.returncode != 0:
-            return Result.err(proc.stderr.strip() or proc.stdout.strip() or "theme-profile failed")
-        try:
-            data = json.loads(proc.stdout)
+            return Result.ok(data={"value": json.loads(result.message)})
         except ValueError:
             return Result.err("theme-profile returned invalid JSON")
-        return Result.ok(data={"value": data})
 
     def _store_adapter(self, app_id: str) -> Result:
         adapter = adapter_for(app_id)

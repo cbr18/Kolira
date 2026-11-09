@@ -17,8 +17,9 @@
 //! [`install`] fetches it from the official source: Plasma packages through
 //! `kpackagetool6`, icons/cursors/GTK/Kvantum/Aurorae/colour schemes by
 //! unpacking the store archive into the user's directories, editor themes
-//! through the stores module. System packages are never installed by us
-//! (no sudo): the report carries the command.
+//! through the stores module. Explicit package jobs invoke the system package
+//! manager in a visible terminal; password input stays there. The legacy
+//! single-resource `install` API returns the command instead.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -63,7 +64,10 @@ fn store_page(id: &str) -> String {
 }
 
 fn store_search(name: &str) -> String {
-    format!("https://store.kde.org/search?search={}", name.replace(' ', "+"))
+    format!(
+        "https://store.kde.org/search?search={}",
+        name.replace(' ', "+")
+    )
 }
 
 fn safe_name(name: &str) -> bool {
@@ -74,18 +78,41 @@ fn safe_name(name: &str) -> bool {
 // Where assets live
 // ─────────────────────────────────────────────────────────────────────────────
 
-fn roots(kind: &str) -> Vec<PathBuf> {
+pub(crate) fn roots(kind: &str) -> Vec<PathBuf> {
     let home = home_dir();
     let data = data_home();
     match kind {
-        "icons" | "cursors" => vec![data.join("icons"), home.join(".icons"), "/usr/share/icons".into()],
-        "gtk" => vec![data.join("themes"), home.join(".themes"), "/usr/share/themes".into()],
+        "icons" | "cursors" => vec![
+            data.join("icons"),
+            home.join(".icons"),
+            "/usr/share/icons".into(),
+        ],
+        "gtk" => vec![
+            data.join("themes"),
+            home.join(".themes"),
+            "/usr/share/themes".into(),
+        ],
         "kvantum" => vec![config_home().join("Kvantum"), "/usr/share/Kvantum".into()],
-        "plasma-theme" => vec![data.join("plasma/desktoptheme"), "/usr/share/plasma/desktoptheme".into()],
-        "look-and-feel" => vec![data.join("plasma/look-and-feel"), "/usr/share/plasma/look-and-feel".into()],
-        "color-scheme" => vec![data.join("color-schemes"), "/usr/share/color-schemes".into()],
-        "aurorae" => vec![data.join("aurorae/themes"), "/usr/share/aurorae/themes".into()],
-        "plasmoid" => vec![data.join("plasma/plasmoids"), "/usr/share/plasma/plasmoids".into()],
+        "plasma-theme" => vec![
+            data.join("plasma/desktoptheme"),
+            "/usr/share/plasma/desktoptheme".into(),
+        ],
+        "look-and-feel" => vec![
+            data.join("plasma/look-and-feel"),
+            "/usr/share/plasma/look-and-feel".into(),
+        ],
+        "color-scheme" => vec![
+            data.join("color-schemes"),
+            "/usr/share/color-schemes".into(),
+        ],
+        "aurorae" => vec![
+            data.join("aurorae/themes"),
+            "/usr/share/aurorae/themes".into(),
+        ],
+        "plasmoid" => vec![
+            data.join("plasma/plasmoids"),
+            "/usr/share/plasma/plasmoids".into(),
+        ],
         _ => Vec::new(),
     }
 }
@@ -98,13 +125,16 @@ pub fn locate(kind: &str, name: &str) -> Option<PathBuf> {
 
 /// Every installed copy of asset `name` (a user copy may shadow a packaged
 /// one — Klassy generates its icon theme into ~/.local/share/icons).
-fn locate_all(kind: &str, name: &str) -> Vec<PathBuf> {
+pub(crate) fn locate_all(kind: &str, name: &str) -> Vec<PathBuf> {
     let mut out = Vec::new();
     if !safe_name(name) {
         return out;
     }
     if kind == "kwin-effect" {
-        return crate::kwin_effects::find(name).map(|e| e.path).into_iter().collect();
+        return crate::kwin_effects::find(name)
+            .map(|e| e.path)
+            .into_iter()
+            .collect();
     }
     for root in roots(kind) {
         let hit = match kind {
@@ -115,7 +145,9 @@ fn locate_all(kind: &str, name: &str) -> Vec<PathBuf> {
                     Some(direct)
                 } else {
                     fs::read_dir(&root).ok().and_then(|it| {
-                        it.flatten().map(|e| e.path()).find(|d| d.join(format!("{name}.kvconfig")).is_file())
+                        it.flatten()
+                            .map(|e| e.path())
+                            .find(|d| d.join(format!("{name}.kvconfig")).is_file())
                     })
                 }
             }
@@ -130,10 +162,14 @@ fn locate_all(kind: &str, name: &str) -> Vec<PathBuf> {
 
 fn decoration_plugin(library: &str) -> Option<PathBuf> {
     let short = library.rsplit('.').next()?.to_lowercase();
-    for dir in ["/usr/lib/qt6/plugins/org.kde.kdecoration3", "/usr/lib/qt6/plugins/org.kde.kdecoration2"] {
+    for dir in [
+        "/usr/lib/qt6/plugins/org.kde.kdecoration3",
+        "/usr/lib/qt6/plugins/org.kde.kdecoration2",
+    ] {
         if let Ok(it) = fs::read_dir(dir) {
             if let Some(p) = it.flatten().map(|e| e.path()).find(|p| {
-                p.file_name().is_some_and(|n| n.to_string_lossy().to_lowercase().contains(&short))
+                p.file_name()
+                    .is_some_and(|n| n.to_string_lossy().to_lowercase().contains(&short))
             }) {
                 return Some(p);
             }
@@ -146,26 +182,50 @@ fn decoration_plugin(library: &str) -> Option<PathBuf> {
 /// style ships with Qt/KDE itself (Breeze, Fusion, Windows, Oxygen).
 fn widget_style_plugin(style: &str) -> Option<PathBuf> {
     let short = style.to_lowercase();
-    if matches!(short.as_str(), "" | "breeze" | "fusion" | "windows" | "oxygen") {
+    if matches!(
+        short.as_str(),
+        "" | "breeze" | "fusion" | "windows" | "oxygen"
+    ) {
         return None;
     }
-    ["/usr/lib/qt6/plugins/styles", "/usr/lib/qt/plugins/styles"].iter().find_map(|dir| {
-        fs::read_dir(dir).ok()?.flatten().map(|e| e.path()).find(|p| {
-            p.file_stem().is_some_and(|n| n.to_string_lossy().to_lowercase().trim_start_matches("lib").starts_with(&short))
+    ["/usr/lib/qt6/plugins/styles", "/usr/lib/qt/plugins/styles"]
+        .iter()
+        .find_map(|dir| {
+            fs::read_dir(dir)
+                .ok()?
+                .flatten()
+                .map(|e| e.path())
+                .find(|p| {
+                    p.file_stem().is_some_and(|n| {
+                        n.to_string_lossy()
+                            .to_lowercase()
+                            .trim_start_matches("lib")
+                            .starts_with(&short)
+                    })
+                })
         })
-    })
 }
 
 /// Is dependency `d` satisfied on this machine?
 pub fn installed(d: &Dependency) -> bool {
     match d.kind.as_str() {
+        "command" => which::which(&d.name).is_ok(),
         "decoration" => decoration_plugin(&d.name).is_some(),
         "spicetify" => which::which("spicetify").is_ok(),
         "widget-style" => widget_style_plugin(&d.name).is_some(),
-        "oh-my-posh" => which::which("oh-my-posh").is_ok() || home_dir().join(".local/bin/oh-my-posh").is_file(),
-        "discord-client" => crate::discord::CLIENTS.iter().any(|(_, rel)| home_dir().join(rel).exists()),
+        "oh-my-posh" => {
+            which::which("oh-my-posh").is_ok() || home_dir().join(".local/bin/oh-my-posh").is_file()
+        }
+        "discord-client" => crate::discord::CLIENTS
+            .iter()
+            .any(|(_, rel)| home_dir().join(rel).exists()),
         "firefox-theme" => crate::tracked_apps::firefox_profile_dir().is_some_and(|dir| {
-            home_dir().join(".mozilla/firefox").join(dir).join("extensions").join(format!("{}.xpi", d.name)).exists()
+            home_dir()
+                .join(".mozilla/firefox")
+                .join(dir)
+                .join("extensions")
+                .join(format!("{}.xpi", d.name))
+                .exists()
         }),
         "vscode" | "cursor" | "zed" => {
             let field = match d.kind.as_str() {
@@ -192,7 +252,9 @@ fn knewstuff_entry(path: &Path) -> Option<(String, String, String)> {
         if file.extension().is_none_or(|e| e != "knsregistry") {
             continue;
         }
-        let Ok(text) = fs::read_to_string(&file) else { continue };
+        let Ok(text) = fs::read_to_string(&file) else {
+            continue;
+        };
         for stuff in text.split("<stuff").skip(1) {
             let tag = |t: &str| -> Option<String> {
                 let open = format!("<{t}>");
@@ -202,8 +264,16 @@ fn knewstuff_entry(path: &Path) -> Option<(String, String, String)> {
             };
             let provides = stuff.match_indices("<installedfile>").any(|(i, _)| {
                 let rest = &stuff[i + "<installedfile>".len()..];
-                let installed = rest.split("</installedfile>").next().unwrap_or("").trim_end_matches("/*").trim_end_matches('/');
-                !installed.is_empty() && (path == installed || path.starts_with(&format!("{installed}/")) || installed.starts_with(&format!("{path}/")))
+                let installed = rest
+                    .split("</installedfile>")
+                    .next()
+                    .unwrap_or("")
+                    .trim_end_matches("/*")
+                    .trim_end_matches('/');
+                !installed.is_empty()
+                    && (path == installed
+                        || path.starts_with(&format!("{installed}/"))
+                        || installed.starts_with(&format!("{path}/")))
             });
             if provides && tag("providerid").as_deref() == Some("api.kde-look.org") {
                 let stem = file.file_stem()?.to_string_lossy().to_string();
@@ -217,51 +287,34 @@ fn knewstuff_entry(path: &Path) -> Option<(String, String, String)> {
 /// Our own record of what `install` fetched from the KDE Store (KDE's
 /// KNewStuff registry only knows its own "Get New…" installs): installed
 /// path → (store id, title), in `<theme-profile data>/installed-assets.json`.
-fn own_registry_path() -> PathBuf {
-    crate::paths::theme_root().join("installed-assets.json")
-}
-
-fn own_registry() -> serde_json::Map<String, Value> {
-    fs::read_to_string(own_registry_path())
-        .ok()
-        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
-        .and_then(|v| v.as_object().cloned())
-        .unwrap_or_default()
-}
-
-fn record_install(paths: &[PathBuf], id: &str, title: &str) {
-    let mut reg = own_registry();
-    for p in paths {
-        reg.insert(p.to_string_lossy().to_string(), serde_json::json!({"store": "kde-store", "id": id, "title": title}));
-    }
-    let path = own_registry_path();
-    if let Some(parent) = path.parent() {
-        let _ = fs::create_dir_all(parent);
-    }
-    let _ = fs::write(path, serde_json::to_string_pretty(&Value::Object(reg)).unwrap_or_default());
-}
-
 fn own_entry(path: &Path) -> Option<(String, String)> {
-    let reg = own_registry();
-    let e = reg.get(&path.to_string_lossy().to_string())?;
-    Some((e.get("id")?.as_str()?.to_string(), e.get("title").and_then(Value::as_str).unwrap_or("").to_string()))
+    crate::dependency_registry::source_entry(path)
 }
 
 fn package_owner(path: &Path) -> Option<(String, bool)> {
     if !path.starts_with("/usr") || which::which("pacman").is_err() {
         return None;
     }
-    let out = std::process::Command::new("pacman").arg("-Qqo").arg(path).output().ok()?;
-    let name = String::from_utf8_lossy(&out.stdout).lines().next()?.trim().to_string();
+    let (status, out) =
+        crate::paths::output_bounded(std::process::Command::new("pacman").arg("-Qqo").arg(path))?;
+    if !status.success() {
+        return None;
+    }
+    let name = String::from_utf8_lossy(&out)
+        .lines()
+        .next()?
+        .trim()
+        .to_string();
     if name.is_empty() {
         return None;
     }
-    let in_repo = std::process::Command::new("pacman")
-        .args(["-Si", &name])
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .is_ok_and(|s| s.success());
+    let in_repo = crate::paths::status_bounded(
+        std::process::Command::new("pacman")
+            .args(["-Si", &name])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null()),
+    )
+    .is_some_and(|s| s.success());
     Some((name, in_repo))
 }
 
@@ -311,7 +364,9 @@ fn store_lookup(kind: &str, name: &str) -> Option<(String, String, bool)> {
     let mut hits: Vec<(String, String)> = Vec::new();
     for query in [name.to_string(), format!("{name} {keyword}")] {
         let url = format!("{OCS}?search={}&pagesize=50", query.replace(' ', "%20"));
-        let Ok(xml) = crate::net::http_get(&url, 8 << 20) else { continue };
+        let Ok(xml) = crate::net::http_get(&url, 8 << 20) else {
+            continue;
+        };
         for c in xml.split("<content details=\"summary\">").skip(1) {
             let typename = xml_tag(c, "typename").unwrap_or_default();
             if types.iter().any(|t| typename.contains(t)) {
@@ -337,11 +392,28 @@ fn store_lookup(kind: &str, name: &str) -> Option<(String, String, bool)> {
 fn match_score(name: &str, title: &str) -> i32 {
     let n = name.to_lowercase();
     let t = title.to_lowercase();
-    let words: Vec<&str> = t.split(|c: char| !c.is_alphanumeric()).filter(|w| !w.is_empty()).collect();
-    let acronym = |len: usize| words.iter().take(len).filter_map(|w| w.chars().next()).collect::<String>();
+    let words: Vec<&str> = t
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| !w.is_empty())
+        .collect();
+    let acronym = |len: usize| {
+        words
+            .iter()
+            .take(len)
+            .filter_map(|w| w.chars().next())
+            .collect::<String>()
+    };
     let mut score = if t == n {
         100
-    } else if n.len() >= 3 && (acronym(n.len()) == n || words.windows(n.len()).any(|w| w.iter().filter_map(|x| x.chars().next()).collect::<String>() == n)) {
+    } else if n.len() >= 3
+        && (acronym(n.len()) == n
+            || words.windows(n.len()).any(|w| {
+                w.iter()
+                    .filter_map(|x| x.chars().next())
+                    .collect::<String>()
+                    == n
+            }))
+    {
         60
     } else if t.contains(&n) {
         40
@@ -362,9 +434,17 @@ fn match_score(name: &str, title: &str) -> i32 {
 /// A dependency for asset `name` of `kind` installed at `paths` (any copy
 /// may reveal the source; none when not installed here).
 fn describe(kind: &str, name: &str, paths: &[PathBuf]) -> Dependency {
-    let mut d = Dependency { kind: kind.into(), name: name.into(), source: "none".into(), exact: true, ..Default::default() };
+    let mut d = Dependency {
+        kind: kind.into(),
+        name: name.into(),
+        source: "none".into(),
+        exact: true,
+        ..Default::default()
+    };
     for path in paths {
-        if let Some((_, id, title)) = knewstuff_entry(path).or_else(|| own_entry(path).map(|(i, t)| (String::new(), i, t))) {
+        if let Some((_, id, title)) =
+            knewstuff_entry(path).or_else(|| own_entry(path).map(|(i, t)| (String::new(), i, t)))
+        {
             d.source = "kde-store".into();
             d.url = store_page(&id);
             d.id = id;
@@ -406,9 +486,18 @@ pub fn for_asset(asset_kind: &str, name: &str, asset_path: &str) -> Option<Depen
         _ => return None,
     };
     let live = home_dir().join(asset_path);
-    let paths: Vec<PathBuf> = if live.exists() { vec![live] } else { locate_all(kind, name) };
+    let paths: Vec<PathBuf> = if live.exists() {
+        vec![live]
+    } else {
+        locate_all(kind, name)
+    };
     let lookup = if kind == "kvantum" {
-        asset_path.trim_end_matches('/').rsplit('/').next().unwrap_or(name).to_string()
+        asset_path
+            .trim_end_matches('/')
+            .rsplit('/')
+            .next()
+            .unwrap_or(name)
+            .to_string()
     } else {
         name.to_string()
     };
@@ -432,7 +521,10 @@ const ASSET_FIELDS: &[(&str, &str)] = &[
 fn builtin(kind: &str, name: &str) -> bool {
     let n = name.to_lowercase();
     match kind {
-        "plasma-theme" => matches!(n.as_str(), "default" | "breeze-dark" | "breeze-light" | "oxygen"),
+        "plasma-theme" => matches!(
+            n.as_str(),
+            "default" | "breeze-dark" | "breeze-light" | "oxygen"
+        ),
         "look-and-feel" => n.starts_with("org.kde."),
         "color-scheme" => n.starts_with("breeze") || n == "oxygen",
         "icons" => matches!(n.as_str(), "breeze" | "breeze-dark" | "hicolor" | "oxygen"),
@@ -444,17 +536,30 @@ fn builtin(kind: &str, name: &str) -> bool {
 
 /// Dependencies of the theme stored in `dir` (its `values` already read).
 /// Assets bundled in the theme directory are not dependencies.
-pub fn detect(dir: &Path, values: &std::collections::BTreeMap<String, Value>, sources: &std::collections::BTreeMap<String, crate::theme::Source>) -> Vec<Dependency> {
+pub fn detect(
+    dir: &Path,
+    values: &std::collections::BTreeMap<String, Value>,
+    sources: &std::collections::BTreeMap<String, crate::theme::Source>,
+) -> Vec<Dependency> {
     let home = home_dir();
     let mut out: Vec<Dependency> = Vec::new();
-    let bundled = |path: &Path| path.strip_prefix(&home).is_ok_and(|rel| dir.join(rel).exists());
+    let bundled = |path: &Path| {
+        path.strip_prefix(&home)
+            .is_ok_and(|rel| dir.join(rel).exists())
+    };
     let mut add = |d: Dependency| {
         if !out.iter().any(|x| x.kind == d.kind && x.name == d.name) {
             out.push(d);
         }
     };
     for (field, kind) in ASSET_FIELDS {
-        let Some(name) = values.get(*field).map(crate::field::value_str).filter(|n| safe_name(n)) else { continue };
+        let Some(name) = values
+            .get(*field)
+            .map(crate::field::value_str)
+            .filter(|n| safe_name(n))
+        else {
+            continue;
+        };
         if builtin(kind, &name) {
             continue;
         }
@@ -465,10 +570,19 @@ pub fn detect(dir: &Path, values: &std::collections::BTreeMap<String, Value>, so
         add(describe(kind, &name, &paths));
     }
     // Window decoration: a compiled plugin (package) or an Aurorae theme.
-    let library = values.get("decoration_library").map(crate::field::value_str).unwrap_or_default();
-    let deco_theme = values.get("decoration_theme").map(crate::field::value_str).unwrap_or_default();
+    let library = values
+        .get("decoration_library")
+        .map(crate::field::value_str)
+        .unwrap_or_default();
+    let deco_theme = values
+        .get("decoration_theme")
+        .map(crate::field::value_str)
+        .unwrap_or_default();
     if library == "org.kde.kwin.aurorae" {
-        if let Some(name) = deco_theme.strip_prefix("__aurorae__svg__").filter(|n| safe_name(n)) {
+        if let Some(name) = deco_theme
+            .strip_prefix("__aurorae__svg__")
+            .filter(|n| safe_name(n))
+        {
             let paths = locate_all("aurorae", name);
             if !paths.first().is_some_and(|p| bundled(p)) {
                 add(describe("aurorae", name, &paths));
@@ -479,12 +593,18 @@ pub fn detect(dir: &Path, values: &std::collections::BTreeMap<String, Value>, so
         let mut d = describe("decoration", &library, &plugin);
         if d.source == "kde-store" && !d.exact {
             d.source = "none".into(); // a compiled plugin is never a store archive
-            d.url = format!("https://aur.archlinux.org/packages?K={}", library.rsplit('.').next().unwrap_or(&library));
+            d.url = format!(
+                "https://aur.archlinux.org/packages?K={}",
+                library.rsplit('.').next().unwrap_or(&library)
+            );
         }
         add(d);
     }
     // A Qt widget style that is a plugin of its own (Kvantum): its package.
-    let style = values.get("widget_style").map(crate::field::value_str).unwrap_or_default();
+    let style = values
+        .get("widget_style")
+        .map(crate::field::value_str)
+        .unwrap_or_default();
     if let Some(plugin) = widget_style_plugin(&style) {
         let mut d = describe("widget-style", &style, &[plugin]);
         if d.source == "kde-store" && !d.exact {
@@ -522,7 +642,9 @@ pub fn detect(dir: &Path, values: &std::collections::BTreeMap<String, Value>, so
         }
     }
     // Discord themes need a theming client (stock Discord has none).
-    let carries_discord = crate::discord::CLIENTS.iter().any(|(_, rel)| dir.join(rel).join("themes").exists());
+    let carries_discord = crate::discord::CLIENTS
+        .iter()
+        .any(|(_, rel)| dir.join(rel).join("themes").exists());
     if carries_discord {
         add(Dependency {
             kind: "discord-client".into(),
@@ -559,13 +681,28 @@ pub fn detect(dir: &Path, values: &std::collections::BTreeMap<String, Value>, so
         });
     }
     // Firefox theme add-on (installed from inside Firefox — link only).
-    for user_js in crate::tracked_apps::firefox_config_paths().iter().filter(|p| p.ends_with("/user.js")) {
+    for user_js in crate::tracked_apps::firefox_config_paths()
+        .iter()
+        .filter(|p| p.ends_with("/user.js"))
+    {
         let theme_copy = crate::profile::theme_file(dir, user_js);
-        let Ok(text) = fs::read_to_string(theme_copy) else { continue };
+        let Ok(text) = fs::read_to_string(theme_copy) else {
+            continue;
+        };
         let Some(guid) = text.lines().find_map(|l| {
-            let rest = l.trim().strip_prefix("user_pref(\"extensions.activeThemeID\",")?;
-            Some(rest.trim().trim_end_matches(");").trim().trim_matches('"').to_string())
-        }) else { continue };
+            let rest = l
+                .trim()
+                .strip_prefix("user_pref(\"extensions.activeThemeID\",")?;
+            Some(
+                rest.trim()
+                    .trim_end_matches(");")
+                    .trim()
+                    .trim_matches('"')
+                    .to_string(),
+            )
+        }) else {
+            continue;
+        };
         let builtin = guid.ends_with("@mozilla.org") || guid.is_empty();
         if !builtin && !guid.contains('/') {
             add(Dependency {
@@ -580,15 +717,37 @@ pub fn detect(dir: &Path, values: &std::collections::BTreeMap<String, Value>, so
         }
     }
     // Editor themes from their official stores.
-    for (field, kind) in [("vscode_theme", "vscode"), ("cursor_ide_theme", "cursor"), ("zed_dark", "zed"), ("zed_light", "zed")] {
-        if let (Some(src), Some(name)) = (sources.get(field), values.get(field).map(crate::field::value_str)) {
+    for (field, kind) in [
+        ("vscode_theme", "vscode"),
+        ("cursor_ide_theme", "cursor"),
+        ("zed_dark", "zed"),
+        ("zed_light", "zed"),
+    ] {
+        if let (Some(src), Some(name)) = (
+            sources.get(field),
+            values.get(field).map(crate::field::value_str),
+        ) {
             let url = match src.store.as_str() {
-                "vscode-marketplace" => format!("https://marketplace.visualstudio.com/items?itemName={}", src.id),
-                "open-vsx" => format!("https://open-vsx.org/extension/{}", src.id.replacen('.', "/", 1)),
+                "vscode-marketplace" => format!(
+                    "https://marketplace.visualstudio.com/items?itemName={}",
+                    src.id
+                ),
+                "open-vsx" => format!(
+                    "https://open-vsx.org/extension/{}",
+                    src.id.replacen('.', "/", 1)
+                ),
                 "zed" => format!("https://zed.dev/extensions?query={}", src.id),
                 _ => src.url.clone(),
             };
-            add(Dependency { kind: kind.into(), name, source: src.store.clone(), id: src.id.clone(), url, exact: true, ..Default::default() });
+            add(Dependency {
+                kind: kind.into(),
+                name,
+                source: src.store.clone(),
+                id: src.id.clone(),
+                url,
+                exact: true,
+                ..Default::default()
+            });
         }
     }
     out
@@ -600,7 +759,9 @@ pub fn detect(dir: &Path, values: &std::collections::BTreeMap<String, Value>, so
 pub fn missing(deps: &[Dependency]) -> Vec<(usize, &Dependency)> {
     deps.iter()
         .enumerate()
-        .filter(|(_, d)| crate::stores::editor_of(&d.kind).is_none_or(crate::stores::editor_installed))
+        .filter(|(_, d)| {
+            crate::stores::editor_of(&d.kind).is_none_or(crate::stores::editor_installed)
+        })
         .filter(|(_, d)| !installed(d))
         .collect()
 }
@@ -616,7 +777,10 @@ pub fn needs_root(d: &Dependency) -> bool {
 }
 
 fn safe_package(name: &str) -> bool {
-    !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || "-_.+@".contains(c))
+    !name.is_empty()
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || "-_.+@".contains(c))
 }
 
 /// One shell command for every root dependency in `deps`: one
@@ -627,12 +791,17 @@ pub fn root_command(deps: &[&Dependency]) -> Option<String> {
     let mut packages: Vec<&str> = Vec::new();
     let mut aur = false;
     for d in deps {
-        if matches!(d.source.as_str(), "package" | "aur") && safe_package(&d.id) && !packages.contains(&d.id.as_str()) {
+        if matches!(d.source.as_str(), "package" | "aur")
+            && safe_package(&d.id)
+            && !packages.contains(&d.id.as_str())
+        {
             packages.push(&d.id);
             aur |= d.source == "aur";
         }
     }
-    let helper = ["yay", "paru"].into_iter().find(|h| which::which(h).is_ok());
+    let helper = ["yay", "paru"]
+        .into_iter()
+        .find(|h| which::which(h).is_ok());
     if packages.is_empty() {
         return None;
     }
@@ -644,43 +813,54 @@ pub fn root_command(deps: &[&Dependency]) -> Option<String> {
 }
 
 /// Run `command` in a terminal window the user sees (konsole, kitty,
-/// alacritty, ghostty — the first installed); it stays open until Enter.
-/// Returns the terminal used.
+/// alacritty, ghostty — the first installed). The Rust terminal worker publishes
+/// the package result before exit, without an extra Enter prompt.
 pub fn run_in_terminal(command: &str) -> Result<String> {
-    let script = format!(
-        "{command}; status=$?; echo; if [ $status -eq 0 ]; then echo 'Done.'; else echo \"Failed ($status).\"; \
-         echo 'If files were not found (404), the package database is out of date: sudo pacman -Syu, then try again.'; fi; \
-         printf 'Press Enter to close… '; read _; exit $status"
-    );
     if std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1") {
         return Ok("no terminal (KTM_THEME_NO_APPLY)".into());
     }
-    let terminals: [(&str, &[&str]); 4] = [
-        ("konsole", &["--nofork", "-e", "sh", "-c"]),
-        ("kitty", &["sh", "-c"]),
-        ("alacritty", &["-e", "sh", "-c"]),
-        ("ghostty", &["-e", "sh", "-c"]),
-    ];
-    for (bin, args) in terminals {
+    let work = tempfile::Builder::new().prefix("ktm-package-").tempdir()?;
+    let result = work.path().join("result.json");
+    let exe = std::env::current_exe()?;
+    for (bin, args) in [
+        ("konsole", vec!["--nofork", "-e"]),
+        ("kitty", vec![]),
+        ("alacritty", vec!["-e"]),
+        ("ghostty", vec!["-e"]),
+    ] {
         if which::which(bin).is_err() {
             continue;
         }
-        // Waits for the window: what is installed there counts before a theme
-        // is applied. An hour is the limit for someone away from the keyboard.
-        let status = crate::paths::output_bounded_for(
-            std::process::Command::new(bin)
-                .args(args)
-                .arg(&script)
-                .stdin(std::process::Stdio::null())
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null()),
-            std::time::Duration::from_secs(3600),
-        );
-        return match status {
-            Some((s, _)) if s.success() => Ok(bin.to_string()),
-            Some(_) => bail!("the install in {bin} did not finish. If files were not found (404), the package database is out of date: run sudo pacman -Syu and try again"),
-            None => bail!("the install in {bin} took too long and was stopped"),
-        };
+        crate::dependency_jobs::event("waiting", "System packages: see the terminal");
+        let mut child = std::process::Command::new(bin)
+            .args(args)
+            .arg(&exe)
+            .args(["dependencies", "terminal-worker"])
+            .arg(&result)
+            .args(command.split_whitespace())
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()?;
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3600);
+        loop {
+            if let Ok(bytes) = fs::read(&result) {
+                let value: Value = serde_json::from_slice(&bytes)?;
+                if value["ok"] == true {
+                    return Ok(bin.into());
+                }
+                bail!("package manager failed; see the terminal output, then refresh and retry");
+            }
+            if child.try_wait()?.is_some() {
+                bail!("terminal closed before the package result was received");
+            }
+            if std::time::Instant::now() > deadline {
+                // Do not terminate a privileged package transaction. Its state
+                // must be checked after it finishes in the terminal.
+                bail!("package transaction is still running in the terminal; check it and refresh before retrying");
+            }
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
     }
     bail!("no terminal found (konsole, kitty, alacritty, ghostty) — run: {command}")
 }
@@ -714,12 +894,21 @@ fn target_root(kind: &str) -> Option<PathBuf> {
 fn theme_dirs(root: &Path, kind: &str) -> Vec<(PathBuf, String)> {
     let mut out: Vec<(PathBuf, String)> = theme_subdirs(root, kind)
         .into_iter()
-        .filter_map(|d| d.file_name().map(|n| (d.clone(), n.to_string_lossy().to_string())))
+        .filter_map(|d| {
+            d.file_name()
+                .map(|n| (d.clone(), n.to_string_lossy().to_string()))
+        })
         .collect();
     if out.is_empty() && kind == "kvantum" {
-        if let Some(stem) = fs::read_dir(root).ok().and_then(|it| {
-            it.flatten().map(|e| e.path()).find(|p| p.extension().is_some_and(|x| x == "kvconfig"))
-        }).and_then(|p| p.file_stem().map(|s| s.to_string_lossy().to_string())) {
+        if let Some(stem) = fs::read_dir(root)
+            .ok()
+            .and_then(|it| {
+                it.flatten()
+                    .map(|e| e.path())
+                    .find(|p| p.extension().is_some_and(|x| x == "kvconfig"))
+            })
+            .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().to_string()))
+        {
             out.push((root.to_path_buf(), stem));
         }
     }
@@ -732,8 +921,18 @@ fn theme_subdirs(root: &Path, kind: &str) -> Vec<PathBuf> {
             "icons" => d.join("index.theme").is_file() && !d.join("cursors").exists(),
             "cursors" => d.join("cursors").is_dir(),
             "gtk" => d.join("gtk-3.0").is_dir() || d.join("gtk-4.0").is_dir(),
-            "kvantum" => fs::read_dir(d).ok().is_some_and(|mut it| it.any(|e| e.is_ok_and(|e| e.path().extension().is_some_and(|x| x == "kvconfig")))),
-            "aurorae" => fs::read_dir(d).ok().is_some_and(|mut it| it.any(|e| e.is_ok_and(|e| e.file_name().to_string_lossy().starts_with("decoration.svg")))),
+            "kvantum" => fs::read_dir(d).ok().is_some_and(|mut it| {
+                it.any(|e| e.is_ok_and(|e| e.path().extension().is_some_and(|x| x == "kvconfig")))
+            }),
+            "aurorae" => fs::read_dir(d).ok().is_some_and(|mut it| {
+                it.any(|e| {
+                    e.is_ok_and(|e| {
+                        e.file_name()
+                            .to_string_lossy()
+                            .starts_with("decoration.svg")
+                    })
+                })
+            }),
             _ => false,
         }
     };
@@ -761,12 +960,18 @@ fn theme_subdirs(root: &Path, kind: &str) -> Vec<PathBuf> {
 /// drop symlinks that point outside `dest`.
 fn unpack(archive: &Path, dest: &Path) -> Result<()> {
     fs::create_dir_all(dest)?;
-    let name = archive.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
+    let name = archive
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_lowercase();
     if name.ends_with(".zip") {
         let mut zip = zip::ZipArchive::new(fs::File::open(archive)?)?;
         for i in 0..zip.len() {
             let mut entry = zip.by_index(i)?;
-            let Some(rel) = entry.enclosed_name() else { continue };
+            let Some(rel) = entry.enclosed_name() else {
+                continue;
+            };
             let out = dest.join(rel);
             if entry.is_dir() {
                 fs::create_dir_all(&out)?;
@@ -802,7 +1007,15 @@ fn unpack(archive: &Path, dest: &Path) -> Result<()> {
             let meta = fs::symlink_metadata(&p)?;
             if meta.file_type().is_symlink() {
                 let target = fs::read_link(&p)?;
-                let escapes = target.is_absolute() || target.components().filter(|c| matches!(c, std::path::Component::ParentDir)).count() > p.strip_prefix(dest).map(|r| r.components().count()).unwrap_or(0).saturating_sub(1);
+                let escapes = target.is_absolute()
+                    || target
+                        .components()
+                        .filter(|c| matches!(c, std::path::Component::ParentDir))
+                        .count()
+                        > p.strip_prefix(dest)
+                            .map(|r| r.components().count())
+                            .unwrap_or(0)
+                            .saturating_sub(1);
                 if escapes {
                     fs::remove_file(&p)?;
                 }
@@ -822,7 +1035,10 @@ fn store_files(id: &str) -> Result<Vec<(String, String)>> {
     let xml = crate::net::http_get(&format!("{OCS}/{id}"), 4 << 20)?;
     let mut files = Vec::new();
     for n in 1..=50 {
-        let (Some(link), Some(name)) = (xml_tag(&xml, &format!("downloadlink{n}")), xml_tag(&xml, &format!("downloadname{n}"))) else {
+        let (Some(link), Some(name)) = (
+            xml_tag(&xml, &format!("downloadlink{n}")),
+            xml_tag(&xml, &format!("downloadname{n}")),
+        ) else {
             if n > 1 {
                 break;
             }
@@ -851,12 +1067,21 @@ fn install_from_store(d: &Dependency) -> Result<String> {
     // Files whose name mentions the theme first; an item can hold several
     // variants (Orchis: Orchis-solid.tar.gz, Orchis.tar.gz).
     files.sort_by_key(|(_, n)| !n.to_lowercase().contains(&wanted));
-    let work = tempfile::Builder::new().prefix("theme-deps-").tempdir().context("temp dir")?;
-    let unpackable = !matches!(d.kind.as_str(), "plasma-theme" | "look-and-feel" | "plasmoid" | "color-scheme");
+    let work = tempfile::Builder::new()
+        .prefix("theme-deps-")
+        .tempdir()
+        .context("temp dir")?;
+    let unpackable = !matches!(
+        d.kind.as_str(),
+        "plasma-theme" | "look-and-feel" | "plasmoid" | "color-scheme"
+    );
     let mut chosen: Option<(PathBuf, String, PathBuf)> = None;
     let mut fallback: Option<(PathBuf, String, PathBuf)> = None;
     for (i, (link, name)) in files.iter().enumerate().take(8) {
-        let file_name = Path::new(name).file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "download".into());
+        let file_name = Path::new(name)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| "download".into());
         let bytes = crate::net::http_get_bytes(link, 512 << 20)?;
         let archive = work.path().join(format!("{i}-{file_name}"));
         fs::write(&archive, &bytes)?;
@@ -879,21 +1104,33 @@ fn install_from_store(d: &Dependency) -> Result<String> {
     }
     let chosen = chosen.or(fallback);
     let Some((archive, file_name, out)) = chosen else {
-        bail!("KDE Store item {} has no file holding a {} theme", d.id, d.kind);
+        bail!(
+            "KDE Store item {} has no file holding a {} theme",
+            d.id,
+            d.kind
+        );
     };
 
     if let Some(kind) = kpackage_type(&d.kind) {
         let run = |op: &str| {
-            crate::paths::status_bounded(std::process::Command::new("kpackagetool6").args(["--type", kind, op]).arg(&archive).stderr(std::process::Stdio::null()))
-                .is_some_and(|s| s.success())
+            crate::paths::status_bounded(
+                std::process::Command::new("kpackagetool6")
+                    .args(["--type", kind, op])
+                    .arg(&archive)
+                    .stderr(std::process::Stdio::null()),
+            )
+            .is_some_and(|s| s.success())
         };
         if !(run("--install") || run("--upgrade")) {
             bail!("kpackagetool6 could not install {file_name}");
         }
         if let Some(p) = locate(&d.kind, &d.name) {
-            record_install(&[p], &d.id, &d.title);
+            crate::dependency_registry::record_source(&[p], &d.id, &d.title)?;
         }
-        return Ok(format!("installed {} ({file_name}) with kpackagetool6", d.title));
+        return Ok(format!(
+            "installed {} ({file_name}) with kpackagetool6",
+            d.title
+        ));
     }
 
     let root = target_root(&d.kind).ok_or_else(|| anyhow!("no install location for {}", d.kind))?;
@@ -920,13 +1157,28 @@ fn install_from_store(d: &Dependency) -> Result<String> {
             found
         };
         for f in scan {
-            let dst = root.join(f.file_name().unwrap_or_default());
+            let basename = if f == archive {
+                Path::new(&file_name).file_name().unwrap_or_default()
+            } else {
+                f.file_name().unwrap_or_default()
+            };
+            let dst = root.join(basename);
             if !dst.exists() {
-                fs::copy(&f, &dst)?;
+                let mut tmp = tempfile::NamedTempFile::new_in(&root)?;
+                std::io::copy(&mut fs::File::open(&f)?, &mut tmp)?;
+                tmp.persist_noclobber(&dst).map_err(|e| e.error)?;
+                crate::dependency_registry::record_source(
+                    std::slice::from_ref(&dst),
+                    &d.id,
+                    &d.title,
+                )?;
                 copied += 1;
             }
         }
-        return Ok(format!("installed {copied} colour scheme(s) from {}", d.title));
+        return Ok(format!(
+            "installed {copied} colour scheme(s) from {}",
+            d.title
+        ));
     }
 
     let dirs = theme_dirs(&out, &d.kind);
@@ -939,15 +1191,25 @@ fn install_from_store(d: &Dependency) -> Result<String> {
         if dst.exists() {
             continue; // never overwrite the user's own copy
         }
-        crate::profile::copy_tree(&dir, &dst)?;
-        record_install(std::slice::from_ref(&dst), &d.id, &d.title);
+        let staging = tempfile::Builder::new()
+            .prefix(".ktm-install-")
+            .tempdir_in(&root)?;
+        let prepared = staging.path().join("resource");
+        crate::profile::copy_tree(&dir, &prepared)?;
         let mut note = String::new();
-        if d.kind == "icons" && add_breeze_fallback(&dst.join("index.theme")) {
+        if d.kind == "icons" && add_breeze_fallback(&prepared.join("index.theme")) {
             note = " (Breeze added as fallback for icons it lacks)".into();
         }
+        fs::rename(&prepared, &dst)?;
+        crate::dependency_registry::record_source(std::slice::from_ref(&dst), &d.id, &d.title)?;
         placed.push(format!("{name}{note}"));
     }
-    Ok(format!("installed {} into {}: {}", d.title, root.display(), placed.join(", ")))
+    Ok(format!(
+        "installed {} into {}: {}",
+        d.title,
+        root.display(),
+        placed.join(", ")
+    ))
 }
 
 /// Icon themes made for GNOME (Seven Icons: `Inherits=Humanity,…,gnome,hicolor`)
@@ -956,7 +1218,9 @@ fn install_from_store(d: &Dependency) -> Result<String> {
 /// `breeze` before `hicolor` in the inheritance chain of an icon theme we
 /// installed. Returns whether the file changed.
 fn add_breeze_fallback(index: &Path) -> bool {
-    let Ok(text) = fs::read_to_string(index) else { return false };
+    let Ok(text) = fs::read_to_string(index) else {
+        return false;
+    };
     match with_breeze_fallback(&text) {
         Some(new) => fs::write(index, new).is_ok(),
         None => false,
@@ -973,9 +1237,19 @@ fn with_breeze_fallback(index_theme: &str) -> Option<String> {
             in_main = t == "[Icon Theme]";
         }
         if let Some(value) = t.strip_prefix("Inherits=").filter(|_| in_main) {
-            let mut parents: Vec<&str> = value.split(',').map(str::trim).filter(|p| !p.is_empty()).collect();
-            if !parents.iter().any(|p| p.eq_ignore_ascii_case("breeze") || p.eq_ignore_ascii_case("breeze-dark")) {
-                let at = parents.iter().position(|p| p.eq_ignore_ascii_case("hicolor")).unwrap_or(parents.len());
+            let mut parents: Vec<&str> = value
+                .split(',')
+                .map(str::trim)
+                .filter(|p| !p.is_empty())
+                .collect();
+            if !parents
+                .iter()
+                .any(|p| p.eq_ignore_ascii_case("breeze") || p.eq_ignore_ascii_case("breeze-dark"))
+            {
+                let at = parents
+                    .iter()
+                    .position(|p| p.eq_ignore_ascii_case("hicolor"))
+                    .unwrap_or(parents.len());
                 parents.insert(at, "breeze");
                 out.push(format!("Inherits={}", parents.join(",")));
                 changed = true;
@@ -988,23 +1262,67 @@ fn with_breeze_fallback(index_theme: &str) -> Option<String> {
 }
 
 fn store_message(r: &crate::stores::InstallReport) -> String {
-    let themes = if r.themes.is_empty() { String::new() } else { format!(" — themes: {}", r.themes.join(", ")) };
+    let themes = if r.themes.is_empty() {
+        String::new()
+    } else {
+        format!(" — themes: {}", r.themes.join(", "))
+    };
     format!("installed {} for {}{themes}", r.id, r.app)
 }
 
 /// Install dependency `d` from its source. Packages are not installed (no
 /// sudo): the error carries the command to run.
 pub fn install(d: &Dependency) -> Result<String> {
+    // Legacy API never launches a package manager by itself. Interactive
+    // package jobs and theme batches have their own explicit terminal path.
+    if needs_root(d) {
+        bail!(
+            "install it with: {}",
+            package_command(d).unwrap_or_default()
+        );
+    }
+    let _guard = crate::dependency_registry::lock(&crate::dependency_registry::resource_id(d))?;
+    if installed(d) {
+        return Ok(format!("Already installed: {}", d.name));
+    }
+    let before = crate::dependency_registry::inventory(d);
+    crate::dependency_jobs::event("installing", &d.name);
+    let result = install_unrecorded(d);
+    crate::dependency_registry::record_result(d, &before, &result)?;
+    result
+}
+
+pub(crate) fn install_unrecorded(d: &Dependency) -> Result<String> {
+    if std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1") {
+        bail!("installation disabled by KTM_THEME_NO_APPLY=1");
+    }
     let result = match d.source.as_str() {
         "kde-store" => install_from_store(d),
-        "vscode-marketplace" | "open-vsx" => crate::stores::install(if d.kind == "cursor" { "cursor" } else { "vscode" }, &d.id).map(|r| store_message(&r)),
-        "zed" => crate::stores::install("zed", &d.id).map(|r| store_message(&r)),
-        "package" | "aur" => bail!("install it with: {}", package_command(d).unwrap_or_default()),
+        "vscode-marketplace" | "open-vsx" => crate::stores::install_unrecorded(
+            if d.kind == "cursor" {
+                "cursor"
+            } else {
+                "vscode"
+            },
+            &d.id,
+        )
+        .map(|r| store_message(&r)),
+        "zed" => crate::stores::install_unrecorded("zed", &d.id).map(|r| store_message(&r)),
+        "package" | "aur" => {
+            let command = root_command(&[d])
+                .ok_or_else(|| anyhow!("no supported package manager for {}", d.id))?;
+            run_in_terminal(&command).map(|term| format!("installed in {term}: {command}"))
+        }
         "amo" => bail!("install it from inside Firefox: {}", d.url),
         _ => bail!("no known source — look at {}", d.url),
     }?;
+    crate::dependency_jobs::event("checking", &d.name);
     if !installed(d) {
-        bail!("{result}, but \"{}\" is still not found — check {}", d.name, d.url);
+        bail!(
+            "{result}, but \"{}\" is still not found — check {}",
+            d.name,
+            d.url
+        );
     }
     Ok(result)
 }
@@ -1015,30 +1333,58 @@ mod tests {
 
     #[test]
     fn root_dependencies_make_one_command() {
-        let dep = |kind: &str, source: &str, id: &str| Dependency { kind: kind.into(), name: id.into(), source: source.into(), id: id.into(), ..Default::default() };
-        let (a, b, c) = (dep("widget-style", "package", "kvantum"), dep("kwin-effect", "package", "kvantum"), dep("icons", "kde-store", "1"));
+        let dep = |kind: &str, source: &str, id: &str| Dependency {
+            kind: kind.into(),
+            name: id.into(),
+            source: source.into(),
+            id: id.into(),
+            ..Default::default()
+        };
+        let (a, b, c) = (
+            dep("widget-style", "package", "kvantum"),
+            dep("kwin-effect", "package", "kvantum"),
+            dep("icons", "kde-store", "1"),
+        );
         assert!(needs_root(&a) && !needs_root(&c));
         let cmd = root_command(&[&a, &b]).unwrap();
-        assert!(cmd.ends_with("-S --needed kvantum"), "one package once: {cmd}");
+        assert!(
+            cmd.ends_with("-S --needed kvantum"),
+            "one package once: {cmd}"
+        );
         let bad = dep("gtk", "package", "x; rm -rf ~");
-        assert_eq!(root_command(&[&bad]), None, "unsafe names never reach a shell");
+        assert_eq!(
+            root_command(&[&bad]),
+            None,
+            "unsafe names never reach a shell"
+        );
     }
 
     #[test]
     fn icon_themes_get_a_breeze_fallback() {
         let seven = "[Icon Theme]\nName=Windows 7\nInherits=Humanity-Dark,Humanity,gnome,hicolor\nDirectories=actions/16x16\n\n[actions/16x16]\nSize=16\n";
         let out = with_breeze_fallback(seven).unwrap();
-        assert!(out.contains("Inherits=Humanity-Dark,Humanity,gnome,breeze,hicolor\n"), "{out}");
+        assert!(
+            out.contains("Inherits=Humanity-Dark,Humanity,gnome,breeze,hicolor\n"),
+            "{out}"
+        );
         assert!(out.contains("[actions/16x16]\nSize=16"));
         assert_eq!(with_breeze_fallback(&out), None, "idempotent");
-        assert_eq!(with_breeze_fallback("[Icon Theme]\nInherits=breeze-dark\n"), None);
-        assert!(with_breeze_fallback("[Icon Theme]\nInherits=Papirus\n").unwrap().contains("Inherits=Papirus,breeze\n"));
+        assert_eq!(
+            with_breeze_fallback("[Icon Theme]\nInherits=breeze-dark\n"),
+            None
+        );
+        assert!(with_breeze_fallback("[Icon Theme]\nInherits=Papirus\n")
+            .unwrap()
+            .contains("Inherits=Papirus,breeze\n"));
     }
 
     #[test]
     fn search_ranking_prefers_the_kde_build() {
         let kde = match_score("YAMIS", "Yet Another Monochrome Icon Set For KDE Plasma");
-        let fork = match_score("YAMIS", "Yet Another Monochrome Icon Set fork for Cosmic Desktop");
+        let fork = match_score(
+            "YAMIS",
+            "Yet Another Monochrome Icon Set fork for Cosmic Desktop",
+        );
         let single = match_score("YAMIS", "Antigravity IDE - YAMIS White Icon");
         assert!(kde > fork && kde > single, "{kde} {fork} {single}");
         assert_eq!(match_score("Orchis kvantum", "Orchis kvantum"), 100);
@@ -1049,14 +1395,24 @@ mod tests {
     fn store_xml_tags() {
         let xml = "<data><content details=\"full\"><id>1305251</id><downloadlink1>https://x/y?a=1&amp;b=2</downloadlink1><downloadname1>candy-icons.tar.xz</downloadname1></content></data>";
         assert_eq!(xml_tag(xml, "id").as_deref(), Some("1305251"));
-        assert_eq!(xml_tag(xml, "downloadname1").as_deref(), Some("candy-icons.tar.xz"));
+        assert_eq!(
+            xml_tag(xml, "downloadname1").as_deref(),
+            Some("candy-icons.tar.xz")
+        );
     }
 
     #[test]
     fn package_commands_never_run_sudo_themselves() {
-        let d = Dependency { source: "aur".into(), id: "klassy".into(), ..Default::default() };
+        let d = Dependency {
+            source: "aur".into(),
+            id: "klassy".into(),
+            ..Default::default()
+        };
         assert_eq!(package_command(&d).as_deref(), Some("yay -S klassy"));
-        assert!(install(&d).unwrap_err().to_string().contains("yay -S klassy"));
+        assert!(install(&d)
+            .unwrap_err()
+            .to_string()
+            .contains("yay -S klassy"));
     }
 
     #[test]
@@ -1069,15 +1425,27 @@ mod tests {
         fs::write(r.join("pkg/Cur/index.theme"), "").unwrap();
         fs::create_dir_all(r.join("Orchis")).unwrap();
         fs::write(r.join("Orchis/OrchisDark.kvconfig"), "").unwrap();
-        assert_eq!(theme_dirs(r, "icons"), vec![(r.join("pkg/Candy"), "Candy".to_string())]);
-        assert_eq!(theme_dirs(r, "cursors"), vec![(r.join("pkg/Cur"), "Cur".to_string())]);
+        assert_eq!(
+            theme_dirs(r, "icons"),
+            vec![(r.join("pkg/Candy"), "Candy".to_string())]
+        );
+        assert_eq!(
+            theme_dirs(r, "cursors"),
+            vec![(r.join("pkg/Cur"), "Cur".to_string())]
+        );
         let kv = theme_dirs(r, "kvantum");
         assert_eq!(kv, vec![(r.join("Orchis"), "Orchis".to_string())]);
-        assert!(holds(&kv, "kvantum", "OrchisDark"), "a variant inside the family folder");
+        assert!(
+            holds(&kv, "kvantum", "OrchisDark"),
+            "a variant inside the family folder"
+        );
         // Files at the archive root (Sandstone): named after the .kvconfig.
         let flat = tempfile::tempdir().unwrap();
         fs::write(flat.path().join("Sandstone.kvconfig"), "").unwrap();
-        assert_eq!(theme_dirs(flat.path(), "kvantum"), vec![(flat.path().to_path_buf(), "Sandstone".to_string())]);
+        assert_eq!(
+            theme_dirs(flat.path(), "kvantum"),
+            vec![(flat.path().to_path_buf(), "Sandstone".to_string())]
+        );
     }
 
     #[test]
@@ -1089,11 +1457,18 @@ mod tests {
         std::os::unix::fs::symlink("x.svg", src.join("Theme/a/ok.svg")).unwrap();
         std::os::unix::fs::symlink("/etc/passwd", src.join("Theme/a/evil")).unwrap();
         let archive = t.path().join("t.tar.gz");
-        assert!(std::process::Command::new("tar").arg("-czf").arg(&archive).arg("-C").arg(&src).arg("Theme").status().unwrap().success());
+        assert!(std::process::Command::new("tar")
+            .arg("-czf")
+            .arg(&archive)
+            .arg("-C")
+            .arg(&src)
+            .arg("Theme")
+            .status()
+            .unwrap()
+            .success());
         let out = t.path().join("out");
         unpack(&archive, &out).unwrap();
         assert!(fs::symlink_metadata(out.join("Theme/a/ok.svg")).is_ok());
         assert!(fs::symlink_metadata(out.join("Theme/a/evil")).is_err());
     }
 }
-

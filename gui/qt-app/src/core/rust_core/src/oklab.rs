@@ -30,7 +30,11 @@ fn to_linear(c: u8) -> f64 {
 
 fn from_linear(c: f64) -> u8 {
     let c = c.clamp(0.0, 1.0);
-    let s = if c <= 0.003_130_8 { c * 12.92 } else { 1.055 * c.powf(1.0 / 2.4) - 0.055 };
+    let s = if c <= 0.003_130_8 {
+        c * 12.92
+    } else {
+        1.055 * c.powf(1.0 / 2.4) - 0.055
+    };
     (s * 255.0).round().clamp(0.0, 255.0) as u8
 }
 
@@ -66,6 +70,10 @@ impl Lab {
     /// Build from lightness, chroma and hue (degrees).
     pub fn lch(l: f64, chroma: f64, hue_deg: f64) -> Lab {
         let h = hue_deg.to_radians();
-        Lab { l, a: chroma * h.cos(), b: chroma * h.sin() }
+        Lab {
+            l,
+            a: chroma * h.cos(),
+            b: chroma * h.sin(),
+        }
     }
 }

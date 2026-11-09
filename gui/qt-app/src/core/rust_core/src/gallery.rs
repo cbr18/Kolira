@@ -27,21 +27,45 @@ const MAX_INDEX_BYTES: u64 = 8 * 1024 * 1024;
 
 /// Schemes compiled into the binary (offline set).
 const BUNDLED: &[(&str, &str)] = &[
-    ("catppuccin-latte", include_str!("../data/base16/catppuccin-latte.yaml")),
-    ("catppuccin-mocha", include_str!("../data/base16/catppuccin-mocha.yaml")),
+    (
+        "catppuccin-latte",
+        include_str!("../data/base16/catppuccin-latte.yaml"),
+    ),
+    (
+        "catppuccin-mocha",
+        include_str!("../data/base16/catppuccin-mocha.yaml"),
+    ),
     ("dracula", include_str!("../data/base16/dracula.yaml")),
     ("everforest", include_str!("../data/base16/everforest.yaml")),
-    ("gruvbox-dark-medium", include_str!("../data/base16/gruvbox-dark-medium.yaml")),
-    ("gruvbox-light-medium", include_str!("../data/base16/gruvbox-light-medium.yaml")),
+    (
+        "gruvbox-dark-medium",
+        include_str!("../data/base16/gruvbox-dark-medium.yaml"),
+    ),
+    (
+        "gruvbox-light-medium",
+        include_str!("../data/base16/gruvbox-light-medium.yaml"),
+    ),
     ("kanagawa", include_str!("../data/base16/kanagawa.yaml")),
     ("nord", include_str!("../data/base16/nord.yaml")),
     ("one-light", include_str!("../data/base16/one-light.yaml")),
     ("onedark", include_str!("../data/base16/onedark.yaml")),
     ("rose-pine", include_str!("../data/base16/rose-pine.yaml")),
-    ("rose-pine-dawn", include_str!("../data/base16/rose-pine-dawn.yaml")),
-    ("solarized-dark", include_str!("../data/base16/solarized-dark.yaml")),
-    ("solarized-light", include_str!("../data/base16/solarized-light.yaml")),
-    ("tokyo-night-dark", include_str!("../data/base16/tokyo-night-dark.yaml")),
+    (
+        "rose-pine-dawn",
+        include_str!("../data/base16/rose-pine-dawn.yaml"),
+    ),
+    (
+        "solarized-dark",
+        include_str!("../data/base16/solarized-dark.yaml"),
+    ),
+    (
+        "solarized-light",
+        include_str!("../data/base16/solarized-light.yaml"),
+    ),
+    (
+        "tokyo-night-dark",
+        include_str!("../data/base16/tokyo-night-dark.yaml"),
+    ),
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -75,7 +99,9 @@ pub fn validate_id(id: &str) -> Result<()> {
     let ok = !id.is_empty()
         && id.len() <= 80
         && id.as_bytes()[0].is_ascii_alphanumeric()
-        && id.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b"._-".contains(&b))
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b"._-".contains(&b))
         && !id.contains("..");
     if ok {
         Ok(())
@@ -85,7 +111,9 @@ pub fn validate_id(id: &str) -> Result<()> {
 }
 
 pub fn cache_dir() -> PathBuf {
-    crate::paths::cache_home().join("kde-theme-profile").join("base16")
+    crate::paths::cache_home()
+        .join("kde-theme-profile")
+        .join("base16")
 }
 
 fn source_label(id: &str) -> String {
@@ -132,7 +160,9 @@ fn online_ids(dir: &Path, refresh: bool, network: bool) -> Result<Vec<String>> {
             Err(_) => Ok(Vec::new()),
         };
     }
-    match http_get(INDEX_URL, MAX_INDEX_BYTES).and_then(|body| parse_index(&body).map(|ids| (body, ids))) {
+    match http_get(INDEX_URL, MAX_INDEX_BYTES)
+        .and_then(|body| parse_index(&body).map(|ids| (body, ids)))
+    {
         Ok((body, ids)) => {
             std::fs::create_dir_all(dir)?;
             std::fs::write(&index, body)?;
@@ -155,7 +185,13 @@ pub fn list(query: &str, online: bool, refresh: bool) -> Result<Vec<Entry>> {
     list_in(&cache_dir(), query, online, refresh, network_enabled())
 }
 
-fn list_in(dir: &Path, query: &str, online: bool, refresh: bool, network: bool) -> Result<Vec<Entry>> {
+fn list_in(
+    dir: &Path,
+    query: &str,
+    online: bool,
+    refresh: bool,
+    network: bool,
+) -> Result<Vec<Entry>> {
     let q = query.to_lowercase();
     let matches = |id: &str, name: Option<&str>| {
         q.is_empty() || id.contains(&q) || name.is_some_and(|n| n.to_lowercase().contains(&q))
@@ -170,11 +206,16 @@ fn list_in(dir: &Path, query: &str, online: bool, refresh: bool, network: bool) 
         }
     };
 
-    let mut entries: Vec<Entry> = BUNDLED.iter().map(|(id, text)| describe(id, text, Origin::Bundled)).collect();
+    let mut entries: Vec<Entry> = BUNDLED
+        .iter()
+        .map(|(id, text)| describe(id, text, Origin::Bundled))
+        .collect();
     if let Ok(read) = std::fs::read_dir(dir) {
         for item in read.flatten() {
             let file = item.file_name().to_string_lossy().to_string();
-            let Some(id) = file.strip_suffix(".yaml") else { continue };
+            let Some(id) = file.strip_suffix(".yaml") else {
+                continue;
+            };
             if validate_id(id).is_err() || entries.iter().any(|e| e.id == id) {
                 continue;
             }
@@ -186,7 +227,12 @@ fn list_in(dir: &Path, query: &str, online: bool, refresh: bool, network: bool) 
     if online {
         for id in online_ids(dir, refresh, network)? {
             if !entries.iter().any(|e| e.id == id) {
-                entries.push(Entry { id, origin: Origin::Online, name: None, variant: None });
+                entries.push(Entry {
+                    id,
+                    origin: Origin::Online,
+                    name: None,
+                    variant: None,
+                });
             }
         }
     }
@@ -209,9 +255,13 @@ fn fetch_in(dir: &Path, id: &str, network: bool) -> Result<Palette> {
         return parse_base16(&text, &source_label(id));
     }
     if !network {
-        return Err(anyhow!("scheme {id:?} is not available offline (network disabled)"));
+        return Err(anyhow!(
+            "scheme {id:?} is not available offline (network disabled)"
+        ));
     }
-    let url = format!("https://raw.githubusercontent.com/tinted-theming/schemes/{BRANCH}/base16/{id}.yaml");
+    let url = format!(
+        "https://raw.githubusercontent.com/tinted-theming/schemes/{BRANCH}/base16/{id}.yaml"
+    );
     let text = http_get(&url, MAX_SCHEME_BYTES)?;
     let palette = parse_base16(&text, &source_label(id))?; // validate before caching
     std::fs::create_dir_all(dir)?;
@@ -229,7 +279,10 @@ mod tests {
             let p = parse_base16(text, id).unwrap_or_else(|e| panic!("{id}: {e:#}"));
             assert!(!p.name.is_empty());
         }
-        assert!(BUNDLED.windows(2).all(|w| w[0].0 < w[1].0), "keep BUNDLED sorted");
+        assert!(
+            BUNDLED.windows(2).all(|w| w[0].0 < w[1].0),
+            "keep BUNDLED sorted"
+        );
     }
 
     #[test]
@@ -258,19 +311,41 @@ mod tests {
         let mut cached = BUNDLED[0].1.replace("Catppuccin Latte", "My Cached");
         cached.push('\n');
         std::fs::write(dir.join("my-cached.yaml"), &cached).unwrap();
-        std::fs::write(dir.join("index.json"), r#"{"tree":[{"path":"base16/zzz-online.yaml"}]}"#).unwrap();
+        std::fs::write(
+            dir.join("index.json"),
+            r#"{"tree":[{"path":"base16/zzz-online.yaml"}]}"#,
+        )
+        .unwrap();
 
         let all = list_in(dir, "", true, false, false).unwrap();
-        assert!(all.iter().any(|e| e.id == "everforest" && e.origin == Origin::Bundled));
-        assert!(all.iter().any(|e| e.id == "my-cached" && e.origin == Origin::Cached && e.name.as_deref() == Some("My Cached")));
-        assert!(all.iter().any(|e| e.id == "zzz-online" && e.origin == Origin::Online));
+        assert!(all
+            .iter()
+            .any(|e| e.id == "everforest" && e.origin == Origin::Bundled));
+        assert!(all.iter().any(|e| e.id == "my-cached"
+            && e.origin == Origin::Cached
+            && e.name.as_deref() == Some("My Cached")));
+        assert!(all
+            .iter()
+            .any(|e| e.id == "zzz-online" && e.origin == Origin::Online));
 
         let q = list_in(dir, "ROSÉ", false, false, false).unwrap();
-        assert!(q.iter().all(|e| e.id.starts_with("rose-pine")) && q.len() == 2, "{q:?}");
+        assert!(
+            q.iter().all(|e| e.id.starts_with("rose-pine")) && q.len() == 2,
+            "{q:?}"
+        );
 
-        assert_eq!(fetch_in(dir, "everforest", false).unwrap().source, "gallery:everforest");
+        assert_eq!(
+            fetch_in(dir, "everforest", false).unwrap().source,
+            "gallery:everforest"
+        );
         assert_eq!(fetch_in(dir, "my-cached", false).unwrap().name, "My Cached");
-        assert!(fetch_in(dir, "zzz-online", false).is_err(), "offline: not downloadable");
-        assert!(fetch_in(dir, "../x", true).is_err(), "id validated before any network use");
+        assert!(
+            fetch_in(dir, "zzz-online", false).is_err(),
+            "offline: not downloadable"
+        );
+        assert!(
+            fetch_in(dir, "../x", true).is_err(),
+            "id validated before any network use"
+        );
     }
 }

@@ -121,10 +121,10 @@ ColumnLayout {
                 spacing: 2
                 Label { text: "$ ls --color"; color: preview.c(5); font.family: "monospace" }
                 Label { text: "src/  docs/  README.md"; color: preview.c(13); font.family: "monospace" }
-                Label { text: "error: missing file"; color: preview.c(8); font.family: "monospace" }
-                Label { text: "ok: 263 passed"; color: preview.c(11); font.family: "monospace" }
-                Label { text: "warning: deprecated"; color: preview.c(10); font.family: "monospace" }
-                Label { text: "# a comment"; color: preview.c(3); font.family: "monospace" }
+                Label { Layout.fillWidth: true; elide: Text.ElideRight; text: qsTr("error: missing file"); color: preview.c(8); font.family: "monospace" }
+                Label { Layout.fillWidth: true; elide: Text.ElideRight; text: qsTr("ok: 263 passed"); color: preview.c(11); font.family: "monospace" }
+                Label { Layout.fillWidth: true; elide: Text.ElideRight; text: qsTr("warning: deprecated"); color: preview.c(10); font.family: "monospace" }
+                Label { Layout.fillWidth: true; elide: Text.ElideRight; text: qsTr("# a comment"); color: preview.c(3); font.family: "monospace" }
                 Item { Layout.fillHeight: true }
                 // ANSI 0–15 in the usual base16 mapping
                 Grid {

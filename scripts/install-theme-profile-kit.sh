@@ -46,9 +46,9 @@ Options:
   --no-venv     Never build a venv — use the system PySide6
   --restart     Restart a running KDE Theme Manager so it picks up the new
                 version (default: only warn that the old copy is running)
-  --no-themes   Do not add the bundled themes from themes/ (by default each
-                one is imported unless a theme with that name already exists;
-                existing themes are never changed, nothing is applied)
+  --no-themes   Do not add or update the bundled themes from themes/ (by default
+                new ones are added and ones the kit changed are replaced, unless
+                you changed them; nothing is applied)
   --no-original-theme
                 Do not save the current look as the theme "my-original-look"
                 (by default done on the first install, when you have no themes yet)
@@ -192,6 +192,7 @@ install_cli() {
     install -m 0755 "$RELEASE_DIR/$script" "$BINDIR/$script"
   done
 
+  printf '%s\n' '{}' | "$BINDIR/theme-profile" core agent.install
   say "Installed theme-profile-kit CLI to $BINDIR"
   say "Backup: $CLI_BACKUP_DIR"
 }
@@ -210,8 +211,9 @@ save_original_look() {
   fi
 }
 
-# The ready themes shipped in themes/ (exports made with `export --public`).
-# Only names the user does not have yet; never applied, never overwritten.
+# The ready themes shipped in themes/ (exports made with `export --public`):
+# new ones are added, ones the kit changed are replaced unless the user changed
+# them (`theme-profile bundled sync`). Never applied.
 # What applying themes may do by itself (store downloads, system packages,
 # restarting programs) is the user's choice: ask it once, on a terminal, if
 # not answered yet (the GUI asks on its first start otherwise).
@@ -226,23 +228,10 @@ ask_automation() {
 
 install_bundled_themes() {
   [ "$THEMES" = "yes" ] || return 0
-  local cli="$BINDIR/theme-profile" dir name added=0
+  local cli="$BINDIR/theme-profile" line
   [ -x "$cli" ] || return 0
   [ -d "$KIT_DIR/themes" ] || return 0
-  for dir in "$KIT_DIR/themes"/*/; do
-    [ -f "$dir/export.json" ] || continue
-    name="$(basename "$dir")"
-    if "$cli" list 2>/dev/null | grep -qixF -- "$name"; then
-      continue
-    fi
-    if "$cli" import "$dir" >/dev/null 2>&1; then
-      say "Added theme: $name"
-      added=$((added + 1))
-    else
-      warn "Could not add theme $name (run: theme-profile import $dir)"
-    fi
-  done
-  [ "$added" -gt 0 ] && say "Ready themes added: $added (apply one in KDE Theme Manager or with: theme-profile apply NAME)"
+  "$cli" bundled sync "$KIT_DIR/themes" 2>&1 | while IFS= read -r line; do say "$line"; done
   return 0
 }
 
@@ -301,6 +290,7 @@ install_gui() {
       --exclude='target' --exclude='tests' -cf - . |
       tar -C "$APPDIR" -xf -
   fi
+  install -m 644 "$KIT_DIR/mcp/theme_profile_mcp.py" "$APPDIR/theme_profile_mcp.py"
   printf '%s\n' "installed by $KIT_DIR/scripts/install-theme-profile-kit.sh" > "$APPDIR/$MARKER"
 
   py_has_pyside() {
@@ -384,6 +374,20 @@ LAUNCHER
   handle_running_gui
 }
 
+# The registry and runtime probes belong to Rust; deployment only supplies
+# the interpreter selected above (the system Python or the installed venv).
+register_app_dependencies() {
+  local cli="$BINDIR/theme-profile" runtime_python
+  [ -x "$cli" ] || return 0
+  runtime_python="$(command -v python3)"
+  if [ -x "$APPDIR/.venv/bin/python" ]; then
+    runtime_python="$APPDIR/.venv/bin/python"
+  fi
+  if ! "$cli" dependencies register-app "--python=$runtime_python" --json >/dev/null; then
+    warn "Dependency registration failed; open Dependencies and check status after updating the CLI."
+  fi
+}
+
 case "$MODE" in
   cli)
     install_cli
@@ -394,6 +398,7 @@ case "$MODE" in
     ;;
   gui)
     install_gui
+    register_app_dependencies
     say "Skipped the CLI (--only-gui)."
     ;;
   *)
@@ -402,5 +407,6 @@ case "$MODE" in
     install_bundled_themes
     ask_automation
     install_gui
+    register_app_dependencies
     ;;
 esac

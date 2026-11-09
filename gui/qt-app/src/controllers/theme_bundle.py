@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Property, QObject, QUrl, Signal, Slot
 
 from core import CoreFactory
-from core.paths import active_profile_file, validate_profile_name
+from core.core_messages import localize
+from core.paths import validate_profile_name
 from core.theme_bundle import ThemeBundleCore
 
 from .theme_inspector import _run
@@ -75,8 +75,8 @@ class ThemeBundleController(QObject):
     @Property(str, notify=profilesChanged)
     def activeProfile(self) -> str:
         try:
-            return active_profile_file().read_text(encoding="utf-8").strip()
-        except OSError:
+            return CoreFactory.profile_core().get_active_profile()
+        except (RuntimeError, ValueError):
             return ""
 
     @Property(bool, notify=scopeChanged)
@@ -133,7 +133,7 @@ class ThemeBundleController(QObject):
         def done(success: bool, message: str) -> None:
             self._set_store(items=holder.get("items", []) if success else [], busy=False)
             if not success:
-                self.toast.emit(message, False)
+                self.toast.emit(localize(message), False)
 
         self._set_store(app=app_id, items=[], busy=True)
         _run(self, work, done)
@@ -150,7 +150,7 @@ class ThemeBundleController(QObject):
 
         def done(success: bool, message: str) -> None:
             self._set_store(busy=False)
-            self.toast.emit(message, success)
+            self.toast.emit(localize(message), success)
             self.refresh()
 
         self._set_store(busy=True)
@@ -190,7 +190,7 @@ class ThemeBundleController(QObject):
             return
         result = self._core.profile_bundle(name)
         if not result.success:
-            self.toast.emit(result.message, False)
+            self.toast.emit(localize(result.message), False)
             return
         self._scope = f"profile:{name}"
         self._profile_bundle = result.data or {}
@@ -214,7 +214,7 @@ class ThemeBundleController(QObject):
 
         def done(success: bool, message: str) -> None:
             self._set_busy(False)
-            self.toast.emit(message, success)
+            self.toast.emit(localize(message), success)
             self.refresh()
 
         self._set_busy(True)
@@ -239,7 +239,7 @@ class ThemeBundleController(QObject):
             self._set_busy(False)
             if success:
                 _reload_app_look()
-            self.toast.emit(message, success)
+            self.toast.emit(localize(message), success)
             self.openLive()
             self.refresh()
 
@@ -254,7 +254,7 @@ class ThemeBundleController(QObject):
             self.toast.emit(self.tr("Another operation is still running"), False)
             return
         result = self._core.set_component(component_id, value)
-        self.toast.emit(result.message, result.success)
+        self.toast.emit(localize(result.message), result.success)
         self.refresh()
 
     @Slot()
@@ -271,7 +271,7 @@ class ThemeBundleController(QObject):
             self._set_busy(False)
             if success:
                 _reload_app_look()
-            self.toast.emit(message, success)
+            self.toast.emit(localize(message), success)
             self.refresh()
 
         self._set_busy(True)
@@ -280,7 +280,7 @@ class ThemeBundleController(QObject):
     @Slot()
     def undo(self) -> None:
         result = self._core.undo()
-        self.toast.emit(result.message, result.success)
+        self.toast.emit(localize(result.message), result.success)
         self.refresh()
 
     @Slot()
@@ -295,7 +295,7 @@ class ThemeBundleController(QObject):
 
         def done(success: bool, message: str) -> None:
             self._set_busy(False)
-            self.toast.emit(message, success)
+            self.toast.emit(localize(message), success)
             self.refresh()
 
         self._set_busy(True)
@@ -313,7 +313,7 @@ class ThemeBundleController(QObject):
 
         def done(success: bool, message: str) -> None:
             self._set_busy(False)
-            self.toast.emit(message, success)
+            self.toast.emit(localize(message), success)
             self.refresh()
 
         self._set_busy(True)
@@ -325,7 +325,7 @@ class ThemeBundleController(QObject):
             return
         local = QUrl(path_or_url).toLocalFile() if path_or_url.startswith("file:") else path_or_url
         result = self._core.set_component("wallpaper", local)
-        self.toast.emit(result.message, result.success)
+        self.toast.emit(localize(result.message), result.success)
         self.refresh()
 
     # ── external actions ─────────────────────────────────────────────────
@@ -334,22 +334,22 @@ class ThemeBundleController(QObject):
     def openSystemSettings(self, module: str) -> None:
         result = self._core.open_system_settings(module)
         if not result.success:
-            self.toast.emit(result.message, False)
+            self.toast.emit(localize(result.message), False)
 
     @Slot(str)
     def launchApp(self, app_id: str) -> None:
         result = self._core.launch_app(app_id)
-        self.toast.emit(result.message, result.success)
+        self.toast.emit(localize(result.message), result.success)
 
     @Slot(str)
     def openAppConfig(self, app_id: str) -> None:
         result = self._core.open_app_config(app_id)
-        self.toast.emit(result.message, result.success)
+        self.toast.emit(localize(result.message), result.success)
 
     @Slot(str)
     def openAppThemeSettings(self, app_id: str) -> None:
         result = self._core.open_app_theme_settings(app_id)
-        self.toast.emit(result.message, result.success)
+        self.toast.emit(localize(result.message), result.success)
 
 
 __all__ = ["ThemeBundleController"]

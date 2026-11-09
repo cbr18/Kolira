@@ -10,6 +10,7 @@ import Components 1.0
 // галочка + изменить + удалить. Галочка = участие в save/apply
 // (id попадает в AppSettings.disabled_components, файлы не трогаются).
 Kirigami.ScrollablePage {
+    padding: Platform.Units.gridUnit
     id: page
 
     title: qsTr("Applications")
@@ -50,20 +51,21 @@ Kirigami.ScrollablePage {
     Component.onCompleted: trackedAppsController.refresh()
 
     ColumnLayout {
-        Layout.margins: Platform.Units.largeSpacing
         spacing: Platform.Units.largeSpacing
 
-        RowLayout {
+        ActionFlow {
             Layout.fillWidth: true
 
             Kirigami.Heading {
                 level: 2
                 text: qsTr("Tracked applications")
+                width: Math.min(implicitWidth, parent.width)
+                wrapMode: Text.Wrap
                 color: ThemeColors.fgColor(page.glassMode)
                 Layout.fillWidth: true
             }
 
-            Button {
+            AppButton {
                 text: qsTr("Apply")
                 icon.name: "dialog-ok-apply"
                 highlighted: true
@@ -73,7 +75,7 @@ Kirigami.ScrollablePage {
                 onClicked: themeInspector.applyChanges()
             }
 
-            Button {
+            AppButton {
                 text: qsTr("Undo")
                 icon.name: "edit-undo"
                 enabled: !themeInspector.readOnly
@@ -82,7 +84,7 @@ Kirigami.ScrollablePage {
                 onClicked: themeInspector.undo()
             }
 
-            Button {
+            AppButton {
                 text: qsTr("Add application…")
                 icon.name: "list-add"
                 onClicked: appEditor.openNew()
@@ -265,10 +267,12 @@ Kirigami.ScrollablePage {
         }
     }
 
-    Kirigami.Dialog {
+    AppDialog {
         id: appEditor
+        objectName: "appEditor"
 
         property string editingId: ""
+        property string validationError: ""
 
         title: editingId === "" ? qsTr("Add application") : qsTr("Edit application")
 
@@ -280,7 +284,7 @@ Kirigami.ScrollablePage {
             descriptionField.text = ""
             pathsArea.text = ""
             reloadField.text = ""
-            errorLabel.text = ""
+            appEditor.validationError = ""
             open()
         }
 
@@ -292,7 +296,7 @@ Kirigami.ScrollablePage {
             descriptionField.text = c.description
             pathsArea.text = c.configPaths.join("\n")
             reloadField.text = c.reloadCommand
-            errorLabel.text = ""
+            appEditor.validationError = ""
             open()
         }
 
@@ -316,11 +320,21 @@ Kirigami.ScrollablePage {
             if (error === "") {
                 close()
             } else {
-                errorLabel.text = error
+                appEditor.validationError = error
             }
         }
 
         ColumnLayout {
+            Label {
+                objectName: "appEditorError"
+                Layout.fillWidth: true
+                visible: text !== ""
+                text: appEditor.validationError
+                textFormat: Text.PlainText
+                wrapMode: Text.Wrap
+                color: ThemeColors.negative()
+                Accessible.role: Accessible.AlertMessage
+            }
             Kirigami.FormLayout {
                 Layout.fillWidth: true
 
@@ -335,12 +349,14 @@ Kirigami.ScrollablePage {
 
                 TextField {
                     id: nameField
+                    onTextEdited: appEditor.validationError = ""
                     Kirigami.FormData.label: qsTr("Name")
                     Layout.fillWidth: true
                 }
 
                 TextField {
                     id: categoryField
+                    onTextEdited: appEditor.validationError = ""
                     Kirigami.FormData.label: qsTr("Category")
                     placeholderText: qsTr("Custom")
                     Layout.fillWidth: true
@@ -348,6 +364,8 @@ Kirigami.ScrollablePage {
 
                 TextArea {
                     id: pathsArea
+                    onTextChanged: appEditor.validationError = ""
+                    wrapMode: TextEdit.Wrap
                     Kirigami.FormData.label: qsTr("Config paths")
                     placeholderText: ".config/myapp/settings.json\n.config/myapp/themes/"
                     Layout.fillWidth: true
@@ -356,6 +374,7 @@ Kirigami.ScrollablePage {
 
                 TextField {
                     id: reloadField
+                    onTextEdited: appEditor.validationError = ""
                     Kirigami.FormData.label: qsTr("Reload command")
                     placeholderText: qsTr("optional, e.g. pkill -HUP myapp")
                     Layout.fillWidth: true
@@ -363,12 +382,14 @@ Kirigami.ScrollablePage {
 
                 TextField {
                     id: descriptionField
+                    onTextEdited: appEditor.validationError = ""
                     Kirigami.FormData.label: qsTr("Description")
                     Layout.fillWidth: true
                 }
 
                 TextField {
                     id: iconField
+                    onTextEdited: appEditor.validationError = ""
                     Kirigami.FormData.label: qsTr("Icon")
                     placeholderText: "application-x-executable"
                     Layout.fillWidth: true
@@ -390,7 +411,7 @@ Kirigami.ScrollablePage {
         ]
     }
 
-    Kirigami.Dialog {
+    AppDialog {
         id: confirmDelete
 
         property string targetId: ""

@@ -8,10 +8,8 @@ generators, gallery and wallpaper extraction live in `rust_core`
 from __future__ import annotations
 
 import json
-import subprocess
 from typing import Any, Optional
 
-from .cli_core import resolve_cli_bin
 from .protocol import Result
 
 #: Targets the CLI accepts for `palette apply` (kvantum switches widgetStyle).
@@ -20,16 +18,8 @@ DEFAULT_TARGETS = ("kde", "kitty", "alacritty")
 
 
 def _run(args: list[str], *, stdin: Optional[str] = None, timeout: int = 120) -> Result:
-    try:
-        proc = subprocess.run(
-            [resolve_cli_bin(), *args],
-            input=stdin, capture_output=True, text=True, timeout=timeout,
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        return Result.err(str(exc))
-    if proc.returncode != 0:
-        return Result.err(proc.stderr.strip() or proc.stdout.strip() or "theme-profile failed")
-    return Result.ok(proc.stdout.strip())
+    from .cli_core import run_cli
+    return run_cli(args, stdin=stdin, timeout=timeout)
 
 
 class PaletteCore:

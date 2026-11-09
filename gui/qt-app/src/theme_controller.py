@@ -5,7 +5,6 @@ Theme Controller — Dogfooding: применяет активный профи�
 """
 
 import os
-import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
@@ -323,14 +322,10 @@ class ThemeController(QObject):
 
     def _request_kwin_blur(self) -> None:
         """Запросить KWin blur через D-Bus (works on Wayland)."""
-        if os.environ.get("KTM_THEME_NO_APPLY") == "1":
-            return
         try:
-            subprocess.run([
-                "qdbus6", "org.kde.KWin", "/Effects",
-                "org.kde.kwin.Effects.loadEffect", "blur"
-            ], capture_output=True, timeout=2)
-        except (OSError, subprocess.SubprocessError):
+            from core.cli_core import core_request
+            core_request("desktop.load_blur", _timeout=5)
+        except (ValueError, RuntimeError):
             pass
 
     def _apply_paper_theme(self) -> None:

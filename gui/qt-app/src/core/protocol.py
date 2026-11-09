@@ -9,9 +9,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
-from pathlib import Path
 import os
-import sys
 
 
 class AppStatus(Enum):
@@ -96,7 +94,8 @@ class ProfileCore(ABC):
 
     @abstractmethod
     def apply(self, profile: str, components: Optional[list[str]] = None,
-              keep_wallpaper: bool = False, install_missing: bool = False) -> Result:
+              keep_wallpaper: bool = False, install_missing: bool = False,
+              skip_dependencies: bool = False, preview_token: Optional[str] = None) -> Result:
         """
         Применить тему.
         Theme package (theme.json): everything it defines; ``components`` must
@@ -129,6 +128,19 @@ class ProfileCore(ABC):
     @abstractmethod
     def get_profile_components(self, profile: str) -> list[str]:
         """Какие компоненты сохранены в профиле."""
+
+    def pending_operations(self) -> list[dict]:
+        """Interrupted applies that require explicit recovery."""
+        return []
+
+    def preview(self, profile: str, keep_wallpaper: bool = False, *, use_settings: bool = True) -> Result:
+        return Result.err("Preview is not supported")
+
+    def save_before_apply(self, name: str) -> Result:
+        return Result.err("Saving before Apply is not supported")
+
+    def clear_stale_active(self, name: str) -> Result:
+        return Result.err("Clearing a stale active marker is not supported")
 
     # Export/import are optional for a core: the Rust CLI core implements them.
     def export_theme(self, name: str, path: str, include_wallpaper: bool = True) -> Result:
@@ -537,6 +549,16 @@ class CoreFactory:
     # ── Выбор ядра ─────────────────────────────────────────────
 
     @classmethod
+    def close_session(cls) -> None:
+        core = cls._theme_core
+        close = getattr(core, "close", None)
+        if close is not None:
+            try:
+                close()
+            except (ValueError, RuntimeError):
+                pass
+
+    @classmethod
     def normalize_backend(cls, backend: str) -> str:
         """Проверить и нормализовать имя бэкенда."""
         name = (backend or "").strip().lower()
@@ -634,13 +656,7 @@ class CoreFactory:
 
     @classmethod
     def theme_core(cls) -> "ThemeCore":
-        """Инспектор темы.
-
-        Не является выбираемым бэкендом ``--core``: это отдельный Python-
-        модуль приложения (чтение/запись конфигов и D-Bus-хуки), где Rust
-        сейчас не даёт выигрыша. Контракт задокументирован в TZ; при
-        стабилизации схемы можно добавить FFI.
-        """
+        """Qt-facing Inspector view adapter over the single Rust core session."""
         if cls._theme_core is None:
             from .theme_core import AppThemeCore
 

@@ -39,12 +39,36 @@ impl Policy {
 
 /// (key, what it does, what to know before choosing `always`).
 pub const KEYS: &[(&str, &str, &str)] = &[
-    ("store", "Download missing themes, icons, widgets and editor themes from their official stores", "downloads from the KDE Store, VS Code Marketplace / Open VSX, Zed"),
-    ("packages", "Install missing system packages (Kvantum, KWin effects, Klassy…) in a terminal", "opens a terminal with yay/pacman; you type your password there"),
-    ("restart_vesktop", "Restart Vesktop when a theme changed its look", "a voice call or screen share in Vesktop ends"),
-    ("restart_discord", "Restart Discord (Vencord) when a theme changed its look", "a voice call or screen share in Discord ends"),
-    ("restart_zen", "Restart Zen Browser when a theme changed its look", "calls and downloads in Zen stop; tabs return with session restore"),
-    ("restart_firefox", "Restart Firefox when a theme changed its look", "calls and downloads in Firefox stop; tabs return with session restore"),
+    (
+        "store",
+        "Download missing themes, icons, widgets and editor themes from their official stores",
+        "downloads from the KDE Store, VS Code Marketplace / Open VSX, Zed",
+    ),
+    (
+        "packages",
+        "Install missing system packages (Kvantum, KWin effects, Klassy…) in a terminal",
+        "opens a terminal with yay/pacman; you type your password there",
+    ),
+    (
+        "restart_vesktop",
+        "Restart Vesktop when a theme changed its look",
+        "a voice call or screen share in Vesktop ends",
+    ),
+    (
+        "restart_discord",
+        "Restart Discord (Vencord) when a theme changed its look",
+        "a voice call or screen share in Discord ends",
+    ),
+    (
+        "restart_zen",
+        "Restart Zen Browser when a theme changed its look",
+        "calls and downloads in Zen stop; tabs return with session restore",
+    ),
+    (
+        "restart_firefox",
+        "Restart Firefox when a theme changed its look",
+        "calls and downloads in Firefox stop; tabs return with session restore",
+    ),
 ];
 
 fn read_settings() -> Map<String, Value> {
@@ -67,18 +91,29 @@ pub fn policy(key: &str) -> Policy {
 
 /// Has the user been asked yet?
 pub fn configured() -> bool {
-    read_settings().get("automation_configured").and_then(Value::as_bool).unwrap_or(false)
+    read_settings()
+        .get("automation_configured")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
 }
 
 /// Store `choices` (other preferences are kept) and mark automation configured.
 pub fn set(choices: &[(&str, Policy)]) -> Result<()> {
     for (key, _) in choices {
         if !KEYS.iter().any(|(k, _, _)| k == key) {
-            bail!("unknown automation key {key:?} (known: {})", KEYS.iter().map(|k| k.0).collect::<Vec<_>>().join(", "));
+            bail!(
+                "unknown automation key {key:?} (known: {})",
+                KEYS.iter().map(|k| k.0).collect::<Vec<_>>().join(", ")
+            );
         }
     }
+    let _lock = crate::gui_api::lock_file(&crate::paths::theme_root().join("preferences.lock"))?;
     let mut settings = read_settings();
-    let mut auto = settings.get("automation").and_then(Value::as_object).cloned().unwrap_or_default();
+    let mut auto = settings
+        .get("automation")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default();
     for (key, p) in choices {
         auto.insert((*key).to_string(), Value::from(p.as_str()));
     }
@@ -100,13 +135,23 @@ pub fn set(choices: &[(&str, Policy)]) -> Result<()> {
 
 /// Ask every question on a terminal (installer); Enter keeps the current one.
 pub fn ask_interactively(input: &mut dyn BufRead, out: &mut dyn Write) -> Result<()> {
-    writeln!(out, "What may KDE Theme Manager do by itself when you apply a theme?")?;
-    writeln!(out, "  ask = offer it each time, always = just do it, never = skip it\n")?;
+    writeln!(
+        out,
+        "What may KDE Theme Manager do by itself when you apply a theme?"
+    )?;
+    writeln!(
+        out,
+        "  ask = offer it each time, always = just do it, never = skip it\n"
+    )?;
     let mut choices = Vec::new();
     for (key, what, note) in KEYS {
         let current = policy(key);
         loop {
-            write!(out, "{what}\n  ({note})\n  [ask/always/never, Enter = {}]: ", current.as_str())?;
+            write!(
+                out,
+                "{what}\n  ({note})\n  [ask/always/never, Enter = {}]: ",
+                current.as_str()
+            )?;
             out.flush()?;
             let mut line = String::new();
             if input.read_line(&mut line)? == 0 {

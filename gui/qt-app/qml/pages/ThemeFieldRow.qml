@@ -262,7 +262,7 @@ ColumnLayout {
             onValueModified: row.applyFont()
         }
 
-        Button {
+        AppButton {
             text: qsTr("Set")
             enabled: !row.isReadOnly && !themeInspector.busy
             onClicked: row.applyFont()

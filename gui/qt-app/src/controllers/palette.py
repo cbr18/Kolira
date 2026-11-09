@@ -9,6 +9,7 @@ from PySide6.QtCore import Property, QObject, QUrl, Signal, Slot
 
 from core.palette_core import DEFAULT_TARGETS, PaletteCore
 from core.protocol import Result
+from core.core_messages import localize, source_label
 
 from .theme_inspector import _run
 
@@ -42,7 +43,8 @@ class PaletteController(QObject):
     @Property("QVariantMap", notify=paletteChanged)
     def palette(self) -> dict:
         """{name, variant, base[16], accent, source, warnings, kdeScheme} or {}."""
-        return self._palette
+        return {**self._palette, "sourceText": source_label(self._palette.get("source", "")),
+                "warnings": [localize(w) for w in self._palette.get("warnings", [])]} if self._palette else {}
 
     @Property(bool, notify=paletteChanged)
     def hasPalette(self) -> bool:
@@ -91,7 +93,7 @@ class PaletteController(QObject):
             if success and reload_look:
                 _reload_app_look()
             if not success or not quiet:
-                self.toast.emit(message.splitlines()[0] if success and message else message, success)
+                self.toast.emit(self.tr("Palette updated") if success else localize(message), success)
             self.refresh()
 
         self._set_busy(True)
@@ -107,6 +109,8 @@ class PaletteController(QObject):
 
     @Slot(str, bool)
     def searchGallery(self, query: str, online: bool) -> None:
+        generation = getattr(self, "_gallery_generation", 0) + 1
+        self._gallery_generation = generation
         holder: dict[str, Any] = {}
 
         def job() -> tuple[bool, str]:
@@ -115,10 +119,12 @@ class PaletteController(QObject):
             return result.success, result.message
 
         def done(success: bool, message: str) -> None:
+            if generation != self._gallery_generation:
+                return
             self._gallery = holder.get("items", []) if success else []
             self.galleryChanged.emit()
             if not success:
-                self.toast.emit(message, False)
+                self.toast.emit(localize(message), False)
 
         _run(self, job, done)
 

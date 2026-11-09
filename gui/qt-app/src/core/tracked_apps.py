@@ -5,10 +5,7 @@ Tracked Applications Registry — полный список отслеживае
 
 from dataclasses import dataclass
 import json
-import shutil
-import subprocess
 from typing import Optional
-from .paths import live_path, theme_root
 from .protocol import Component, AppStatus, TrackedAppsCore, CustomComponent, Result
 
 
@@ -33,728 +30,103 @@ class TrackedAppDef:
     is_custom: bool = False                       # Зарегистрирован пользователем
 
 
-# Порядок = порядок в UI
-TRACKED_APPS: tuple[TrackedAppDef, ...] = (
-    # === Базовые KDE/Plasma (всегда доступны) ===
-    TrackedAppDef(
-        id="kwin",
-        name="KWin",
-        category="KDE / Plasma",
-        config_paths=(
-            ".config/kwinrc",
-            ".config/kwinrulesrc",
-        ),
-        description="KWin window manager: effects, rules, blur, glass",
-        icon="preferences-system-windows",
-    ),
-    TrackedAppDef(
-        id="plasma_shell",
-        name="Plasma Shell",
-        category="KDE / Plasma",
-        config_paths=(
-            ".config/plasmarc",
-            ".config/plasmashellrc",
-            ".config/plasma-org.kde.plasma.desktop-appletsrc",
-        ),
-        description="Plasma panels, widgets, desktop applets",
-        icon="plasma",
-    ),
-    TrackedAppDef(
-        id="kdeglobals",
-        name="KDE Globals",
-        category="KDE / Plasma",
-        # kcminputrc: only the cursor theme/size (appearance.rs).
-        config_paths=(".config/kdeglobals", ".config/kcminputrc"),
-        description="Colors, accent, Look & Feel, color scheme, widget style",
-        icon="preferences-desktop-theme",
-    ),
-
-    # === GTK ===
-    TrackedAppDef(
-        id="gtk3",
-        name="GTK3",
-        category="GTK / Qt",
-        config_paths=(
-            ".config/gtk-3.0/settings.ini",
-            ".config/gtk-3.0/gtk.css",
-            ".config/gtk-3.0/colors.css",
-            ".config/gtk-3.0/theme-profile.css",
-        ),
-        description="GTK3 theme, custom CSS, colors",
-        icon="preferences-desktop-theme-gtk",
-    ),
-    TrackedAppDef(
-        id="gtk4",
-        name="GTK4",
-        category="GTK / Qt",
-        config_paths=(
-            ".config/gtk-4.0/settings.ini",
-            ".config/gtk-4.0/gtk.css",
-            ".config/gtk-4.0/colors.css",
-            ".config/gtk-4.0/theme-profile.css",
-        ),
-        description="GTK4 theme, custom CSS, colors",
-        icon="preferences-desktop-theme-gtk",
-    ),
-
-    # === Qt ===
-    TrackedAppDef(
-        id="qt5ct",
-        name="Qt5/Qt6 Style",
-        category="GTK / Qt",
-        # QtProject.conf is file-dialog state, not appearance (see the Rust registry).
-        config_paths=(".config/Trolltech.conf",),
-        description="Qt5/Qt6 widget style, font, icon theme",
-        icon="qtlogo",
-    ),
-
-    # === Window Decorations ===
-    TrackedAppDef(
-        id="breeze",
-        name="Breeze style",
-        category="Window Decorations",
-        config_paths=(".config/breezerc",),
-        description="Breeze widget style: menu transparency and other style options",
-        icon="preferences-desktop-theme",
-    ),
-    TrackedAppDef(
-        id="klassy",
-        name="Klassy",
-        category="Window Decorations",
-        config_paths=(
-            ".config/klassy/klassyrc",
-            ".config/klassy/windecopresetsrc",
-        ),
-        detect_command="klassy",
-        description="KWin decoration: titlebar opacity, corner radius, buttons",
-        icon="preferences-system-windows",
-        docs_url="https://github.com/paul-g/klassy",
-    ),
-    TrackedAppDef(
-        id="kvantum",
-        name="Kvantum",
-        category="Window Decorations",
-        config_paths=(
-            ".config/Kvantum/kvantum.kvconfig",
-        ),
-        detect_command="kvantummanager",
-        description="SVG-based theme engine for Qt/KDE",
-        icon="preferences-system-windows",
-        docs_url="https://github.com/tsujan/Kvantum",
-    ),
-
-    # === Terminals ===
-    TrackedAppDef(
-        id="kitty",
-        name="Kitty",
-        category="Terminals",
-        # kitty.conf is an include host; the look lives in theme-profile.conf.
-        config_paths=(".config/kitty/kitty.conf", ".config/kitty/theme-profile.conf"),
-        detect_command="kitty",
-        supports_live_reload=True,
-        description="GPU-accelerated terminal with live config reload",
-        icon="utilities-terminal",
-        docs_url="https://sw.kovidgoyal.net/kitty/",
-    ),
-    TrackedAppDef(
-        id="alacritty",
-        name="Alacritty",
-        category="Terminals",
-        config_paths=(
-            ".config/alacritty/alacritty.toml",
-            ".config/alacritty/theme-profile.toml",
-        ),
-        detect_command="alacritty",
-        description="GPU-accelerated terminal, TOML config",
-        icon="utilities-terminal",
-        docs_url="https://github.com/alacritty/alacritty",
-    ),
-
-    # === Launchers / Menu ===
-    TrackedAppDef(
-        id="wofi",
-        name="Wofi",
-        category="Launchers / Menu",
-        config_paths=(
-            ".config/wofi/style.css",
-            ".config/wofi/wallpaper.css",
-        ),
-        detect_command="wofi",
-        description="Application launcher / menu (GTK)",
-        icon="system-run",
-        docs_url="https://hg.sr.ht/~scoopta/wofi",
-    ),
-
-    # === Monitors ===
-    TrackedAppDef(
-        id="btop",
-        name="btop",
-        category="Monitors",
-        config_paths=(
-            ".config/btop/btop.conf",
-        ),
-        detect_command="btop",
-        description="Resource monitor with themes",
-        icon="utilities-system-monitor",
-        docs_url="https://github.com/aristocratos/btop",
-    ),
-
-    # === Sysinfo ===
-    TrackedAppDef(
-        id="fastfetch",
-        name="Fastfetch",
-        category="Sysinfo",
-        config_paths=(
-            ".config/fastfetch/config.jsonc",
-            ".config/fastfetch/logo",
-        ),
-        detect_command="fastfetch",
-        description="System info tool with custom logo/config",
-        icon="preferences-desktop-theme",
-        docs_url="https://github.com/fastfetch-cli/fastfetch",
-    ),
-
-    # === Editors ===
-    TrackedAppDef(
-        id="zed",
-        name="Zed",
-        category="Editors",
-        config_paths=(
-            ".config/zed/settings.json",
-        ),
-        detect_command="zeditor|zed",
-        description="Code editor with native themes",
-        icon="text-editor",
-        docs_url="https://zed.dev/",
-    ),
-    TrackedAppDef(
-        id="vscode",
-        name="VS Code",
-        category="Editors",
-        config_paths=(".config/Code/User/settings.json",),
-        detect_command="code|code-oss|codium|vscodium",
-        description="VS Code settings (theme, font, etc.)",
-        icon="visual-studio-code",
-        docs_url="https://code.visualstudio.com/",
-    ),
-    TrackedAppDef(
-        id="cursor",
-        name="Cursor",
-        category="Editors",
-        config_paths=(".config/Cursor/User/settings.json",),
-        detect_command="cursor",
-        description="Cursor editor settings",
-        icon="text-editor",
-        docs_url="https://cursor.sh/",
-    ),
-
-    # === Browser ===
-    TrackedAppDef(
-        id="zen",
-        name="Zen Browser",
-        category="Browser",
-        config_paths=(
-            # Legacy fallback; the live paths come from zen_config_paths()
-            # (auto-detected profile directory).
-            ".zen/gp0y8wrv.Default (release)/user.js",
-        ),
-        flatpak_id="app.zen_browser.zen",
-        description="Firefox-based browser with user.js + userChrome.css theming",
-        icon="web-browser",
-        docs_url="https://zen-browser.app/",
-    ),
-
-    TrackedAppDef(
-        id="discord",
-        name="Discord (Vencord / Vesktop)",
-        category="Chat",
-        # Fallback; live paths come from discord_config_paths().
-        config_paths=(".config/vesktop/themes",),
-        detect_command="vesktop|discord",
-        flatpak_id="dev.vencord.Vesktop",
-        description="CSS themes of Vencord / Vesktop (palette → midnight-based theme)",
-        icon="discord",
-        docs_url="https://vencord.dev/",
-    ),
-    TrackedAppDef(
-        id="spicetify",
-        name="Spotify (Spicetify)",
-        category="Media",
-        config_paths=(".config/spicetify/config-xpui.ini", ".config/spicetify/Themes"),
-        detect_command="spicetify",
-        description="Spicetify theme and colour scheme (palette → color.ini); runs spicetify apply",
-        icon="spotify",
-        docs_url="https://spicetify.app/docs/customization/themes",
-    ),
-    TrackedAppDef(
-        id="telegram",
-        name="Telegram",
-        category="Communication",
-        config_paths=(".local/share/TelegramDesktop/theme-profile.tdesktop-palette",),
-        detect_command="Telegram",
-        description="Telegram palette (palette → .tdesktop-palette); Telegram follows it once chosen in Settings → Chat Settings",
-        icon="telegram",
-        docs_url="https://github.com/desktop-app/lib_ui/blob/master/ui/colors.palette",
-    ),
-    TrackedAppDef(
-        id="oh-my-posh",
-        name="oh-my-posh (prompt)",
-        category="Shell",
-        # Fallback; live paths come from omp_config_paths() (shell configs with an init line).
-        config_paths=(".config/oh-my-posh/theme-profile.omp.json",),
-        detect_command="oh-my-posh",
-        description="Prompt theme (.omp.json) used by the shell's oh-my-posh init line",
-        icon="utilities-terminal",
-        docs_url="https://ohmyposh.dev/docs/themes",
-    ),
-    TrackedAppDef(
-        id="fish",
-        name="fish colours",
-        category="Shell",
-        config_paths=(".config/fish/fish_variables",),
-        detect_command="fish",
-        description="fish_color_* / fish_pager_color_* universal variables only",
-        icon="utilities-terminal",
-        docs_url="https://fishshell.com/docs/current/interactive.html#syntax-highlighting",
-    ),
-    TrackedAppDef(
-        id="ghostty",
-        name="Ghostty",
-        category="Terminals",
-        config_paths=(".config/ghostty/config", ".config/ghostty/theme-profile"),
-        detect_command="ghostty",
-        description="Look in ghostty/theme-profile, included by the config",
-        icon="utilities-terminal",
-        docs_url="https://ghostty.org/docs/config",
-    ),
-    TrackedAppDef(
-        id="cava",
-        name="cava",
-        category="Media",
-        config_paths=(".config/cava/config",),
-        detect_command="cava",
-        description="[color] section (palette → gradient)",
-        icon="audio-x-generic",
-        docs_url="https://github.com/karlstav/cava",
-    ),
-    TrackedAppDef(
-        id="yazi",
-        name="yazi",
-        category="Shell",
-        config_paths=(".config/yazi/theme.toml", ".config/yazi/flavors"),
-        detect_command="yazi",
-        description="theme.toml and flavors",
-        icon="system-file-manager",
-        docs_url="https://yazi-rs.github.io/docs/flavors/overview",
-    ),
-    TrackedAppDef(
-        id="bat",
-        name="bat",
-        category="Shell",
-        config_paths=(".config/bat/config", ".config/bat/themes"),
-        detect_command="bat",
-        description="--theme line and custom themes (bat cache --build after apply)",
-        icon="text-x-generic",
-        docs_url="https://github.com/sharkdp/bat#adding-new-themes",
-    ),
-    TrackedAppDef(
-        id="konsole",
-        name="Konsole",
-        category="Terminals",
-        # Fallback; live paths come from konsole_config_paths() (default profile + scheme).
-        config_paths=(".local/share/konsole/Theme Profile.profile",),
-        detect_command="konsole",
-        flatpak_id="org.kde.konsole",
-        description="Colour scheme (opacity, blur) and the profile's scheme/font family",
-        icon="utilities-terminal",
-        docs_url="https://docs.kde.org/stable5/en/konsole/konsole/",
-    ),
-    TrackedAppDef(
-        id="firefox",
-        name="Firefox",
-        category="Browser",
-        # Fallback; live paths come from firefox_config_paths() (default profile).
-        config_paths=(".mozilla/firefox/<default-profile>/chrome/userChrome.css",),
-        detect_command="firefox",
-        flatpak_id="org.mozilla.firefox",
-        description="userChrome.css / userContent.css and the appearance prefs of user.js",
-        icon="firefox",
-        docs_url="https://www.userchrome.org/",
-    ),
-
-    # === Notes ===
-    TrackedAppDef(
-        id="obsidian",
-        name="Obsidian",
-        category="Notes",
-        # obsidian.json (vault list) / Preferences (spellcheck) are not appearance.
-        config_paths=("obsidian/vault/.obsidian/appearance.json",),
-        detect_command="obsidian",
-        flatpak_id="md.obsidian.Obsidian",
-        description="Markdown notes with theme/appearance settings",
-        icon="x-office-note",
-        docs_url="https://obsidian.md/",
-    ),
-
-    # === System Profiles ===
-    TrackedAppDef(
-        id="color_schemes",
-        name="Color Schemes",
-        category="System Profiles",
-        # The active scheme only is stored (Rust active_assets::color_scheme).
-        config_paths=(".local/share/color-schemes",),
-        description="KDE color scheme files",
-        icon="preferences-desktop-color",
-    ),
-    TrackedAppDef(
-        id="palette",
-        name="Palette",
-        category="System Profiles",
-        config_paths=(".config/kde-theme-profile/palette.json",),
-        description="base16 palette the generated theme was built from",
-        icon="color-management",
-    ),
-    TrackedAppDef(
-        id="look_and_feel",
-        name="Look & Feel",
-        category="System Profiles",
-        config_paths=(
-            # The active Global Theme only (Rust active_assets::look_and_feel).
-            ".local/share/plasma/look-and-feel",
-        ),
-        description="The active Plasma Look & Feel package (user-installed)",
-        icon="preferences-desktop-theme",
-    ),
-)
-
-
-# ──────────────────────────────────────────────────────────────
-# Пользовательские компоненты (components.json)
-# ──────────────────────────────────────────────────────────────
-
-def _is_valid_component_id(comp_id: str) -> bool:
-    from .paths import is_valid_profile_name
-
-    return is_valid_profile_name(comp_id)
-
-
-def _is_valid_rel_path(p: str) -> bool:
-    return bool(p) and not p.startswith("/") and ".." not in p
-
-
-# Зеркало RELOAD_COMMAND_FORBIDDEN в Rust (profile.rs) и контроллеров.
-_RELOAD_FORBIDDEN = frozenset("|&;<>$`\"'\n\r")
-
-
-def load_custom_defs() -> list[TrackedAppDef]:
-    """Прочитать components.json и вернуть валидные определения.
-
-    Зеркало Rust `custom_components::load_custom_components`: одна битая
-    запись обнуляет весь пользовательский список (встроенные не трогаются).
-    При совпадении id со встроенным компонентом встроенный выигрывает
-    (см. all_app_defs — зеркало Rust merged_component_defs).
-    """
-    path = theme_root() / "components.json"
-    if not path.is_file():
-        return []
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        entries = data.get("components", [])
-        if not isinstance(entries, list):
-            return []
-    except Exception:
-        return []
-    out: list[TrackedAppDef] = []
-    try:
-        for entry in entries:
-            comp_id = str(entry.get("id", ""))
-            paths = [str(p) for p in entry.get("config_paths", [])]
-            if not _is_valid_component_id(comp_id) or not paths:
-                return []
-            if any(not _is_valid_rel_path(p) for p in paths):
-                return []
-            command = str(entry.get("reload_command", "") or "")
-            if command.strip():
-                bad = next(
-                    (ch for ch in command if ch in _RELOAD_FORBIDDEN), None
-                )
-                if bad is not None or shutil.which(command.split()[0]) is None:
-                    return []
-            out.append(
-                TrackedAppDef(
-                    id=comp_id,
-                    name=str(entry.get("name", "")) or comp_id,
-                    category=str(entry.get("category", "")) or "Custom",
-                    config_paths=tuple(paths),
-                    detect_command=None,
-                    flatpak_id=None,
-                    supports_live_reload=bool(entry.get("supports_live_reload", False))
-                    or bool(command.strip()),
-                    description=str(entry.get("description", "")),
-                    icon=str(entry.get("icon", "")) or "application-x-executable",
-                    docs_url="",
-                    reload_command=command,
-                    is_custom=True,
-                )
-            )
-    except Exception:
-        return []
-    return out
-
-
-def all_app_defs() -> list[TrackedAppDef]:
-    """Встроенный реестр + пользовательские; встроенные выигрывают по id."""
-    built_ids = {a.id for a in TRACKED_APPS}
-    custom = [d for d in load_custom_defs() if d.id not in built_ids]
-    return [*TRACKED_APPS, *custom]
-
-
-# ──────────────────────────────────────────────────────────────
-# Детекция статусов
-# ──────────────────────────────────────────────────────────────
-
-def _check_command(cmd: str) -> bool:
-    """Проверить наличие команды в PATH; `a|b` — любая из альтернатив
-    (Zed — `zeditor` на Arch/CachyOS, VS Code — `code`/`codium`…)."""
-    return any(
-        shutil.which(alt.split()[0]) is not None
-        for alt in cmd.split("|")
-        if alt.strip()
-    )
-
-
-def _check_flatpak(flatpak_id: str) -> bool:
-    """Проверить установлен ли Flatpak."""
-    try:
-        result = subprocess.run(
-            ["flatpak", "list", "--app", "--columns=application"],
-            capture_output=True, text=True, timeout=5
-        )
-        return flatpak_id in result.stdout
-    except Exception:
-        return False
-
-
-def _check_configs_exist(paths: tuple[str, ...]) -> bool:
-    """Проверить наличие хотя бы одного конфига (с учётом XDG)."""
-    return any(live_path(p).exists() for p in paths)
-
-
-# ──────────────────────────────────────────────────────────────
-# Zen Browser auto-detection (shared rules with the Rust core)
-# ──────────────────────────────────────────────────────────────
-
-def zen_profile_dir() -> str:
-    """Имя профиля Zen внутри `~/.zen`, "" если профиля нет.
-
-    Правила зеркалят Rust (`tracked_apps::zen_profile_dir`): `installs.ini`,
-    затем `Default=1` в `profiles.ini`, затем первый `*Default*` в byte-order.
-    Выдумывать имя нельзя: запасное имя создавало чужую папку в `~/.zen`.
-    """
-    import os
-
-    zen_root = os.path.join(os.path.expanduser("~"), ".zen")
-
-    def read(name: str) -> list[str]:
-        try:
-            with open(os.path.join(zen_root, name), encoding="utf-8") as handle:
-                return handle.read().splitlines()
-        except (OSError, UnicodeDecodeError):
-            return []
-
-    for line in read("installs.ini"):
-        if line.startswith("Default="):
-            value = line.split("=", 1)[1].strip()
-            if value and os.path.isdir(os.path.join(zen_root, value)):
-                return value
-            break
-    path = None
-    for line in read("profiles.ini"):
-        if line.startswith("["):
-            path = None
-        elif line.startswith("Path="):
-            path = line.split("=", 1)[1].strip()
-        elif line.strip() == "Default=1" and path and os.path.isdir(os.path.join(zen_root, path)):
-            return path
-    candidates = []
-    try:
-        for entry in os.scandir(zen_root):
-            if entry.is_dir(follow_symlinks=False) and "Default" in entry.name:
-                candidates.append(entry.name)
-    except OSError:
-        pass
-    return sorted(candidates)[0] if candidates else ""
-
-
-def zen_config_paths() -> tuple[str, ...]:
-    """Относительные пути конфигов Zen для обнаруженного профиля."""
-    profile = zen_profile_dir()
-    if not profile:
-        return ()
-    base = f".zen/{profile}"
-    return (
-        f"{base}/user.js",
-        f"{base}/chrome/userChrome.css",
-        f"{base}/chrome/userContent.css",
-        f"{base}/chrome/zen-themes.css",
-    )
-
-
-def firefox_profile_dir() -> str:
-    """Default Firefox profile folder (mirrors Rust ``firefox_profile_dir``):
-    installs.ini → profiles.ini ``Default=1`` → first ``*.default*``."""
-    import os
-
-    root = os.path.join(os.path.expanduser("~"), ".mozilla", "firefox")
-
-    def read(name: str) -> list[str]:
-        try:
-            with open(os.path.join(root, name), encoding="utf-8") as fh:
-                return fh.read().splitlines()
-        except OSError:
-            return []
-
-    for line in read("installs.ini"):
-        if line.startswith("Default=") and line[8:].strip():
-            return line[8:].strip()
-    path = None
-    for line in read("profiles.ini"):
-        if line.startswith("["):
-            path = None
-        elif line.startswith("Path="):
-            path = line[5:].strip()
-        elif line.strip() == "Default=1" and path:
-            return path
-    try:
-        names = sorted(e.name for e in os.scandir(root) if ".default" in e.name)
-    except OSError:
-        names = []
-    return names[0] if names else ""
-
-
-def firefox_config_paths() -> tuple[str, ...]:
-    """Theme files of the default Firefox profile."""
-    profile = firefox_profile_dir()
-    if not profile or ".." in profile or profile.startswith("/"):
-        return ()
-    base = f".mozilla/firefox/{profile}"
-    return (f"{base}/user.js", f"{base}/chrome/userChrome.css", f"{base}/chrome/userContent.css")
-
-
-def konsole_config_paths() -> tuple[str, ...]:
-    """Default Konsole profile (or the "Theme Profile" a theme would create)
-    and its user colour scheme — mirrors Rust ``konsole::config_paths``."""
-    import configparser
-    import os
-
-    home = os.path.expanduser("~")
-    rc = configparser.ConfigParser(interpolation=None, strict=False)
-    try:
-        rc.read(os.path.join(home, ".config", "konsolerc"), encoding="utf-8")
-        profile = rc.get("Desktop Entry", "DefaultProfile", fallback="")
-    except (configparser.Error, OSError):
-        profile = ""
-    if not profile.endswith(".profile") or "/" in profile:
-        profile = "Theme Profile.profile"
-    paths = [f".local/share/konsole/{profile}"]
-    prof = configparser.ConfigParser(interpolation=None, strict=False)
-    try:
-        prof.read(os.path.join(home, ".local/share/konsole", profile), encoding="utf-8")
-        scheme = prof.get("Appearance", "ColorScheme", fallback="")
-    except (configparser.Error, OSError):
-        scheme = ""
-    if scheme and "/" not in scheme and os.path.isfile(os.path.join(home, ".local/share/konsole", f"{scheme}.colorscheme")):
-        paths.append(f".local/share/konsole/{scheme}.colorscheme")
-    return tuple(paths)
-
-
-def discord_config_paths() -> tuple[str, ...]:
-    """themes/ and settings.json of Vencord / Vesktop set up here (mirrors Rust)."""
-    import os
-
-    home = os.path.expanduser("~")
-    out: list[str] = []
-    for rel in (".config/Vencord", ".config/vesktop"):
-        if os.path.exists(os.path.join(home, rel)):
-            out += [f"{rel}/settings/settings.json", f"{rel}/themes"]
-    return tuple(out)
-
-
-def omp_config_paths() -> tuple[str, ...]:
-    """Shell configs with an `oh-my-posh init` line + the theme's prompt file
-    (mirrors Rust ``extras::omp_config_paths``)."""
-    import os
-
-    home = os.path.expanduser("~")
-    hosts = []
-    for rel in (".config/fish/config.fish", ".zshrc", ".bashrc"):
-        try:
-            with open(os.path.join(home, rel), encoding="utf-8") as fh:
-                text = fh.read()
-        except OSError:
-            continue
-        if any("oh-my-posh" in l and " init " in l and "--config" in l and not l.lstrip().startswith("#") for l in text.splitlines()):
-            hosts.append(rel)
-    theme = ".config/oh-my-posh/theme-profile.omp.json"
-    if hosts or os.path.exists(os.path.join(home, theme)):
-        hosts.append(theme)
-    return tuple(hosts)
-
-
-def config_paths_for(app: TrackedAppDef) -> tuple[str, ...]:
-    """Актуальные пути приложения (zen — авто-детект, остальные — static)."""
-    if app.id == "zen":
-        return zen_config_paths()
-    if app.id == "firefox":
-        return firefox_config_paths()
-    if app.id == "konsole":
-        return konsole_config_paths()
-    if app.id == "discord":
-        return discord_config_paths()
-    if app.id == "oh-my-posh":
-        return omp_config_paths()
-    return app.config_paths
-
-
-def detect_app_status(app: TrackedAppDef) -> AppStatus:
-    """Определить статус приложения."""
-    # 1. Проверка команды установки
-    if app.detect_command and not _check_command(app.detect_command):
-        # 2. Проверка Flatpak
-        if app.flatpak_id and not _check_flatpak(app.flatpak_id):
-            return AppStatus.NOT_INSTALLED
-        elif not app.flatpak_id:
-            return AppStatus.NOT_INSTALLED
-
-    # 3. Проверка конфигов
-    if _check_configs_exist(config_paths_for(app)):
-        return AppStatus.AVAILABLE
-    else:
-        # Установлено, но конфигов ещё нет (первый запуск)
-        return AppStatus.PARTIAL
-
-
-def build_component(app: TrackedAppDef) -> Component:
-    """Построить Component из определения + актуальный статус."""
-    status = detect_app_status(app)
-    return Component(
-        id=app.id,
-        name=app.name,
-        category=app.category,
-        config_paths=config_paths_for(app),
-        status=status,
-        supports_live_reload=app.supports_live_reload,
-        description=app.description,
-        icon=app.icon,
-        docs_url=app.docs_url,
-        is_custom=app.is_custom,
-        reload_command=app.reload_command,
-    )
-
-
-def detect_all_apps() -> list[Component]:
-    """Получить список всех компонентов с актуальными статусами."""
-    return [build_component(app) for app in all_app_defs()]
+def _request(method, **arguments):
+    from .cli_core import core_request
+    return core_request("registry." + method, **arguments)
+
+
+def _definition(data):
+    from dataclasses import fields
+    names = {field.name for field in fields(TrackedAppDef)}
+    values = {k: v for k, v in data.items() if k in names}
+    values["config_paths"] = tuple(values["config_paths"])
+    return TrackedAppDef(**values)
+
+
+class _Definitions:
+    """Lazy Rust data: importing GUI modules does not invoke the CLI."""
+    def __iter__(self):
+        return iter([_definition(value) for value in _request("definitions")])
+
+    def __len__(self):
+        return len(_request("definitions"))
+
+    def __getitem__(self, index):
+        return list(self)[index]
+
+
+TRACKED_APPS = _Definitions()
+
+
+def all_app_defs():
+    return [_definition(value) for value in _request("definitions", custom=True)]
+
+
+def load_custom_defs():
+    return [app for app in all_app_defs() if app.is_custom]
+
+
+def config_paths_for(app):
+    paths = _request("paths", id=app.id)
+    return tuple(app.config_paths if paths is None else paths)
+
+
+def detect_app_status(app):
+    from dataclasses import asdict
+    return AppStatus(_request("detect", definition=asdict(app)))
+
+
+def _component(data):
+    return Component(**{**data, "config_paths": tuple(data["config_paths"]),
+                        "status": AppStatus(data["status"])})
+
+
+def build_component(app):
+    return Component(id=app.id, name=app.name, category=app.category,
+                     config_paths=config_paths_for(app), status=detect_app_status(app),
+                     supports_live_reload=app.supports_live_reload, description=app.description,
+                     icon=app.icon, docs_url=app.docs_url, is_custom=app.is_custom,
+                     reload_command=app.reload_command)
+
+
+def detect_all_apps():
+    return [_component(value) for value in _request("components")]
+
+
+def _check_command(command):
+    return _request("command", command=command)
+
+
+def _check_configs_exist(paths):
+    return _request("configs_exist", paths=list(paths))
+
+
+def zen_profile_dir():
+    return _request("profile", id="zen") or ""
+
+
+def firefox_profile_dir():
+    return _request("profile", id="firefox") or ""
+
+
+def zen_config_paths():
+    return tuple(_request("paths", id="zen"))
+
+
+def firefox_config_paths():
+    return tuple(_request("paths", id="firefox"))
+
+
+def konsole_config_paths():
+    return tuple(_request("paths", id="konsole"))
+
+
+def discord_config_paths():
+    return tuple(_request("paths", id="discord"))
+
+
+def omp_config_paths():
+    return tuple(_request("paths", id="oh-my-posh"))
 
 
 # ──────────────────────────────────────────────────────────────
@@ -768,15 +140,8 @@ class CliTrackedAppsCore(TrackedAppsCore):
         self._cache: Optional[list[Component]] = None
 
     def _run(self, args: list[str], timeout: int = 30) -> Result:
-        import subprocess, os
-        try:
-            proc = subprocess.run(args, capture_output=True, text=True, timeout=timeout, env={**os.environ})
-            return Result(
-                proc.returncode == 0,
-                proc.stdout.strip() or proc.stderr.strip()
-            )
-        except Exception as e:
-            return Result.err(str(e))
+        from .cli_core import run_cli
+        return run_cli(args[1:], binary=args[0], timeout=timeout)
 
     def detect_all(self) -> list[Component]:
         """Свежий детект всех приложений."""
@@ -810,7 +175,8 @@ class CliTrackedAppsCore(TrackedAppsCore):
 
     def remove_custom(self, comp_id: str) -> Result:
         """Удалить пользовательский компонент по id."""
-        args = ["theme-profile", "components", "remove", comp_id]
+        from .cli_core import resolve_cli_bin
+        args = [resolve_cli_bin(), "components", "remove", comp_id]
         res = self._run(args, timeout=30)
         if res.success:
             return Result.ok()
@@ -818,26 +184,11 @@ class CliTrackedAppsCore(TrackedAppsCore):
 
     # ── Пользовательские компоненты через CLI (components.json) ─────────────
 
-    @staticmethod
-    def _parse_custom_component_line(line: str) -> Optional[CustomComponent]:
-        """Parse a single id line from 'theme-profile components list' output."""
-        parts = line.strip().split()
-        if not parts:
-            return None
-        return CustomComponent(id=parts[0], name="", category="Custom")
-
     def list_custom(self) -> list[CustomComponent]:
         """Все пользовательские компоненты из components.json."""
-        args = ["theme-profile", "components", "list"]
-        res = self._run(args, timeout=30)
-        if not res.success:
-            return []
-        comps: list[CustomComponent] = []
-        for line in res.message.strip().splitlines():
-            c = self._parse_custom_component_line(line)
-            if c:
-                comps.append(c)
-        return comps
+        return [CustomComponent(**{**value, "config_paths": tuple(value["config_paths"]),
+                                   "reload_command": value.get("reload_command") or ""})
+                for value in _request("custom")]
 
     @staticmethod
     def _custom_component_payload(comp: CustomComponent) -> str:
@@ -861,7 +212,8 @@ class CliTrackedAppsCore(TrackedAppsCore):
 
     def add_custom(self, comp: CustomComponent) -> Result:
         """Добавить пользовательский компонент (пишет в components.json)."""
-        args = ["theme-profile", "components", "add", self._custom_component_payload(comp)]
+        from .cli_core import resolve_cli_bin
+        args = [resolve_cli_bin(), "components", "add", self._custom_component_payload(comp)]
         res = self._run(args, timeout=30)
         if res.success:
             return Result.ok()
@@ -869,7 +221,8 @@ class CliTrackedAppsCore(TrackedAppsCore):
 
     def update_custom(self, comp: CustomComponent) -> Result:
         """Обновить пользовательский компонент."""
-        args = ["theme-profile", "components", "edit", self._custom_component_payload(comp)]
+        from .cli_core import resolve_cli_bin
+        args = [resolve_cli_bin(), "components", "edit", self._custom_component_payload(comp)]
         res = self._run(args, timeout=30)
         if res.success:
             return Result.ok()

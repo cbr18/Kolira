@@ -17,7 +17,7 @@ use anyhow::Result;
 
 use crate::field::{ini_get, set_ini_text};
 use crate::palette::{ansi16, kde_roles, kde_scheme_id, Palette, Rgb};
-use crate::paths::{config_home, data_home, home_dir};
+use crate::paths::{config_home, data_home};
 
 pub const THEME_PROFILE: &str = "Theme Profile.profile";
 const KONSOLE_DIR: &str = ".local/share/konsole";
@@ -33,7 +33,8 @@ fn konsole_dir() -> PathBuf {
 /// `X.profile` named by konsolerc, if any.
 pub fn default_profile() -> Option<String> {
     let text = fs::read_to_string(konsolerc()).ok()?;
-    ini_get(&text, "Desktop Entry", "DefaultProfile").filter(|p| p.ends_with(".profile") && !p.contains('/'))
+    ini_get(&text, "Desktop Entry", "DefaultProfile")
+        .filter(|p| p.ends_with(".profile") && !p.contains('/'))
 }
 
 /// Tracked files: the default profile (or the one a theme would create) and
@@ -49,7 +50,10 @@ pub fn config_paths() -> Vec<String> {
         .and_then(|t| ini_get(&t, "Appearance", "ColorScheme"))
         .filter(|s| !s.is_empty() && !s.contains('/'))
     {
-        if konsole_dir().join(format!("{scheme}.colorscheme")).is_file() {
+        if konsole_dir()
+            .join(format!("{scheme}.colorscheme"))
+            .is_file()
+        {
             out.push(format!("{KONSOLE_DIR}/{scheme}.colorscheme"));
         }
     }
@@ -59,31 +63,63 @@ pub fn config_paths() -> Vec<String> {
 /// A theme without Konsole: the profile we created is removed and Konsole goes
 /// back to its built-in default. A profile of the user's stays.
 pub fn reset_generated() -> Result<()> {
-    if default_profile().as_deref() != Some(THEME_PROFILE) {
+    let mut plan = crate::change_plan::Plan::default();
+    plan_reset_generated(&mut plan)?;
+    plan.commit()
+}
+pub fn finish_profile(rel: &str) -> Result<()> {
+    let mut plan = crate::change_plan::Plan::default();
+    plan_finish_profile(rel, &mut plan)?;
+    plan.commit()
+}
+
+pub(crate) fn plan_reset_generated(plan: &mut crate::change_plan::Plan) -> Result<()> {
+    if plan
+        .text(&konsolerc())?
+        .and_then(|text| ini_get(&text, "Desktop Entry", "DefaultProfile"))
+        .as_deref()
+        != Some(THEME_PROFILE)
+    {
         return Ok(());
     }
-    let _ = fs::remove_file(konsole_dir().join(THEME_PROFILE));
-    let text = fs::read_to_string(konsolerc())?;
-    let kept: Vec<&str> = text.lines().filter(|l| !l.trim_start().starts_with("DefaultProfile=")).collect();
-    fs::write(konsolerc(), kept.join("\n") + "\n")?;
+    plan.remove(&konsole_dir().join(THEME_PROFILE), "reset")?;
+    let text = plan.text(&konsolerc())?.unwrap_or_default();
+    let kept: Vec<&str> = text
+        .lines()
+        .filter(|l| !l.trim_start().starts_with("DefaultProfile="))
+        .collect();
+    plan.write_text(&konsolerc(), kept.join("\n") + "\n", "reset")?;
     Ok(())
 }
 
 /// After a profile was written from a theme: give a newly created profile a
 /// name and make it Konsole's default when none is set.
-pub fn finish_profile(rel: &str) -> Result<()> {
-    let path = home_dir().join(rel);
-    let Ok(mut text) = fs::read_to_string(&path) else { return Ok(()) };
-    let file = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+pub(crate) fn plan_finish_profile(rel: &str, plan: &mut crate::change_plan::Plan) -> Result<()> {
+    let path = crate::paths::live_path(rel);
+    let Some(mut text) = plan.text(&path)? else {
+        return Ok(());
+    };
+    let file = path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
     if ini_get(&text, "General", "Name").is_none() {
         let name = file.trim_end_matches(".profile").to_string();
         text = set_ini_text(&text, "General", "Name", &name);
         text = set_ini_text(&text, "General", "Parent", "FALLBACK/");
-        fs::write(&path, text)?;
+        plan.write_text(&path, text, "konsole")?;
     }
-    if default_profile().is_none() {
-        let rc = fs::read_to_string(konsolerc()).unwrap_or_default();
-        fs::write(konsolerc(), set_ini_text(&rc, "Desktop Entry", "DefaultProfile", &file))?;
+    if plan
+        .text(&konsolerc())?
+        .and_then(|text| ini_get(&text, "Desktop Entry", "DefaultProfile"))
+        .is_none()
+    {
+        let rc = plan.text(&konsolerc())?.unwrap_or_default();
+        plan.write_text(
+            &konsolerc(),
+            set_ini_text(&rc, "Desktop Entry", "DefaultProfile", &file),
+            "konsole",
+        )?;
     }
     Ok(())
 }
@@ -98,7 +134,10 @@ pub fn colorscheme(p: &Palette) -> String {
     let ansi = ansi16(p);
     let mut out = String::new();
     let mut section = |name: &str, color: Rgb, bold: bool| {
-        out.push_str(&format!("[{name}]\nBold={bold}\nColor={}\nTransparency=false\n\n", rgb(color)));
+        out.push_str(&format!(
+            "[{name}]\nBold={bold}\nColor={}\nTransparency=false\n\n",
+            rgb(color)
+        ));
     };
     section("Background", r.window, false);
     section("BackgroundIntense", r.window_alt, false);
@@ -106,7 +145,11 @@ pub fn colorscheme(p: &Palette) -> String {
     for i in 0..8 {
         section(&format!("Color{i}"), ansi[i], false);
         section(&format!("Color{i}Intense"), ansi[i + 8], true);
-        section(&format!("Color{i}Faint"), ansi[i].mix(r.window, 0.35), false);
+        section(
+            &format!("Color{i}Faint"),
+            ansi[i].mix(r.window, 0.35),
+            false,
+        );
     }
     section("Foreground", r.text, false);
     section("ForegroundIntense", r.text, true);
@@ -135,7 +178,10 @@ pub fn apply_palette(p: &Palette) -> Result<PathBuf> {
     let profile_name = default_profile().unwrap_or_else(|| THEME_PROFILE.to_string());
     let profile = dir.join(&profile_name);
     let current = fs::read_to_string(&profile).unwrap_or_default();
-    fs::write(&profile, set_ini_text(&current, "Appearance", "ColorScheme", &id))?;
+    fs::write(
+        &profile,
+        set_ini_text(&current, "Appearance", "ColorScheme", &id),
+    )?;
     finish_profile(&format!("{KONSOLE_DIR}/{profile_name}"))?;
     Ok(scheme)
 }
@@ -152,7 +198,14 @@ mod tests {
         )
         .unwrap();
         let s = colorscheme(&p);
-        for section in ["[Background]", "[Foreground]", "[Color0]", "[Color7Intense]", "[Color3Faint]", "[General]"] {
+        for section in [
+            "[Background]",
+            "[Foreground]",
+            "[Color0]",
+            "[Color7Intense]",
+            "[Color3Faint]",
+            "[General]",
+        ] {
             assert!(s.contains(section), "{section}");
         }
         assert!(s.contains("Color=40,42,54"), "background from base00");

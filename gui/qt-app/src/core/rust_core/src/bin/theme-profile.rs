@@ -7,32 +7,39 @@
 
 use std::process::ExitCode;
 
+use kde_theme_core::extract;
+use kde_theme_core::field;
+use kde_theme_core::gallery;
+use kde_theme_core::palette;
 use kde_theme_core::paths::validate_profile_name;
 use kde_theme_core::profile::{
-    apply_profile_cli, clone_profile, delete_profile, diff_profiles, list_profiles,
-    set_profile_description, get_profile_description,
+    clone_profile, delete_profile, diff_profiles, get_profile_description, list_profiles,
+    set_profile_description,
 };
-use kde_theme_core::status::status;
-use kde_theme_core::wallpaper::{plasma_wallpaper_from, wallpaper_dir};
-use kde_theme_core::palette;
-use kde_theme_core::gallery;
-use kde_theme_core::extract;
-use kde_theme_core::stores;
-use kde_theme_core::field;
-use kde_theme_core::theme;
 use kde_theme_core::share;
+use kde_theme_core::status::status;
+use kde_theme_core::stores;
+use kde_theme_core::theme;
+use kde_theme_core::wallpaper::{plasma_wallpaper_from, wallpaper_dir};
 
 const USAGE: &str = "\
 Usage:
+  theme-profile core METHOD                   (JSON arguments on stdin; API v1 response)
+  theme-profile operations list|show ID|recover ID [--force]
+  theme-profile operations restore ID --confirm
+  theme-profile schedule list|put JSON|delete ID|enable|disable|tick|daemon
+  theme-profile core agent.capabilities|agent.schema|agent.prepare|agent.install < request.json
+  theme-profile preview NAME [--keep-wallpaper] [--components=...] [--json]
   theme-profile status
   theme-profile list
   theme-profile save NAME [--description=...] [--no-wallpaper]
                               (full snapshot of the appearance files + theme.json)
-  theme-profile apply NAME [--install-missing] [--keep-wallpaper] [--json]
+  theme-profile apply NAME [--install-missing] [--keep-wallpaper] [--preview-token=HASH] [--json]
                               (restores the theme; missing assets are reported,
                                --install-missing installs app themes from their stores)
   theme-profile check NAME [--json]           (what applying NAME would miss)
   theme-profile prune NAME|--all              (drop what is not part of the theme; backup first)
+  theme-profile dependencies list|refresh|register-app|install|remove|reinstall|cancel|operation
   theme-profile deps NAME [--refresh] [--install[=all|0,2]] [--json]
                               (what the theme needs and where from; install from official sources)
   theme-profile actions NAME [--json]         (what applying leaves to do: restarts, Telegram)
@@ -74,7 +81,7 @@ Usage:
 
 Components: kwin, plasma_shell, kdeglobals, gtk3, gtk4, qt5ct,
             breeze, klassy, kvantum, alacritty, kitty, wofi, btop,
-            fastfetch, zed, vscode, cursor, zen, obsidian,
+            zed, vscode, cursor, zen, obsidian,
             color_schemes, palette, look_and_feel
 
 Use --components=all for all (default).
@@ -140,10 +147,13 @@ fn fail(msg: impl std::fmt::Display) -> ExitCode {
 
 fn print_palette(p: &palette::Palette) {
     println!("name={}", p.name);
-    println!("variant={}", match p.variant {
-        palette::Variant::Dark => "dark",
-        palette::Variant::Light => "light",
-    });
+    println!(
+        "variant={}",
+        match p.variant {
+            palette::Variant::Dark => "dark",
+            palette::Variant::Light => "light",
+        }
+    );
     for (slot, value) in palette::SLOTS.iter().zip(&p.base) {
         println!("{slot}={value}");
     }
@@ -157,14 +167,22 @@ fn print_palette(p: &palette::Palette) {
 fn load_live_palette() -> Result<palette::Palette, ExitCode> {
     let path = palette::live_palette_path();
     palette::load(&path).map_err(|e| {
-        fail(format!("No palette yet ({}): {e}. Use `theme-profile palette import FILE`.", path.display()))
+        fail(format!(
+            "No palette yet ({}): {e}. Use `theme-profile palette import FILE`.",
+            path.display()
+        ))
     })
 }
 
 fn field_cmd(args: &[String]) -> ExitCode {
     let json = args.iter().any(|a| a == "--json");
     let profile = args.iter().find_map(|a| a.strip_prefix("--profile="));
-    let rest: Vec<&str> = args.iter().skip(1).map(String::as_str).filter(|a| !a.starts_with("--")).collect();
+    let rest: Vec<&str> = args
+        .iter()
+        .skip(1)
+        .map(String::as_str)
+        .filter(|a| !a.starts_with("--"))
+        .collect();
     match args.first().map(String::as_str) {
         Some("list") => {
             for f in field::registry() {
@@ -189,7 +207,9 @@ fn field_cmd(args: &[String]) -> ExitCode {
             };
             let mut map = serde_json::Map::new();
             for id in ids {
-                let Some(f) = field::field(id) else { return fail(format!("Unknown field: {id}")) };
+                let Some(f) = field::field(id) else {
+                    return fail(format!("Unknown field: {id}"));
+                };
                 let value = field::read(f, &base).unwrap_or(serde_json::Value::Null);
                 if json {
                     map.insert(id.to_string(), value);
@@ -208,7 +228,8 @@ fn field_cmd(args: &[String]) -> ExitCode {
                 let Some((id, value)) = pair.split_once('=') else {
                     return fail(format!("Expected ID=VALUE, got {pair:?}"));
                 };
-                let parsed = serde_json::from_str(value).unwrap_or(serde_json::Value::String(value.to_string()));
+                let parsed = serde_json::from_str(value)
+                    .unwrap_or(serde_json::Value::String(value.to_string()));
                 values.push((id.to_string(), parsed));
             }
             if values.is_empty() {
@@ -221,7 +242,11 @@ fn field_cmd(args: &[String]) -> ExitCode {
             for e in &report.errors {
                 eprintln!("error={e}");
             }
-            if report.errors.is_empty() { ExitCode::SUCCESS } else { ExitCode::from(1) }
+            if report.errors.is_empty() {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
         }
         _ => fail("Usage error: field <list|get|set>"),
     }
@@ -229,7 +254,11 @@ fn field_cmd(args: &[String]) -> ExitCode {
 
 fn apps_cmd(args: &[String]) -> ExitCode {
     let json = args.iter().any(|a| a == "--json");
-    let positional: Vec<&str> = args.iter().map(String::as_str).filter(|a| !a.starts_with("--")).collect();
+    let positional: Vec<&str> = args
+        .iter()
+        .map(String::as_str)
+        .filter(|a| !a.starts_with("--"))
+        .collect();
     match positional.as_slice() {
         ["store-search", app, query @ ..] => match stores::search(app, &query.join(" ")) {
             Ok(items) if json => {
@@ -250,7 +279,10 @@ fn apps_cmd(args: &[String]) -> ExitCode {
                 ExitCode::SUCCESS
             }
             Ok(report) => {
-                println!("Installed {} for {} → {}", report.id, report.app, report.location);
+                println!(
+                    "Installed {} for {} → {}",
+                    report.id, report.app, report.location
+                );
                 for theme in report.themes {
                     println!("theme={theme}");
                 }
@@ -273,9 +305,15 @@ fn palette_cmd(args: &[String]) -> ExitCode {
                 let mut value = serde_json::to_value(&p).unwrap_or_default();
                 if let Some(map) = value.as_object_mut() {
                     map.insert("warnings".into(), serde_json::json!(p.contrast_warnings()));
-                    map.insert("kdeScheme".into(), serde_json::json!(palette::kde_scheme_id(&p)));
+                    map.insert(
+                        "kdeScheme".into(),
+                        serde_json::json!(palette::kde_scheme_id(&p)),
+                    );
                 }
-                println!("{}", serde_json::to_string_pretty(&value).unwrap_or_default());
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&value).unwrap_or_default()
+                );
                 ExitCode::SUCCESS
             }
             Ok(p) => {
@@ -285,7 +323,10 @@ fn palette_cmd(args: &[String]) -> ExitCode {
             Err(code) => code,
         },
         Some("gallery") => {
-            let query = args[1..].iter().find(|a| !a.starts_with("--")).map_or("", String::as_str);
+            let query = args[1..]
+                .iter()
+                .find(|a| !a.starts_with("--"))
+                .map_or("", String::as_str);
             let online = args.iter().any(|a| a == "--online");
             let refresh = args.iter().any(|a| a == "--refresh");
             let entries = match gallery::list(query, online || refresh, refresh) {
@@ -310,7 +351,13 @@ fn palette_cmd(args: &[String]) -> ExitCode {
                 println!("{}", serde_json::Value::Array(items));
             } else {
                 for e in &entries {
-                    println!("{}\t{}\t{}\t{}", e.id, e.origin.as_str(), variant(e.variant), e.name.as_deref().unwrap_or(""));
+                    println!(
+                        "{}\t{}\t{}\t{}",
+                        e.id,
+                        e.origin.as_str(),
+                        variant(e.variant),
+                        e.name.as_deref().unwrap_or("")
+                    );
                 }
             }
             if online && !kde_theme_core::net::network_enabled() {
@@ -347,7 +394,9 @@ fn palette_cmd(args: &[String]) -> ExitCode {
             let positional = args[1..].iter().find(|a| !a.starts_with("--")).cloned();
             let built = if args[0] == "from-wallpaper" {
                 let image = positional.or_else(|| {
-                    plasma_wallpaper_from(&kde_theme_core::paths::live_path(kde_theme_core::wallpaper::APPLETSRC_REL))
+                    plasma_wallpaper_from(&kde_theme_core::paths::live_path(
+                        kde_theme_core::wallpaper::APPLETSRC_REL,
+                    ))
                 });
                 let Some(image) = image else {
                     return fail("No image given and no org.kde.image wallpaper found");
@@ -357,7 +406,9 @@ fn palette_cmd(args: &[String]) -> ExitCode {
                 let json = match positional.as_deref() {
                     Some("-") | None => {
                         let mut text = String::new();
-                        if let Err(e) = std::io::Read::read_to_string(&mut std::io::stdin(), &mut text) {
+                        if let Err(e) =
+                            std::io::Read::read_to_string(&mut std::io::stdin(), &mut text)
+                        {
                             return fail(e);
                         }
                         text
@@ -428,7 +479,9 @@ fn palette_cmd(args: &[String]) -> ExitCode {
                     }
                     Err(e) => fail(e),
                 },
-                other => fail(format!("Unknown generator {other:?} (known: kde, kitty, alacritty)")),
+                other => fail(format!(
+                    "Unknown generator {other:?} (known: kde, kitty, alacritty)"
+                )),
             }
         }
         Some("apply") => {
@@ -439,8 +492,18 @@ fn palette_cmd(args: &[String]) -> ExitCode {
             let targets: Vec<String> = args[1..]
                 .iter()
                 .find_map(|a| a.strip_prefix("--targets="))
-                .map(|t| t.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect())
-                .unwrap_or_else(|| palette::DEFAULT_TARGETS.iter().map(|t| t.to_string()).collect());
+                .map(|t| {
+                    t.split(',')
+                        .map(|s| s.trim().to_string())
+                        .filter(|s| !s.is_empty())
+                        .collect()
+                })
+                .unwrap_or_else(|| {
+                    palette::DEFAULT_TARGETS
+                        .iter()
+                        .map(|t| t.to_string())
+                        .collect()
+                });
             let options = palette::ApplyOptions {
                 kvantum_base: args[1..]
                     .iter()
@@ -468,15 +531,128 @@ fn palette_cmd(args: &[String]) -> ExitCode {
 
 /// `--<app>-opacity=X`, else the shared `--opacity=X`.
 fn opacity_arg(args: &[String], key: &str) -> Option<f64> {
-    let find = |k: &str| args.iter().find_map(|a| a.strip_prefix(k)).and_then(|v| v.parse::<f64>().ok());
+    let find = |k: &str| {
+        args.iter()
+            .find_map(|a| a.strip_prefix(k))
+            .and_then(|v| v.parse::<f64>().ok())
+    };
     find(key).or_else(|| find("--opacity="))
 }
 
-fn main() -> ExitCode {
+fn dispatch() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let cmd = args.first().map(String::as_str).unwrap_or("");
 
     match cmd {
+        "schedule" => {
+            let result = match args.get(1).map(String::as_str).unwrap_or("list") {
+                "daemon" => kde_theme_core::schedule::daemon().map(|_| serde_json::Value::Null),
+                "tick" => kde_theme_core::schedule::tick(chrono::Local::now()),
+                "list" => kde_theme_core::schedule::rpc("list", &serde_json::json!({})),
+                "enable" | "disable" => kde_theme_core::schedule::rpc(
+                    "enable",
+                    &serde_json::json!({"enabled":args[1] == "enable"}),
+                ),
+                "delete" => {
+                    kde_theme_core::schedule::rpc("delete", &serde_json::json!({"id":args.get(2)}))
+                }
+                "put" => args
+                    .get(2)
+                    .ok_or_else(|| anyhow::anyhow!("schedule put requires a JSON rule"))
+                    .and_then(|s| serde_json::from_str::<serde_json::Value>(s).map_err(Into::into))
+                    .and_then(|rule| {
+                        kde_theme_core::schedule::rpc("put", &serde_json::json!({"rule":rule}))
+                    }),
+                _ => Err(anyhow::anyhow!(
+                    "Usage: schedule list|put JSON|delete ID|enable|disable|tick|daemon"
+                )),
+            };
+            match result {
+                Ok(value) => {
+                    println!("{value}");
+                    ExitCode::SUCCESS
+                }
+                Err(e) => fail(e),
+            }
+        }
+        "operations" => match args.get(1).map(String::as_str).unwrap_or("list") {
+            "list" => match kde_theme_core::operation::list() {
+                Ok(v) => {
+                    println!("{}", v);
+                    ExitCode::SUCCESS
+                }
+                Err(e) => fail(e),
+            },
+            "show" => {
+                let Some(id) = args.get(2) else {
+                    return fail("operations show requires an id");
+                };
+                match kde_theme_core::operation::list() {
+                    Ok(value) => match value["operations"]
+                        .as_array()
+                        .and_then(|a| a.iter().find(|r| r["id"] == id.as_str()))
+                    {
+                        Some(record) => {
+                            println!("{}", record);
+                            ExitCode::SUCCESS
+                        }
+                        None => fail("Operation not found"),
+                    },
+                    Err(e) => fail(e),
+                }
+            }
+            "restore" => {
+                let Some(id) = args.get(2) else {
+                    return fail("operations restore requires an id");
+                };
+                match kde_theme_core::operation::restore_completed(
+                    id,
+                    args.iter().any(|a| a == "--confirm"),
+                ) {
+                    Ok(value) => {
+                        println!("{value}");
+                        ExitCode::SUCCESS
+                    }
+                    Err(e) => fail(e),
+                }
+            }
+            "recover" => {
+                let Some(id) = args.get(2) else {
+                    return fail("operations recover requires an id");
+                };
+                match kde_theme_core::operation::recover(id, args.iter().any(|a| a == "--force")) {
+                    Ok(record) => {
+                        println!("{}", serde_json::to_string(&record).unwrap());
+                        if record.recovery_errors.is_empty() {
+                            ExitCode::SUCCESS
+                        } else {
+                            ExitCode::FAILURE
+                        }
+                    }
+                    Err(e) => fail(e),
+                }
+            }
+            _ => fail("Usage: theme-profile operations list|show ID|recover ID [--force]"),
+        },
+        "preview" => {
+            let (positional, raw, _) = parse_args(&args[1..]);
+            let Some(name) = positional.first().copied() else {
+                return fail("preview requires a profile name");
+            };
+            let (components, _) = match components_for_cli(raw.as_deref()) {
+                Ok(value) => value,
+                Err(e) => return fail(e),
+            };
+            match kde_theme_core::preview::build(
+                &serde_json::json!({"name":name,"components":components,"keep_wallpaper":args.iter().any(|a|a=="--keep-wallpaper")}),
+            ) {
+                Ok(report) => {
+                    println!("{}", report);
+                    ExitCode::SUCCESS
+                }
+                Err(e) => fail(e),
+            }
+        }
         "status" => {
             print!("{}", status());
             ExitCode::SUCCESS
@@ -512,7 +688,9 @@ fn main() -> ExitCode {
                     }
                     let json = &args[2];
                     use kde_theme_core::custom_components::add_custom_component;
-                    match serde_json::from_str::<kde_theme_core::custom_components::CustomComponent>(json) {
+                    match serde_json::from_str::<kde_theme_core::custom_components::CustomComponent>(
+                        json,
+                    ) {
                         Ok(mut c) => {
                             c.is_custom = true;
                             match add_custom_component(c.clone()) {
@@ -533,7 +711,9 @@ fn main() -> ExitCode {
                     }
                     let json = &args[2];
                     use kde_theme_core::custom_components::update_custom_component;
-                    match serde_json::from_str::<kde_theme_core::custom_components::CustomComponent>(json) {
+                    match serde_json::from_str::<kde_theme_core::custom_components::CustomComponent>(
+                        json,
+                    ) {
                         Ok(mut c) => {
                             c.is_custom = true;
                             match update_custom_component(c.clone()) {
@@ -573,6 +753,7 @@ fn main() -> ExitCode {
             }
         }
         "palette" => palette_cmd(&args[1..]),
+        "core" => kde_theme_core::gui_api::cli(args.get(1)),
         "apps" => apps_cmd(&args[1..]),
         "field" => field_cmd(&args[1..]),
         "wallpaper" => match args.get(1).map(String::as_str) {
@@ -656,11 +837,32 @@ fn main() -> ExitCode {
                 Ok(v) => v,
                 Err(e) => return fail(e),
             };
+            if let Some(token) = args
+                .iter()
+                .find_map(|arg| arg.strip_prefix("--preview-token="))
+            {
+                let request = serde_json::json!({"name":name,"components":components,"keep_wallpaper":args.iter().any(|a|a=="--keep-wallpaper"),"install_missing":args.iter().any(|a|a=="--install-missing"),"skip_dependencies":args.iter().any(|a|a=="--without-dependencies"),"preview_token":token});
+                return match kde_theme_core::bundle_view::apply(&request) {
+                    Ok(report) => {
+                        if args.iter().any(|a| a == "--json") {
+                            println!("{}", report);
+                        } else {
+                            println!(
+                                "Applied profile: {name}\nPre-apply backup: {}",
+                                report["backup"].as_str().unwrap_or("")
+                            );
+                        }
+                        ExitCode::SUCCESS
+                    }
+                    Err(e) => fail(e),
+                };
+            }
             let dir = kde_theme_core::paths::profiles_dir().join(name);
             if theme::is_package(&dir) {
                 let options = theme::ApplyOptions {
                     install_missing: args.iter().any(|a| a == "--install-missing"),
                     keep_wallpaper: args.iter().any(|a| a == "--keep-wallpaper"),
+                    skip_dependencies: args.iter().any(|a| a == "--without-dependencies"),
                 };
                 return match theme::apply(name, &options) {
                     Ok(report) if args.iter().any(|a| a == "--json") => {
@@ -682,10 +884,28 @@ fn main() -> ExitCode {
                             println!("skipped (app not set up here)={}", report.skipped.join(","));
                         }
                         for m in &report.missing {
-                            println!("missing={}={}{}", m.field, m.name, if m.source.is_empty() { String::new() } else { format!(" ({})", m.source) });
+                            println!(
+                                "missing={}={}{}",
+                                m.field,
+                                m.name,
+                                if m.source.is_empty() {
+                                    String::new()
+                                } else {
+                                    format!(" ({})", m.source)
+                                }
+                            );
                         }
                         for a in &report.actions {
-                            println!("action={}: {}{}", a.id, a.title, if a.warning.is_empty() { String::new() } else { format!(" (warning: {})", a.warning) });
+                            println!(
+                                "action={}: {}{}",
+                                a.id,
+                                a.title,
+                                if a.warning.is_empty() {
+                                    String::new()
+                                } else {
+                                    format!(" (warning: {})", a.warning)
+                                }
+                            );
                         }
                         for e in &report.errors {
                             eprintln!("error={e}");
@@ -695,9 +915,16 @@ fn main() -> ExitCode {
                     Err(e) => fail(format!("{e:#}")),
                 };
             }
-            match apply_profile_cli(name, components) {
+            match kde_theme_core::profile::apply_profile_cli_keeping(
+                name,
+                components,
+                args.iter().any(|a| a == "--keep-wallpaper"),
+            ) {
                 Ok(backup) => {
-                    println!("Applied profile: {name}{}", component_suffix(raw.as_deref()));
+                    println!(
+                        "Applied profile: {name}{}",
+                        component_suffix(raw.as_deref())
+                    );
                     println!("Pre-apply backup: {}", backup.display());
                     ExitCode::SUCCESS
                 }
@@ -709,15 +936,24 @@ fn main() -> ExitCode {
             let Some(name) = args.iter().skip(1).find(|a| !a.starts_with("--")) else {
                 return fail("Usage: theme-profile new NAME --from=THEME|neutral-light|neutral-dark [--description=…]");
             };
-            let base = args.iter().find_map(|a| a.strip_prefix("--from=")).unwrap_or("neutral-light");
-            let description = args.iter().find_map(|a| a.strip_prefix("--description=")).map(str::to_string);
+            let base = args
+                .iter()
+                .find_map(|a| a.strip_prefix("--from="))
+                .unwrap_or("neutral-light");
+            let description = args
+                .iter()
+                .find_map(|a| a.strip_prefix("--description="))
+                .map(str::to_string);
             match kde_theme_core::constructor::new_theme(name, base, description) {
                 Ok(t) => {
                     println!("New theme: {} (from {})", t.name, t.base);
                     for n in &t.notes {
                         eprintln!("error={n}");
                     }
-                    println!("Edit the look, then save it again: theme-profile save {}", t.name);
+                    println!(
+                        "Edit the look, then save it again: theme-profile save {}",
+                        t.name
+                    );
                     ExitCode::SUCCESS
                 }
                 Err(e) => fail(format!("{e:#}")),
@@ -730,7 +966,10 @@ fn main() -> ExitCode {
             };
             match kde_theme_core::constructor::look_and_feel(name) {
                 Ok(dir) => {
-                    println!("Look & Feel: {} (selected; save the theme to keep it)", dir.display());
+                    println!(
+                        "Look & Feel: {} (selected; save the theme to keep it)",
+                        dir.display()
+                    );
                     ExitCode::SUCCESS
                 }
                 Err(e) => fail(format!("{e:#}")),
@@ -791,7 +1030,9 @@ fn main() -> ExitCode {
         }
         "export" => {
             let Some(name) = args.get(1).filter(|a| !a.starts_with("--")) else {
-                return fail("Usage error: export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper]");
+                return fail(
+                    "Usage error: export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper]",
+                );
             };
             let options = share::ExportOptions {
                 include_wallpaper: !args.iter().any(|a| a == "--no-wallpaper"),
@@ -799,7 +1040,8 @@ fn main() -> ExitCode {
             };
             let dir = args.iter().find_map(|a| a.strip_prefix("--dir="));
             let result = match dir {
-                Some(d) => share::export_dir(name, std::path::Path::new(d), &options).map(|n| (n, d.to_string())),
+                Some(d) => share::export_dir(name, std::path::Path::new(d), &options)
+                    .map(|n| (n, d.to_string())),
                 None => {
                     let out = args
                         .iter()
@@ -817,12 +1059,31 @@ fn main() -> ExitCode {
                 Err(e) => fail(format!("{e:#}")),
             }
         }
+        "bundled" => {
+            let (Some("sync"), Some(dir)) = (args.get(1).map(String::as_str), args.get(2)) else {
+                return fail("Usage error: bundled sync THEMES_DIR");
+            };
+            match share::sync_bundled(std::path::Path::new(dir)) {
+                Ok(lines) => {
+                    for line in lines {
+                        println!("{line}");
+                    }
+                    ExitCode::SUCCESS
+                }
+                Err(e) => fail(format!("{e:#}")),
+            }
+        }
         "import" => {
             let Some(src) = args.get(1).filter(|a| !a.starts_with("--")) else {
-                return fail("Usage error: import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]");
+                return fail(
+                    "Usage error: import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]",
+                );
             };
             let options = share::ImportOptions {
-                name: args.iter().find_map(|a| a.strip_prefix("--name=")).map(str::to_string),
+                name: args
+                    .iter()
+                    .find_map(|a| a.strip_prefix("--name="))
+                    .map(str::to_string),
                 force: args.iter().any(|a| a == "--force"),
             };
             let report = match share::import(std::path::Path::new(src), &options) {
@@ -843,7 +1104,16 @@ fn main() -> ExitCode {
                     println!("Replaced theme backed up to: {old}");
                 }
                 for m in &report.missing {
-                    println!("missing={}={}{}", m.field, m.name, if m.source.is_empty() { String::new() } else { format!(" ({})", m.source) });
+                    println!(
+                        "missing={}={}{}",
+                        m.field,
+                        m.name,
+                        if m.source.is_empty() {
+                            String::new()
+                        } else {
+                            format!(" ({})", m.source)
+                        }
+                    );
                 }
             }
             ExitCode::SUCCESS
@@ -856,14 +1126,26 @@ fn main() -> ExitCode {
             if validate_profile_name(name).is_err() {
                 return fail(format!("Invalid profile name: {name}"));
             }
-            let list = kde_theme_core::actions::for_theme(&kde_theme_core::paths::profiles_dir().join(name));
+            let list = kde_theme_core::actions::for_theme(
+                &kde_theme_core::paths::profiles_dir().join(name),
+            );
             if args.iter().any(|a| a == "--json") {
                 println!("{}", serde_json::to_string(&list).unwrap_or_default());
             } else if list.is_empty() {
                 println!("Nothing to do.");
             } else {
                 for a in &list {
-                    println!("{}: {} — {}{}", a.id, a.title, a.reason, if a.warning.is_empty() { String::new() } else { format!(" (warning: {})", a.warning) });
+                    println!(
+                        "{}: {} — {}{}",
+                        a.id,
+                        a.title,
+                        a.reason,
+                        if a.warning.is_empty() {
+                            String::new()
+                        } else {
+                            format!(" (warning: {})", a.warning)
+                        }
+                    );
                 }
             }
             ExitCode::SUCCESS
@@ -879,7 +1161,10 @@ fn main() -> ExitCode {
                             .iter()
                             .map(|(k, what, note)| serde_json::json!({"key": k, "what": what, "note": note, "policy": automation::policy(k).as_str()}))
                             .collect();
-                        println!("{}", serde_json::json!({"configured": automation::configured(), "items": items}));
+                        println!(
+                            "{}",
+                            serde_json::json!({"configured": automation::configured(), "items": items})
+                        );
                     } else {
                         for (k, what, _) in automation::KEYS {
                             println!("{k}={}  # {what}", automation::policy(k).as_str());
@@ -890,8 +1175,12 @@ fn main() -> ExitCode {
                 Some("set") => {
                     let mut choices = Vec::new();
                     for pair in &args[2..] {
-                        let Some((k, v)) = pair.split_once('=') else { return fail(format!("Expected KEY=ask|always|never, got {pair:?}")) };
-                        let Some(p) = Policy::parse(v) else { return fail(format!("{k}: expected ask, always or never")) };
+                        let Some((k, v)) = pair.split_once('=') else {
+                            return fail(format!("Expected KEY=ask|always|never, got {pair:?}"));
+                        };
+                        let Some(p) = Policy::parse(v) else {
+                            return fail(format!("{k}: expected ask, always or never"));
+                        };
                         choices.push((k, p));
                     }
                     match automation::set(&choices) {
@@ -906,7 +1195,9 @@ fn main() -> ExitCode {
                         Err(e) => fail(format!("{e:#}")),
                     }
                 }
-                Some(other) => fail(format!("Usage error: automation [--json] | set KEY=POLICY … | ask (got {other:?})")),
+                Some(other) => fail(format!(
+                    "Usage error: automation [--json] | set KEY=POLICY … | ask (got {other:?})"
+                )),
             }
         }
         "action" => {
@@ -923,16 +1214,34 @@ fn main() -> ExitCode {
             }
         }
         "license" => {
-            let pos: Vec<&String> = args.iter().skip(1).filter(|a| !a.starts_with("--")).collect();
+            let pos: Vec<&String> = args
+                .iter()
+                .skip(1)
+                .filter(|a| !a.starts_with("--"))
+                .collect();
             let licence = args.iter().find_map(|a| a.strip_prefix("--license="));
-            let (Some(name), Some(asset), Some(licence)) = (pos.first(), pos.get(1), licence) else {
+            let (Some(name), Some(asset), Some(licence)) = (pos.first(), pos.get(1), licence)
+            else {
                 return fail("Usage error: license NAME ASSET --license=SPDX [--source=URL] [--no-redistribute]");
             };
-            let source = args.iter().find_map(|a| a.strip_prefix("--source=")).unwrap_or("");
+            let source = args
+                .iter()
+                .find_map(|a| a.strip_prefix("--source="))
+                .unwrap_or("");
             let redistribute = !args.iter().any(|a| a == "--no-redistribute");
             match theme::set_licence(name, asset, licence, source, redistribute) {
                 Ok(a) => {
-                    println!("{name}: {} {} — {} ({})", a.kind, a.name, a.license, if a.redistributable { "redistributable" } else { "not shipped by export --public" });
+                    println!(
+                        "{name}: {} {} — {} ({})",
+                        a.kind,
+                        a.name,
+                        a.license,
+                        if a.redistributable {
+                            "redistributable"
+                        } else {
+                            "not shipped by export --public"
+                        }
+                    );
                     ExitCode::SUCCESS
                 }
                 Err(e) => fail(format!("{e:#}")),
@@ -945,7 +1254,11 @@ fn main() -> ExitCode {
                     Err(e) => return fail(e),
                 }
             } else {
-                args.iter().skip(1).filter(|a| !a.starts_with("--")).cloned().collect()
+                args.iter()
+                    .skip(1)
+                    .filter(|a| !a.starts_with("--"))
+                    .cloned()
+                    .collect()
             };
             if names.is_empty() {
                 return fail("Usage error: prune NAME|--all");
@@ -953,15 +1266,22 @@ fn main() -> ExitCode {
             let mut failed = false;
             for name in names {
                 match theme::prune(&name) {
-                    Ok(n) => println!("Pruned {name}: {n} file(s) removed (backup in backups/pre-prune-{name}-…)"),
+                    Ok(n) => println!(
+                        "Pruned {name}: {n} file(s) removed (backup in backups/pre-prune-{name}-…)"
+                    ),
                     Err(e) => {
                         eprintln!("{name}: {e:#}");
                         failed = true;
                     }
                 }
             }
-            if failed { ExitCode::FAILURE } else { ExitCode::SUCCESS }
+            if failed {
+                ExitCode::FAILURE
+            } else {
+                ExitCode::SUCCESS
+            }
         }
+        "dependencies" => kde_theme_core::dependency_jobs::cli(&args[1..]),
         "deps" => {
             let Some(name) = args.get(1).filter(|a| !a.starts_with("--")) else {
                 return fail("Usage error: deps NAME [--refresh] [--install[=all|1,2]] [--json]");
@@ -972,7 +1292,10 @@ fn main() -> ExitCode {
                     return fail(format!("{e:#}"));
                 }
             }
-            if let Some(spec) = args.iter().find_map(|a| a.strip_prefix("--install").map(|r| r.trim_start_matches('=').to_string())) {
+            if let Some(spec) = args.iter().find_map(|a| {
+                a.strip_prefix("--install")
+                    .map(|r| r.trim_start_matches('=').to_string())
+            }) {
                 let indexes: Option<Vec<usize>> = if spec.is_empty() || spec == "all" {
                     None
                 } else {
@@ -1003,9 +1326,29 @@ fn main() -> ExitCode {
                         }
                     }
                 }
-                return if failed { ExitCode::from(2) } else { ExitCode::SUCCESS };
+                return if failed {
+                    ExitCode::from(2)
+                } else {
+                    ExitCode::SUCCESS
+                };
             }
-            match theme::needed(name) {
+            let pending = args.iter().any(|a| a == "--pending");
+            match theme::needed(name).map(|mut list| {
+                if pending {
+                    list.retain(|n| {
+                        let key = if kde_theme_core::deps::needs_root(&n.dependency) {
+                            "packages"
+                        } else {
+                            "store"
+                        };
+                        let policy = kde_theme_core::automation::policy(key);
+                        policy == kde_theme_core::automation::Policy::Ask
+                            || (policy == kde_theme_core::automation::Policy::Always
+                                && !n.dependency.exact)
+                    });
+                }
+                list
+            }) {
                 Ok(list) if json => {
                     println!("{}", serde_json::to_string(&list).unwrap_or_default());
                     ExitCode::SUCCESS
@@ -1016,7 +1359,17 @@ fn main() -> ExitCode {
                     }
                     for n in list {
                         let d = &n.dependency;
-                        let how = n.command.clone().unwrap_or_else(|| format!("{}{}", d.source, if d.exact { "" } else { " (search result — confirm)" }));
+                        let how = n.command.clone().unwrap_or_else(|| {
+                            format!(
+                                "{}{}",
+                                d.source,
+                                if d.exact {
+                                    ""
+                                } else {
+                                    " (search result — confirm)"
+                                }
+                            )
+                        });
                         println!("[{}] {} {} — {} — {}", n.index, d.kind, d.name, how, d.url);
                     }
                     ExitCode::SUCCESS
@@ -1038,7 +1391,16 @@ fn main() -> ExitCode {
                         println!("Everything this theme needs is available.");
                     }
                     for m in missing {
-                        println!("missing={}={}{}", m.field, m.name, if m.source.is_empty() { String::new() } else { format!(" ({})", m.source) });
+                        println!(
+                            "missing={}={}{}",
+                            m.field,
+                            m.name,
+                            if m.source.is_empty() {
+                                String::new()
+                            } else {
+                                format!(" ({})", m.source)
+                            }
+                        );
                     }
                     ExitCode::SUCCESS
                 }
@@ -1052,7 +1414,11 @@ fn main() -> ExitCode {
                     Err(e) => return fail(e),
                 }
             } else {
-                args.iter().skip(1).filter(|a| !a.starts_with("--")).cloned().collect()
+                args.iter()
+                    .skip(1)
+                    .filter(|a| !a.starts_with("--"))
+                    .cloned()
+                    .collect()
             };
             if names.is_empty() {
                 return fail("Usage error: migrate NAME|--all");
@@ -1060,15 +1426,27 @@ fn main() -> ExitCode {
             let mut failed = false;
             for name in names {
                 match theme::migrate(&name) {
-                    Ok(p) => println!("Migrated {name}: {} values, {} assets{}", p.values.len(), p.assets.len(),
-                        if p.wallpaper.is_some() { ", wallpaper" } else { "" }),
+                    Ok(p) => println!(
+                        "Migrated {name}: {} values, {} assets{}",
+                        p.values.len(),
+                        p.assets.len(),
+                        if p.wallpaper.is_some() {
+                            ", wallpaper"
+                        } else {
+                            ""
+                        }
+                    ),
                     Err(e) => {
                         failed = true;
                         eprintln!("{name}: {e:#}");
                     }
                 }
             }
-            if failed { ExitCode::from(1) } else { ExitCode::SUCCESS }
+            if failed {
+                ExitCode::from(1)
+            } else {
+                ExitCode::SUCCESS
+            }
         }
         "describe" => {
             let name = args.get(1).map(String::as_str).unwrap_or("");
@@ -1110,4 +1488,21 @@ fn main() -> ExitCode {
             ExitCode::from(1)
         }
     }
+}
+
+fn main() -> ExitCode {
+    let code = dispatch();
+    let command = std::env::args().nth(1).unwrap_or_default();
+    if code == ExitCode::SUCCESS
+        && matches!(
+            command.as_str(),
+            "save" | "new" | "clone" | "delete" | "import" | "migrate" | "bundled"
+        )
+    {
+        if let Err(e) = kde_theme_core::dependency_registry::refresh(None) {
+            eprintln!("Dependency registry needs refresh: {e:#}");
+            return ExitCode::from(2);
+        }
+    }
+    code
 }

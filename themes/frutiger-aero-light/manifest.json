@@ -101,12 +101,6 @@
       ]
     },
     {
-      "id": "fastfetch",
-      "paths": [
-        ".config/fastfetch/config.jsonc"
-      ]
-    },
-    {
       "id": "zed",
       "paths": [
         ".config/zed/settings.json"

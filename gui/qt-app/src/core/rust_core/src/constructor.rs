@@ -23,11 +23,24 @@ use crate::paths::{data_home, validate_profile_name};
 /// The neutral template's field values.
 pub fn neutral(dark: bool) -> Vec<(String, Value)> {
     let pairs: Vec<(&str, Value)> = vec![
-        ("look_and_feel", json!(if dark { "org.kde.breezedark.desktop" } else { "org.kde.breeze.desktop" })),
-        ("color_scheme", json!(if dark { "BreezeDark" } else { "BreezeLight" })),
+        (
+            "look_and_feel",
+            json!(if dark {
+                "org.kde.breezedark.desktop"
+            } else {
+                "org.kde.breeze.desktop"
+            }),
+        ),
+        (
+            "color_scheme",
+            json!(if dark { "BreezeDark" } else { "BreezeLight" }),
+        ),
         ("widget_style", json!("Breeze")),
         ("plasma_theme", json!("default")),
-        ("icon_theme", json!(if dark { "breeze-dark" } else { "breeze" })),
+        (
+            "icon_theme",
+            json!(if dark { "breeze-dark" } else { "breeze" }),
+        ),
         ("cursor_theme", json!("breeze_cursors")),
         ("gtk_theme", json!("Breeze")),
         ("gtk_dark", json!(dark)),
@@ -54,15 +67,23 @@ pub struct NewTheme {
 /// `neutral-dark`). Replaces the live look (applying makes a backup first).
 pub fn new_theme(name: &str, base: &str, description: Option<String>) -> Result<NewTheme> {
     validate_profile_name(name)?;
-    if crate::paths::profiles_dir().join(name).exists() {
+    if crate::paths::profile_dir(name)?.exists() {
         bail!("a theme named {name:?} already exists");
     }
     let mut notes = Vec::new();
     match base {
         "neutral-light" | "neutral-dark" => {
             let report = field::apply(&neutral(base == "neutral-dark"));
-            notes.extend(report.errors.iter().map(|e| format!("neutral template: {e}")));
-            let options = crate::theme::SaveOptions { description, include_wallpaper: true };
+            notes.extend(
+                report
+                    .errors
+                    .iter()
+                    .map(|e| format!("neutral template: {e}")),
+            );
+            let options = crate::theme::SaveOptions {
+                description,
+                include_wallpaper: true,
+            };
             crate::theme::save(name, &options)?;
         }
         theme => {
@@ -79,7 +100,11 @@ pub fn new_theme(name: &str, base: &str, description: Option<String>) -> Result<
         }
     }
     crate::profile::write_active(name)?;
-    Ok(NewTheme { name: name.into(), base: base.into(), notes })
+    Ok(NewTheme {
+        name: name.into(),
+        base: base.into(),
+        notes,
+    })
 }
 
 /// `theme-profile-<name>` for a theme name (lower-case, safe).
@@ -89,14 +114,34 @@ pub fn laf_id(name: &str) -> String {
 
 /// `contents/defaults` from the live look.
 pub fn laf_defaults() -> String {
-    let get = |id: &str| field::field(id).and_then(|f| field::read(f, &Base::Live)).map(|v| field::value_str(&v)).unwrap_or_default();
+    let get = |id: &str| {
+        field::field(id)
+            .and_then(|f| field::read(f, &Base::Live))
+            .map(|v| field::value_str(&v))
+            .unwrap_or_default()
+    };
     let mut groups: Vec<(&str, Vec<(&str, String)>)> = vec![
-        ("kdeglobals][General", vec![("ColorScheme", get("color_scheme"))]),
-        ("kdeglobals][KDE", vec![("widgetStyle", get("widget_style"))]),
+        (
+            "kdeglobals][General",
+            vec![("ColorScheme", get("color_scheme"))],
+        ),
+        (
+            "kdeglobals][KDE",
+            vec![("widgetStyle", get("widget_style"))],
+        ),
         ("kdeglobals][Icons", vec![("Theme", get("icon_theme"))]),
-        ("kcminputrc][Mouse", vec![("cursorTheme", get("cursor_theme"))]),
+        (
+            "kcminputrc][Mouse",
+            vec![("cursorTheme", get("cursor_theme"))],
+        ),
         ("plasmarc][Theme", vec![("name", get("plasma_theme"))]),
-        ("kwinrc][org.kde.kdecoration2", vec![("library", get("decoration_library")), ("theme", get("decoration_theme"))]),
+        (
+            "kwinrc][org.kde.kdecoration2",
+            vec![
+                ("library", get("decoration_library")),
+                ("theme", get("decoration_theme")),
+            ],
+        ),
     ];
     let mut out = String::new();
     for (group, keys) in groups.iter_mut() {
@@ -133,10 +178,16 @@ pub fn look_and_feel(name: &str) -> Result<PathBuf> {
         },
         "X-Plasma-APIVersion": "2"
     });
-    std::fs::write(dir.join("metadata.json"), serde_json::to_string_pretty(&metadata)? + "\n")?;
+    std::fs::write(
+        dir.join("metadata.json"),
+        serde_json::to_string_pretty(&metadata)? + "\n",
+    )?;
     std::fs::write(contents.join("defaults"), laf_defaults()).context("cannot write defaults")?;
     // The look is live already: write only the key (no plasma-apply-lookandfeel).
-    let report = field::apply_with(&[("look_and_feel".into(), Value::from(id.clone()))], &["look_and_feel"]);
+    let report = field::apply_with(
+        &[("look_and_feel".into(), Value::from(id.clone()))],
+        &["look_and_feel"],
+    );
     if let Some(e) = report.errors.first() {
         bail!("{e}");
     }
@@ -151,7 +202,12 @@ mod tests {
     fn neutral_template_has_no_glass() {
         for dark in [false, true] {
             let values = neutral(dark);
-            let get = |k: &str| values.iter().find(|(id, _)| id == k).map(|(_, v)| v.clone());
+            let get = |k: &str| {
+                values
+                    .iter()
+                    .find(|(id, _)| id == k)
+                    .map(|(_, v)| v.clone())
+            };
             assert_eq!(get("blur_enabled"), Some(json!(false)));
             assert_eq!(get("translucency_enabled"), Some(json!(false)));
             assert_eq!(get("kitty_opacity"), Some(json!(1.0)));

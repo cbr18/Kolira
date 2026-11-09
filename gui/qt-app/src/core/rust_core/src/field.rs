@@ -1,9 +1,8 @@
 //! Theme field engine: read and write single theme values (keys) in config
-//! files, then run the live command / reload hook — the Rust twin of the
-//! Python inspector core (`theme_core.py`).
+//! files, then run the live command / reload hook for CLI, GUI and MCP.
 //!
 //! The registry is `gui/qt-app/src/core/theme_fields.json`, compiled in here
-//! and loaded by Python at runtime, so both cores touch exactly the same keys.
+//! and loaded by Python for presentation; Rust executes all reads and writes.
 //! Formats: KDE/GTK INI, kitty `key value`, Alacritty TOML, JSON/JSONC (patched
 //! in place by value position, never re-serialised), Zen `user.js`, and the
 //! active Kvantum theme's kvconfig.
@@ -73,7 +72,7 @@ const KDE_FILES: &[&str] = &[
 
 /// Fields applied first, in this order: Look & Feel can reset colours and
 /// styles, and the accent command needs the scheme already in place.
-const APPLY_FIRST: &[&str] = &[
+pub(crate) const APPLY_FIRST: &[&str] = &[
     "look_and_feel",
     "plasma_theme",
     "color_scheme",
@@ -122,10 +121,12 @@ impl Base {
 }
 
 fn read_text(path: &Path) -> Option<String> {
-    std::fs::read(path).ok().map(|b| String::from_utf8_lossy(&b).into_owned())
+    std::fs::read(path)
+        .ok()
+        .map(|b| String::from_utf8_lossy(&b).into_owned())
 }
 
-fn kvantum_file(theme: &str, base: &Base) -> Option<PathBuf> {
+pub(crate) fn kvantum_file(theme: &str, base: &Base) -> Option<PathBuf> {
     if theme.is_empty() || theme.contains('/') {
         return None;
     }
@@ -411,7 +412,10 @@ pub fn json_positions(text: &str) -> std::collections::HashMap<Vec<String>, (usi
 pub fn json_get(text: &str, path: &[String]) -> Option<Value> {
     let (s, e) = *json_positions(text).get(path)?;
     let fragment = &text[s..e];
-    Some(serde_json::from_str(fragment).unwrap_or_else(|_| Value::String(fragment.trim_matches('"').to_string())))
+    Some(
+        serde_json::from_str(fragment)
+            .unwrap_or_else(|_| Value::String(fragment.trim_matches('"').to_string())),
+    )
 }
 
 pub fn json_set(text: &str, path: &[String], value: &Value) -> Result<String> {
@@ -422,7 +426,11 @@ pub fn json_set(text: &str, path: &[String], value: &Value) -> Result<String> {
     if path.len() == 1 {
         if let Some(close) = text.rfind('}') {
             let body = text[..close].trim_end();
-            let sep = if body.ends_with('{') || body.ends_with(',') { "" } else { "," };
+            let sep = if body.ends_with('{') || body.ends_with(',') {
+                ""
+            } else {
+                ","
+            };
             return Ok(format!(
                 "{body}{sep}\n  {}: {literal}\n{}",
                 serde_json::to_string(&path[0])?,
@@ -433,7 +441,7 @@ pub fn json_set(text: &str, path: &[String], value: &Value) -> Result<String> {
     Err(anyhow!("JSON path not found: {}", path.join(".")))
 }
 
-fn toml_get(text: &str, key: &str, path: &[String]) -> Option<Value> {
+pub(crate) fn toml_get(text: &str, key: &str, path: &[String]) -> Option<Value> {
     let doc: toml::Value = toml::from_str(text).ok()?;
     let mut node = &doc;
     for part in path.iter().map(String::as_str).chain(std::iter::once(key)) {
@@ -442,22 +450,44 @@ fn toml_get(text: &str, key: &str, path: &[String]) -> Option<Value> {
     serde_json::to_value(node).ok()
 }
 
-fn toml_set(text: &str, key: &str, value: &Value, section: &str) -> Result<String> {
-    let mut doc: toml_edit::DocumentMut = text.parse().context("invalid TOML")?;
-    let item = match value {
-        Value::Bool(b) => toml_edit::value(*b),
-        Value::Number(n) if n.is_i64() => toml_edit::value(n.as_i64().unwrap_or_default()),
-        Value::Number(n) => toml_edit::value(n.as_f64().unwrap_or_default()),
-        other => toml_edit::value(value_str(other)),
-    };
-    if section.is_empty() {
-        doc[key] = item;
-    } else {
-        if doc.get(section).is_none() {
-            doc[section] = toml_edit::Item::Table(toml_edit::Table::new());
+pub(crate) fn toml_set(text: &str, key: &str, value: &Value, section: &str) -> Result<String> {
+    fn converted(value: &Value) -> toml_edit::Value {
+        match value {
+            Value::Bool(b) => (*b).into(),
+            Value::Number(n) if n.is_i64() => n.as_i64().unwrap_or_default().into(),
+            Value::Number(n) => n.as_f64().unwrap_or_default().into(),
+            Value::Array(values) => {
+                let mut array = toml_edit::Array::new();
+                for value in values {
+                    array.push(converted(value));
+                }
+                toml_edit::Value::Array(array)
+            }
+            Value::Object(values) => {
+                let mut table = toml_edit::InlineTable::new();
+                for (key, value) in values {
+                    table.insert(key, converted(value));
+                }
+                toml_edit::Value::InlineTable(table)
+            }
+            _ => value_str(value).into(),
         }
-        doc[section][key] = item;
     }
+    let mut doc: toml_edit::DocumentMut = text.parse().context("invalid TOML")?;
+    let mut target = doc.as_item_mut();
+    if !section.is_empty() {
+        for part in section.split('.') {
+            if target.get(part).is_none() {
+                target[part] = toml_edit::Item::Table(toml_edit::Table::new());
+            }
+            target = &mut target[part];
+        }
+    }
+    let mut updated = converted(value);
+    if let Some(old) = target.get(key).and_then(toml_edit::Item::as_value) {
+        *updated.decor_mut() = old.decor().clone();
+    }
+    target[key] = toml_edit::Item::Value(updated);
     Ok(doc.to_string())
 }
 
@@ -481,12 +511,15 @@ fn userjs_span(text: &str, key: &str) -> Option<(usize, usize, String)> {
     None
 }
 
-fn userjs_get(text: &str, key: &str) -> Option<Value> {
+pub(crate) fn userjs_get(text: &str, key: &str) -> Option<Value> {
     let (_, _, raw) = userjs_span(text, key)?;
-    Some(serde_json::from_str(&raw).unwrap_or_else(|_| Value::String(raw.trim_matches('"').to_string())))
+    Some(
+        serde_json::from_str(&raw)
+            .unwrap_or_else(|_| Value::String(raw.trim_matches('"').to_string())),
+    )
 }
 
-fn userjs_set(text: &str, key: &str, value: &Value) -> String {
+pub(crate) fn userjs_set(text: &str, key: &str, value: &Value) -> String {
     let literal = match value {
         Value::String(s) => serde_json::to_string(s).unwrap_or_default(),
         other => value_str(other),
@@ -495,7 +528,11 @@ fn userjs_set(text: &str, key: &str, value: &Value) -> String {
     match userjs_span(text, key) {
         Some((s, e, _)) => format!("{}{}{}", &text[..s], line, &text[e..]),
         None => {
-            let sep = if text.is_empty() || text.ends_with('\n') { "" } else { "\n" };
+            let sep = if text.is_empty() || text.ends_with('\n') {
+                ""
+            } else {
+                "\n"
+            };
             format!("{text}{sep}{line}\n")
         }
     }
@@ -560,14 +597,20 @@ fn color_parts(v: &Value) -> Option<(u8, u8, u8)> {
 }
 
 pub fn color_hex(v: &Value) -> String {
-    color_parts(v).map(|(r, g, b)| format!("#{r:02x}{g:02x}{b:02x}")).unwrap_or_default()
+    color_parts(v)
+        .map(|(r, g, b)| format!("#{r:02x}{g:02x}{b:02x}"))
+        .unwrap_or_default()
 }
 
 /// Type the raw file value the way Python's `_coerce` does.
 pub fn coerce(f: &FieldDef, raw: Value) -> Option<Value> {
     match f.kind.as_str() {
         "bool" => as_bool(&raw).map(Value::Bool),
-        "int" => value_str(&raw).trim().parse::<f64>().ok().map(|n| Value::from(n as i64)),
+        "int" => value_str(&raw)
+            .trim()
+            .parse::<f64>()
+            .ok()
+            .map(|n| Value::from(n as i64)),
         "float" => value_str(&raw).trim().parse::<f64>().ok().map(Value::from),
         _ => match raw {
             Value::Null => None,
@@ -593,7 +636,11 @@ pub fn normalize_input(f: &FieldDef, v: &Value) -> Option<Value> {
     }
     match f.kind.as_str() {
         "bool" => as_bool(v).map(Value::Bool),
-        "int" => value_str(v).trim().parse::<f64>().ok().map(|n| Value::from(n as i64)),
+        "int" => value_str(v)
+            .trim()
+            .parse::<f64>()
+            .ok()
+            .map(|n| Value::from(n as i64)),
         "float" => value_str(v).trim().parse::<f64>().ok().map(Value::from),
         "color" => color_parts(v).map(|(r, g, b)| Value::String(format!("{r},{g},{b}"))),
         _ => Some(Value::String(value_str(v))),
@@ -605,13 +652,18 @@ pub fn read(f: &FieldDef, base: &Base) -> Option<Value> {
     read_raw(f, base).and_then(|raw| coerce(f, raw))
 }
 
-fn read_raw(f: &FieldDef, base: &Base) -> Option<Value> {
+pub(crate) fn read_raw(f: &FieldDef, base: &Base) -> Option<Value> {
     let path = file_for(f, base)?;
     let text = read_text(&path)?;
     match f.source.as_str() {
         "ini" | "kvantum" => {
             let mut value = ini_get(&text, &f.group, &f.key)?;
-            if f.source == "ini" && f.apply == "ini" && value.len() >= 2 && value.starts_with('"') && value.ends_with('"') {
+            if f.source == "ini"
+                && f.apply == "ini"
+                && value.len() >= 2
+                && value.starts_with('"')
+                && value.ends_with('"')
+            {
                 value = value[1..value.len() - 1].to_string();
             }
             Some(Value::String(value))
@@ -629,34 +681,35 @@ fn read_raw(f: &FieldDef, base: &Base) -> Option<Value> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 fn write_atomic(path: &Path, text: &str) -> Result<()> {
-    use std::os::unix::fs::PermissionsExt;
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    let mode = std::fs::metadata(path).map(|m| m.permissions().mode()).ok();
-    let tmp = path.with_extension("tmp-theme-field");
-    std::fs::write(&tmp, text)?;
-    if let Some(mode) = mode {
-        std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(mode))?;
-    }
-    std::fs::rename(&tmp, path)?;
-    Ok(())
+    crate::gui_api::write_bytes(path, text.as_bytes(), None)
 }
 
 fn run(cmd: &str, args: &[&str]) -> bool {
     if no_apply() {
         return true;
     }
-    crate::paths::status_bounded(std::process::Command::new(cmd).args(args).stderr(std::process::Stdio::null()))
-        .map(|s| s.success())
-        .unwrap_or(false)
+    crate::paths::status_bounded(
+        std::process::Command::new(cmd)
+            .args(args)
+            .stderr(std::process::Stdio::null()),
+    )
+    .map(|s| s.success())
+    .unwrap_or(false)
 }
 
 fn write_config(f: &FieldDef, path: &Path, value: &Value) -> Result<()> {
-    if KDE_FILES.contains(&f.file.as_str()) && !no_apply() && which::which("kwriteconfig6").is_ok() {
+    if KDE_FILES.contains(&f.file.as_str()) && !no_apply() && which::which("kwriteconfig6").is_ok()
+    {
         let path_str = path.to_string_lossy();
         let text = value_str(value);
-        let mut args = vec!["--file", path_str.as_ref(), "--group", f.group.as_str(), "--key", f.key.as_str()];
+        let mut args = vec![
+            "--file",
+            path_str.as_ref(),
+            "--group",
+            f.group.as_str(),
+            "--key",
+            f.key.as_str(),
+        ];
         if f.kind == "bool" {
             args.extend(["--type", "bool"]);
         }
@@ -666,35 +719,32 @@ fn write_config(f: &FieldDef, path: &Path, value: &Value) -> Result<()> {
         }
     }
     let text = read_text(path).unwrap_or_default();
-    write_atomic(path, &set_ini_text(&text, &f.group, &f.key, &value_str(value)))
+    write_atomic(
+        path,
+        &set_ini_text(&text, &f.group, &f.key, &value_str(value)),
+    )
 }
 
 /// Write one raw value; returns the touched file.
 pub fn write(f: &FieldDef, value: &Value) -> Result<PathBuf> {
-    let path = file_for(f, &Base::Live).ok_or_else(|| anyhow!("cannot resolve the file for {}", f.id))?;
+    let path =
+        file_for(f, &Base::Live).ok_or_else(|| anyhow!("cannot resolve the file for {}", f.id))?;
     if f.source == "kvantum" {
         if !path.is_file() {
             return Err(anyhow!("active Kvantum theme file not found"));
         }
         let text = read_text(&path).unwrap_or_default();
-        write_atomic(&path, &set_ini_text(&text, &f.group, &f.key, &value_str(value)))?;
+        write_atomic(
+            &path,
+            &set_ini_text(&text, &f.group, &f.key, &value_str(value)),
+        )?;
         return Ok(path);
     }
-    let text = || read_text(&path).unwrap_or_default();
-    match f.apply.as_str() {
-        "config" | "cmd_config" => write_config(f, &path, value)?,
-        "ini" => write_atomic(&path, &set_ini_text(&text(), &f.group, &f.key, &value_str(value)))?,
-        "kv" => write_atomic(&path, &kv_set(&text(), &f.key, &value_str(value)))?,
-        "toml" => {
-            let section = f.path.first().map(String::as_str).unwrap_or("");
-            write_atomic(&path, &toml_set(&text(), &f.key, value, section)?)?
-        }
-        "json" => {
-            let current = read_text(&path).unwrap_or_else(|| "{}".into());
-            write_atomic(&path, &json_set(&current, &f.path, value)?)?
-        }
-        "userjs" => write_atomic(&path, &userjs_set(&text(), &f.key, value))?,
-        other => return Err(anyhow!("unsupported apply mode {other} for {}", f.id)),
+    if matches!(f.apply.as_str(), "config" | "cmd_config") {
+        write_config(f, &path, value)?;
+    } else {
+        let text = read_text(&path).unwrap_or_default();
+        write_atomic(&path, &patched(f, &text, value)?)?;
     }
     Ok(path)
 }
@@ -703,13 +753,16 @@ pub fn write(f: &FieldDef, value: &Value) -> Result<PathBuf> {
 /// KDE's gtkconfig module keeps them in sync only for changes made through
 /// System Settings, so a field written here is mirrored into both files
 /// (field id → GTK key). Font sizes are personal, so `gtk_font` is not mirrored.
-const GTK_MIRROR: &[(&str, &str)] = &[
+pub(crate) const GTK_MIRROR: &[(&str, &str)] = &[
     ("gtk_theme", "gtk-theme-name"),
     ("gtk_dark", "gtk-application-prefer-dark-theme"),
     ("icon_theme", "gtk-icon-theme-name"),
     ("cursor_theme", "gtk-cursor-theme-name"),
 ];
-const GTK_SETTINGS: &[&str] = &[".config/gtk-3.0/settings.ini", ".config/gtk-4.0/settings.ini"];
+const GTK_SETTINGS: &[&str] = &[
+    ".config/gtk-3.0/settings.ini",
+    ".config/gtk-4.0/settings.ini",
+];
 
 /// The `org.gnome.desktop.interface` keys for a GTK theme name and dark
 /// preference (`gtk-application-prefer-dark-theme` as stored: `true`/`1`).
@@ -719,7 +772,11 @@ pub fn gtk_desktop_keys(theme: Option<&str>, dark: Option<&str>) -> Vec<(&'stati
         keys.push(("gtk-theme", theme.to_string()));
     }
     if let Some(dark) = dark.map(str::trim).filter(|d| !d.is_empty()) {
-        let scheme = if matches!(dark, "true" | "1") { "prefer-dark" } else { "prefer-light" };
+        let scheme = if matches!(dark, "true" | "1") {
+            "prefer-dark"
+        } else {
+            "prefer-light"
+        };
         keys.push(("color-scheme", scheme.to_string()));
     }
     keys
@@ -734,7 +791,12 @@ pub fn sync_gtk_desktop(theme: Option<&str>, dark: Option<&str>) {
 }
 
 /// [`sync_gtk_desktop`] plus the icon and cursor themes GTK apps read there.
-pub fn sync_gtk_desktop_full(theme: Option<&str>, dark: Option<&str>, icons: Option<&str>, cursor: Option<&str>) {
+pub fn sync_gtk_desktop_full(
+    theme: Option<&str>,
+    dark: Option<&str>,
+    icons: Option<&str>,
+    cursor: Option<&str>,
+) {
     if no_apply() || cfg!(test) || which::which("gsettings").is_err() {
         return;
     }
@@ -746,7 +808,10 @@ pub fn sync_gtk_desktop_full(theme: Option<&str>, dark: Option<&str>, icons: Opt
     }
     for (key, value) in keys {
         // `default` already means light: a light theme leaves it alone.
-        if key == "color-scheme" && value == "prefer-light" && crate::undo::live_color_scheme().as_deref() == Some("default") {
+        if key == "color-scheme"
+            && value == "prefer-light"
+            && crate::undo::live_color_scheme().as_deref() == Some("default")
+        {
             continue;
         }
         crate::undo::note_gsettings(key);
@@ -758,13 +823,18 @@ pub(crate) fn gsettings_set(key: &str, value: &str) {
     if no_apply() || cfg!(test) || which::which("gsettings").is_err() {
         return;
     }
-    if !run("gsettings", &["set", "org.gnome.desktop.interface", key, value]) {
+    if !run(
+        "gsettings",
+        &["set", "org.gnome.desktop.interface", key, value],
+    ) {
         eprintln!("Warning: could not set GSettings {key}={value}");
     }
 }
 
 fn mirror_to_gtk(id: &str, value: &Value) -> Result<()> {
-    let Some((_, key)) = GTK_MIRROR.iter().find(|(f, _)| *f == id) else { return Ok(()) };
+    let Some((_, key)) = GTK_MIRROR.iter().find(|(f, _)| *f == id) else {
+        return Ok(());
+    };
     match id {
         "gtk_theme" => sync_gtk_desktop(Some(&value_str(value)), None),
         "gtk_dark" => sync_gtk_desktop(None, Some(&value_str(value))),
@@ -774,7 +844,10 @@ fn mirror_to_gtk(id: &str, value: &Value) -> Result<()> {
         let path = Base::Live.resolve(rel);
         let text = read_text(&path).unwrap_or_default();
         if ini_get(&text, "Settings", key).as_deref() != Some(value_str(value).as_str()) {
-            write_atomic(&path, &set_ini_text(&text, "Settings", key, &value_str(value)))?;
+            write_atomic(
+                &path,
+                &set_ini_text(&text, "Settings", key, &value_str(value)),
+            )?;
         }
     }
     Ok(())
@@ -788,14 +861,25 @@ fn same_value(f: &FieldDef, a: &Value, b: &Value) -> bool {
             return x.eq_ignore_ascii_case(&y);
         }
     }
-    value_str(a).trim().eq_ignore_ascii_case(value_str(b).trim())
+    value_str(a)
+        .trim()
+        .eq_ignore_ascii_case(value_str(b).trim())
 }
 
 fn command_args(f: &FieldDef, value: &Value) -> Vec<String> {
-    let live = |id: &str| field(id).and_then(|x| read(x, &Base::Live)).map(|v| value_str(&v)).unwrap_or_default();
+    let live = |id: &str| {
+        field(id)
+            .and_then(|x| read(x, &Base::Live))
+            .map(|v| value_str(&v))
+            .unwrap_or_default()
+    };
     let cursor = {
         let c = live("cursor_theme");
-        if c.is_empty() { "default".to_string() } else { c }
+        if c.is_empty() {
+            "default".to_string()
+        } else {
+            c
+        }
     };
     f.command
         .iter()
@@ -819,22 +903,41 @@ fn run_hook(f: &FieldDef) {
             run("kbuildsycoca6", &[]);
         }
         "kitty" => {
-            let config = live_path(".config/kitty/kitty.conf").to_string_lossy().to_string();
-            let opacity = read_text(Path::new(&config)).and_then(|t| kv_get(&t, "background_opacity"));
+            let config = live_path(".config/kitty/kitty.conf")
+                .to_string_lossy()
+                .to_string();
+            let opacity =
+                read_text(Path::new(&config)).and_then(|t| kv_get(&t, "background_opacity"));
             for socket in crate::palette::kitty_sockets() {
                 run("kitty", &["@", "--to", &socket, "load-config", &config]);
                 if let Some(o) = opacity.as_deref() {
-                    run("kitty", &["@", "--to", &socket, "set-background-opacity", "--all", o]);
+                    run(
+                        "kitty",
+                        &["@", "--to", &socket, "set-background-opacity", "--all", o],
+                    );
                 }
             }
         }
         hook => {
             if let Some(effect) = hook.strip_prefix("effect:") {
                 if f.kind == "bool" {
-                    let on = read(f, &Base::Live).and_then(|v| as_bool(&v)).unwrap_or(false);
-                    run("qdbus6", &["org.kde.KWin", "/Effects", if on { "loadEffect" } else { "unloadEffect" }, effect]);
+                    let on = read(f, &Base::Live)
+                        .and_then(|v| as_bool(&v))
+                        .unwrap_or(false);
+                    run(
+                        "qdbus6",
+                        &[
+                            "org.kde.KWin",
+                            "/Effects",
+                            if on { "loadEffect" } else { "unloadEffect" },
+                            effect,
+                        ],
+                    );
                 }
-                run("qdbus6", &["org.kde.KWin", "/Effects", "reconfigureEffect", effect]);
+                run(
+                    "qdbus6",
+                    &["org.kde.KWin", "/Effects", "reconfigureEffect", effect],
+                );
             }
         }
     }
@@ -856,7 +959,21 @@ pub fn apply(values: &[(String, Value)]) -> ApplyReport {
 /// [`apply`], but the fields in `key_only` get their key written without
 /// running their live command.
 pub fn apply_with(values: &[(String, Value)], key_only: &[&str]) -> ApplyReport {
-    let rank = |id: &str| APPLY_FIRST.iter().position(|x| *x == id).unwrap_or(APPLY_FIRST.len());
+    let _lock = match crate::operation::MutationGuard::acquire() {
+        Ok(lock) => lock,
+        Err(e) => {
+            return ApplyReport {
+                applied: vec![],
+                errors: vec![e.to_string()],
+            }
+        }
+    };
+    let rank = |id: &str| {
+        APPLY_FIRST
+            .iter()
+            .position(|x| *x == id)
+            .unwrap_or(APPLY_FIRST.len())
+    };
     let mut ordered: Vec<&(String, Value)> = values.iter().collect();
     ordered.sort_by_key(|(id, _)| rank(id));
 
@@ -880,7 +997,11 @@ pub fn apply_with(values: &[(String, Value)], key_only: &[&str]) -> ApplyReport 
         // (`plasma-apply-colorscheme --accent-color` reports success but
         // writes no AccentColor) — so the key is read back after the command.
         let mut done = false;
-        if f.apply == "cmd_config" && !f.command.is_empty() && !no_apply() && !key_only.contains(&id.as_str()) {
+        if f.apply == "cmd_config"
+            && !f.command.is_empty()
+            && !no_apply()
+            && !key_only.contains(&id.as_str())
+        {
             let args = command_args(f, &raw);
             if let Some((cmd, rest)) = args.split_first() {
                 let rest: Vec<&str> = rest.iter().map(String::as_str).collect();
@@ -921,6 +1042,69 @@ pub fn home() -> PathBuf {
     home_dir()
 }
 
+/// Pure file patch used by the profile preview and fallback writes.
+pub(crate) fn patched(f: &FieldDef, text: &str, value: &Value) -> Result<String> {
+    Ok(match f.apply.as_str() {
+        "config" | "cmd_config" | "ini" => set_ini_text(text, &f.group, &f.key, &value_str(value)),
+        "kv" => kv_set(text, &f.key, &value_str(value)),
+        "toml" => toml_set(
+            text,
+            &f.key,
+            value,
+            f.path.first().map(String::as_str).unwrap_or(""),
+        )?,
+        "json" => json_set(if text.is_empty() { "{}" } else { text }, &f.path, value)?,
+        "userjs" => userjs_set(text, &f.key, value),
+        other => return Err(anyhow!("unsupported apply mode {other} for {}", f.id)),
+    })
+}
+pub(crate) fn plan_value(
+    id: &str,
+    value: &Value,
+    plan: &mut crate::change_plan::Plan,
+) -> Result<()> {
+    let f = field(id).ok_or_else(|| anyhow!("Unknown field: {id}"))?;
+    let raw = normalize_input(f, value).ok_or_else(|| anyhow!("Invalid value for {id}"))?;
+    let path = if f.source == "kvantum" {
+        let config = plan
+            .text(&live_path(".config/Kvantum/kvantum.kvconfig"))?
+            .unwrap_or_default();
+        let name = ini_get(&config, "General", "theme").unwrap_or_default();
+        if name.is_empty() || name.starts_with('.') || name.contains('/') || name.contains('\\') {
+            return Err(anyhow!("Invalid Kvantum theme name"));
+        }
+        let candidates = [
+            live_path(&format!(".config/Kvantum/{name}/{name}.kvconfig")),
+            crate::paths::data_home().join(format!("Kvantum/{name}/{name}.kvconfig")),
+        ];
+        let mut found = None;
+        for candidate in candidates {
+            if plan.is_file(&candidate)? {
+                found = Some(candidate);
+                break;
+            }
+        }
+        found.or_else(|| file_for(f, &Base::Live))
+    } else {
+        file_for(f, &Base::Live)
+    }
+    .ok_or_else(|| anyhow!("No file for {id}"))?;
+    let text = plan.text(&path)?.unwrap_or_default();
+    plan.write_text(&path, patched(f, &text, &raw)?, "field")?;
+    for (_, key) in GTK_MIRROR.iter().filter(|(field, _)| *field == id) {
+        for rel in GTK_SETTINGS {
+            let path = live_path(rel);
+            let text = plan.text(&path)?.unwrap_or_default();
+            plan.write_text(
+                &path,
+                set_ini_text(&text, "Settings", key, &value_str(&raw)),
+                "field",
+            )?;
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -930,9 +1114,15 @@ mod tests {
     fn gtk_desktop_keys_follow_the_theme() {
         assert_eq!(
             gtk_desktop_keys(Some("Windows-7-2.1"), Some("false")),
-            vec![("gtk-theme", "Windows-7-2.1".to_string()), ("color-scheme", "prefer-light".to_string())]
+            vec![
+                ("gtk-theme", "Windows-7-2.1".to_string()),
+                ("color-scheme", "prefer-light".to_string())
+            ]
         );
-        assert_eq!(gtk_desktop_keys(None, Some("1")), vec![("color-scheme", "prefer-dark".to_string())]);
+        assert_eq!(
+            gtk_desktop_keys(None, Some("1")),
+            vec![("color-scheme", "prefer-dark".to_string())]
+        );
         assert!(gtk_desktop_keys(Some(" "), None).is_empty());
     }
 
@@ -940,24 +1130,43 @@ mod tests {
     fn registry_loads_all_fields() {
         let ids: Vec<&str> = registry().iter().map(|f| f.id.as_str()).collect();
         assert!(ids.len() >= 70, "{}", ids.len());
-        for id in ["accent_color", "color_scheme", "kvantum_theme", "blur_menus", "breeze_menu_opacity", "zen_window_scheme"] {
+        for id in [
+            "accent_color",
+            "color_scheme",
+            "kvantum_theme",
+            "blur_menus",
+            "breeze_menu_opacity",
+            "zen_window_scheme",
+        ] {
             assert!(ids.contains(&id), "{id}");
         }
         assert!(field("cursor_theme").unwrap().profile_tracked);
-        assert!(!field("cursor_size").unwrap().profile_tracked, "sizes are personal");
+        assert!(
+            !field("cursor_size").unwrap().profile_tracked,
+            "sizes are personal"
+        );
     }
 
     #[test]
     fn ini_roundtrip_preserves_lines() {
         let text = "# c\n[General]\nColorScheme=Breeze\nName=x\n\n[KDE]\ncontrast=4\n";
         let out = set_ini_text(text, "General", "ColorScheme", "Everforest");
-        assert_eq!(out, "# c\n[General]\nColorScheme=Everforest\nName=x\n\n[KDE]\ncontrast=4\n");
+        assert_eq!(
+            out,
+            "# c\n[General]\nColorScheme=Everforest\nName=x\n\n[KDE]\ncontrast=4\n"
+        );
         let out = set_ini_text(&out, "KDE", "widgetStyle", "Breeze");
         assert!(out.contains("[KDE]\ncontrast=4\nwidgetStyle=Breeze\n"));
         let out = set_ini_text(&out, "Colors:Window", "BackgroundNormal", "1,2,3");
         assert!(out.ends_with("\n[Colors:Window]\nBackgroundNormal=1,2,3\n"));
-        assert_eq!(ini_get(&out, "Colors:Window", "BackgroundNormal").as_deref(), Some("1,2,3"));
-        assert_eq!(ini_get("[a]\nk=1\n[a]\nk=2\n", "a", "k").as_deref(), Some("2"));
+        assert_eq!(
+            ini_get(&out, "Colors:Window", "BackgroundNormal").as_deref(),
+            Some("1,2,3")
+        );
+        assert_eq!(
+            ini_get("[a]\nk=1\n[a]\nk=2\n", "a", "k").as_deref(),
+            Some("2")
+        );
     }
 
     #[test]
@@ -976,34 +1185,68 @@ mod tests {
     fn kv_toml_userjs() {
         let kv = "font_size 11\nbackground_opacity 0.5\n";
         assert_eq!(kv_get(kv, "background_opacity").as_deref(), Some("0.5"));
-        assert_eq!(kv_set(kv, "background_opacity", "1"), "font_size 11\nbackground_opacity 1\n");
+        assert_eq!(
+            kv_set(kv, "background_opacity", "1"),
+            "font_size 11\nbackground_opacity 1\n"
+        );
         let toml = "[window]\nopacity = 0.5 # keep\n";
         let out = toml_set(toml, "opacity", &json!(0.9), "window").unwrap();
         assert!(out.contains("opacity = 0.9") && out.contains("[window]"));
-        assert_eq!(toml_get(&out, "opacity", &["window".to_string()]), Some(json!(0.9)));
+        assert_eq!(
+            toml_get(&out, "opacity", &["window".to_string()]),
+            Some(json!(0.9))
+        );
         let js = "user_pref(\"a.b\", true);\nuser_pref(\"zen.view.window.scheme\", 0);\n";
         assert_eq!(userjs_get(js, "zen.view.window.scheme"), Some(json!(0)));
         let out = userjs_set(js, "zen.view.window.scheme", &json!(1));
-        assert!(out.contains("user_pref(\"zen.view.window.scheme\", 1);") && out.contains("\"a.b\", true"));
+        assert!(
+            out.contains("user_pref(\"zen.view.window.scheme\", 1);")
+                && out.contains("\"a.b\", true")
+        );
         assert!(userjs_set("", "x.y", &json!("s")).contains("user_pref(\"x.y\", \"s\");"));
     }
 
     #[test]
     fn read_back_compares_meaning_not_spelling() {
         let accent = field("accent_color").unwrap();
-        assert!(same_value(accent, &Value::from("155,150,77"), &Value::from("#9b964d")));
-        assert!(!same_value(accent, &Value::from("155,150,77"), &Value::from("#000000")));
+        assert!(same_value(
+            accent,
+            &Value::from("155,150,77"),
+            &Value::from("#9b964d")
+        ));
+        assert!(!same_value(
+            accent,
+            &Value::from("155,150,77"),
+            &Value::from("#000000")
+        ));
         let laf = field("look_and_feel").unwrap();
-        assert!(same_value(laf, &Value::from("paper"), &Value::from("paper")));
-        assert!(!same_value(laf, &Value::from("glass"), &Value::from("paper")));
-        assert_eq!(laf.command.first().map(String::as_str), Some("plasma-apply-lookandfeel"));
-        assert!(laf.command.iter().any(|a| a == "-a"), "plasma-apply-lookandfeel needs -a");
+        assert!(same_value(
+            laf,
+            &Value::from("paper"),
+            &Value::from("paper")
+        ));
+        assert!(!same_value(
+            laf,
+            &Value::from("glass"),
+            &Value::from("paper")
+        ));
+        assert_eq!(
+            laf.command.first().map(String::as_str),
+            Some("plasma-apply-lookandfeel")
+        );
+        assert!(
+            laf.command.iter().any(|a| a == "-a"),
+            "plasma-apply-lookandfeel needs -a"
+        );
     }
 
     #[test]
     fn values_normalise_like_python() {
         let accent = field("accent_color").unwrap();
-        assert_eq!(normalize_input(accent, &json!("#a7c080")), Some(json!("167,192,128")));
+        assert_eq!(
+            normalize_input(accent, &json!("#a7c080")),
+            Some(json!("167,192,128"))
+        );
         assert_eq!(color_hex(&json!("167,192,128")), "#a7c080");
         let blur = field("blur_menus").unwrap();
         assert_eq!(normalize_input(blur, &json!("on")), Some(json!(true)));
@@ -1011,7 +1254,11 @@ mod tests {
         let zen = field("zen_window_scheme").unwrap();
         assert_eq!(normalize_input(zen, &json!(3)), None);
         let sites = field("zen_sites_scheme").unwrap();
-        assert_eq!(normalize_input(sites, &json!("3")), Some(json!(3)), "3 = browser theme");
+        assert_eq!(
+            normalize_input(sites, &json!("3")),
+            Some(json!(3)),
+            "3 = browser theme"
+        );
         assert_eq!(normalize_input(sites, &json!(4)), None);
         assert_eq!(value_str(&json!(0.5)), "0.5");
         assert_eq!(value_str(&json!(14.0)), "14");
@@ -1022,13 +1269,25 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path();
         std::fs::create_dir_all(root.join(".config/kitty")).unwrap();
-        std::fs::write(root.join(".config/kdeglobals"), "[General]\nColorScheme=Nord\nAccentColor=1,2,3\n").unwrap();
-        std::fs::write(root.join(".config/kitty/theme-profile.conf"), "background_opacity 0.8\n").unwrap();
+        std::fs::write(
+            root.join(".config/kdeglobals"),
+            "[General]\nColorScheme=Nord\nAccentColor=1,2,3\n",
+        )
+        .unwrap();
+        std::fs::write(
+            root.join(".config/kitty/theme-profile.conf"),
+            "background_opacity 0.8\n",
+        )
+        .unwrap();
         let values = capture(&Base::Snapshot(root.to_path_buf()));
         let get = |id: &str| values.iter().find(|(k, _)| k == id).map(|(_, v)| v.clone());
         assert_eq!(get("color_scheme"), Some(json!("Nord")));
         assert_eq!(get("accent_color"), Some(json!("1,2,3")));
         assert_eq!(get("kitty_opacity"), Some(json!(0.8)));
-        assert_eq!(get("cursor_size"), None, "untracked fields are not captured");
+        assert_eq!(
+            get("cursor_size"),
+            None,
+            "untracked fields are not captured"
+        );
     }
 }

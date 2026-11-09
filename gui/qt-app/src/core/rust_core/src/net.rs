@@ -17,7 +17,10 @@ pub fn network_enabled() -> bool {
     std::fs::read_to_string(crate::paths::settings_file())
         .ok()
         .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
-        .and_then(|v| v.get("network_enabled").and_then(serde_json::Value::as_bool))
+        .and_then(|v| {
+            v.get("network_enabled")
+                .and_then(serde_json::Value::as_bool)
+        })
         .unwrap_or(true)
 }
 
@@ -25,7 +28,9 @@ fn ensure_allowed() -> Result<()> {
     if network_enabled() {
         Ok(())
     } else {
-        Err(anyhow!("network is disabled (network_enabled=false or KTM_OFFLINE=1)"))
+        Err(anyhow!(
+            "network is disabled (network_enabled=false or KTM_OFFLINE=1)"
+        ))
     }
 }
 
@@ -43,12 +48,17 @@ fn agent() -> ureq::Agent {
 /// GET returning at most `limit` bytes (error if larger).
 pub fn http_get_bytes(url: &str, limit: u64) -> Result<Vec<u8>> {
     ensure_allowed()?;
+    crate::dependency_jobs::event("downloading", "Connecting to the source");
     // Stores rate-limit bursts of downloads (KDE Store's file server answers
     // 429 after a few dozen): wait (Retry-After, at most 30 s; else 5 → 15 s)
     // and retry twice — about a minute at worst, then a clear error.
     let mut attempt = 0;
     let response = loop {
-        match agent().get(url).set("User-Agent", "theme-profile-kit").call() {
+        match agent()
+            .get(url)
+            .set("User-Agent", "theme-profile-kit")
+            .call()
+        {
             Ok(r) => break r,
             Err(ureq::Error::Status(429, r)) if attempt < 2 => {
                 let wait = r
@@ -60,17 +70,31 @@ pub fn http_get_bytes(url: &str, limit: u64) -> Result<Vec<u8>> {
                 std::thread::sleep(Duration::from_secs(wait));
             }
             Err(ureq::Error::Status(429, _)) => {
-                return Err(anyhow!("the server is rate-limiting downloads (429) — try again in a few minutes"));
+                return Err(anyhow!(
+                    "the server is rate-limiting downloads (429) — try again in a few minutes"
+                ));
             }
             Err(e) => return Err(anyhow::Error::new(e).context(format!("GET {url}"))),
         }
     };
     let mut body = Vec::new();
-    response
-        .into_reader()
-        .take(limit + 1)
-        .read_to_end(&mut body)
-        .context("reading response")?;
+    let mut reader = response.into_reader().take(limit + 1);
+    let mut chunk = [0u8; 65536];
+    let mut reported = std::time::Instant::now();
+    loop {
+        let count = reader.read(&mut chunk).context("reading response")?;
+        if count == 0 {
+            break;
+        }
+        body.extend_from_slice(&chunk[..count]);
+        if reported.elapsed() >= Duration::from_millis(500) {
+            crate::dependency_jobs::event(
+                "downloading",
+                &format!("{} KiB received", body.len() / 1024),
+            );
+            reported = std::time::Instant::now();
+        }
+    }
     if body.len() as u64 > limit {
         return Err(anyhow!("response from {url} is larger than {limit} bytes"));
     }

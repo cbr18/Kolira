@@ -1,32 +1,39 @@
+import Components 1.0
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import org.kde.kirigami 2.20 as Kirigami
 import org.kde.kirigami.platform as Platform
-import Components 1.0
 
-/*! Per-application theme page built on app adapters. */
+//! Per-application theme page built on app adapters.
 Kirigami.ScrollablePage {
     id: page
 
-    title: qsTr("Application themes")
     readonly property bool glassMode: themeController.isGlass
     readonly property var apps: themeBundle.applications
+
+    function handleThemeMessage(message, ok) {
+        if (!storeDialog.visible)
+            return false;
+
+        storeDialog.message = message;
+        storeDialog.messageOk = ok;
+        return true;
+    }
 
     function choiceIndex(app) {
         for (let i = 0; i < app.themes.length; ++i) {
             if (app.themes[i].id === app.currentValue)
-                return i
+                return i;
+
         }
-        return -1
+        return -1;
     }
 
-    background: Rectangle {
-        color: page.glassMode ? ThemeColors.glassPanel() : ThemeColors.pageBg(page.glassMode)
-    }
+    padding: Platform.Units.gridUnit
+    title: qsTr("Application themes")
 
     ColumnLayout {
-        Layout.margins: Platform.Units.largeSpacing
         spacing: Platform.Units.largeSpacing
 
         Label {
@@ -41,15 +48,14 @@ Kirigami.ScrollablePage {
 
             Kirigami.Card {
                 required property var modelData
+
                 Layout.fillWidth: true
 
                 background: Rectangle {
                     radius: Platform.Units.smallSpacing
                     border.width: 1
                     color: ThemeColors.cardBg(page.glassMode)
-                    border.color: modelData.status === "not_installed"
-                        ? ThemeColors.subtleBorder(page.glassMode)
-                        : ThemeColors.cardBorder(page.glassMode)
+                    border.color: modelData.status === "not_installed" ? ThemeColors.subtleBorder(page.glassMode) : ThemeColors.cardBorder(page.glassMode)
                 }
 
                 contentItem: ColumnLayout {
@@ -61,8 +67,7 @@ Kirigami.ScrollablePage {
 
                         Kirigami.Icon {
                             source: modelData.icon || "application-x-executable"
-                            color: modelData.installed
-                                ? ThemeColors.accent() : ThemeColors.dimColor(page.glassMode)
+                            color: modelData.installed ? ThemeColors.accent() : ThemeColors.dimColor(page.glassMode)
                             Layout.preferredWidth: Platform.Units.iconSizes.small
                             Layout.preferredHeight: Platform.Units.iconSizes.small
                         }
@@ -70,64 +75,57 @@ Kirigami.ScrollablePage {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 0
+
                             Label {
                                 Layout.fillWidth: true
                                 text: modelData.name
                                 color: ThemeColors.fgColor(page.glassMode)
                                 font.bold: true
                             }
+
                             Label {
                                 Layout.fillWidth: true
-                                text: !modelData.installed
-                                    ? qsTr("Not installed")
-                                    : modelData.capabilities.current_theme !== true
-                                        ? qsTr("Theme is chosen inside the app")
-                                        : (modelData.currentDisplay || qsTr("No theme selected"))
+                                text: !modelData.installed ? qsTr("Not installed") : modelData.capabilities.current_theme !== true ? qsTr("Theme is chosen inside the app") : (modelData.currentDisplay || qsTr("No theme selected"))
                                 color: ThemeColors.dimColor(page.glassMode)
                                 elide: Text.ElideRight
                             }
+
                         }
 
                         Label {
                             visible: modelData.status !== "ok" && modelData.statusText !== ""
                             text: modelData.statusText
-                            color: modelData.status === "not_installed"
-                                ? ThemeColors.dimColor(page.glassMode) : ThemeColors.warning()
+                            color: modelData.status === "not_installed" ? ThemeColors.dimColor(page.glassMode) : ThemeColors.warning()
                             font.pointSize: TypeScale.caption
                             wrapMode: Text.WordWrap
                             Layout.maximumWidth: Platform.Units.gridUnit * 10
                         }
+
                     }
 
-                    RowLayout {
+                    ComboBox {
+                        id: themeChooser
+
                         Layout.fillWidth: true
-                        spacing: Platform.Units.smallSpacing
+                        // A list we can neither read nor apply (Telegram) is
+                        // just an empty disabled box — hide it.
+                        visible: modelData.capabilities.installed_themes === true && modelData.capabilities.apply_theme === true && modelData.themes.length > 0
+                        model: modelData.themes
+                        textRole: "label"
+                        valueRole: "id"
+                        currentIndex: page.choiceIndex(modelData)
+                        displayText: currentIndex >= 0 ? currentText : modelData.currentDisplay
+                        enabled: modelData.installed && modelData.capabilities.apply_theme === true && modelData.themes.length > 0 && !themeBundle.busy
+                        onActivated: function(index) {
+                            if (index >= 0 && index < modelData.themes.length)
+                                themeBundle.setComponent(modelData.id, modelData.themes[index].id);
 
-                        ComboBox {
-                            id: themeChooser
-                            Layout.fillWidth: true
-                            // A list we can neither read nor apply (Telegram) is
-                            // just an empty disabled box — hide it.
-                            visible: modelData.capabilities.installed_themes === true
-                                && modelData.capabilities.apply_theme === true
-                                && modelData.themes.length > 0
-                            model: modelData.themes
-                            textRole: "label"
-                            valueRole: "id"
-                            currentIndex: page.choiceIndex(modelData)
-                            displayText: currentIndex >= 0 ? currentText : modelData.currentDisplay
-                            enabled: modelData.installed
-                                && modelData.capabilities.apply_theme === true
-                                && modelData.themes.length > 0
-                                && !themeBundle.busy
-                            onActivated: function(index) {
-                                if (index >= 0 && index < modelData.themes.length)
-                                    themeBundle.setComponent(modelData.id, modelData.themes[index].id)
-                            }
-                            Accessible.name: qsTr("%1 theme").arg(modelData.name)
                         }
+                        Accessible.name: qsTr("%1 theme").arg(modelData.name)
+                    }
 
-                        Button {
+                    ActionFlow {
+                        AppButton {
                             text: qsTr("Open config")
                             icon.name: "document-open"
                             visible: modelData.capabilities.open_config === true
@@ -135,7 +133,7 @@ Kirigami.ScrollablePage {
                             onClicked: themeBundle.openAppConfig(modelData.id)
                         }
 
-                        Button {
+                        AppButton {
                             text: qsTr("Find in store…")
                             icon.name: "edit-find"
                             visible: modelData.capabilities.theme_store === true
@@ -145,7 +143,7 @@ Kirigami.ScrollablePage {
                             ToolTip.text: qsTr("Search the editor's theme store and install a theme")
                         }
 
-                        Button {
+                        AppButton {
                             text: qsTr("Launch")
                             icon.name: "media-playback-start"
                             visible: modelData.capabilities.launch === true
@@ -153,13 +151,14 @@ Kirigami.ScrollablePage {
                             onClicked: themeBundle.launchApp(modelData.id)
                         }
 
-                        Button {
+                        AppButton {
                             text: qsTr("App theme settings")
                             icon.name: "settings-configure"
                             visible: modelData.capabilities.open_theme_settings === true
                             enabled: modelData.installed && !themeBundle.busy
                             onClicked: themeBundle.openAppThemeSettings(modelData.id)
                         }
+
                     }
 
                     Label {
@@ -174,61 +173,81 @@ Kirigami.ScrollablePage {
                     Label {
                         Layout.fillWidth: true
                         visible: modelData.capabilities.apply_theme !== true && modelData.installed
-                        text: modelData.integration === "config"
-                            ? qsTr("This application is styled through its config file. Open it in the default editor; profile snapshots still include the file.")
-                            : modelData.themes.length > 0
-                                ? qsTr("This application can list themes, but automatic applying is not supported yet.")
-                                : qsTr("No installed themes were detected for this application.")
+                        text: modelData.integration === "config" ? qsTr("This application is styled through its config file. Open it in the default editor; profile snapshots still include the file.") : modelData.themes.length > 0 ? qsTr("This application can list themes, but automatic applying is not supported yet.") : qsTr("No installed themes were detected for this application.")
                         wrapMode: Text.WordWrap
                         color: ThemeColors.dimColorSoft(page.glassMode)
                         font.pointSize: TypeScale.caption
                     }
+
                 }
+
             }
+
         }
+
     }
 
     // Theme store of an editor (Zed: api.zed.dev, VS Code/Cursor: Open VSX).
     // Searching and installing run off the GUI thread in the Rust CLI.
-    Kirigami.Dialog {
+    AppDialog {
         id: storeDialog
 
         property string appId: ""
         property string appName: ""
+        property string message: ""
+        property bool messageOk: false
+
+        function openFor(id, name) {
+            message = "";
+            appId = id;
+            appName = name;
+            open();
+            queryField.forceActiveFocus();
+        }
+
+        function search() {
+            message = "";
+            if (queryField.text.trim() !== "")
+                themeBundle.storeSearch(appId, queryField.text);
+
+        }
 
         title: qsTr("%1 themes").arg(appName)
         preferredWidth: Platform.Units.gridUnit * 30
         standardButtons: Kirigami.Dialog.Close
 
-        function openFor(id, name) {
-            appId = id
-            appName = name
-            open()
-            queryField.forceActiveFocus()
-        }
-
-        function search() {
-            if (queryField.text.trim() !== "")
-                themeBundle.storeSearch(appId, queryField.text)
-        }
-
         ColumnLayout {
             spacing: Platform.Units.smallSpacing
 
+            Label {
+                objectName: "storeMessage"
+                Layout.fillWidth: true
+                visible: text !== ""
+                text: storeDialog.message
+                textFormat: Text.PlainText
+                wrapMode: Text.Wrap
+                color: storeDialog.messageOk ? ThemeColors.fgColor(page.glassMode) : ThemeColors.negative()
+                Accessible.role: Accessible.AlertMessage
+            }
+
             RowLayout {
                 Layout.fillWidth: true
+
                 TextField {
                     id: queryField
+
                     Layout.fillWidth: true
                     placeholderText: qsTr("Theme name, e.g. everforest")
                     onAccepted: storeDialog.search()
                 }
-                Button {
+
+                AppButton {
                     text: qsTr("Search")
                     icon.name: "edit-find"
                     enabled: !themeBundle.storeBusy && queryField.text.trim() !== ""
                     onClicked: storeDialog.search()
                 }
+
             }
 
             BusyIndicator {
@@ -239,8 +258,7 @@ Kirigami.ScrollablePage {
 
             Label {
                 Layout.fillWidth: true
-                visible: !themeBundle.storeBusy && themeBundle.storeApp === storeDialog.appId
-                         && themeBundle.storeItems.length === 0 && queryField.text !== ""
+                visible: !themeBundle.storeBusy && themeBundle.storeApp === storeDialog.appId && themeBundle.storeItems.length === 0 && queryField.text !== ""
                 text: qsTr("Nothing found yet — press Search.")
                 color: ThemeColors.dimColor(page.glassMode)
                 wrapMode: Text.WordWrap
@@ -251,18 +269,21 @@ Kirigami.ScrollablePage {
 
                 delegate: RowLayout {
                     required property var modelData
+
                     Layout.fillWidth: true
                     spacing: Platform.Units.smallSpacing
 
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 0
+
                         Label {
                             Layout.fillWidth: true
                             text: modelData.name
                             font.bold: true
                             elide: Text.ElideRight
                         }
+
                         Label {
                             Layout.fillWidth: true
                             text: qsTr("%1 · %2 downloads").arg(modelData.id).arg(modelData.downloads)
@@ -270,8 +291,10 @@ Kirigami.ScrollablePage {
                             font.pointSize: TypeScale.caption
                             elide: Text.ElideRight
                         }
+
                     }
-                    Button {
+
+                    AppButton {
                         text: qsTr("Install")
                         icon.name: "download"
                         enabled: !themeBundle.storeBusy
@@ -279,8 +302,17 @@ Kirigami.ScrollablePage {
                         ToolTip.visible: hovered
                         ToolTip.text: qsTr("Installs the extension with %1's own tools; then pick the theme in the list").arg(storeDialog.appName)
                     }
+
                 }
+
             }
+
         }
+
     }
+
+    background: Rectangle {
+        color: page.glassMode ? ThemeColors.glassPanel() : ThemeColors.pageBg(page.glassMode)
+    }
+
 }

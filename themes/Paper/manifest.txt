@@ -29,7 +29,6 @@ timestamp=2026-11-05T11:16:33+10:00
 .config/wofi/wallpaper.css
 .config/btop/btop.conf
 .config/btop/themes/paper.theme
-.config/fastfetch/config.jsonc
 .config/zed/settings.json
 .config/Code/User/settings.json
 .config/Cursor/User/settings.json

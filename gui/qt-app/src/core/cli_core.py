@@ -1,10 +1,6 @@
-"""
-CLI Core Implementation — адаптер над Rust CLI.
+"""Single transport to the Rust core for profiles, settings and application data.
 
-Профильные операции и навигация по обоям вызывают ``theme-profile`` и
-``wallpaper-*`` (Rust-бинари из ``rust_core``); настройки приложения и
-реестр отслеживаемых приложений реализованы локально, потому что
-отдельных CLI-команд для них нет.
+Python adapts Qt values and report rows; Rust owns parsing and mutations.
 """
 
 import json
@@ -14,23 +10,65 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
-from .fileutil import atomic_write_text
 from .paths import (
     active_profile_file,
     cache_home,
     live_path,
-    profile_dir,
     profiles_dir,
     settings_file,
     validate_profile_name,
 )
 from .protocol import (
-    ProfileCore, WallpaperCore, TrackedAppsCore, SettingsCore,
-    ProfileInfo, Result, AppSettings, Component, AppStatus, CoreFactory
+    ProfileCore, WallpaperCore, SettingsCore,
+    ProfileInfo, Result, AppSettings
 )
 from .tracked_apps import (
-    CliTrackedAppsCore, detect_all_apps, config_paths_for, TRACKED_APPS
+    CliTrackedAppsCore
 )
+
+
+def run_cli(arguments, *, stdin=None, timeout=120, binary=None):
+    try:
+        proc = subprocess.run([binary or resolve_cli_bin(), *arguments], input=stdin,
+                              capture_output=True, text=True, timeout=timeout)
+    except (OSError, subprocess.SubprocessError) as exc:
+        return Result.err(str(exc))
+    if proc.returncode:
+        return Result.err(proc.stderr.strip() or proc.stdout.strip() or "theme-profile failed")
+    return Result.ok(proc.stdout.strip())
+
+
+def _json_gui_value(value):
+    # Qt values cross the adapter boundary as ordinary JSON, never Qt types.
+    from PySide6.QtCore import QUrl
+    from PySide6.QtGui import QColor
+    from PySide6.QtQml import QJSValue
+    if isinstance(value, QUrl):
+        return value.toLocalFile() if value.isLocalFile() else value.toString()
+    if isinstance(value, QColor):
+        return value.name(QColor.HexRgb)
+    if isinstance(value, QJSValue):
+        return value.toVariant()
+    raise TypeError(f"Unsupported core argument: {type(value).__name__}")
+
+
+def core_request(method: str, *, _binary=None, _timeout=180, **arguments):
+    """One JSON transport to the Rust core; no local business-logic fallback."""
+    try:
+        proc = subprocess.run([_binary or resolve_cli_bin(), "core", method],
+            input=json.dumps(arguments, ensure_ascii=False, default=_json_gui_value), capture_output=True,
+            text=True, timeout=_timeout, check=False)
+        response = json.loads(proc.stdout)
+    except (OSError, subprocess.SubprocessError, ValueError, TypeError) as exc:
+        detail = getattr(locals().get("proc"), "stderr", "") or str(exc)
+        raise RuntimeError(f"Rust core {method}: {detail.strip()}") from exc
+    if not isinstance(response, dict):
+        raise RuntimeError("Invalid Rust core response (expected an object)")
+    if response.get("api") != 1:
+        raise RuntimeError("Incompatible Rust core API; update the CLI and GUI together")
+    if not response.get("ok"):
+        raise ValueError(response.get("error") or proc.stderr or f"Rust core {method} failed")
+    return response.get("data")
 
 
 # ──────────────────────────────────────────────────────────────
@@ -48,6 +86,34 @@ def resolve_cli_bin(name: str = "theme-profile") -> str:
         return resolved
     fallback = Path.home() / ".local/bin" / name
     return str(fallback) if fallback.exists() else name
+
+
+def dependency_cli_process(parent, arguments):
+    """Unstarted Qt process for the dependency protocol of the single Rust core.
+
+    The controller attaches signals before start(); executable resolution and
+    invocation stay in this adapter, alongside the other CLI operations.
+    """
+    from PySide6.QtCore import QProcess
+
+    process = QProcess(parent)
+    process.setProgram(resolve_cli_bin())
+    process.setArguments(["dependencies", *arguments])
+    return process
+
+
+def core_cli_process(parent, method, arguments):
+    """Create an asynchronous JSON request; execution remains in Rust."""
+    from PySide6.QtCore import QProcess
+    process = QProcess(parent)
+    process.setProgram(resolve_cli_bin())
+    process.setArguments(["core", method])
+    payload = json.dumps(arguments, default=_json_gui_value).encode()
+    def send():
+        process.write(payload)
+        process.closeWriteChannel()
+    process.started.connect(send)
+    return process
 
 
 class CliProfileCore(ProfileCore):
@@ -85,93 +151,47 @@ class CliProfileCore(ProfileCore):
             return Result.err(str(e))
 
     def list_profiles(self) -> list[ProfileInfo]:
-        res = self._run(["list"])
-        if not res.success:
+        try:
+            return [ProfileInfo(**{**row, "components": tuple(row["components"])})
+                    for row in core_request("profile.list", _binary=self.bin)]
+        except (ValueError, RuntimeError):
             return []
-        names = [n.strip() for n in res.message.split("\n") if n.strip()]
-        active = self.get_active_profile()
-        profiles = []
-        for name in names:
-            info = self._get_profile_info(name, name == active)
-            profiles.append(info)
-        return profiles
 
     def get_active_profile(self) -> str:
+        return core_request("profile.active", _binary=self.bin)
+
+    def pending_operations(self) -> list[dict]:
+        return [record for record in core_request("operation.list", _binary=self.bin)["operations"]
+                if record["interrupted"]]
+
+    def clear_stale_active(self, name: str) -> Result:
         try:
-            active = self.active_file.read_text().strip()
-        except Exception:
-            return ""
-        try:
-            return validate_profile_name(active)
-        except ValueError:
-            return ""
+            return Result.ok(data={"cleared": core_request("profile.clear_stale", _binary=self.bin, name=name)})
+        except (ValueError, RuntimeError) as exc:
+            return Result.err(str(exc))
 
     def _get_profile_info(self, name: str, is_active: bool) -> ProfileInfo:
-        """Получить метаданные профиля."""
+        data = core_request("profile.info", _binary=self.bin, name=name)
+        return ProfileInfo(**{**data, "is_active": is_active, "components": tuple(data["components"])})
+
+    def preview(self, profile: str, keep_wallpaper: bool = False, *, use_settings: bool = True) -> Result:
         try:
-            directory = profile_dir(name)
-        except ValueError:
-            return ProfileInfo(name=str(name), is_active=False, components=())
-        created_at = ""
-        description = ""
-        components = ()
-        wallpaper_path = ""
+            report = core_request("profile.preview", _binary=self.bin,
+                name=profile, keep_wallpaper=keep_wallpaper, use_settings=use_settings)
+            from PySide6.QtCore import QCoreApplication
+            for action in report.get("actions", []):
+                for key in ("title", "reason", "warning"):
+                    if action.get(key):
+                        action[key] = QCoreApplication.translate("Core", action[key])
+            return Result.ok(data=report)
+        except (ValueError, RuntimeError) as exc:
+            return Result.err(str(exc))
 
-        # Theme package: theme.json describes the snapshot (description,
-        # created, wallpaper); components still come from the snapshot files.
-        package = directory / "theme.json"
-        if package.is_file():
-            try:
-                data = json.loads(package.read_text(encoding="utf-8"))
-                created_at = str(data.get("created") or "")
-                description = str(data.get("description") or "")
-                wallpaper_path = str(data.get("wallpaper") or "")
-            except (OSError, ValueError):
-                pass
-
-        # Snapshot manifest.json — предпочтительнее manifest.txt
-        manifest_json = directory / "manifest.json"
-        if manifest_json.exists():
-            try:
-                content = manifest_json.read_text(encoding="utf-8")
-                data = json.loads(content)
-                # theme.json (when present) is authoritative.
-                created_at = created_at or data.get("created_at", "")
-                description = description or data.get("description", "")
-            except Exception:
-                pass
-
-        # Fallback to legacy manifest.txt for created_at + description
-        # (only for fields manifest.json did not provide).
-        manifest = directory / "manifest.txt"
-        if manifest.exists():
-            try:
-                content = manifest.read_text()
-                for line in content.split("\n"):
-                    if line.startswith("timestamp="):
-                        if not created_at:
-                            created_at = line.split("=", 1)[1]
-                    elif line.startswith("["):
-                        break
-            except Exception:
-                pass
-
-        # Определяем компоненты по наличию директорий в профиле
-        comps = []
-        for app_def in TRACKED_APPS:
-            for rel_path in config_paths_for(app_def):
-                if (directory / rel_path).exists():
-                    comps.append(app_def.id)
-                    break
-
-        return ProfileInfo(
-            name=name,
-            is_active=is_active,
-            components=tuple(comps),
-            created_at=created_at,
-            description=description,
-            wallpaper_path=wallpaper_path,
-        )
+    def save_before_apply(self, name: str) -> Result:
+        try:
+            return Result.ok(data=core_request("profile.save_before_apply", _binary=self.bin, name=name))
+        except (ValueError, RuntimeError) as exc:
+            return Result.err(str(exc))
 
     def _component_arg(self, components: Optional[list[str]]) -> Optional[str]:
         """Validate a custom component selection.
@@ -180,89 +200,36 @@ class CliProfileCore(ProfileCore):
         Treating it as "all" was dangerous: deselecting every checkbox in the
         GUI applied the complete profile instead of nothing.
         """
-        if components is None:
-            return None
-        if not components:
-            raise ValueError("Select at least one component")
-        allowed = {app.id for app in TRACKED_APPS}
-        cleaned: list[str] = []
-        for component in components:
-            if not isinstance(component, str) or not component:
-                raise ValueError("Invalid component id")
-            if "," in component or "=" in component or "\n" in component:
-                raise ValueError(f"Invalid component id: {component!r}")
-            if component not in allowed:
-                raise ValueError(f"Unknown component: {component}")
-            if component not in cleaned:
-                cleaned.append(component)
-        if not cleaned:
-            raise ValueError("Select at least one component")
-        return ",".join(cleaned)
+        return core_request("profile.selection", _binary=self.bin, components=components)
 
     def apply(self, profile: str, components: Optional[list[str]] = None,
-              keep_wallpaper: bool = False, install_missing: bool = False) -> Result:
-        """Apply a theme.
-
-        Theme packages (``theme.json``) apply everything they define;
-        ``components`` must be None for them. ``data`` then holds the report:
-        applied / skipped / installed / missing [{field, name, source}] /
-        errors / backup.
-        """
+              keep_wallpaper: bool = False, install_missing: bool = False,
+              skip_dependencies: bool = False, preview_token: Optional[str] = None, source: str = "gui") -> Result:
+        extra = {"preview_token": preview_token} if preview_token is not None else {}
         try:
-            profile = validate_profile_name(profile)
-        except ValueError as exc:
-            return Result.err(str(exc))
-        if components is None and (profile_dir(profile) / "theme.json").is_file():
-            args = ["apply", profile, "--json"]
-            if keep_wallpaper:
-                args.append("--keep-wallpaper")
-            if install_missing:
-                args.append("--install-missing")
-            # The core limits every tool it runs; a limit here would kill it with
-            # plasmashell stopped and leave the user without a desktop.
-            result = self._run(args, timeout=3600)
-            if not result.success:
-                self._bring_shell_back(result)
-                return result
-            try:
-                report = json.loads(result.message or "{}")
-            except ValueError:
-                return Result.err("theme-profile apply returned invalid JSON")
-            return Result.ok(_apply_summary(profile, report), data=report)
-        try:
-            selected = self._component_arg(components)
-        except ValueError as exc:
-            return Result.err(str(exc))
-        args = ["apply", profile]
-        if selected is not None:
-            args.append(f"--components={selected}")
-        result = self._run(args, timeout=3600)
-        self._bring_shell_back(result)
-        return result
+            report = core_request("profile.apply", _binary=self.bin, _timeout=3600, name=profile, components=components,
+                keep_wallpaper=keep_wallpaper, install_missing=install_missing,
+                skip_dependencies=skip_dependencies, source=source, **extra)
+        except (ValueError, RuntimeError) as exc:
+            result = Result.err(str(exc))
+            self._bring_shell_back(result)
+            return result
+        missing = report.get("missing") or []
+        message = f"Applied profile: {profile}"
+        if missing:
+            message += "\nMissing: " + "; ".join(
+                str(item.get("name", "")) + (f" ({item['source']})" if item.get("source") else "")
+                for item in missing)
+        return Result.ok(message, data=report)
 
     @staticmethod
     def _bring_shell_back(result: Result) -> None:
-        """An apply that was stopped must not leave the desktop without a shell."""
-        if result.success or not result.message.startswith("Timeout") or os.environ.get("KTM_THEME_NO_APPLY") == "1":
+        if result.success or not ("Timeout" in result.message or "timed out" in result.message):
             return
         try:
-            subprocess.run(["systemctl", "--user", "start", "plasma-plasmashell.service"], timeout=30, check=False)
-        except (OSError, subprocess.SubprocessError):
+            core_request("desktop.recover", _timeout=120)
+        except (ValueError, RuntimeError):
             pass
-
-    def pending_dependencies(self, name: str) -> Result:
-        """What to ask about before applying: missing dependencies whose kind the
-        user left on "ask" (`always` installs in the apply, `never` skips)."""
-        result = self.dependencies(name)
-        if not result.success:
-            return result
-        policies = {i.get("key"): i.get("policy") for i in (CliSettingsCore().automation().get("items") or [])}
-        wanted = []
-        for dep in result.data or []:
-            key = "packages" if dep.get("source") in ("package", "aur") else "store"
-            if policies.get(key, "ask") == "ask":
-                wanted.append(dep)
-        return Result.ok(data=wanted)
 
     def save(self, name: str, components: Optional[list[str]] = None,
              description: str = "", include_wallpaper: bool = True) -> Result:
@@ -405,27 +372,11 @@ class CliProfileCore(ProfileCore):
         return Result.ok(data={"missing": missing})
 
     def delete(self, name: str) -> Result:
-        # Нет в CLI — делаем локально (как в Rust-ядре)
         try:
-            directory = profile_dir(name)
+            name = validate_profile_name(name)
         except ValueError as exc:
             return Result.err(str(exc))
-        if not directory.exists() and not directory.is_symlink():
-            return Result.err(f"Profile not found: {name}")
-        try:
-            if directory.is_symlink() or not directory.is_dir():
-                directory.unlink()
-            else:
-                shutil.rmtree(directory)
-            # Do not leave a stale marker pointing at a deleted profile.
-            try:
-                if self.active_file.read_text().strip() == name:
-                    self.active_file.unlink(missing_ok=True)
-            except OSError:
-                pass
-            return Result.ok(f"Deleted profile: {name}")
-        except Exception as e:
-            return Result.err(str(e))
+        return self._run(["delete", name])
 
     def clone(self, source: str, target: str) -> Result:
         """Дублировать профиль: `theme-profile clone SOURCE TARGET`."""
@@ -495,45 +446,21 @@ class CliWallpaperCore(WallpaperCore):
         self.cache_index = cache_home() / "wallpaper_index"
 
     def _resolve_wallpaper_dir(self) -> Path:
-        """Wallpaper directory: the explicit GUI setting, else the Rust CLI's
-        answer (`theme-profile wallpaper dir`: $WALLPAPER_DIR → setting →
-        XDG Pictures/Wallpaper), so GUI, theme-menu and hotkeys agree."""
         if self._wallpaper_dir is None:
-            configured = ""
-            try:
-                configured = CoreFactory.settings_core().load().wallpaper_directory.strip()
-            except Exception:
-                configured = ""
-            if configured:
-                self._wallpaper_dir = Path(configured).expanduser()
-            else:
-                res = self._run([resolve_cli_bin(), "wallpaper", "dir"], timeout=5)
-                self._wallpaper_dir = (
-                    Path(res.message) if res.success and res.message
-                    else Path.home() / "Pictures" / "Wallpaper"
-                )
+            self._wallpaper_dir = Path(core_request("wallpaper.directory"))
         return self._wallpaper_dir
 
     @property
     def wallpaper_dir(self) -> Path:
         return self._resolve_wallpaper_dir()
 
-    # Plasma stores the desktop wallpaper per screen in the appletsrc; it is the
-    # authoritative answer to "what is on the desktop right now".
-    PLASMA_CONFIG = live_path(".config/plasma-org.kde.plasma.desktop-appletsrc")
+    @property
+    def PLASMA_CONFIG(self):
+        return live_path(".config/plasma-org.kde.plasma.desktop-appletsrc")
 
     def _plasma_wallpaper(self) -> Optional[str]:
-        """Путь обоев, которые Plasma показывает сейчас (None — не прочитать).
-
-        One implementation for everyone: the Rust CLI (`theme-profile
-        wallpaper current`) picks the primary screen's org.kde.image wallpaper.
-        """
-        res = self._run(
-            [resolve_cli_bin(), "wallpaper", "current"],
-            timeout=5,
-            env={"PLASMA_APPLETSRC": str(self.PLASMA_CONFIG)},
-        )
-        return res.message if res.success and res.message else None
+        return core_request("wallpaper.current", plasma=str(self.PLASMA_CONFIG),
+                            directory=str(self.wallpaper_dir), state=str(self.cache_index))
 
     def _run(
         self, args: list[str], timeout: int = 15, env: Optional[dict[str, str]] = None
@@ -584,46 +511,17 @@ class CliWallpaperCore(WallpaperCore):
         unchanged, and it silently pointed at another wallpaper whenever the
         enumeration order changed. Plasma knows the actual answer.
         """
-        real = self._plasma_wallpaper()
-        if real:
-            return real
-
-        try:
-            idx_text = self.cache_index.read_text().strip()
-            if not idx_text.isdigit():
-                return None
-            idx = int(idx_text)
-            files = self.list_wallpapers()
-            if 0 <= idx < len(files):
-                return files[idx]
-        except Exception:
-            pass
-        return None
+        return self._plasma_wallpaper()
 
     def list_wallpapers(self) -> list[str]:
-        """Файлы обоев в том же порядке, что и в Rust CLI.
-
-        The cached index is a *position* in this list, so the ordering rules
-        have to match the Rust CLI wallpaper-{picker,next,prev} exactly:
-        symlinks are followed (Path.is_file(), like find -L), the same
-        extensions are accepted, and the sort is by the path string, i.e.
-        code-point order — identical to `LC_ALL=C sort` over the UTF-8 bytes,
-        but *not* to a locale-aware sort.
-        """
-        try:
-            entries = list(self.wallpaper_dir.iterdir())
-        except OSError:
-            return []
-
-        files = [
-            f for f in entries
-            if f.is_file() and f.suffix.lower() in WALLPAPER_EXTENSIONS
-        ]
-        files.sort(key=str)
-        return [str(f) for f in files]
+        return core_request("wallpaper.list", directory=str(self.wallpaper_dir))
 
     def set_wallpaper(self, path: str) -> Result:
-        return self._run(["plasma-apply-wallpaperimage", path])
+        try:
+            result = core_request("wallpaper.set", path=path)
+            return Result.ok(result["message"])
+        except (ValueError, RuntimeError) as exc:
+            return Result.err(str(exc))
 
 
 # ──────────────────────────────────────────────────────────────
@@ -637,39 +535,17 @@ class CliSettingsCore(SettingsCore):
     """Настройки приложения в JSON."""
 
     def load(self) -> AppSettings:
-        if SETTINGS_FILE.exists():
-            try:
-                data = json.loads(SETTINGS_FILE.read_text())
-                return AppSettings.from_dict(data)
-            except Exception:
-                pass
-        return self.get_defaults()
+        return AppSettings.from_dict(core_request("settings.get"))
 
     def save(self, settings: AppSettings) -> Result:
         try:
-            SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-            # Keep keys this model does not own (the Rust core's "automation"
-            # choices): overwrite only the app's own settings.
-            data: dict = {}
-            if SETTINGS_FILE.exists():
-                try:
-                    loaded = json.loads(SETTINGS_FILE.read_text())
-                    data = loaded if isinstance(loaded, dict) else {}
-                except ValueError:
-                    data = {}
-            data.update(settings.to_dict())
-            # Preferences can reveal local paths; never widen them to 0644.
-            atomic_write_text(
-                SETTINGS_FILE,
-                json.dumps(data, indent=2) + "\n",
-                mode=0o600,
-            )
+            core_request("settings.set", settings=settings.to_dict())
             return Result.ok("Settings saved")
-        except Exception as e:
-            return Result.err(str(e))
+        except (ValueError, RuntimeError) as exc:
+            return Result.err(str(exc))
 
     def get_defaults(self) -> AppSettings:
-        return AppSettings()
+        return AppSettings.from_dict(core_request("settings.defaults"))
 
     # ── automation choices (owned by the Rust core: `theme-profile automation`)
 

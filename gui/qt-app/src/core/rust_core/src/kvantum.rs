@@ -59,12 +59,20 @@ impl Recolor {
                 let ratio = (chroma / self.base_hl.chroma()).clamp(0.0, 1.5);
                 let target_chroma = self.accent.chroma() * ratio;
                 let hue = self.accent.b.atan2(self.accent.a);
-                return from_oklab(Lab { l, a: target_chroma * hue.cos(), b: target_chroma * hue.sin() });
+                return from_oklab(Lab {
+                    l,
+                    a: target_chroma * hue.cos(),
+                    b: target_chroma * hue.sin(),
+                });
             }
             return c; // semantic colour (red close button, green OK…)
         }
         let span = self.base_fg.l - self.base_bg.l;
-        let t = if span.abs() < 1e-6 { 0.0 } else { (lab.l - self.base_bg.l) / span };
+        let t = if span.abs() < 1e-6 {
+            0.0
+        } else {
+            (lab.l - self.base_bg.l) / span
+        };
         let w = t.clamp(0.0, 1.0);
         from_oklab(Lab {
             l: (self.bg.l + t * (self.fg.l - self.bg.l)).clamp(0.0, 1.0),
@@ -86,7 +94,8 @@ impl Recolor {
                 while end < bytes.len() && bytes[end].is_ascii_hexdigit() {
                     end += 1;
                 }
-                let glued = end < bytes.len() && (bytes[end].is_ascii_alphanumeric() || bytes[end] == b'_');
+                let glued =
+                    end < bytes.len() && (bytes[end].is_ascii_alphanumeric() || bytes[end] == b'_');
                 let len = end - start;
                 if !glued && matches!(len, 3 | 6 | 8) {
                     let hex = &text[start..end];
@@ -235,7 +244,13 @@ fn with_tooltip_panel(kvconfig: &str, svg: &str) -> String {
     if kvconfig.lines().any(|l| l.trim() == "[ToolTip]") || !svg.contains("id=\"menu-normal\"") {
         return kvconfig.to_string();
     }
-    let sep = if kvconfig.ends_with("\n\n") { "" } else if kvconfig.ends_with('\n') { "\n" } else { "\n\n" };
+    let sep = if kvconfig.ends_with("\n\n") {
+        ""
+    } else if kvconfig.ends_with('\n') {
+        "\n"
+    } else {
+        "\n\n"
+    };
     format!(
         "{kvconfig}{sep}[ToolTip]\nframe=true\nframe.element=menu\ninterior=true\ninterior.element=menu\n\
          frame.top=3\nframe.bottom=3\nframe.left=3\nframe.right=3\n"
@@ -284,16 +299,23 @@ pub fn build(p: &Palette, base: &str) -> Result<(String, PathBuf)> {
     build_in(p, base, &search_roots(), &user_root())
 }
 
-fn build_in(p: &Palette, base: &str, roots: &[PathBuf], out_root: &Path) -> Result<(String, PathBuf)> {
-    let base_dir =
-        find_theme_in(base, roots).ok_or_else(|| anyhow!("Kvantum theme {base:?} is not installed"))?;
+fn build_in(
+    p: &Palette,
+    base: &str,
+    roots: &[PathBuf],
+    out_root: &Path,
+) -> Result<(String, PathBuf)> {
+    let base_dir = find_theme_in(base, roots)
+        .ok_or_else(|| anyhow!("Kvantum theme {base:?} is not installed"))?;
     let base_kv = std::fs::read_to_string(base_dir.join(format!("{base}.kvconfig")))
         .with_context(|| format!("cannot read {base}.kvconfig"))?;
     let anchor = |key: &str| {
-        general_color(&base_kv, key).ok_or_else(|| anyhow!("{base}.kvconfig has no [GeneralColors] {key}"))
+        general_color(&base_kv, key)
+            .ok_or_else(|| anyhow!("{base}.kvconfig has no [GeneralColors] {key}"))
     };
     let bg = anchor("window.color")?;
-    let fg = general_color(&base_kv, "window.text.color").map_or_else(|| anchor("text.color"), Ok)?;
+    let fg =
+        general_color(&base_kv, "window.text.color").map_or_else(|| anchor("text.color"), Ok)?;
     let hl = anchor("highlight.color")?;
     let recolor = Recolor::new(bg, fg, hl, p);
 
@@ -309,7 +331,11 @@ fn build_in(p: &Palette, base: &str, roots: &[PathBuf], out_root: &Path) -> Resu
         if !path.is_file() {
             continue;
         }
-        let file = path.file_name().expect("file").to_string_lossy().to_string();
+        let file = path
+            .file_name()
+            .expect("file")
+            .to_string_lossy()
+            .to_string();
         let renamed = match file.strip_prefix(base) {
             Some(rest) if rest.starts_with('.') => format!("{id}{rest}"),
             _ => file.clone(),
@@ -318,8 +344,12 @@ fn build_in(p: &Palette, base: &str, roots: &[PathBuf], out_root: &Path) -> Resu
         if file.ends_with(".kvconfig") {
             let text = std::fs::read_to_string(&path)?;
             let shipped = SHIPPED_ROOTS.iter().any(|root| base_dir.starts_with(root));
-            let note = format!("{PROVENANCE}{base}{}\n", if shipped { SHIPPED_TAG } else { "" });
-            let svg = std::fs::read_to_string(base_dir.join(format!("{base}.svg"))).unwrap_or_default();
+            let note = format!(
+                "{PROVENANCE}{base}{}\n",
+                if shipped { SHIPPED_TAG } else { "" }
+            );
+            let svg =
+                std::fs::read_to_string(base_dir.join(format!("{base}.svg"))).unwrap_or_default();
             let kv = with_tooltip_panel(&recolor_kvconfig(&text, &recolor, p), &svg);
             std::fs::write(&dest, note + &kv)?;
         } else if file.ends_with(".svg") {
@@ -350,15 +380,32 @@ mod tests {
     }
 
     fn arc_dark(p: &Palette) -> Recolor {
-        Recolor::new(Rgb::parse("#383c4a").unwrap(), Rgb(255, 255, 255), Rgb::parse("#5294e2").unwrap(), p)
+        Recolor::new(
+            Rgb::parse("#383c4a").unwrap(),
+            Rgb(255, 255, 255),
+            Rgb::parse("#5294e2").unwrap(),
+            p,
+        )
     }
 
     #[test]
     fn oklab_roundtrip() {
-        for c in [Rgb(0, 0, 0), Rgb(255, 255, 255), Rgb(45, 53, 59), Rgb(167, 192, 128), Rgb(230, 126, 128)] {
+        for c in [
+            Rgb(0, 0, 0),
+            Rgb(255, 255, 255),
+            Rgb(45, 53, 59),
+            Rgb(167, 192, 128),
+            Rgb(230, 126, 128),
+        ] {
             let back = from_oklab(oklab(c));
-            assert!((i16::from(back.0) - i16::from(c.0)).abs() <= 1, "{c:?} → {back:?}");
-            assert!((i16::from(back.2) - i16::from(c.2)).abs() <= 1, "{c:?} → {back:?}");
+            assert!(
+                (i16::from(back.0) - i16::from(c.0)).abs() <= 1,
+                "{c:?} → {back:?}"
+            );
+            assert!(
+                (i16::from(back.2) - i16::from(c.2)).abs() <= 1,
+                "{c:?} → {back:?}"
+            );
         }
     }
 
@@ -370,7 +417,11 @@ mod tests {
         let close = |a: Rgb, b: Rgb| (oklab(a).l - oklab(b).l).abs() < 0.01;
         assert!(close(r.map(Rgb::parse("#383c4a").unwrap()), roles.window));
         assert!(close(r.map(Rgb(255, 255, 255)), roles.text));
-        assert_eq!(r.map(Rgb::parse("#5294e2").unwrap()).hex(), "#a7c080", "base highlight → accent");
+        assert_eq!(
+            r.map(Rgb::parse("#5294e2").unwrap()).hex(),
+            "#a7c080",
+            "base highlight → accent"
+        );
         // Darker than the base window stays darker than our window (depth kept).
         assert!(oklab(r.map(Rgb::parse("#2f343f").unwrap())).l < oklab(roles.window).l);
         // A slightly different blue follows the accent hue.
@@ -389,7 +440,10 @@ mod tests {
         assert!(out.contains("fill:#a7c080;"));
         assert!(out.contains("#defs5"), "ids are not colours");
         assert!(out.contains(&format!("fill=\"{}c8\"", r.map(Rgb(255, 255, 255)).hex())));
-        assert!(!out.contains("#fff;") && !out.contains("#fff\""), "short form mapped: {out}");
+        assert!(
+            !out.contains("#fff;") && !out.contains("#fff\""),
+            "short form mapped: {out}"
+        );
     }
 
     #[test]
@@ -402,18 +456,36 @@ mod tests {
         assert!(out.contains(&format!("window.color={}\n", roles.window.hex())));
         assert!(out.contains(&format!("base.color={}\n", roles.view.hex())));
         assert!(out.contains("highlight.color=#a7c080\n"));
-        assert!(out.contains(&format!("highlight.text.color={}\n", roles.selection_text.hex())));
+        assert!(out.contains(&format!(
+            "highlight.text.color={}\n",
+            roles.selection_text.hex()
+        )));
         assert!(out.contains(&format!("tooltip.text.color={}\n", roles.text.hex())));
-        assert!(out.contains(&format!("tooltip.base.color={}\n", roles.window_alt.hex())), "missing role keys are added: {out}");
-        assert!(out.contains("text.color=#") && out.contains("c8\n"), "alpha kept: {out}");
+        assert!(
+            out.contains(&format!("tooltip.base.color={}\n", roles.window_alt.hex())),
+            "missing role keys are added: {out}"
+        );
+        assert!(
+            out.contains("text.color=#") && out.contains("c8\n"),
+            "alpha kept: {out}"
+        );
         assert!(!out.contains("dark.color=black"), "named colours mapped");
         assert!(out.contains("[%General]\nauthor=x\n") && out.contains("[Hacks]\nx=1\n"));
 
         // Pressed/toggled text that equals the base highlight text → on-accent text.
         let kv = "[GeneralColors]\nhighlight.text.color=white\n\n[PanelButtonCommand]\ntext.toggle.color=white\ntext.press.color=#ffffff96\n";
         let out = recolor_kvconfig(kv, &r, &p);
-        assert!(out.contains(&format!("text.toggle.color={}\n", roles.selection_text.hex())));
-        assert!(!out.contains(&format!("text.press.color={}\n", roles.selection_text.hex())), "other contexts keep the mapping");
+        assert!(out.contains(&format!(
+            "text.toggle.color={}\n",
+            roles.selection_text.hex()
+        )));
+        assert!(
+            !out.contains(&format!(
+                "text.press.color={}\n",
+                roles.selection_text.hex()
+            )),
+            "other contexts keep the mapping"
+        );
     }
 
     #[test]
@@ -423,7 +495,11 @@ mod tests {
         std::fs::create_dir_all(&base).unwrap();
         std::fs::write(base.join("FakeBase.kvconfig"),
             "[GeneralColors]\nwindow.color=#383c4a\nwindow.text.color=#ffffff\nhighlight.color=#5294e2\n").unwrap();
-        std::fs::write(base.join("FakeBase.svg"), "<rect style=\"fill:#383c4a\"/><rect fill=\"#5294e2\"/>").unwrap();
+        std::fs::write(
+            base.join("FakeBase.svg"),
+            "<rect style=\"fill:#383c4a\"/><rect fill=\"#5294e2\"/>",
+        )
+        .unwrap();
         std::fs::write(base.join("preview.png"), b"png").unwrap();
         let roots = vec![tmp.path().join("Kvantum")];
         let p = everforest();
@@ -432,14 +508,27 @@ mod tests {
         let svg = std::fs::read_to_string(dir.join("ThemeProfileEverforest.svg")).unwrap();
         assert!(svg.contains("#a7c080") && !svg.contains("#5294e2"));
         let kv = std::fs::read_to_string(dir.join("ThemeProfileEverforest.kvconfig")).unwrap();
-        assert_eq!(provenance(&kv), Some(("FakeBase".to_string(), false)), "a base outside Kvantum's own themes is not marked GPL");
-        assert_eq!(provenance("; theme-profile: recoloured from KvRoughGlass (ships with Kvantum)\n[x]\n"), Some(("KvRoughGlass".to_string(), true)));
+        assert_eq!(
+            provenance(&kv),
+            Some(("FakeBase".to_string(), false)),
+            "a base outside Kvantum's own themes is not marked GPL"
+        );
+        assert_eq!(
+            provenance("; theme-profile: recoloured from KvRoughGlass (ships with Kvantum)\n[x]\n"),
+            Some(("KvRoughGlass".to_string(), true))
+        );
         assert_eq!(provenance("[%General]\n"), None);
         assert!(dir.join("preview.png").is_file());
-        assert!(!kv.contains("[ToolTip]"), "no menu artwork, no tooltip section");
+        assert!(
+            !kv.contains("[ToolTip]"),
+            "no menu artwork, no tooltip section"
+        );
         let with = with_tooltip_panel("[GeneralColors]\nx=1\n", "<g id=\"menu-normal\"/>");
         assert!(with.ends_with("[ToolTip]\nframe=true\nframe.element=menu\ninterior=true\ninterior.element=menu\nframe.top=3\nframe.bottom=3\nframe.left=3\nframe.right=3\n"), "{with}");
-        assert_eq!(with_tooltip_panel("[ToolTip]\nframe=true\n", "<g id=\"menu-normal\"/>"), "[ToolTip]\nframe=true\n");
+        assert_eq!(
+            with_tooltip_panel("[ToolTip]\nframe=true\n", "<g id=\"menu-normal\"/>"),
+            "[ToolTip]\nframe=true\n"
+        );
         assert!(build_in(&p, "../etc", &roots, &roots[0]).is_err());
         // Rebuilding replaces the previous output cleanly.
         build_in(&p, "FakeBase", &roots, &roots[0]).unwrap();

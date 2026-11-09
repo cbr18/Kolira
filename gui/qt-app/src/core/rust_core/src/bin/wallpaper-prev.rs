@@ -4,15 +4,13 @@
 //! All logic lives in `wallpaper.rs` — the binary just wires the environment.
 
 use std::path::PathBuf;
-use std::process::{Command, ExitCode};
+use std::process::ExitCode;
 
 use kde_theme_core::paths::{cache_home, config_home};
-use kde_theme_core::wallpaper::{wallpaper_dir, list_wallpapers_in, step_index};
+use kde_theme_core::wallpaper::{list_wallpapers_in, step_index, wallpaper_dir};
 
 fn env_or(key: &str, default: PathBuf) -> PathBuf {
-    std::env::var_os(key)
-        .map(PathBuf::from)
-        .unwrap_or(default)
+    std::env::var_os(key).map(PathBuf::from).unwrap_or(default)
 }
 
 fn main() -> ExitCode {
@@ -42,12 +40,14 @@ fn main() -> ExitCode {
         }
     };
 
-    if std::env::var_os("WALLPAPER_DRY_RUN").is_some() {
+    if std::env::var_os("WALLPAPER_DRY_RUN").is_some()
+        || std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1")
+    {
         println!("{}", files[index]);
         ExitCode::SUCCESS
     } else {
-        match Command::new("plasma-apply-wallpaperimage").arg(&files[index]).status() {
-            Ok(s) if s.success() => ExitCode::SUCCESS,
+        match kde_theme_core::wallpaper::apply_image(&files[index]) {
+            Ok(()) => ExitCode::SUCCESS,
             _ => ExitCode::from(1),
         }
     }

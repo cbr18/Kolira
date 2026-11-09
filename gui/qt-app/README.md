@@ -2,6 +2,10 @@
 
 Native KDE Plasma application for managing theme profiles and wallpapers.
 
+Fastfetch and the Plasma application launcher (including its button icon/image)
+remain the user's own settings. Themes, including legacy imports, do not change
+them or require Simple Application Launcher.
+
 ## Features
 
 - **Native KDE UI** — Built with Kirigami/QML, follows KDE HIG
@@ -67,10 +71,10 @@ Native KDE Plasma application for managing theme profiles and wallpapers.
 
 ## System tray
 
-The tray icon offers, without opening the window:
+The tray icon offers:
 
 - **Profiles ▸** — every profile, the active one ticked and sorted first; a
-  click applies it immediately (quick switching, no confirmation dialog), with
+  click opens the window with a pre-apply review; confirmation applies it, with
   the result reported as a desktop notification. Entries are disabled while an
   operation runs, and clicking the active profile is a no-op.
 - **Wallpaper ▸** — Next / Previous / Pick (the current file name is shown
@@ -138,7 +142,7 @@ Switching a profile runs `theme-profile apply`, which touches dozens of config
 files and takes seconds. Two consequences shape the UI:
 
 - Clicking a profile card (or pressing Space while it has focus) only sets
-  `selectedProfile`. Nothing is written until the **Apply** button is pressed,
+  `selectedProfile`. The **Apply** button opens a review; files change only after its confirmation,
   and the button is disabled while the selection already matches the active
   profile. Secondary per-profile actions (Duplicate, Diff, Edit description,
   Delete) live in the card's **⋯** menu.
@@ -248,10 +252,10 @@ mypy src/
 # QML syntax/type lint (PySide6 6.12 ships its own qmllint)
 .venv/bin/pyside6-qmllint -I qml -I /usr/lib/qt6/qml qml/Main.qml qml/pages/SettingsPage.qml qml/Components/*.qml
 
-# Tests (Python: 245, from gui/qt-app)
+# Tests (Python, from gui/qt-app; pytest prints the current count)
 .venv/bin/python -m pytest tests/ -q
 
-# CLI + installer tests (118, from the repo root)
+# CLI + installer tests (from the repo root; count is printed by the harness)
 bash tests/test-scripts.sh
 
 # Static shell analysis (repo root)
@@ -278,7 +282,7 @@ src/
 │   ├── protocol.py            # Abstract Base Classes (CONTRACT)
 │   ├── cli_core.py            # CLI adapter (shells to theme-profile / wallpaper-*)
 │   ├── tracked_apps.py        # App registry with detection
-│   ├── theme_core.py          # Curated field readers/writers + staging/undo
+│   ├── theme_core.py          # Qt view adapter for Rust Inspector sessions
 │   ├── app_theme_adapters.py  # Per-app theme detection/list/apply
 │   └── theme_bundle.py        # High-level component registry + v2 profile bundles
 ├── controllers/               # PySide6 QObject controllers
@@ -331,11 +335,11 @@ as files are added or removed — or when the list order changes.
 **The list order is a contract** shared by this app and
 the Rust CLI (`src/bin/wallpaper-{picker,next,prev}`):
 
-| rule | Rust CLI | GUI core (Python) |
+| rule | Shared Rust implementation | GUI adapter |
 |---|---|---|
-| follow symlinks | `fs::is_file()` (follows links) | `Path.is_file()` |
-| extensions `jpg jpeg png webp bmp`, case-insensitive | `to_lowercase()` | `.suffix.lower()` |
-| byte/code-point order | `Vec<String>::sort()` | `sorted(key=str)` |
+| follow symlinks | `fs::is_file()` (follows links) | delegates to Rust |
+| extensions `jpg jpeg png webp bmp`, case-insensitive | `to_lowercase()` | delegates to Rust |
+| byte/code-point order | `Vec<String>::sort()` | delegates to Rust |
 
 A locale-aware `sort` (`ru_RU.UTF-8` folds case and ignores punctuation) ordered
 the files differently from `sorted()`, so the GUI resolved the index to a
@@ -366,13 +370,31 @@ The `core/protocol.py` defines **Abstract Base Classes** for:
 - `TrackedAppsCore` — app detection
 - `SettingsCore` — app preferences
 
-A single implementation exists — the core (`core/cli_core.py`): profiles and
-wallpapers go through the Rust CLI binaries (`theme-profile`, `wallpaper-*`),
-tracked apps through the Python registry (`core/tracked_apps.py`), settings
-through JSON in `~/.config/kde-theme-profile/app-preferences.json`.
+A single Rust implementation owns profiles, wallpapers, Inspector parsing,
+staging/Undo/Revert, app theme adapters, resource cloning, preferences and the
+registry. Python view adapters call it through `core/cli_core.py`; preference
+data lives in `$XDG_CONFIG_HOME/kde-theme-profile/app-preferences.json`.
+The local JSON interface is `theme-profile core METHOD` ([API v1](../../docs/CORE_API.md)).
+Update CLI and GUI together. There is no FFI or Python mutation fallback.
 
-(The former second implementation — a `libkde_theme_core.so` shared library
-behind a C ABI — was removed; one core keeps behaviour and tests uniform.)
+Audit fixes preserve normal save/apply/Undo flows: failed Inspector changes
+remain staged for retry, open component pages follow controller updates,
+dependency results scroll within a bounded panel, and obsolete palette searches
+cannot replace newer results. Completed async helpers release their callbacks
+after the runnable releases its Qt wrapper, including when their page closes.
+The wallpaper folder URL is decoded in Python; unavailable previews display an
+error instead of a permanent loading indicator.
+
+The **Dependencies** page (`qml/pages/DependenciesPage.qml`) uses
+`controllers/dependencies.py` as a Qt adapter. QProcess reads Rust registry queries
+and JSONL operation events asynchronously through `core/cli_core.py`; provider detection, ownership, mutation
+and result checks stay in Rust (`dependency_registry.rs`, `dependency_jobs.rs`).
+The table has checkboxes, separate name/category columns and bulk delete with an
+affected-theme confirmation. It shares the operation executor with the missing
+dependencies dialog. Failed/cancelled downloads do not implicitly apply the theme;
+the explicit skip path uses `--without-dependencies`. Remembered decisions update
+the existing store/package automation keys before applying. See
+[the CLI and ownership contract](../../docs/DEPENDENCIES.md).
 
 ### Choosing a core
 
@@ -396,7 +418,7 @@ cargo build --release   # → target/release/theme-profile, wallpaper-*, theme-m
 
 The kit installer copies those binaries into `~/.local/bin/`.
 
-## Tracked Applications (20)
+## Tracked Applications
 
 | Category | Apps |
 |----------|------|
@@ -406,7 +428,6 @@ The kit installer copies those binaries into `~/.local/bin/`.
 | Terminals | Kitty (live reload), Alacritty |
 | Launchers | Wofi |
 | Monitors | btop |
-| Sysinfo | Fastfetch |
 | Editors | Zed, VS Code, Cursor |
 | Browser | Zen Browser |
 | Notes | Obsidian |
@@ -492,3 +513,88 @@ planned; the single core remains the Rust CLI binaries.)
 ## License
 
 MIT — see LICENSE in parent directory.
+
+## Apply protection
+
+Profile application shares a process lock with CLI, Inspector writes, app themes,
+palettes and wallpapers. A failed profile application restores its captured files;
+errors include an operation id, backup and recovery diagnostics. The profile page
+reports interrupted operations once; CLI `theme-profile operations recover ID`
+provides explicit recovery with conflict detection. Inspector keeps staged failures
+for retry. See [coverage and limits](../../docs/APPLY_PROTECTION.md).
+
+Paper buttons use `Components/AppButton.qml`, a thin native Button wrapper.
+For KDE StyleItem backgrounds, focus painting follows `visualFocus` in Paper:
+mouse focus and `highlighted` do not draw Sandstone's inset focus rectangle.
+Hover/pressed painting, text and icons stay native; keyboard focus remains
+visible. Leaving Paper restores the original native focus binding.
+
+## Pre-apply review
+
+Manual Apply from the main window, saved Theme page and tray opens an asynchronous
+file review, including resets, missing dependencies and follow-up actions. Users
+can keep wallpaper or save the current appearance first. Changed state invalidates
+the confirmation token and opens a new review. Dependency installation is separate
+and returns to review. `confirm_before_apply` remains a compatibility setting and
+no longer bypasses review. [Contract, CLI and limits](../../docs/APPLY_PREVIEW.md).
+The Russian catalog generator fills both Python and QML catalogs before lrelease.
+
+### История и расписание
+
+Меню содержит страницы истории последних 10 смен и правил расписания.
+`HistoryScheduleController` выполняет JSON-запросы через асинхронный `QProcess`;
+расчёт времени, состояние, копии и восстановление находятся в Rust. Новые точки
+подключения: `historySchedule`, `pages/AuditPage.qml`, `pages/SchedulePage.qml`.
+Эти точки нужно сохранить при объединении параллельной ветки исправлений UI.
+Подробности: [расписание](../../docs/SCHEDULING.md),
+[история и восстановление](../../docs/APPLY_PROTECTION.md).
+
+## Layout, feedback, localization and profile cards
+
+Pages use Kirigami grid-unit padding once; cards/dialogs use largeSpacing,
+sections largeSpacing, adjacent controls small/mediumSpacing. `AppDialog`
+retains native header/footer/lazy sizing and insets content. `ActionFlow` wraps
+buttons at the 640×480 minimum and with a larger font. `InsetScrollView` reserves
+transient scrollbar channels. Do not combine page padding with a second outer
+anchors.margins or use ineffective Layout.margins on a ScrollablePage root child.
+
+The dependency table keeps its vertical bar at the visible viewport edge;
+headers and rows share widths and horizontal movement. Pre-apply metadata,
+virtualized files and options use one vertical list; only expanded code diff
+has its own bounded text scroll. Long names elide with full names available;
+prose and paths wrap. Main theme selectors keep a separate row from actions.
+
+All ways to open a component group preserve live bindings. Errors are visible
+on the active screen or inside its store/editor modal, and persist until closed
+or corrected. Palette colours accept Tab and Enter/Space with a visible focus.
+Rust `profile.summaries` loads card fingerprints in one background request;
+Python caches/coalesces results and discards stale generations. QML performs no
+synchronous field requests or directory walks. Damaged profiles keep basic cards.
+
+Russian includes known runtime statuses, scheduling/history, proper plurals,
+locale-aware dates/numbers/sizes, component names and palette source tags.
+Translate templates before substitution; user values and unknown external
+errors remain verbatim. Translation additions are in tools/ui_i18n_ru.py;
+update TS/QM using scripts/update-translations.sh as usual.
+
+Source-only visual/interaction harness (isolated HOME/XDG, no theme application
+or network):
+
+```bash
+.venv/bin/python ../../tests/e2e/ui-audit.py /tmp/theme.png --page ThemePage --width 640 --height 480 --large-font
+.venv/bin/python ../../tests/e2e/ui-audit.py /tmp/diff.png --dialog applyDialog --theme dark --active-bars
+.venv/bin/python ../../tests/e2e/ui-audit.py /tmp/check.txt --check
+```
+
+It also supports --locale, --long-names, QT_SCALE_FACTOR, and --platform
+xcb/wayland for a temporary real window. Renders save PNG/geometry JSON and fail
+on runtime QML errors. `--check` exercises all 16 palette colours plus the
+accent, Space/Enter, Tab/Shift+Tab, validation feedback, scroll gutters and opening/
+closing the import/export file selectors. Real windows request activation again
+after closing native colour dialogs; this also makes the offscreen focus check
+repeatable. The task records actual checks and remaining live limits.
+
+The Docker friend harness emulates only `plasma-plasmashell.service` when no user
+systemd is available. Its service starts in a separate session with `setsid`,
+matching systemd's ownership rather than the core helper's process group. Service
+status excludes zombie processes. The core's timeout and child cleanup stay active.

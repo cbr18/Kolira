@@ -6,7 +6,6 @@ Controllers — слой между UI (QML) и Core.
 """
 
 from typing import Callable, Optional
-from dataclasses import dataclass
 import shutil
 import sys
 
@@ -17,12 +16,14 @@ from PySide6.QtCore import (
 from core.core_messages import localize
 from core.protocol import (
     ProfileCore, WallpaperCore, TrackedAppsCore, SettingsCore,
-    ProfileInfo, Component, AppStatus, Result, AppSettings, CustomComponent
+    ProfileInfo, Component, AppStatus, AppSettings, CustomComponent
 )
 from core import CoreFactory
-from core.paths import active_profile_file, profile_dir, validate_profile_name
+from core.paths import profile_dir, validate_profile_name
 from .theme_bundle import ThemeBundleController
 from .palette import PaletteController
+from .dependencies import DependencyController
+from .history_schedule import HistoryScheduleController
 from .theme_inspector import ThemeInspectorController
 
 
@@ -139,7 +140,11 @@ class ProfileController(QObject):
     """Контроллер для управления профилями."""
 
     # Signals для QML
+    previewRequested = Signal()
+    previewChanged = Signal()
+    previewBusyChanged = Signal()
     profilesChanged = Signal()
+    summariesChanged = Signal()
     activeProfileChanged = Signal()
     operationStarted = Signal(str)      # operation name
     operationFinished = Signal(bool, str)  # success, message
@@ -157,11 +162,20 @@ class ProfileController(QObject):
     def __init__(self, parent: Optional[QObject] = None):
         super().__init__(parent)
         self._core: ProfileCore = CoreFactory.profile_core()
+        self._preview_data: dict = {}
+        self._preview_serial = 0
+        self._preview_running = False
+        self._preview_queued = None
+        self._preview_saved = ""
         self._pending_missing: tuple[str, list] | None = None
         self._pending_actions: tuple[str, list] | None = None
         self._pending_before: tuple[str, list, bool] | None = None
         self._cancelled = False
         self._profiles: list[ProfileInfo] = []
+        self._summaries = {}
+        self._summary_serial = 0
+        self._summary_running = False
+        self._summary_pending = None
         self._profiles_model: list[dict] = []   # QML-ready cache (built once per refresh)
         self._active_profile: str = ""
         self._components_for_active: list[str] = []
@@ -174,6 +188,43 @@ class ProfileController(QObject):
     def profiles(self) -> list:
         """Список профилей для QML (list of dicts) — возвращает кэш, не пересобирает."""
         return self._profiles_model
+
+    @Property("QVariantMap", notify=summariesChanged)
+    def summaries(self):
+        return self._summaries
+
+    def _refresh_summaries(self):
+        """Coalesce requests and invalidate results from a previous refresh."""
+        names = [p.name for p in self._profiles]
+        self._summary_serial += 1
+        self._summaries = {k: v for k, v in self._summaries.items() if k in names}
+        self.summariesChanged.emit()
+        request = (self._summary_serial, names)
+        if self._summary_running: self._summary_pending = request
+        else: self._load_summaries(request)
+
+    def _load_summaries(self, request):
+        from core.cli_core import core_request
+        from .theme_inspector import _run
+        serial, names = request
+        if not names:
+            self._summaries = {}
+            self.summariesChanged.emit()
+            return
+        self._summary_running = True
+        payload = {}
+        def work():
+            payload["data"] = core_request("profile.summaries", names=names)
+            return True, ""
+        def done(ok, message):
+            self._summary_running = False
+            if serial == self._summary_serial and ok:
+                self._summaries = payload["data"]
+                self.summariesChanged.emit()
+            if self._summary_pending is not None:
+                pending, self._summary_pending = self._summary_pending, None
+                self._load_summaries(pending)
+        _run(self, work, done)
 
     @Property(bool, notify=busyChanged)
     def busy(self) -> bool:
@@ -222,14 +273,26 @@ class ProfileController(QObject):
             # неожиданно переключается на системную (возможно светлую).
             stale = self._active_profile
             try:
-                active_profile_file().unlink(missing_ok=True)
-            except OSError:
+                self._core.clear_stale_active(stale)
+            except (OSError, AttributeError):
                 pass
             self._active_profile = ""
         self._rebuild_profiles_model()
         self._update_active_components()
         self.profilesChanged.emit()
+        self._refresh_summaries()
         self.activeProfileChanged.emit()
+        try:
+            pending = self._core.pending_operations()
+        except (RuntimeError, ValueError, AttributeError):
+            pending = []
+        for record in pending:
+            seen = getattr(self, "_reported_interrupted", set())
+            if record["id"] not in seen:
+                seen.add(record["id"])
+                self._reported_interrupted = seen
+                self.operationFinished.emit(False, self.tr("Interrupted apply %1 requires recovery. Backup: %2. Run: theme-profile operations recover %1")
+                    .replace("%1", record["id"]).replace("%2", str(record.get("backup") or "")))
         if stale:
             self.operationFinished.emit(
                 False,
@@ -308,6 +371,116 @@ class ProfileController(QObject):
             return None, "Select at least one component in Settings"
         return components, ""
 
+    @Property("QVariantMap", notify=previewChanged)
+    def applyPreview(self) -> dict:
+        return self._preview_data
+
+    @Property(bool, notify=previewBusyChanged)
+    def previewBusy(self) -> bool:
+        return self._preview_running
+
+    @Slot(str, bool)
+    def previewApply(self, profile: str, keep_wallpaper: bool = False) -> None:
+        if self._busy:
+            self.operationFinished.emit(False, self.tr("Another operation is still running"))
+            return
+        try:
+            profile = validate_profile_name(profile)
+        except ValueError as exc:
+            self.operationFinished.emit(False, str(exc))
+            return
+        if self._preview_data.get("name") != profile:
+            self._preview_saved = ""
+        self._preview_serial += 1
+        self._preview_data = {"name": profile, "keep_wallpaper": keep_wallpaper}
+        self.previewChanged.emit()
+        self.previewRequested.emit()
+        request = (profile, keep_wallpaper, self._preview_serial)
+        if self._preview_running:
+            self._preview_queued = request
+        else:
+            self._launch_preview(request)
+
+    def _launch_preview(self, request) -> None:
+        profile, keep, serial = request
+        payload = {}
+        self._preview_running = True
+        self.previewBusyChanged.emit()
+        def work():
+            result = self._core.preview(profile, keep)
+            payload["report"] = result.data or {}
+            return result.success, result.message
+        def done(ok, message):
+            self._preview_running = False
+            if self._preview_queued is not None:
+                request = self._preview_queued
+                self._preview_queued = None
+                self._launch_preview(request)
+                return
+            self.previewBusyChanged.emit()
+            if serial != self._preview_serial:
+                return
+            self._preview_data = ({**payload["report"], "saved_as": self._preview_saved,
+                                   "stale": self._preview_data.get("stale", False)}
+                                  if ok else {"name": profile, "keep_wallpaper": keep, "error": message})
+            self.previewChanged.emit()
+        _run_async(self, work, done)
+
+    @Slot()
+    def cancelPreview(self) -> None:
+        self._preview_serial += 1
+        self._preview_queued = None
+        self._preview_data = {}
+        self.previewChanged.emit()
+
+    @Slot(str)
+    def savePreviewCurrent(self, name: str) -> None:
+        if self._preview_running or self._busy or not self._preview_data.get("token"):
+            return
+        report = dict(self._preview_data)
+        self._preview_data.pop("token", None)
+        self.previewChanged.emit()
+        def work():
+            result = self._core.save_before_apply(name)
+            return result.success, result.message
+        def done(ok, message):
+            self._on_operation_finished(ok, message or self.tr("Current appearance saved"))
+            if ok:
+                self._preview_saved = name
+            self.previewApply(report["name"], report.get("keep_wallpaper", False))
+        self._set_busy(True)
+        self._operation = "save"
+        self.operationStarted.emit("save")
+        _run_async(self, work, done)
+
+    @Slot(str)
+    def confirmPreview(self, token: str) -> None:
+        if self._preview_running or self._busy or not token or token != self._preview_data.get("token"):
+            return
+        report = dict(self._preview_data)
+        payload = {}
+        def work():
+            result = self._core.apply(report["name"], components=report.get("components"),
+                keep_wallpaper=report.get("keep_wallpaper", False), skip_dependencies=True,
+                preview_token=token)
+            payload["stale"] = not result.success and "PREVIEW_STALE" in result.message
+            if result.success:
+                self._pending_actions = (report["name"], list((result.data or {}).get("actions") or []))
+            return result.success, result.message
+        def done(ok, message):
+            if payload.get("stale"):
+                self._set_busy(False)
+                self.operationFinished.emit(False, self.tr("Theme or live settings changed. Review the updated changes."))
+                self.previewApply(report["name"], report.get("keep_wallpaper", False))
+                self._preview_data["stale"] = True
+                self.previewChanged.emit()
+            else:
+                self._on_operation_finished(ok, message)
+        self._set_busy(True)
+        self._operation = "apply"
+        self.operationStarted.emit("apply")
+        _run_async(self, work, done)
+
     @Slot(str, bool, bool, bool)
     def applyProfile(self, profile: str, keep_wallpaper: bool = False,
                      install_missing: bool = False, ask_first: bool = False) -> None:
@@ -369,6 +542,21 @@ class ProfileController(QObject):
             return result.success, result.message
 
         self._start_operation("apply", _work)
+
+    @Slot(str, bool)
+    def applyProfileWithoutDependencies(self, profile: str, keep_wallpaper: bool = False) -> None:
+        """Explicit apply choice after the dependency dialog; never downloads."""
+        try:
+            profile = validate_profile_name(profile)
+        except ValueError as exc:
+            self.operationFinished.emit(False, str(exc))
+            return
+        def work():
+            result = self._core.apply(profile, keep_wallpaper=keep_wallpaper, skip_dependencies=True)
+            report = result.data if isinstance(result.data, dict) else {}
+            self._pending_actions = (profile, list(report.get("actions") or []))
+            return result.success, result.message
+        self._start_operation("apply", work)
 
     @Slot()
     def cancelOperation(self) -> None:
@@ -523,7 +711,7 @@ class ProfileController(QObject):
                 result = self._core.install_dependencies(profile, root)
                 ok &= result.success
                 lines.append(result.message)
-            if reapply and not self._cancelled:
+            if reapply and ok and not self._cancelled:
                 applied = self._core.apply(profile, keep_wallpaper=keep_wallpaper)
                 ok &= applied.success
                 if applied.message:
@@ -759,11 +947,15 @@ class TrackedAppsController(QObject):
         """Счётчик ревизий: меняется при установке новых результатов детекта."""
         return self._components_revision
 
+    @Slot(str, result=str)
+    def componentName(self, component_id):
+        return next((c["name"] for c in self._components_model if c["id"] == component_id), component_id)
+
     def _status_text(self, status: AppStatus) -> str:
         return {
-            AppStatus.AVAILABLE: "Установлен",
-            AppStatus.NOT_INSTALLED: "Не установлен",
-            AppStatus.PARTIAL: "Частично",
+            AppStatus.AVAILABLE: self.tr("Installed"),
+            AppStatus.NOT_INSTALLED: self.tr("Not installed"),
+            AppStatus.PARTIAL: self.tr("Partial"),
         }[status]
 
     def _disabled_ids(self) -> set[str]:
@@ -1050,6 +1242,11 @@ class SettingsController(QObject):
             )
             self.settingsChanged.emit()
 
+    @Slot(QUrl)
+    def setWallpaperDirectoryUrl(self, url: QUrl) -> None:
+        if url.isLocalFile():
+            self.wallpaperDirectory = url.toLocalFile()
+
     # ── Automation: what applying a theme may do by itself (per user) ──
     automationChanged = Signal()
 
@@ -1274,6 +1471,16 @@ class MainController(QObject):
         self._theme = ThemeInspectorController(self)
         self._bundle = ThemeBundleController(self)
         self._palette = PaletteController(self)
+        self._history_schedule = HistoryScheduleController(self)
+        self._history_timer = QTimer(self)
+        self._history_timer.setInterval(20000)
+        self._history_timer.timeout.connect(self._history_schedule.refreshHistory)
+        self._history_timer.start()
+        self._history_schedule.restored.connect(self._profile.refresh)
+        self._history_schedule.restored.connect(_reload_app_look)
+        self._dependencies = DependencyController(self)
+        self._dependencies.applyRequested.connect(self._profile.previewApply)
+        self._dependencies.policySaved.connect(self._settings.automationChanged.emit)
         self._initialized = False
 
         # The settings controller's "available components" cache must read the
@@ -1345,5 +1552,7 @@ def register_controllers(engine) -> None:
     engine.rootContext().setContextProperty("themeInspector", main_ctrl._theme)
     engine.rootContext().setContextProperty("themeBundle", main_ctrl._bundle)
     engine.rootContext().setContextProperty("paletteController", main_ctrl._palette)
+    engine.rootContext().setContextProperty("dependencyController", main_ctrl._dependencies)
+    engine.rootContext().setContextProperty("historySchedule", main_ctrl._history_schedule)
     
     return main_ctrl

@@ -20,7 +20,7 @@ Kirigami.ApplicationWindow {
     readonly property bool glassMode: themeController.isGlass
 
     // True while the controller is applying/saving/deleting a profile.
-    readonly property bool applying: profileController.busy
+    readonly property bool applying: profileController.busy || dependencyController.busy
 
     // Close → hide to the tray when the user asked for it (Settings →
     // "Minimize to system tray"). Only when the tray icon really exists,
@@ -75,8 +75,7 @@ Kirigami.ApplicationWindow {
         pageStack.layers.push(Qt.resolvedUrl("pages/ThemeComponentsPage.qml"), {
             groupId: group.id,
             groupTitle: group.label,
-            groupDescription: group.description,
-            components: group.components
+            groupDescription: group.description
         })
     }
 
@@ -91,21 +90,49 @@ Kirigami.ApplicationWindow {
     function openPalettePage() {
         pageStack.layers.push(Qt.resolvedUrl("pages/PalettePage.qml"))
     }
-
-    // Applying a profile can restart Plasma components, so honour the
-    // "Confirm before applying" preference instead of hard-wiring a click to
-    // the controller.  The preview dialog already acts as a confirmation.
-    function requestApply(profileName, alreadyConfirmed) {
-        if (profileName === "")
-            return
-        if (!alreadyConfirmed
-                && typeof settingsController !== "undefined"
-                && settingsController.confirmBeforeApply) {
-            applyDialog.targetProfile = profileName
-            applyDialog.open()
-            return
+    property string auditOperationId: ""
+    function openAuditPage() {
+        pageStack.layers.push(Qt.resolvedUrl("pages/AuditPage.qml"), { selectedId: root.auditOperationId })
+    }
+    Connections {
+        target: historySchedule
+        function onErrorFound(id, message) {
+            root.auditOperationId = id
+            root.operationMessage = message
+            applyErrorDialog.open()
         }
-        profileController.applyProfile(profileName, false, false, true)
+    }
+    function openDependenciesPage() {
+        pageStack.layers.push(Qt.resolvedUrl("pages/DependenciesPage.qml"))
+    }
+
+    // Every manual application is reviewed against the live state first.
+    function requestApply(profileName, alreadyConfirmed) {
+        if (profileName !== "")
+            profileController.previewApply(profileName, false)
+    }
+
+    function showThemeMessage(message, ok) {
+        const current = pageStack.layers.currentItem
+        if (current && typeof current.handleThemeMessage === "function" && current.handleThemeMessage(message, ok)) return
+        if (ok) root.showPassiveNotification(message)
+        else { feedbackDialog.message = message; feedbackDialog.open() }
+    }
+    Connections { target: themeBundle; function onToast(message, ok) { root.showThemeMessage(message, ok) } }
+    Connections { target: themeInspector; function onToast(message, ok) { root.showThemeMessage(message, ok) } }
+    AppDialog {
+        id: feedbackDialog
+        objectName: "themeFeedbackDialog"
+        property string message: ""
+        title: qsTr("Operation failed")
+        preferredWidth: 560
+        standardButtons: Kirigami.Dialog.Close
+        Label {
+            text: feedbackDialog.message
+            textFormat: Text.PlainText
+            wrapMode: Text.Wrap
+            Accessible.role: Accessible.AlertMessage
+        }
     }
 
     // Last active profile we observed. Used to distinguish "the user changed
@@ -158,8 +185,16 @@ Kirigami.ApplicationWindow {
         }
         function onOperationFinished(success, message) {
             root._operationSucceeded = success
-            root.operationMessage = message
-            messageTimer.restart()
+            root.operationMessage = success && root._lastOperation === "apply" ? "" : message
+            if (root._lastOperation === "apply") {
+                historySchedule.refreshHistory()
+                if (!success) {
+                    root.auditOperationId = historySchedule.operationIdFromMessage(message)
+                    applyErrorDialog.open()
+                }
+            }
+            if (success) messageTimer.restart()
+            else messageTimer.stop()
             // Name taken: let the user pick another name or replace it.
             if (!success && root._lastOperation === "import"
                     && importConflictDialog.fileUrl !== ""
@@ -176,6 +211,12 @@ Kirigami.ApplicationWindow {
             missingDialog.afterImport = root._lastOperation === "import"
             missingDialog.beforeApply = false
             missingDialog.open()
+        }
+        function onPreviewRequested() {
+            root.visible = true
+            root.raise()
+            root.requestActivate()
+            applyDialog.open()
         }
         function onDependenciesBeforeApply(profile, missing, keepWallpaper) {
             missingDialog.targetProfile = profile
@@ -198,6 +239,50 @@ Kirigami.ApplicationWindow {
             else
                 actionsDialog.open()
         }
+    }
+
+    Connections {
+        target: dependencyController
+        function onFinished(success, message) {
+            if (message !== "") {
+                root._operationSucceeded = success
+                root.operationMessage = message
+            }
+        }
+        function onRetryApply(profile, keepWallpaper) {
+            missingDialog.targetProfile = profile
+            missingDialog.beforeApply = true
+            missingDialog.keepWallpaper = keepWallpaper
+            missingDialog.missing = []
+            dependencyFailure.open()
+        }
+    }
+    AppDialog {
+        id: dependencyFailure
+        title: qsTr("Some dependencies could not be installed")
+        preferredWidth: 560
+        standardButtons: Kirigami.Dialog.Close
+        Label {
+            text: qsTr("The theme was not applied. Review the results on the Dependencies page, retry the installation, or apply without the missing resources.")
+            wrapMode: Text.WordWrap
+        }
+        customFooterActions: [
+            Kirigami.Action {
+                text: qsTr("Dependencies")
+                onTriggered: {
+                    pageStack.layers.push(Qt.resolvedUrl("pages/DependenciesPage.qml"))
+                    dependencyFailure.close()
+                }
+            },
+            Kirigami.Action {
+                text: qsTr("Apply without them")
+                enabled: !root.applying
+                onTriggered: {
+                    dependencyController.skipAndApply(missingDialog.targetProfile, missingDialog.keepWallpaper)
+                    dependencyFailure.close()
+                }
+            }
+        ]
     }
 
     Component.onCompleted: {
@@ -236,11 +321,38 @@ Kirigami.ApplicationWindow {
                 onTriggered: pageStack.layers.push(Qt.resolvedUrl("pages/ApplicationsPage.qml"))
             },
             Kirigami.Action {
+                text: qsTr("Dependencies")
+                icon.name: "package-x-generic"
+                onTriggered: root.openDependenciesPage()
+            },
+            Kirigami.Action {
+                text: qsTr("Theme change history")
+                icon.name: "view-history"
+                onTriggered: root.openAuditPage()
+            },
+            Kirigami.Action {
+                text: qsTr("Theme schedule")
+                icon.name: "appointment-new"
+                onTriggered: pageStack.layers.push(Qt.resolvedUrl("pages/SchedulePage.qml"))
+            },
+            Kirigami.Action {
                 text: qsTr("Settings")
                 icon.name: "settings-configure"
                 onTriggered: pageStack.layers.push(Qt.resolvedUrl("pages/SettingsPage.qml"))
             }
         ]
+    }
+
+    AppDialog {
+        id: applyErrorDialog
+        title: qsTr("Theme change failed")
+        preferredWidth: 560
+        standardButtons: Dialog.Close
+        Label { text: root.operationMessage; wrapMode: Text.WordWrap; textFormat: Text.PlainText }
+        customFooterActions: Kirigami.Action {
+            text: qsTr("View history")
+            onTriggered: { applyErrorDialog.close(); root.openAuditPage() }
+        }
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -249,6 +361,7 @@ Kirigami.ApplicationWindow {
     // layout (children are only anchored left/right, not laid out).
     // ──────────────────────────────────────────────────────────────
     pageStack.initialPage: Kirigami.ScrollablePage {
+    padding: Platform.Units.gridUnit
         id: mainPage
         title: qsTr("Theme Profiles")
 
@@ -264,10 +377,9 @@ Kirigami.ApplicationWindow {
 
         ColumnLayout {
             spacing: Platform.Units.largeSpacing
-            Layout.margins: Platform.Units.largeSpacing
 
             // ─── Header: thin row — active profile + primary actions ───
-            RowLayout {
+            ActionFlow {
                 Layout.fillWidth: true
 
                 Kirigami.Heading {
@@ -275,9 +387,11 @@ Kirigami.ApplicationWindow {
                     text: profileController.activeProfile !== ""
                         ? qsTr("Active: %1").arg(profileController.activeProfile)
                         : qsTr("Theme Profiles")
+                    width: Math.min(implicitWidth, parent.width)
+                    wrapMode: Text.Wrap
                     color: ThemeColors.fgColor(root.glassMode)
                 }
-                Button {
+                AppButton {
                     text: qsTr("Edit live theme…")
                     icon.name: "document-edit"
                     onClicked: {
@@ -285,19 +399,18 @@ Kirigami.ApplicationWindow {
                         pageStack.layers.push(Qt.resolvedUrl("pages/ThemePage.qml"))
                     }
                 }
-                Item { Layout.fillWidth: true }
                 BusyIndicator {
                     running: root.applying
                     visible: root.applying
                     Layout.preferredHeight: Platform.Units.iconSizes.small
                 }
-                Button {
+                AppButton {
                     text: qsTr("Refresh")
                     icon.name: "view-refresh"
                     enabled: !root.applying
                     onClicked: profileController.refresh()
                 }
-                Button {
+                AppButton {
                     text: qsTr("Apply")
                     icon.name: "dialog-ok-apply"
                     highlighted: true
@@ -349,28 +462,29 @@ Kirigami.ApplicationWindow {
                 contentItem: ColumnLayout {
                     spacing: Platform.Units.mediumSpacing
 
-                    RowLayout {
+                    ActionFlow {
                         Layout.fillWidth: true
 
                         Kirigami.Heading {
                             level: 2
                             text: qsTr("Available Profiles")
+                            width: Math.min(implicitWidth, parent.width)
+                            wrapMode: Text.Wrap
                             color: ThemeColors.fgColor(root.glassMode)
                         }
-                        Item { Layout.fillWidth: true }
-                        Button {
+                                AppButton {
                             text: qsTr("Import theme…")
                             icon.name: "document-import"
                             enabled: !root.applying && !profileController.busy
                             onClicked: importFileDialog.open()
                         }
-                        Button {
+                        AppButton {
                             text: qsTr("New theme…")
                             icon.name: "document-new"
                             enabled: !root.applying && !profileController.busy
                             onClicked: newThemeDialog.open()
                         }
-                        Button {
+                        AppButton {
                             text: qsTr("Save current…")
                             icon.name: "list-add"
                             enabled: !root.applying
@@ -458,7 +572,7 @@ Kirigami.ApplicationWindow {
                 contentItem: ColumnLayout {
                     spacing: Platform.Units.mediumSpacing
 
-                    RowLayout {
+                    ActionFlow {
                         Layout.fillWidth: true
 
                         Kirigami.Heading {
@@ -466,8 +580,7 @@ Kirigami.ApplicationWindow {
                             text: qsTr("Wallpaper")
                             color: ThemeColors.fgColor(root.glassMode)
                         }
-                        Item { Layout.fillWidth: true }
-                        Button {
+                                AppButton {
                             text: qsTr("Refresh")
                             icon.name: "view-refresh"
                             onClicked: wallpaperController.refresh()
@@ -481,6 +594,7 @@ Kirigami.ApplicationWindow {
 
                         Image {
                             id: wallpaperPreview
+                            objectName: "wallpaperPreview"
                             anchors.fill: parent
                             source: wallpaperController.currentWallpaper
                             fillMode: Image.PreserveAspectCrop
@@ -490,9 +604,18 @@ Kirigami.ApplicationWindow {
                         }
 
                         BusyIndicator {
+                            objectName: "wallpaperPreviewBusy"
                             anchors.centerIn: parent
-                            running: wallpaperPreview.status !== Image.Ready
+                            running: wallpaperPreview.status === Image.Loading
                             visible: running
+                        }
+
+                        Label {
+                            objectName: "wallpaperPreviewError"
+                            anchors.centerIn: parent
+                            visible: wallpaperPreview.status === Image.Error
+                            text: qsTr("Wallpaper unavailable")
+                            color: ThemeColors.dimColor(root.glassMode)
                         }
 
                         Rectangle {
@@ -516,14 +639,14 @@ Kirigami.ApplicationWindow {
                         Layout.fillWidth: true
                         spacing: Platform.Units.mediumSpacing
 
-                        Button {
+                        AppButton {
                             Layout.fillWidth: true
                             text: qsTr("Previous")
                             icon.name: "go-previous-view"
                             enabled: !wallpaperController.busy
                             onClicked: wallpaperController.prevWallpaper()
                         }
-                        Button {
+                        AppButton {
                             Layout.fillWidth: true
                             text: qsTr("Pick Wallpaper…")
                             icon.name: "image-x-generic"
@@ -531,7 +654,7 @@ Kirigami.ApplicationWindow {
                             enabled: !wallpaperController.busy
                             onClicked: wallpaperController.pickWallpaper()
                         }
-                        Button {
+                        AppButton {
                             Layout.fillWidth: true
                             text: qsTr("Next")
                             icon.name: "go-next-view"
@@ -547,38 +670,15 @@ Kirigami.ApplicationWindow {
     // ──────────────────────────────────────────────────────────────
     // Dialogs
     // ──────────────────────────────────────────────────────────────
-    Kirigami.Dialog {
+    ApplyPreviewDialog {
         id: applyDialog
-        title: qsTr("Apply Profile")
-        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
-        preferredWidth: 420
-        property string targetProfile: ""
-
-        background: Rectangle {
-            color: ThemeColors.dialogBg(root.glassMode)
-            radius: 8
-            border.width: 1
-            border.color: ThemeColors.cardBorder(root.glassMode)
-        }
-
-        ColumnLayout {
-            Layout.fillWidth: true
-            Label {
-                Layout.fillWidth: true
-                wrapMode: Text.WordWrap
-                color: ThemeColors.fgColor(root.glassMode)
-                text: qsTr("Apply theme \"%1\"? All its appearance files are restored (a backup is made first) and Plasma restarts.").arg(applyDialog.targetProfile)
-            }
-            CheckBox {
-                id: keepWallpaperBox
-                text: qsTr("Keep the current wallpaper")
-            }
-        }
-
-        onAccepted: {
-            if (applyDialog.targetProfile !== "")
-                profileController.applyProfile(applyDialog.targetProfile, keepWallpaperBox.checked, false, true)
-            keepWallpaperBox.checked = false
+        onDependenciesRequested: function(report) {
+            missingDialog.targetProfile = report.name
+            missingDialog.missing = report.dependencies || []
+            missingDialog.beforeApply = true
+            missingDialog.afterImport = false
+            missingDialog.keepWallpaper = report.keep_wallpaper || false
+            missingDialog.open()
         }
     }
 
@@ -586,7 +686,7 @@ Kirigami.ApplicationWindow {
     // from; store items are installed from the official source on request
     // (search results unticked until the user confirms), packages show the
     // command to run (no sudo from the GUI).
-    Kirigami.Dialog {
+    AppDialog {
         id: missingDialog
         title: qsTr("This Theme Needs")
         preferredWidth: 600
@@ -605,24 +705,46 @@ Kirigami.ApplicationWindow {
             for (var i = 0; i < missing.length; i++) {
                 var d = missing[i]
                 if (d.index >= 0 && installable.indexOf(d.source) >= 0 && chosen[d.index])
-                    out.push(d.index)
+                    out.push(d.resource_id)
             }
             return out
         }
         onMissingChanged: {
             var c = {}
             for (var i = 0; i < missing.length; i++)
-                c[missing[i].index] = missing[i].exact
+                c[missing[i].index] = missing[i].exact && installable.indexOf(missing[i].source) >= 0
             chosen = c
+            rememberStore.checked = false
+            rememberPackages.checked = false
+        }
+        function completeGroup(group) {
+            const list = missing.filter(function(d) {
+                const key = d.source === "package" || d.source === "aur" ? "packages" : "store"
+                return key === group
+            })
+            return list.length > 0 && list.every(function(d) { return chosen[d.index] === true && installable.indexOf(d.source) >= 0 })
+        }
+        function emptyGroup(group) {
+            const list = missing.filter(function(d) {
+                return (d.source === "package" || d.source === "aur" ? "packages" : "store") === group
+            })
+            return list.length > 0 && list.every(function(d) { return chosen[d.index] !== true })
+        }
+        function rememberedGroups(install) {
+            const groups = []
+            if (rememberStore.checked && (!install || completeGroup("store"))) groups.push("store")
+            if (rememberPackages.checked && (!install || completeGroup("packages"))) groups.push("packages")
+            return groups
         }
         standardButtons: Kirigami.Dialog.Close
         customFooterActions: [
             Kirigami.Action {
-                text: missingDialog.beforeApply ? qsTr("Download and apply") : qsTr("Install selected")
+                text: missingDialog.beforeApply ? qsTr("Download and review") : qsTr("Install selected")
                 icon.name: "download"
-                enabled: !profileController.busy && missingDialog.selection().length > 0
+                enabled: !root.applying && missingDialog.selection().length > 0
                 onTriggered: {
-                    profileController.installDependencies(missingDialog.targetProfile,
+                    dependencyController.rememberChoice(missingDialog.targetProfile, missingDialog.selection(), missingDialog.rememberedGroups(true), true)
+                    dependencyController.installThemeDependencies(missingDialog.targetProfile,
                                                           missingDialog.selection(),
                                                           missingDialog.beforeApply || reapplyBox.checked,
                                                           missingDialog.keepWallpaper)
@@ -632,9 +754,10 @@ Kirigami.ApplicationWindow {
             Kirigami.Action {
                 text: qsTr("Apply without them")
                 visible: missingDialog.beforeApply
-                enabled: !profileController.busy
+                enabled: !root.applying
                 onTriggered: {
-                    profileController.applyProfileNow(missingDialog.targetProfile, missingDialog.keepWallpaper)
+                    dependencyController.rememberChoice(missingDialog.targetProfile, [], missingDialog.rememberedGroups(false), false)
+                    dependencyController.skipAndApply(missingDialog.targetProfile, missingDialog.keepWallpaper)
                     missingDialog.close()
                 }
             }
@@ -716,6 +839,24 @@ Kirigami.ApplicationWindow {
                 }
             }
             CheckBox {
+                id: rememberStore
+                text: qsTr("Do not ask again about store downloads")
+                enabled: missingDialog.completeGroup("store") || (missingDialog.beforeApply && missingDialog.emptyGroup("store"))
+                onEnabledChanged: if (!enabled) checked = false
+            }
+            CheckBox {
+                id: rememberPackages
+                text: qsTr("Do not ask again about system packages")
+                enabled: missingDialog.completeGroup("packages") || (missingDialog.beforeApply && missingDialog.emptyGroup("packages"))
+                onEnabledChanged: if (!enabled) checked = false
+            }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                text: qsTr("Remembering applies to a whole group: install all of it automatically, or skip it when applying without dependencies. Partial selections are not remembered. Change this later in Settings → Automation.")
+                color: ThemeColors.dimColor(root.glassMode)
+            }
+            CheckBox {
                 id: reapplyBox
                 checked: true
                 text: qsTr("Apply the theme again after installing")
@@ -726,7 +867,7 @@ Kirigami.ApplicationWindow {
     // New theme: start from a base — a built-in neutral template (Breeze, no
     // blur, no translucency) or a copy of a theme — then edit the live look
     // and save over it.
-    Kirigami.Dialog {
+    AppDialog {
         id: newThemeDialog
         title: qsTr("New Theme")
         preferredWidth: 480
@@ -792,7 +933,7 @@ Kirigami.ApplicationWindow {
     // First run: ask the user what applying themes may do by itself
     // (store downloads, system packages, restarting programs). Per user, not
     // per theme; changeable later in Settings → Automation.
-    Kirigami.Dialog {
+    AppDialog {
         id: automationDialog
         title: qsTr("Before You Apply Themes")
         preferredWidth: 640
@@ -840,7 +981,7 @@ Kirigami.ApplicationWindow {
     // After applying: programs to restart, Telegram's
     // one-time choice — each with a warning and its own checkbox; nothing
     // runs without the user (a call or a game may be on).
-    Kirigami.Dialog {
+    AppDialog {
         id: actionsDialog
         title: qsTr("Finish Applying")
         preferredWidth: 600
@@ -947,7 +1088,7 @@ Kirigami.ApplicationWindow {
         onAccepted: exportOptionsDialog.open()
     }
 
-    Kirigami.Dialog {
+    AppDialog {
         id: exportOptionsDialog
         title: qsTr("Export Theme")
         standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
@@ -993,7 +1134,7 @@ Kirigami.ApplicationWindow {
         }
     }
 
-    Kirigami.Dialog {
+    AppDialog {
         id: importConflictDialog
         title: qsTr("Theme Already Exists")
         property string fileUrl: ""
@@ -1038,7 +1179,7 @@ Kirigami.ApplicationWindow {
         onRejected: fileUrl = ""
     }
 
-    Kirigami.Dialog {
+    AppDialog {
         id: confirmDialog
         title: qsTr("Delete Profile")
         standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
@@ -1069,7 +1210,7 @@ Kirigami.ApplicationWindow {
         }
     }
 
-    Kirigami.Dialog {
+    AppDialog {
         id: saveDialog
         title: qsTr("Save Profile")
         standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
@@ -1151,7 +1292,7 @@ Kirigami.ApplicationWindow {
         }
     }
 
-    Kirigami.Dialog {
+    AppDialog {
         id: duplicateDialog
         title: qsTr("Duplicate Profile")
         property string sourceProfile: ""
@@ -1200,7 +1341,7 @@ Kirigami.ApplicationWindow {
         }
     }
 
-    Kirigami.Dialog {
+    AppDialog {
         id: descriptionDialog
         title: qsTr("Profile Description")
         property string targetProfile: ""
@@ -1238,7 +1379,7 @@ Kirigami.ApplicationWindow {
         }
     }
 
-    Kirigami.Dialog {
+    AppDialog {
         id: diffDialog
         title: qsTr("Profile Diff")
         standardButtons: Kirigami.Dialog.Close
@@ -1293,7 +1434,7 @@ Kirigami.ApplicationWindow {
                 font.bold: true
             }
 
-            ScrollView {
+            InsetScrollView {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.preferredHeight: 360
@@ -1332,7 +1473,7 @@ Kirigami.ApplicationWindow {
         }
     }
 
-    Kirigami.Dialog {
+    AppDialog {
         id: previewDialog
         title: qsTr("Preview Profile Changes")
         standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
@@ -1409,7 +1550,7 @@ Kirigami.ApplicationWindow {
                 Repeater {
                     model: previewDialog.componentsToApply
                     delegate: Kirigami.Chip {
-                        text: modelData
+                        text: trackedAppsController.componentName(modelData)
                         closable: false
                     }
                 }
@@ -1422,7 +1563,7 @@ Kirigami.ApplicationWindow {
                 color: ThemeColors.fgColor(root.glassMode)
             }
 
-            ScrollView {
+            InsetScrollView {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.preferredHeight: 280

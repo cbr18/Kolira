@@ -14,7 +14,6 @@ from .tracked_apps import (
     detect_all_apps,
     detect_app_status,
     build_component,
-    CliTrackedAppsCore
 )
 
 from .cli_core import (

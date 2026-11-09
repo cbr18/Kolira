@@ -12,6 +12,7 @@ import Components 1.0
  *  user does not have to go back to commit a change.
  */
 Kirigami.ScrollablePage {
+    padding: Platform.Units.gridUnit
     id: page
 
     title: page.sectionTitle
@@ -48,7 +49,7 @@ Kirigami.ScrollablePage {
         onActivated: pageStack.layers.pop()
     }
 
-    Kirigami.Dialog {
+    AppDialog {
         id: revertDialog
         title: qsTr("Revert session changes?")
         standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
@@ -64,7 +65,6 @@ Kirigami.ScrollablePage {
     }
 
     ColumnLayout {
-        Layout.margins: Platform.Units.largeSpacing
         spacing: Platform.Units.largeSpacing
 
         TextField {
@@ -82,12 +82,11 @@ Kirigami.ScrollablePage {
             highlightFieldId: page.highlightFieldId
         }
 
-        RowLayout {
+        ActionFlow {
             Layout.fillWidth: true
 
-            Item { Layout.fillWidth: true }
 
-            Button {
+            AppButton {
                 text: qsTr("Apply")
                 icon.name: "dialog-ok-apply"
                 highlighted: true
@@ -97,7 +96,7 @@ Kirigami.ScrollablePage {
                 onClicked: themeInspector.applyChanges()
             }
 
-            Button {
+            AppButton {
                 text: qsTr("Undo")
                 icon.name: "edit-undo"
                 enabled: !themeInspector.readOnly
@@ -106,7 +105,7 @@ Kirigami.ScrollablePage {
                 onClicked: themeInspector.undo()
             }
 
-            Button {
+            AppButton {
                 text: qsTr("Revert")
                 icon.name: "document-revert"
                 enabled: !themeInspector.readOnly

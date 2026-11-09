@@ -6,15 +6,13 @@
 //! decides between a dry run and actually applying the wallpaper.
 
 use std::path::PathBuf;
-use std::process::{Command, ExitCode};
+use std::process::ExitCode;
 
 use kde_theme_core::paths::{cache_home, config_home};
-use kde_theme_core::wallpaper::{wallpaper_dir, pick_wallpaper_flow, PickOutcome};
+use kde_theme_core::wallpaper::{pick_wallpaper_flow, wallpaper_dir, PickOutcome};
 
 fn env_or(key: &str, default: PathBuf) -> PathBuf {
-    std::env::var_os(key)
-        .map(PathBuf::from)
-        .unwrap_or(default)
+    std::env::var_os(key).map(PathBuf::from).unwrap_or(default)
 }
 
 fn main() -> ExitCode {
@@ -37,12 +35,14 @@ fn main() -> ExitCode {
         PickOutcome::Selected(path) => path,
     };
 
-    if std::env::var_os("WALLPAPER_DRY_RUN").is_some() {
+    if std::env::var_os("WALLPAPER_DRY_RUN").is_some()
+        || std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1")
+    {
         println!("{selected}");
         ExitCode::SUCCESS
     } else {
-        match Command::new("plasma-apply-wallpaperimage").arg(&selected).status() {
-            Ok(s) if s.success() => ExitCode::SUCCESS,
+        match kde_theme_core::wallpaper::apply_image(&selected) {
+            Ok(()) => ExitCode::SUCCESS,
             _ => ExitCode::from(1),
         }
     }

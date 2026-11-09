@@ -35,6 +35,26 @@ from core.theme_core import AppThemeCore  # noqa: E402
 from theme_profile_mcp import ThemeProfileMcpServer  # noqa: E402
 
 
+def _capture_launches(home, monkeypatch, program):
+    executable = home / "fake-bin" / program
+    logfile = home / "launched.jsonl"
+    recorded = program if program == "xdg-open" else str(executable)
+    executable.write_text(f"#!{sys.executable}\nimport json,sys\nwith open({str(logfile)!r},'a') as f: f.write(json.dumps([{recorded!r},*sys.argv[1:]])+'\\n')\n")
+    executable.chmod(0o755)
+    monkeypatch.delenv("KTM_THEME_NO_APPLY", raising=False)
+    return logfile
+
+
+def _launched(logfile):
+    import time
+    until = time.monotonic() + 3
+    while time.monotonic() < until:
+        if logfile.exists() and logfile.read_text().strip():
+            return [json.loads(line) for line in logfile.read_text().splitlines()]
+        time.sleep(.01)
+    return []
+
+
 KDE_GLOBALS = """[General]
 ColorScheme=Breeze1
 AccentColor=128,142,71
@@ -375,13 +395,9 @@ def test_application_adapters_detect_and_apply_with_backups(
     assert kitty.capabilities["open_config"] is True
     assert kitty.capabilities["apply_theme"] is False
     assert not kitty.apply_theme("night")["ok"]
-    opened: list[list[str]] = []
-    monkeypatch.setattr(
-        "core.app_theme_adapters.subprocess.Popen",
-        lambda args: opened.append(list(args)),
-    )
+    opened = _capture_launches(bundle_home["home"], monkeypatch, "xdg-open")
     assert kitty.open_config()["ok"]
-    assert opened == [["xdg-open", str(home / ".config/kitty/kitty.conf")]]
+    assert _launched(opened) == [["xdg-open", str(home / ".config/kitty/kitty.conf")]]
 
     alacritty = adapters["alacritty"]
     assert alacritty.detect()
@@ -404,14 +420,10 @@ def test_config_only_app_model_and_open_config(
     assert kitty["capabilities"]["installed_themes"] is False
     assert kitty["configPath"] == str(bundle_home["home"] / ".config/kitty/kitty.conf")
 
-    opened: list[list[str]] = []
-    monkeypatch.setattr(
-        "core.app_theme_adapters.subprocess.Popen",
-        lambda args: opened.append(list(args)),
-    )
+    opened = _capture_launches(bundle_home["home"], monkeypatch, "xdg-open")
     result = core.open_app_config("kitty")
     assert result.success, result.message
-    assert opened == [["xdg-open", kitty["configPath"]]]
+    assert _launched(opened) == [["xdg-open", kitty["configPath"]]]
 
 
 def test_discord_and_telegram_adapters_use_safe_fallbacks(
@@ -432,13 +444,9 @@ def test_discord_and_telegram_adapters_use_safe_fallbacks(
     assert telegram.capabilities["apply_theme"] is False
     assert telegram.capabilities["installed_themes"] is True
 
-    opened: list[list[str]] = []
-    monkeypatch.setattr(
-        "core.app_theme_adapters.subprocess.Popen",
-        lambda args: opened.append(list(args)),
-    )
+    opened = _capture_launches(bundle_home["home"], monkeypatch, "xdg-open")
     assert telegram.open_config()["ok"]
-    assert opened == [["xdg-open", str(bundle_home["home"] / ".config/telegram-desktop/themes")]]
+    assert _launched(opened) == [["xdg-open", str(bundle_home["home"] / ".config/telegram-desktop/themes")]]
 
 
 def test_theme_bundle_core_tracks_adapter_changes(bundle_home):
@@ -670,12 +678,9 @@ def test_detection_needs_an_executable_not_just_a_config(
     # Zed on Arch/CachyOS is `zeditor`; launching uses the binary found.
     zed = ADAPTERS["zed"]
     assert zed.executable() == [str(home / "fake-bin" / "zeditor")]
-    launched: list[list[str]] = []
-    monkeypatch.setattr(
-        "core.app_theme_adapters.subprocess.Popen", lambda argv, **_: launched.append(argv)
-    )
+    launched = _capture_launches(home, monkeypatch, "zeditor")
     assert zed.launch()["ok"]
-    assert launched == [[str(home / "fake-bin" / "zeditor")]]
+    assert _launched(launched) == [[str(home / "fake-bin" / "zeditor")]]
 
     # A Flatpak install counts (detected from the install dir, no `flatpak` call).
     (home / "fake-bin" / "obsidian").unlink()
@@ -691,8 +696,11 @@ def test_store_search_and_install_go_through_the_cli(
     """Store access is Rust (`theme-profile apps …`); Python only parses JSON."""
     home = bundle_home["home"]
     fake = home / "fake-bin" / "theme-profile-fake"
+    import shlex
+    real_cli = os.environ["KTM_THEME_PROFILE_BIN"]
     fake.write_text(
         "#!/bin/sh\n"
+        f'if [ "$1" = core ]; then exec {shlex.quote(real_cli)} "$@"; fi\n'
         'echo "$@" >> "$HOME/cli-calls"\n'
         'case "$2" in\n'
         '  store-search) echo \'[{"id":"everforest","name":"Everforest","description":"",'
@@ -851,3 +859,80 @@ def test_look_and_feel_package_has_no_layout(cli_bundle_home):
     assert meta["KPlugin"]["Id"] == "theme-profile-plain"
     kdeglobals = (home / ".config/kdeglobals").read_text(encoding="utf-8")
     assert "LookAndFeelPackage=theme-profile-plain" in kdeglobals
+
+
+@pytest.mark.parametrize("message", [[], None, "bad", {"id": 1},
+    {"id": 1, "method": "tools/call", "params": ["bad"]},
+    {"id": 1, "method": "tools/call", "params": {"name": "list_components", "arguments": []}}])
+def test_mcp_invalid_request_shape_does_not_break_next_request(message):
+    server = ThemeProfileMcpServer.__new__(ThemeProfileMcpServer)
+    result = server.handle(message)
+    assert result["error"]["code"] in (-32600, -32602)
+    assert server.handle({"jsonrpc": "2.0", "id": 2, "method": "ping"})["result"] == {}
+
+
+@pytest.mark.parametrize("name", ["../bad", ".hidden", "", "a/b", "a" * 65])
+def test_mcp_create_profile_validates_name_before_any_mutation(name):
+    from unittest.mock import Mock
+    server = ThemeProfileMcpServer.__new__(ThemeProfileMcpServer)
+    server.core = Mock()
+    with pytest.raises(ValueError):
+        server._create_profile({"name": name, "components": {"accent_color": "#112233"},
+                                "applications": {"btop": "dark"}})
+    assert not server.core.mock_calls
+
+
+def test_mcp_stdio_continues_after_invalid_request(bundle_home):
+    import subprocess
+    messages = [[], {"id": 1, "method": "tools/call", "params": ["bad"]},
+                {"jsonrpc": "2.0", "id": 2, "method": "ping"}]
+    process = subprocess.run([sys.executable, str(MCP_DIR / "theme_profile_mcp.py")],
+        input="\n".join(json.dumps(message) for message in messages) + "\n",
+        capture_output=True, text=True, timeout=20)
+    assert process.returncode == 0, process.stderr
+    responses = [json.loads(line) for line in process.stdout.splitlines()]
+    assert [response.get("error", {}).get("code") for response in responses[:2]] == [-32600, -32602]
+    assert responses[2] == {"jsonrpc": "2.0", "id": 2, "result": {}}
+
+
+def test_mcp_does_not_save_after_failed_apply():
+    from unittest.mock import Mock
+    server = ThemeProfileMcpServer.__new__(ThemeProfileMcpServer)
+    server.core = Mock()
+    server.core.set_component.return_value = Result.ok()
+    server.core.apply.return_value = Result.err("partially applied")
+    server.core.create_profile.return_value = Result.err("partially applied")
+    with pytest.raises(ValueError, match="partially applied"):
+        server._create_profile({"name": "Valid", "components": {"accent_color": "#112233"}})
+    server.core.save_profile.assert_not_called()
+
+
+def test_mcp_reports_failed_operation_as_tool_error(cli_bundle_home):
+    server = ThemeProfileMcpServer()
+    response = server.handle({"jsonrpc": "2.0", "id": 99, "method": "tools/call",
+                              "params": {"name": "apply_changes", "arguments": {}}})
+    assert response["result"]["isError"] is True
+    assert json.loads(response["result"]["content"][0]["text"])["ok"] is False
+    assert server.handle({"jsonrpc": "2.0", "id": 100, "method": "ping"})["result"] == {}
+
+
+def test_mcp_preview_is_readonly_and_rejects_stale_confirmation(cli_bundle_home):
+    server = ThemeProfileMcpServer()
+    from core.paths import live_path
+    name = "mcp-preview"
+    saved = server.profiles.save(name)
+    assert saved.success, saved.message
+    def call(tool, args):
+        return server.handle({"jsonrpc": "2.0", "id": 501, "method": "tools/call",
+                              "params": {"name": tool, "arguments": args}})["result"]
+    before = live_path(".config/kdeglobals").read_bytes()
+    response = call("preview_profile", {"name": name})
+    assert response["isError"] is False, response
+    report = json.loads(response["content"][0]["text"])
+    assert report["previewToken"] == report["token"]
+    assert live_path(".config/kdeglobals").read_bytes() == before
+    live_path(".config/kdeglobals").write_text("[General]\nColorScheme=ChangedAfterReview\n")
+    result = call("apply_profile", {"name": name, "previewToken": report["previewToken"]})
+    assert result["isError"] is True, result
+    assert "PREVIEW_STALE" in result["content"][0]["text"]
+    assert "ChangedAfterReview" in live_path(".config/kdeglobals").read_text()

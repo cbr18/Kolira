@@ -35,15 +35,18 @@ run_silent() { "$@" >/dev/null 2>&1; }
 
 # Safety net: the CLI talks to the live desktop session (plasma-apply-*,
 # kvantummanager, KWin/plasmashell over D-Bus, systemctl --user). A fake HOME
-# does not isolate those, so every such tool is shadowed by a failing stub for
-# the whole run; the theme engine then falls back to writing the keys itself,
-# which is what the assertions check. Sections that need to observe calls put
-# their own recording mocks in front of this directory.
+# does not isolate those, so every such tool is shadowed by a safe stub for
+# the whole run. Mandatory apply tools/systemctl acknowledge success without
+# touching the desktop; failing-command rollback is covered by Rust integration
+# tests. Sections that observe calls put recording mocks in front of this dir.
 SAFE_BIN="$(mktemp -d)"
 for tool in plasma-apply-lookandfeel plasma-apply-colorscheme plasma-apply-desktoptheme \
   plasma-apply-cursortheme plasma-apply-wallpaperimage kvantummanager qdbus6 dbus-send \
   systemctl kbuildsycoca6 kitty gsettings; do
-  printf '#!/usr/bin/env bash\nexit 1\n' >"$SAFE_BIN/$tool"
+  case "$tool" in
+    plasma-apply-*|kvantummanager|systemctl) printf '#!/usr/bin/env bash\nexit 0\n' >"$SAFE_BIN/$tool" ;;
+    *) printf '#!/usr/bin/env bash\nexit 1\n' >"$SAFE_BIN/$tool" ;;
+  esac
   chmod +x "$SAFE_BIN/$tool"
 done
 export PATH="$SAFE_BIN:$PATH"
@@ -844,6 +847,7 @@ else
   fail "launcher must be executable"
 fi
 
+
 # The dev venv, caches and the Rust build tree must not be copied.
 if [ -e "$FAKE_HOME/.local/share/kde-theme-manager/.venv" ] ||
   [ -e "$FAKE_HOME/.local/share/kde-theme-manager/src/core/rust_core/target" ]; then
@@ -963,6 +967,19 @@ if [ -x "$FAKE_HOME/.local/bin/kde-theme-manager" ]; then
   ok "kit installer also installed the GUI launcher"
 else
   fail "kit installer did not install the GUI launcher"
+fi
+
+if python3 - "$FAKE_HOME/.config/kde-theme-profile/installed-assets.json" <<'REGISTRY'
+import json, sys
+registry = json.load(open(sys.argv[1]))
+assert registry["schema"] == 2
+assert any(r["application"] and r["dependency"]["kind"] == "python"
+           for r in registry["resources"].values())
+REGISTRY
+then
+  ok "installer registers application dependencies in the Rust registry"
+else
+  fail "installer did not register application dependencies"
 fi
 
 # The bundled themes (themes/) come with the app, never overwriting a theme.
@@ -1637,10 +1654,17 @@ if printf '%s' "$report" | python3 -c 'import json,sys; r=json.load(sys.stdin); 
 else
   fail "import/deps did not report the missing dependency: $report"
 fi
-if out=$(dep_b deps candy --install=0 2>&1); then
+if out=$(env -u KTM_THEME_NO_APPLY -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$DEP_B" KTM_OFFLINE=1 "$CLI_DIR/theme-profile" deps candy --install=0 2>&1); then
   fail "install worked offline?! $out"
 else
   case "$out" in *"network is disabled"*) ok "installing respects the offline switch" ;; *) fail "unexpected install output: $out" ;; esac
+fi
+if out=$(dep_b deps candy --install=0 2>&1); then
+  fail "install worked with KTM_THEME_NO_APPLY=1: $out"
+elif [[ "$out" == *"installation disabled"* ]] && [ ! -e "$DEP_B/.local/share/icons/Candy" ]; then
+  ok "KTM_THEME_NO_APPLY=1 blocks dependency installation without creating files"
+else
+  fail "unexpected no-apply install result: $out"
 fi
 
 # --- 19. Konsole: scheme + profile appearance, user's behaviour kept ----------
@@ -1970,13 +1994,13 @@ fi
 AU2="$TMP_ROOT/automation"; mkdir -p "$AU2/.config/kde-theme-profile"
 printf '{\n  "theme": "glass",\n  "network_enabled": false\n}\n' >"$AU2/.config/kde-theme-profile/app-preferences.json"
 au2() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$AU2" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
-if au2 automation --json | grep -q '"configured":false' &&
+if au2 automation --json | grep '"configured":false' >/dev/null &&
   au2 automation set store=always restart_zen=never &&
-  au2 automation --json | grep -q '"configured":true' &&
-  au2 automation | grep -qx "store=always  # .*" && au2 automation | grep -q "^restart_zen=never" &&
+  au2 automation --json | grep '"configured":true' >/dev/null &&
+  au2 automation | grep -x "store=always  # .*" >/dev/null && au2 automation | grep "^restart_zen=never" >/dev/null &&
   grep -q '"theme": "glass"' "$AU2/.config/kde-theme-profile/app-preferences.json" &&
   ! au2 automation set store=maybe 2>/dev/null && ! au2 automation set bogus=ask 2>/dev/null &&
-  printf 'never\n\n\n\n\n\n' | au2 automation ask >/dev/null && au2 automation | grep -q "^store=never"; then
+  printf 'never\n\n\n\n\n\n' | au2 automation ask >/dev/null && au2 automation | grep "^store=never" >/dev/null; then
   ok "automation choices are stored per user beside the app settings; bad keys/values refused; ask reads answers"
 else
   fail "automation: $(au2 automation 2>&1 | tr '\n' ' ') // $(cat "$AU2/.config/kde-theme-profile/app-preferences.json")"
@@ -2096,7 +2120,7 @@ la() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$LA" KTM_T
 lu() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$LU" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
 la save dune >/dev/null 2>&1
 STORED="$LA/.config/kde-theme-profile/themes/dune/.config/plasma-org.kde.plasma.desktop-appletsrc"
-if grep -q "icon=author-logo" "$STORED" && ! grep -q "weather\|author home town\|favorites\|AppletOrder\|author-activity" "$STORED" &&
+if ! grep -q "icon=author-logo\|org.kde.plasma.kickoff\|weather\|author home town\|favorites\|AppletOrder\|author-activity" "$STORED" &&
   ! grep -q "thickness\|panelVisibility" "$LA/.config/kde-theme-profile/themes/dune/.config/plasmashellrc" &&
   ! grep -q "pinned size\|position" "$LA/.config/kde-theme-profile/themes/dune/.config/kwinrulesrc"; then
   ok "save keeps the shell's look only: no widgets, widget settings, panel sizes or behaviour rules"
@@ -2107,10 +2131,10 @@ DZIP="$TMP_ROOT/dune.ktmtheme.zip"
 la export dune --out="$DZIP" >/dev/null 2>&1
 lu import "$DZIP" --apply >/dev/null 2>&1
 LIVE_RC="$LU/.config/plasma-org.kde.plasma.desktop-appletsrc"
-if grep -q "Wallpaper/dune.jpg" "$LIVE_RC" && grep -q "icon=author-logo" "$LIVE_RC" && ! grep -q "start-here\|mine.jpg" "$LIVE_RC" &&
+if grep -q "Wallpaper/dune.jpg" "$LIVE_RC" && grep -q "icon=start-here" "$LIVE_RC" && ! grep -q "author-logo\|mine.jpg" "$LIVE_RC" &&
   grep -q "favorites=my-app.desktop" "$LIVE_RC" && grep -q "AppletOrder=22;21" "$LIVE_RC" && grep -q "org.kde.plasma.icontasks" "$LIVE_RC" &&
   ! grep -q "weather\|author-app\|Containments\]\[2\]" "$LIVE_RC"; then
-  ok "apply brings the wallpaper and launcher icon into the user's own layout (widgets, order, favourites kept)"
+  ok "apply brings the wallpaper and preserves the launcher in the user's own layout (widgets, order, favourites kept)"
 else
   fail "apply changed the layout: $(cat "$LIVE_RC")"
 fi
@@ -2361,10 +2385,10 @@ if [ -s "$MS/.config/kde-theme-profile/apply.log" ] && grep -q "apply frutiger-a
 else
   fail "no apply log: $(ls "$MS/.config/kde-theme-profile")"
 fi
-if ! grep -rqi "simplekickoff\|Simple Application Launcher" "$SCRIPT_DIR/themes" "$SCRIPT_DIR/gui/qt-app/qml"; then
+if ! grep -rqi --exclude='*.md' "simplekickoff\|Simple Application Launcher" "$SCRIPT_DIR/themes" "$SCRIPT_DIR/gui/qt-app/qml"; then
   ok "the launcher widget is not named or required anywhere"
 else
-  fail "launcher widget still named: $(grep -rli "simplekickoff" "$SCRIPT_DIR/themes" | head -3)"
+  fail "launcher widget still named: $(grep -rli --exclude='*.md' "simplekickoff\|Simple Application Launcher" "$SCRIPT_DIR/themes" | head -3)"
 fi
 
 # --- Data under the old folder names moves on the first run ---------------------------
@@ -2380,6 +2404,69 @@ if [ "$(ol list 2>/dev/null)" = "mine" ] && [ ! -e "$OL/.config/theme-profile" ]
   ok "themes, backups and settings move from theme-profile/profiles to kde-theme-profile/themes"
 else
   fail "old folders not moved: $(find "$OL/.config" -maxdepth 3)"
+fi
+
+# --- Ready themes follow the kit unless the user changed them --------------------------
+BS="$TMP_ROOT/bundled-home"
+BK="$TMP_ROOT/bundled-kit"
+mkdir -p "$BS/.config" "$BK"
+cp -r "$SCRIPT_DIR/themes/glass" "$BK/glass"
+cp -r "$SCRIPT_DIR/themes/dracula" "$BK/dracula"
+bs() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$BS" KTM_THEME_NO_APPLY=1 "$CLI_DIR/theme-profile" "$@"; }
+kit_change() { python3 - "$BK/$1" <<'KITPY'
+import hashlib, json, sys
+root = sys.argv[1]
+with open(root + "/.config/kwinrc", "a", encoding="utf-8") as f:
+    f.write("\n# new kit version\n")
+e = json.load(open(root + "/export.json"))
+e["files"][".config/kwinrc"] = hashlib.sha256(open(root + "/.config/kwinrc", "rb").read()).hexdigest()
+json.dump(e, open(root + "/export.json", "w"))
+KITPY
+}
+if bs bundled sync "$BK" | grep -q "Added theme: glass" && [ -z "$(bs bundled sync "$BK")" ]; then
+  ok "new ready themes are added, and an unchanged kit does nothing"
+else
+  fail "bundled sync add: $(bs bundled sync "$BK")"
+fi
+kit_change glass
+if bs bundled sync "$BK" | grep -q "Updated theme: glass" && grep -q "new kit version" "$BS/.config/kde-theme-profile/themes/glass/.config/kwinrc" &&
+  [ -n "$(find "$BS/.config/kde-theme-profile/backups" -mindepth 1 -print -quit)" ]; then
+  ok "a ready theme the user did not change follows the kit, the old one is backed up"
+else
+  fail "bundled update: $(find "$BS/.config/kde-theme-profile/backups" -maxdepth 1)"
+fi
+printf 'my edit\n' >>"$BS/.config/kde-theme-profile/themes/dracula/.config/kwinrc"
+kit_change dracula
+if bs bundled sync "$BK" | grep -q "Kept theme dracula: it may hold your changes" && grep -q "my edit" "$BS/.config/kde-theme-profile/themes/dracula/.config/kwinrc" &&
+  [ -z "$(bs bundled sync "$BK")" ]; then
+  ok "a ready theme the user changed is kept, said once, with the command to replace it"
+else
+  fail "bundled kept: $(bs bundled sync "$BK")"
+fi
+rm "$BS/.config/kde-theme-profile/bundled-themes.json"
+kit_change glass
+if bs bundled sync "$BK" | grep -q "Kept theme glass: it may hold" && ! bs bundled sync "$BK" | grep -q glass && grep -q "new kit version" "$BS/.config/kde-theme-profile/themes/glass/.config/kwinrc"; then
+  ok "a theme with no record of its install is left alone, said once"
+else
+  fail "bundled no record: $(bs bundled sync "$BK")"
+fi
+
+# --- The update script passes options to the installer ----------------------------------
+UP="$TMP_ROOT/update-script"
+mkdir -p "$UP/remote" "$UP/kit/scripts"
+git -C "$UP/remote" init -q --bare
+cp "$SCRIPT_DIR/scripts/update-theme-profile-kit.sh" "$UP/kit/scripts/"
+printf '#!/usr/bin/env bash\necho "installer got: $*"\n' >"$UP/kit/scripts/install-theme-profile-kit.sh"
+chmod +x "$UP/kit/scripts/"*.sh
+git -C "$UP/kit" init -q -b main
+git -C "$UP/kit" add -A
+git -C "$UP/kit" -c user.name=t -c user.email=t@t commit -qm init
+git -C "$UP/kit" remote add origin "$UP/remote"
+git -C "$UP/kit" push -q -u origin main 2>/dev/null
+if bash "$UP/kit/scripts/update-theme-profile-kit.sh" --restart 2>&1 | grep -q "installer got: --restart"; then
+  ok "update-theme-profile-kit.sh --restart reaches the installer"
+else
+  fail "update script dropped its options"
 fi
 
 # --- Forced blur leaves panels and notifications their own area ---------------------
@@ -2475,9 +2562,16 @@ printf '[General]\ntheme=Present\n' >"$HANG/.config/Kvantum/kvantum.kvconfig"
 KTM_THEME_NO_APPLY=1 hang save present --no-wallpaper >/dev/null 2>&1
 : >"$HANG_MOCK/calls"
 started=$SECONDS
-hang apply present >/dev/null 2>&1
-if grep -q "^--set Present" "$HANG_MOCK/calls" && grep -q "start plasma-plasmashell" "$HANG_MOCK/calls" && [ $((SECONDS - started)) -lt 60 ]; then
-  ok "a hanging tool is stopped and plasmashell still comes back"
+hang_failed=no
+if hang apply present >"$HANG_MOCK/result" 2>&1; then
+  hang_failed=no
+else
+  hang_failed=yes
+fi
+if [ "$hang_failed" = yes ] && grep -q "operation apply-" "$HANG_MOCK/result" &&
+  grep -q "recovery errors:" "$HANG_MOCK/result" &&
+  grep -q "^--set Present" "$HANG_MOCK/calls" && grep -q "start plasma-plasmashell" "$HANG_MOCK/calls" && [ $((SECONDS - started)) -lt 60 ]; then
+  ok "a hanging tool fails Apply with recovery diagnostics and plasmashell still comes back"
 else
   fail "hanging tool: $((SECONDS - started))s, $(cat "$HANG_MOCK/calls")"
 fi
@@ -2532,6 +2626,64 @@ if grep -q 'zen.view.window.scheme", 2' "$PREFS/user.js" 2>/dev/null; then
   ok "a pref left in prefs.js is set back to its value before the theme"
 else
   fail "Zen pref not restored: $(cat "$PREFS/user.js" 2>&1)"
+fi
+
+PF="$TMP_ROOT/preserved-fastfetch"
+pf() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u XDG_CACHE_HOME HOME="$PF" KTM_THEME_NO_APPLY=1 KTM_OFFLINE=1 "$CLI_DIR/theme-profile" "$@"; }
+mkdir -p "$PF/.config/fastfetch" "$PF/.config/kde-theme-profile/themes/legacy/.config/fastfetch"
+printf 'my config\n' >"$PF/.config/fastfetch/config.jsonc"
+printf 'my logo\n' >"$PF/.config/fastfetch/logo"
+printf 'author config\n' >"$PF/.config/kde-theme-profile/themes/legacy/.config/fastfetch/config.jsonc"
+cat >"$PF/.config/kde-theme-profile/themes/legacy/theme.json" <<'JSON'
+{"schema":"theme-profile/theme@2","name":"legacy","assets":[{"kind":"fastfetch-logo","name":"config","path":".config/fastfetch/config.jsonc","origin":"user","redistributable":false}]}
+JSON
+pf save own >/dev/null 2>&1
+if [ ! -e "$PF/.config/kde-theme-profile/themes/own/.config/fastfetch" ]; then
+  ok "saving a theme excludes fastfetch"
+else
+  fail "fastfetch was saved"
+fi
+mkdir -p "$PF/.config/kde-theme-profile/apply-journal/originals"
+PF_HASH="$(sha256sum "$PF/.config/fastfetch/config.jsonc" | cut -d' ' -f1)"
+PF_LOGO_HASH="$(sha256sum "$PF/.config/fastfetch/logo" | cut -d' ' -f1)"
+printf 'old config\n' >"$PF/.config/kde-theme-profile/apply-journal/originals/old"
+printf '{"created":{".config/fastfetch/logo":"%s"},"replaced":{".config/fastfetch/config.jsonc":["%s","old"]}}\n' "$PF_LOGO_HASH" "$PF_HASH" >"$PF/.config/kde-theme-profile/apply-journal/journal.json"
+if pf apply legacy >/dev/null 2>&1 && pf apply own >/dev/null 2>&1 &&
+  [ "$(cat "$PF/.config/fastfetch/config.jsonc")" = 'my config' ] &&
+  [ "$(cat "$PF/.config/fastfetch/logo")" = 'my logo' ]; then
+  ok "legacy themes and old undo journals neither overwrite nor remove fastfetch"
+else
+  fail "legacy theme or journal changed fastfetch"
+fi
+if pf export legacy --out="$TMP_ROOT/preserved.zip" >/dev/null 2>&1 &&
+  ! unzip -Z1 "$TMP_ROOT/preserved.zip" | grep -q '^.config/fastfetch/'; then
+  ok "export excludes legacy fastfetch assets"
+else
+  fail "export still contains fastfetch"
+fi
+
+python3 - "$PF/.config/kde-theme-profile/themes/legacy" "$TMP_ROOT/legacy-fastfetch.zip" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+import zipfile
+source = Path(sys.argv[1])
+files = {str(path.relative_to(source)): path.read_bytes() for path in source.rglob('*') if path.is_file()}
+manifest = {"format": "theme-profile/export@1", "theme": "legacy", "exported": "", "generator": "test", "home_token": "$HOME", "files": {name: hashlib.sha256(data).hexdigest() for name, data in files.items()}}
+with zipfile.ZipFile(sys.argv[2], 'w') as archive:
+    for name, data in files.items():
+        archive.writestr(name, data)
+    archive.writestr('export.json', json.dumps(manifest))
+PY
+if pf import "$TMP_ROOT/legacy-fastfetch.zip" --name=imported-preserved >/dev/null 2>&1 &&
+  [ ! -e "$PF/.config/kde-theme-profile/themes/imported-preserved/.config/fastfetch" ] &&
+  pf apply imported-preserved >/dev/null 2>&1 &&
+  [ "$(cat "$PF/.config/fastfetch/config.jsonc")" = 'my config' ] &&
+  [ "$(cat "$PF/.config/fastfetch/logo")" = 'my logo' ]; then
+  ok "import discards legacy fastfetch files and applying keeps the user's files"
+else
+  fail "legacy fastfetch import failed or changed the user's files"
 fi
 
 # --- Summary ------------------------------------------------------------------

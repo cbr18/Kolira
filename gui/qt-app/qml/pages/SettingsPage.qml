@@ -7,6 +7,7 @@ import org.kde.kirigami.platform as Platform
 import Components 1.0
 
 Kirigami.ScrollablePage {
+    padding: Platform.Units.gridUnit
     id: page
 
     title: qsTr("Settings")
@@ -19,7 +20,7 @@ Kirigami.ScrollablePage {
         currentFolder: settingsController.wallpaperDirectory !== ""
             ? Qt.url("file://" + settingsController.wallpaperDirectory)
             : ""
-        onAccepted: settingsController.wallpaperDirectory = selectedFolder.toLocalFile()
+        onAccepted: settingsController.setWallpaperDirectoryUrl(selectedFolder)
     }
 
     background: Rectangle {
@@ -29,7 +30,6 @@ Kirigami.ScrollablePage {
     // Single top-level layout: ScrollablePage only anchors its child
     // left/right, so everything must live inside a layout.
     ColumnLayout {
-        Layout.margins: Platform.Units.largeSpacing
         spacing: Platform.Units.largeSpacing
 
         // ─── Profile Apply Mode ───
@@ -63,7 +63,7 @@ Kirigami.ScrollablePage {
                 Kirigami.FormLayout {
                     Layout.fillWidth: true
 
-                    RowLayout {
+                    ColumnLayout {
                         Kirigami.FormData.label: qsTr("Mode")
                         spacing: Platform.Units.mediumSpacing
 
@@ -168,7 +168,7 @@ Kirigami.ScrollablePage {
                             placeholderText: qsTr("Automatic: XDG Pictures/Wallpaper")
                             onEditingFinished: settingsController.wallpaperDirectory = text
                         }
-                        Button {
+                        AppButton {
                             icon.name: "folder-open"
                             flat: true
                             Accessible.name: qsTr("Choose wallpaper directory")
@@ -208,12 +208,15 @@ Kirigami.ScrollablePage {
                         id: themeCombo
                         Layout.fillWidth: true
                         Kirigami.FormData.label: qsTr("Application theme")
-                        model: ["system", "glass", "paper", "dark", "light"]
-                        onActivated: settingsController.theme = currentText
+                        model: [{value:"system",label:qsTr("System")},{value:"glass",label:qsTr("Glass")},
+                            {value:"paper",label:qsTr("Paper")},{value:"dark",label:qsTr("Dark")},{value:"light",label:qsTr("Light")}]
+                        textRole: "label"
+                        valueRole: "value"
+                        onActivated: settingsController.theme = currentValue
                         Binding {
                             target: themeCombo
                             property: "currentIndex"
-                            value: themeCombo.model.indexOf(settingsController.theme)
+                            value: themeCombo.model.findIndex(function(item) { return item.value === settingsController.theme })
                             restoreMode: Binding.RestoreBindingOrValue
                         }
                     }
@@ -224,12 +227,14 @@ Kirigami.ScrollablePage {
                         id: coreCombo
                         Layout.fillWidth: true
                         Kirigami.FormData.label: qsTr("Core")
-                        model: ["core", "auto"]
-                        onActivated: settingsController.coreBackend = currentText
+                        model: [{value:"core",label:qsTr("Rust core")},{value:"auto",label:qsTr("Automatic")}]
+                        textRole: "label"
+                        valueRole: "value"
+                        onActivated: settingsController.coreBackend = currentValue
                         Binding {
                             target: coreCombo
                             property: "currentIndex"
-                            value: coreCombo.model.indexOf(settingsController.coreBackend)
+                            value: coreCombo.model.findIndex(function(item) { return item.value === settingsController.coreBackend })
                             restoreMode: Binding.RestoreBindingOrValue
                         }
                     }
@@ -343,18 +348,6 @@ Kirigami.ScrollablePage {
                     }
 
                     Switch {
-                        id: confirmSwitch
-                        Kirigami.FormData.label: qsTr("Confirm before applying profile")
-                        onToggled: settingsController.confirmBeforeApply = checked
-                        Binding {
-                            target: confirmSwitch
-                            property: "checked"
-                            value: settingsController.confirmBeforeApply
-                            restoreMode: Binding.RestoreBindingOrValue
-                        }
-                    }
-
-                    Switch {
                         id: notifySwitch
                         Kirigami.FormData.label: qsTr("Show notification on success")
                         onToggled: settingsController.notifyOnSuccess = checked
@@ -384,7 +377,7 @@ Kirigami.ScrollablePage {
             contentItem: RowLayout {
                 spacing: Platform.Units.mediumSpacing
 
-                Button {
+                AppButton {
                     Layout.fillWidth: true
                     text: qsTr("Save Settings")
                     icon.name: "document-save"
@@ -392,7 +385,7 @@ Kirigami.ScrollablePage {
                     onClicked: settingsController.save()
                 }
 
-                Button {
+                AppButton {
                     Layout.fillWidth: true
                     text: qsTr("Reset to Defaults")
                     icon.name: "view-refresh"

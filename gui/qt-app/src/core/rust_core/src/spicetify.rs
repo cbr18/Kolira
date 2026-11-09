@@ -38,7 +38,10 @@ fn hex(c: Rgb) -> String {
 /// `color.ini` for the palette (section `[ThemeProfile]`).
 pub fn color_ini(p: &Palette) -> String {
     let r = kde_roles(p);
-    let mut out = format!("; theme-profile: palette \"{}\" (generated)\n[{THEME_NAME}]\n", p.name.replace(['\n', '"'], ""));
+    let mut out = format!(
+        "; theme-profile: palette \"{}\" (generated)\n[{THEME_NAME}]\n",
+        p.name.replace(['\n', '"'], "")
+    );
     let mut key = |k: &str, c: Rgb| {
         let _ = writeln!(out, "{k:<18} = {}", hex(c));
     };
@@ -80,10 +83,18 @@ pub fn apply_palette(p: &Palette) -> Result<Option<PathBuf>> {
     fs::create_dir_all(&dir)?;
     fs::write(dir.join("color.ini"), color_ini(p))?;
     if !dir.join("user.css").exists() {
-        fs::write(dir.join("user.css"), "/* theme-profile: colours only (color.ini) */\n")?;
+        fs::write(
+            dir.join("user.css"),
+            "/* theme-profile: colours only (color.ini) */\n",
+        )?;
     }
     let mut text = fs::read_to_string(&config)?;
-    for (k, v) in [("current_theme", THEME_NAME), ("color_scheme", THEME_NAME), ("inject_css", "1"), ("replace_colors", "1")] {
+    for (k, v) in [
+        ("current_theme", THEME_NAME),
+        ("color_scheme", THEME_NAME),
+        ("inject_css", "1"),
+        ("replace_colors", "1"),
+    ] {
         text = set_ini_text(&text, "Setting", k, v);
     }
     fs::write(&config, text)?;
@@ -93,10 +104,16 @@ pub fn apply_palette(p: &Palette) -> Result<Option<PathBuf>> {
 
 /// Re-patch Spotify after the Spicetify config/theme changed.
 pub fn refresh() {
-    if std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1") || which::which("spicetify").is_err() {
+    if std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1")
+        || which::which("spicetify").is_err()
+    {
         return;
     }
-    let _ = crate::paths::status_bounded(std::process::Command::new("spicetify").args(["apply", "-n"]).stderr(std::process::Stdio::null()));
+    let _ = crate::paths::status_bounded(
+        std::process::Command::new("spicetify")
+            .args(["apply", "-n"])
+            .stderr(std::process::Stdio::null()),
+    );
 }
 
 #[cfg(test)]

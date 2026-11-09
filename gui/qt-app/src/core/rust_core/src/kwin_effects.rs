@@ -24,7 +24,10 @@ use std::path::{Path, PathBuf};
 
 use crate::paths::data_home;
 
-const PLUGIN_DIRS: &[&str] = &["/usr/lib/qt6/plugins/kwin/effects/plugins", "/usr/local/lib/qt6/plugins/kwin/effects/plugins"];
+const PLUGIN_DIRS: &[&str] = &[
+    "/usr/lib/qt6/plugins/kwin/effects/plugins",
+    "/usr/local/lib/qt6/plugins/kwin/effects/plugins",
+];
 
 /// An installed third-party effect: its id and where it lives.
 #[derive(Debug, Clone, PartialEq)]
@@ -34,12 +37,18 @@ pub struct Effect {
 }
 
 fn safe_id(id: &str) -> bool {
-    !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.')
+    !id.is_empty()
+        && id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.')
 }
 
 /// Installed third-party effects (user scripted effects first).
 pub fn installed() -> Vec<Effect> {
-    installed_in(&PLUGIN_DIRS.iter().map(PathBuf::from).collect::<Vec<_>>(), &script_roots())
+    installed_in(
+        &PLUGIN_DIRS.iter().map(PathBuf::from).collect::<Vec<_>>(),
+        &script_roots(),
+    )
 }
 
 /// Scripted effects of the user only: `/usr/share/kwin/effects` holds the ones
@@ -56,8 +65,14 @@ fn installed_in(plugin_dirs: &[PathBuf], script_dirs: &[PathBuf]) -> Vec<Effect>
         }
     };
     for dir in script_dirs {
-        let Ok(entries) = fs::read_dir(dir) else { continue };
-        let mut dirs: Vec<PathBuf> = entries.flatten().map(|e| e.path()).filter(|p| p.join("metadata.json").is_file()).collect();
+        let Ok(entries) = fs::read_dir(dir) else {
+            continue;
+        };
+        let mut dirs: Vec<PathBuf> = entries
+            .flatten()
+            .map(|e| e.path())
+            .filter(|p| p.join("metadata.json").is_file())
+            .collect();
         dirs.sort();
         for d in dirs {
             if let Some(id) = d.file_name().and_then(|n| n.to_str()) {
@@ -66,8 +81,14 @@ fn installed_in(plugin_dirs: &[PathBuf], script_dirs: &[PathBuf]) -> Vec<Effect>
         }
     }
     for dir in plugin_dirs {
-        let Ok(entries) = fs::read_dir(dir) else { continue };
-        let mut files: Vec<PathBuf> = entries.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|e| e == "so")).collect();
+        let Ok(entries) = fs::read_dir(dir) else {
+            continue;
+        };
+        let mut files: Vec<PathBuf> = entries
+            .flatten()
+            .map(|e| e.path())
+            .filter(|p| p.extension().is_some_and(|e| e == "so"))
+            .collect();
         files.sort();
         for f in files {
             if let Some(id) = f.file_stem().and_then(|n| n.to_str()) {
@@ -86,15 +107,24 @@ pub fn enabled_by_default(effect: &Effect) -> bool {
         return fs::read_to_string(effect.path.join("metadata.json"))
             .ok()
             .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
-            .and_then(|v| v.pointer("/KPlugin/EnabledByDefault").and_then(serde_json::Value::as_bool))
+            .and_then(|v| {
+                v.pointer("/KPlugin/EnabledByDefault")
+                    .and_then(serde_json::Value::as_bool)
+            })
             .unwrap_or(false);
     }
-    fs::read(&effect.path).map(|bytes| cbor_enabled_by_default(&bytes)).unwrap_or(false)
+    fs::read(&effect.path)
+        .map(|bytes| cbor_enabled_by_default(&bytes))
+        .unwrap_or(false)
 }
 
 fn cbor_enabled_by_default(bytes: &[u8]) -> bool {
     let key = b"EnabledByDefault";
-    bytes.windows(key.len()).position(|w| w == key).and_then(|i| bytes.get(i + key.len())) == Some(&0xF5)
+    bytes
+        .windows(key.len())
+        .position(|w| w == key)
+        .and_then(|i| bytes.get(i + key.len()))
+        == Some(&0xF5)
 }
 
 fn no_apply() -> bool {
@@ -105,22 +135,41 @@ fn qdbus(args: &[&str]) -> Option<String> {
     if no_apply() {
         return None;
     }
-    let (status, out) = crate::paths::output_bounded(std::process::Command::new("qdbus6").args(args).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::null()))?;
-    status.success().then(|| String::from_utf8_lossy(&out).trim().to_string())
+    let (status, out) = crate::paths::output_bounded(
+        std::process::Command::new("qdbus6")
+            .args(args)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null()),
+    )?;
+    status
+        .success()
+        .then(|| String::from_utf8_lossy(&out).trim().to_string())
 }
 
 /// Is `id` loaded in the running KWin? None when KWin cannot be asked.
 fn loaded(id: &str) -> Option<bool> {
-    qdbus(&["org.kde.KWin", "/Effects", "org.kde.kwin.Effects.isEffectLoaded", id]).map(|s| s == "true")
+    qdbus(&[
+        "org.kde.KWin",
+        "/Effects",
+        "org.kde.kwin.Effects.isEffectLoaded",
+        id,
+    ])
+    .map(|s| s == "true")
 }
 
 /// Save: write the effective state of every installed effect the snapshot's
 /// kwinrc does not mention (the running KWin's state, else the default).
 pub fn pin_states(snapshot_kwinrc: &Path) -> std::io::Result<()> {
-    pin_states_with(snapshot_kwinrc, &installed(), |e| loaded(&e.id).unwrap_or_else(|| enabled_by_default(e)))
+    pin_states_with(snapshot_kwinrc, &installed(), |e| {
+        loaded(&e.id).unwrap_or_else(|| enabled_by_default(e))
+    })
 }
 
-fn pin_states_with(snapshot_kwinrc: &Path, effects: &[Effect], state: impl Fn(&Effect) -> bool) -> std::io::Result<()> {
+fn pin_states_with(
+    snapshot_kwinrc: &Path,
+    effects: &[Effect],
+    state: impl Fn(&Effect) -> bool,
+) -> std::io::Result<()> {
     if !snapshot_kwinrc.is_file() {
         return Ok(());
     }
@@ -129,7 +178,12 @@ fn pin_states_with(snapshot_kwinrc: &Path, effects: &[Effect], state: impl Fn(&E
     for e in effects {
         let key = format!("{}Enabled", e.id);
         if crate::field::ini_get(&text, "Plugins", &key).is_none() {
-            text = crate::field::set_ini_text(&text, "Plugins", &key, if state(e) { "true" } else { "false" });
+            text = crate::field::set_ini_text(
+                &text,
+                "Plugins",
+                &key,
+                if state(e) { "true" } else { "false" },
+            );
         }
     }
     if text != before {
@@ -144,7 +198,8 @@ pub fn wanted(theme_kwinrc: &str, effects: &[Effect]) -> Vec<(String, bool)> {
     effects
         .iter()
         .map(|e| {
-            let on = crate::field::ini_get(theme_kwinrc, "Plugins", &format!("{}Enabled", e.id)).is_some_and(|v| v.trim() == "true");
+            let on = crate::field::ini_get(theme_kwinrc, "Plugins", &format!("{}Enabled", e.id))
+                .is_some_and(|v| v.trim() == "true");
             (e.id.clone(), on)
         })
         .collect()
@@ -155,24 +210,44 @@ pub fn wanted(theme_kwinrc: &str, effects: &[Effect]) -> Vec<(String, bool)> {
 /// load/unload and reconfigure them in the running KWin.
 pub fn sync(theme_kwinrc: &Path) {
     let theme = fs::read_to_string(theme_kwinrc).unwrap_or_default();
-    let live = crate::paths::config_home().join("kwinrc");
     let effects = installed();
     let states = wanted(&theme, &effects);
-    if let Ok(mut text) = fs::read_to_string(&live) {
-        let before = text.clone();
-        for (id, on) in &states {
-            text = crate::field::set_ini_text(&text, "Plugins", &format!("{id}Enabled"), if *on { "true" } else { "false" });
-        }
-        if text != before {
-            let _ = fs::write(&live, text);
-        }
+    let mut plan = crate::change_plan::Plan::default();
+    if let Err(error) = plan_sync(theme_kwinrc, &mut plan).and_then(|_| plan.commit()) {
+        crate::operation::note_hook_error(format!("KWin configuration: {error:#}"));
     }
     for (id, on) in &states {
-        qdbus(&["org.kde.KWin", "/Effects", if *on { "loadEffect" } else { "unloadEffect" }, id]);
+        qdbus(&[
+            "org.kde.KWin",
+            "/Effects",
+            if *on { "loadEffect" } else { "unloadEffect" },
+            id,
+        ]);
         if *on {
             qdbus(&["org.kde.KWin", "/Effects", "reconfigureEffect", id]);
         }
     }
+}
+
+/// File changes from effect activation, shared with the pre-apply report.
+pub(crate) fn plan_sync(source: &Path, plan: &mut crate::change_plan::Plan) -> anyhow::Result<()> {
+    let theme = plan.text(source)?.unwrap_or_default();
+    let live = crate::paths::config_home().join("kwinrc");
+    if let Some(mut text) = plan.text(&live)? {
+        let before = text.clone();
+        for (id, on) in wanted(&theme, &installed()) {
+            text = crate::field::set_ini_text(
+                &text,
+                "Plugins",
+                &format!("{id}Enabled"),
+                if on { "true" } else { "false" },
+            );
+        }
+        if text != before {
+            plan.write_text(&live, text, "effects")?;
+        }
+    }
+    Ok(())
 }
 
 /// The installed effect `id`, if any (for dependency detection).
@@ -192,8 +267,12 @@ pub fn enabled_third_party(theme_kwinrc: &str) -> Vec<String> {
             in_plugins = t == "[Plugins]";
             continue;
         }
-        let Some((key, value)) = t.split_once('=').filter(|_| in_plugins) else { continue };
-        let Some(id) = key.trim().strip_suffix("Enabled") else { continue };
+        let Some((key, value)) = t.split_once('=').filter(|_| in_plugins) else {
+            continue;
+        };
+        let Some(id) = key.trim().strip_suffix("Enabled") else {
+            continue;
+        };
         if value.trim() == "true" && safe_id(id) && !builtin(id) {
             out.push(id.to_string());
         }
@@ -209,7 +288,13 @@ fn builtin(id: &str) -> bool {
 
 /// Third-party effects recognised even where they are not installed (so a
 /// receiver sees them as dependencies).
-const KNOWN_THIRD_PARTY: &[&str] = &["better_blur_dx", "kwin4_effect_shapecorners", "glass", "forceblur", "kwin_effect_lightlyshaders"];
+const KNOWN_THIRD_PARTY: &[&str] = &[
+    "better_blur_dx",
+    "kwin4_effect_shapecorners",
+    "glass",
+    "forceblur",
+    "kwin_effect_lightlyshaders",
+];
 
 #[cfg(test)]
 mod tests {
@@ -233,10 +318,17 @@ mod tests {
         fs::create_dir_all(scripts.join("kwin4_effect_geometry_change")).unwrap();
         fs::write(plugins.join("kwin4_effect_shapecorners.so"), b"x").unwrap();
         fs::write(plugins.join("readme.txt"), b"x").unwrap();
-        fs::write(scripts.join("kwin4_effect_geometry_change/metadata.json"), r#"{"KPlugin":{"EnabledByDefault":true}}"#).unwrap();
+        fs::write(
+            scripts.join("kwin4_effect_geometry_change/metadata.json"),
+            r#"{"KPlugin":{"EnabledByDefault":true}}"#,
+        )
+        .unwrap();
         let found = installed_in(&[plugins], &[scripts]);
         let ids: Vec<&str> = found.iter().map(|e| e.id.as_str()).collect();
-        assert_eq!(ids, ["kwin4_effect_geometry_change", "kwin4_effect_shapecorners"]);
+        assert_eq!(
+            ids,
+            ["kwin4_effect_geometry_change", "kwin4_effect_shapecorners"]
+        );
         assert!(enabled_by_default(&found[0]), "scripted metadata.json");
     }
 
@@ -246,23 +338,39 @@ mod tests {
         let rc = tmp.path().join("kwinrc");
         fs::write(&rc, "[Plugins]\nbetter_blur_dxEnabled=true\n").unwrap();
         let effects = vec![
-            Effect { id: "better_blur_dx".into(), path: PathBuf::new() },
-            Effect { id: "kwin4_effect_shapecorners".into(), path: PathBuf::new() },
+            Effect {
+                id: "better_blur_dx".into(),
+                path: PathBuf::new(),
+            },
+            Effect {
+                id: "kwin4_effect_shapecorners".into(),
+                path: PathBuf::new(),
+            },
         ];
         pin_states_with(&rc, &effects, |e| e.id == "kwin4_effect_shapecorners").unwrap();
         let text = fs::read_to_string(&rc).unwrap();
-        assert!(text.contains("better_blur_dxEnabled=true") && text.contains("kwin4_effect_shapecornersEnabled=true"), "{text}");
+        assert!(
+            text.contains("better_blur_dxEnabled=true")
+                && text.contains("kwin4_effect_shapecornersEnabled=true"),
+            "{text}"
+        );
         // An older theme that never heard of Rounded Corners turns it off.
         let older = "[Plugins]\nbetter_blur_dxEnabled=true\n";
         assert_eq!(
             wanted(older, &effects),
-            vec![("better_blur_dx".to_string(), true), ("kwin4_effect_shapecorners".to_string(), false)]
+            vec![
+                ("better_blur_dx".to_string(), true),
+                ("kwin4_effect_shapecorners".to_string(), false)
+            ]
         );
     }
 
     #[test]
     fn third_party_enabled_effects() {
         let rc = "[Plugins]\nkwin4_effect_shapecornersEnabled=true\nbetter_blur_dxEnabled=false\nwobblywindowsEnabled=true\n\n[Other]\nglassEnabled=true\n";
-        assert_eq!(enabled_third_party(rc), vec!["kwin4_effect_shapecorners".to_string()]);
+        assert_eq!(
+            enabled_third_party(rc),
+            vec!["kwin4_effect_shapecorners".to_string()]
+        );
     }
 }

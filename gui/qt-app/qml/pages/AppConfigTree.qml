@@ -166,7 +166,7 @@ ColumnLayout {
         font.pointSize: TypeScale.caption
     }
 
-    Kirigami.Dialog {
+    AppDialog {
         id: configValueDialog
         title: qsTr("Edit config value")
         property string relPath: ""
@@ -198,6 +198,8 @@ ColumnLayout {
             }
             Label {
                 text: configValueDialog.oldValue + "  →  " + newValueField.text
+                textFormat: Text.PlainText
+                wrapMode: Text.Wrap
                 color: ThemeColors.dimColor(tree.glassMode)
                 font.pointSize: TypeScale.caption
                 Layout.fillWidth: true

@@ -29,7 +29,6 @@ timestamp=2026-11-05T15:34:16+10:00
 .config/wofi/style.css
 .config/wofi/wallpaper.css
 .config/btop/btop.conf
-.config/fastfetch/config.jsonc
 .config/zed/settings.json
 .config/zed/themes/night-owlz--NightOwl.json
 .config/Code/User/settings.json

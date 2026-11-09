@@ -405,7 +405,6 @@ def test_controller_rejects_invalid_profile_scope(home: Path) -> None:
     controller.setScope("profile:../etc")
     assert controller.scope == "live"
     assert messages and messages[-1][1] is False
-    assert controller.profileSummary("../etc") == {}
 
 
 def test_controller_read_only_undo_does_not_touch_live_files(home: Path) -> None:
@@ -449,28 +448,19 @@ def test_controller_profile_scope_is_read_only(home: Path) -> None:
     assert "read-only" in messages[-1][0].lower()
 
 
-def test_controller_profile_summary(home: Path) -> None:
-    """The profile card shows a theme fingerprint instead of identical chips."""
-    from core.protocol import CoreFactory
-    from controllers.theme_inspector import ThemeInspectorController
-
-    CoreFactory.reset()
-    controller = ThemeInspectorController()
-    summary = controller.profileSummary("glass")
-
+def test_rust_profile_summary(home: Path) -> None:
+    from core.cli_core import core_request
+    values = core_request("profile.summaries", names=["glass", "missing"])
+    summary = values["glass"]
     assert summary["accent"] == "#0a141e"
     assert summary["scheme"] == "Breeze1"
     assert summary["lookAndFeel"] == "glass"
     assert summary["swatches"][0] == "#20241f"
     assert "#0a141e" in summary["swatches"]
-    assert summary["fileCount"] >= 1
-    assert summary["sizeBytes"] > 0
-
-    assert controller.profileSummary("") == {}
-    # Unknown profiles must not raise; the card falls back to its basic state.
-    unknown = controller.profileSummary("no-such-profile")
-    assert unknown["sizeBytes"] == 0
-    assert unknown["accent"] == ""
+    assert summary["fileCount"] >= 1 and summary["sizeBytes"] > 0
+    assert "error" in values["missing"]
+    assert core_request("profile.summaries", names=[]) == {}
+    with pytest.raises(ValueError): core_request("profile.summaries", names=["../escape"])
 
 
 def test_qml_wiring() -> None:
@@ -514,7 +504,7 @@ def test_profile_card_has_inspect_action() -> None:
     # theme, and the palette icon was not recognizable as "Inspect".
     assert 'text: qsTr("Inspect")' in text
     assert 'qsTr("Apply")' in text
-    assert "themeInspector.profileSummary" in text
+    assert "profileController.summaries" in text
     # Component chips were identical for every profile and are gone.
     assert "Kirigami.Chip" not in text
 
@@ -614,5 +604,62 @@ def test_core_messages_are_translated() -> None:
         from core.theme_core import tr
 
         assert tr("Nothing to apply") == "Применять нечего"
+        from core.core_messages import localize_inspector
+        assert localize_inspector("Nothing to apply") == "Применять нечего"
     finally:
         app.removeTranslator(translator)
+
+
+def test_apply_failure_keeps_staged_fields_for_retry(home, monkeypatch):
+    core = AppThemeCore()
+    assert core.set_value("accent_color", "#112233").success
+    path = home / ".config/kdeglobals"
+    saved = path.with_suffix(".original")
+    path.rename(saved)
+    path.mkdir()
+    try:
+        result = core.apply()
+        assert not result.success
+        assert core.session_changes() == 1
+        assert core.undo_depth() == 0
+        assert core.undo().success
+        assert core.session_changes() == 0
+    finally:
+        path.rmdir()
+        saved.rename(path)
+
+
+def test_partial_apply_keeps_only_failed_fields_and_retry(home, monkeypatch):
+    core = AppThemeCore()
+    assert core.set_value("accent_color", "#112233").success
+    assert core.set_value("kitty_opacity", 0.9).success
+    path = home / ".config/kdeglobals"
+    saved = path.with_suffix(".original")
+    path.rename(saved)
+    path.mkdir()
+    assert not core.apply().success
+    assert core._staged == {"accent_color": "17,34,51"}
+    assert core.undo_depth() == 1
+    kitty = home / ".config/kitty/theme-profile.conf"
+    before = kitty.read_bytes()
+    path.rmdir()
+    saved.rename(path)
+    assert core.apply().success
+    assert kitty.read_bytes() == before  # retry does not rewrite successful fields
+    assert core.session_changes() == 0
+    assert core.undo_depth() == 2
+
+
+def test_config_apply_failure_retains_value_until_success(home, monkeypatch):
+    core = AppThemeCore()
+    rel = ".config/kdeglobals"
+    assert core.set_config_value(rel, "General/ColorScheme", "Probe").success
+    path = home / rel
+    saved = path.with_suffix(".original")
+    path.rename(saved)
+    assert not core.apply().success
+    assert core.session_changes() == 1
+    saved.rename(path)
+    assert core.apply().success
+    assert core.session_changes() == 0
+    assert "ColorScheme=Probe" in path.read_text()

@@ -7,7 +7,7 @@ on:
     branches: [main, master]
 
 jobs:
-  # ── The only hard gate: the Rust core + CLI ────────────────────────────────
+  # ── Rust core + CLI ────────────────────────────────
   rust:
     name: Rust (core + CLI)
     runs-on: ubuntu-latest
@@ -30,12 +30,20 @@ jobs:
         run: cargo test
       - name: Clippy
         run: cargo clippy --all-targets -- -D warnings
+      - name: Installer and CLI regressions
+        working-directory: .
+        run: bash tests/test-scripts.sh
+      - name: Shell static analysis
+        working-directory: .
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          shellcheck scripts/*.sh tests/test-scripts.sh
 
-  # ── Python GUI tests — informational, never blocks ─────────────────────────
+  # ── Python GUI tests — required offscreen checks ─────────────────────────
   python-gui:
     name: Python GUI (PySide6) tests
     runs-on: ubuntu-latest
-    continue-on-error: true   # Qt/PySide6 is flaky in headless CI; see the logs
     defaults:
       run:
         working-directory: gui/qt-app
@@ -45,7 +53,7 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      # Build the .so + CLI so parity/wallpaper tests actually run (they skip
+      # Build the CLI so parity/wallpaper tests actually run (they skip
       # when the artifacts are missing).
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable

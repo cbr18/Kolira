@@ -249,4 +249,68 @@ CORE_MESSAGES = {
 # Code literals (tr()) added after the last manual translation pass.
 APP_THEME_CORE = {
     "theme-profile is not available: %s": "theme-profile недоступен: %s",
+    "Unknown field: %s": "Неизвестное поле: %s",
+    "Invalid value for %s: %r": "Недопустимое значение для %s: %r",
+    "%s staged — press Apply": "%s: изменение подготовлено — нажмите «Применить»",
+    "Nothing to apply": "Применять нечего",
+    "Applied %s change(s)": "Применено изменений: %s",
+    "No active profile": "Нет активной темы",
+    "%s is not stored in the profile": "%s не хранится в профиле",
+    "Unknown reset target: %s": "Неизвестная цель сброса: %s",
+    "This field has no portable default; pick a value instead": "У этого поля нет универсального значения по умолчанию; выберите значение",
+    "Failed to write %s: %s": "Не удалось записать %s: %s",
+    "%s set": "%s задано",
+    "Unstaged: %s": "Подготовленное изменение отменено: %s",
+    "Nothing to undo": "Нет изменений для отмены",
+    "Undo failed: %s": "Отмена не удалась: %s",
+    "Undone: %s": "Отменено: %s",
+    "Discarded %s staged change(s)": "Отброшено подготовленных изменений: %s",
+    "No changes in this session": "В этом сеансе нет изменений",
+    "Reverted %s file(s)": "Восстановлено файлов: %s",
+    "Inspector session is closed": "Сеанс инспектора закрыт"
 }
+
+PROFILE_RECOVERY = {
+    "Interrupted apply %1 requires recovery. Backup: %2. Run: theme-profile operations recover %1":
+        "Прерванное применение %1 требует восстановления. Резервная копия: %2. Команда: theme-profile operations recover %1",
+}
+
+APPLY_PREVIEW = {
+    "Review theme changes": "Изменения перед применением",
+    "Apply without installing": "Применить без установки",
+    "Apply": "Применить",
+    "Theme: %1": "Тема: %1",
+    "Calculating changes…": "Расчёт изменений…",
+    "%1 files will change": "Изменится файлов: %1",
+    "Personal settings in supported apps, the launcher and desktop layout are preserved. Plasma will restart; a recovery backup is created first.": "Личные настройки поддерживаемых приложений, меню запуска и расположение рабочего стола сохраняются. Plasma перезапустится; перед этим будет создана резервная копия.",
+    "Settings changed. Review this updated preview before applying.": "Настройки изменились. Проверьте обновлённые изменения перед применением.",
+    "Custom components restore whole files: %1": "Пользовательские компоненты восстанавливают файлы целиком: %1",
+    "Keep the current wallpaper": "Сохранить текущие обои",
+    "Show changes for %1": "Показать изменения %1",
+    "Delete": "Удалить",
+    "Create": "Создать",
+    "Modify": "Изменить",
+    "Includes resetting settings from the previous theme": "Включает сброс настроек предыдущей темы",
+    "Permissions: %1 → %2": "Права: %1 → %2",
+    "Link target: %1 → %2": "Назначение ссылки: %1 → %2",
+    "File content is unchanged.": "Содержимое файла не меняется.",
+    "Binary or large file: %1 → %2 bytes": "Двоичный или большой файл: %1 → %2 байт",
+    "Preview shortened; the confirmation covers the complete file.": "Просмотр сокращён; подтверждение относится ко всему файлу.",
+    "Unavailable components keep their current appearance where supported:": "Недоступные компоненты по возможности сохраняют текущее оформление:",
+    "Missing dependencies: %1": "Недостающих зависимостей: %1",
+    "Dependencies…": "Зависимости…",
+    "Follow-up actions:": "Действия после применения:",
+    "Desktop settings:": "Настройки рабочего стола:",
+    "GTK theme": "Тема GTK",
+    "Colour preference": "Светлое или тёмное оформление",
+    "Icon theme": "Тема значков",
+    "Cursor theme": "Тема курсора",
+    "Unknown": "Неизвестно",
+    "Name for the current appearance": "Имя для текущего оформления",
+    "Save current first": "Сначала сохранить текущее",
+    "Current appearance saved as %1": "Текущее оформление сохранено как %1",
+}
+PROFILE_RECOVERY.update({
+    "Current appearance saved": "Текущее оформление сохранено",
+    "Theme or live settings changed. Review the updated changes.": "Тема или текущие настройки изменились. Проверьте обновлённые изменения.",
+})

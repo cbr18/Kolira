@@ -1,7 +1,10 @@
 # Ready themes
 
-Themes that come with KDE Theme Manager. The installer adds each one unless you
-already have a theme with that name (nothing is applied or overwritten);
+Themes exclude fastfetch and preserve the user's Plasma application launcher,
+including its button icon/image. Simple Application Launcher is not required.
+
+Themes that come with KDE Theme Manager. The installer adds new ones and replaces
+ones the kit changed, unless you changed them (nothing is applied);
 `install-theme-profile-kit.sh --no-themes` skips them. By hand:
 
 ```bash

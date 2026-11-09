@@ -6,40 +6,60 @@
 //! The former `libkde_theme_core.so` FFI layer was removed together with the
 //! second (library) core — the application has a single core now.
 
-pub mod types;
-pub mod paths;
-pub mod profile;
-pub mod wallpaper;
-pub mod palette;
-pub mod oklab;
-pub mod extract;
-pub mod kvantum;
-pub mod gallery;
-pub mod net;
-pub mod stores;
-pub mod field;
-pub mod theme;
-pub mod share;
+pub mod actions;
 pub mod appearance;
+pub mod automation;
+pub mod config_parser;
+pub mod constructor;
+pub mod custom_components;
+pub mod dependency_jobs;
+pub mod dependency_registry;
 pub mod deps;
+pub mod discord;
+pub mod extract;
+pub mod extras;
+pub mod field;
+pub mod gallery;
+pub mod konsole;
+pub mod kvantum;
 pub mod kwin_effects;
 pub mod layout;
-pub mod undo;
-pub mod konsole;
-pub mod discord;
+pub mod net;
+pub mod oklab;
+pub mod palette;
+pub mod paths;
+pub mod profile;
+pub mod share;
 pub mod spicetify;
-pub mod telegram;
-pub mod actions;
-pub mod automation;
-pub mod constructor;
-pub mod extras;
-pub mod tracked_apps;
-pub mod custom_components;
-pub mod config_parser;
 pub mod status;
+pub mod stores;
+pub mod telegram;
+pub mod theme;
+pub mod tracked_apps;
+pub mod types;
+pub mod undo;
+pub mod wallpaper;
 
 #[cfg(test)]
 mod tests;
 
 // Re-export main types
 pub use types::{AppStatus, Component, ProfileInfo};
+
+pub mod app_themes;
+pub mod bundle_view;
+pub mod config_edit;
+pub mod gui_api;
+pub mod inspector_session;
+pub mod inspector_view;
+pub mod resource_clone;
+
+pub mod operation;
+
+pub mod change_plan;
+
+pub mod preview;
+
+pub mod schedule;
+
+pub mod agent;

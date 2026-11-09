@@ -64,7 +64,7 @@ Kirigami.Card {
 
             Item { Layout.fillWidth: true }
 
-            Button {
+            AppButton {
                 id: expandButton
                 flat: true
                 readonly property string actionLabel: group.expanded ? qsTr("Collapse") : qsTr("Expand")

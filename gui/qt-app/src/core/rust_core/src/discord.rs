@@ -22,7 +22,10 @@ use crate::palette::{kde_roles, Palette, Rgb};
 
 pub const THEME_FILE: &str = "theme-profile.theme.css";
 /// (client name, config folder relative to `$HOME`).
-pub const CLIENTS: &[(&str, &str)] = &[("Vencord", ".config/Vencord"), ("Vesktop", ".config/vesktop")];
+pub const CLIENTS: &[(&str, &str)] = &[
+    ("Vencord", ".config/Vencord"),
+    ("Vesktop", ".config/vesktop"),
+];
 pub const SETTINGS_KEYS: &[&str] = &["enabledThemes", "themeLinks", "transparent"];
 
 fn client_dir(rel: &str) -> PathBuf {
@@ -34,13 +37,20 @@ pub fn config_paths() -> Vec<String> {
     CLIENTS
         .iter()
         .filter(|(_, rel)| client_dir(rel).exists())
-        .flat_map(|(_, rel)| [format!("{rel}/settings/settings.json"), format!("{rel}/themes")])
+        .flat_map(|(_, rel)| {
+            [
+                format!("{rel}/settings/settings.json"),
+                format!("{rel}/themes"),
+            ]
+        })
         .collect()
 }
 
 /// Is `rel` a client settings file (merged: only the theme keys)?
 pub fn is_settings(rel: &str) -> bool {
-    CLIENTS.iter().any(|(_, base)| rel == format!("{base}/settings/settings.json"))
+    CLIENTS
+        .iter()
+        .any(|(_, base)| rel == format!("{base}/settings/settings.json"))
 }
 
 fn rgba(c: Rgb, alpha: f64) -> String {
@@ -116,15 +126,26 @@ pub fn enable(settings: &str, theme: &str) -> String {
     if !themes.iter().any(|t| t == theme) {
         themes.push(theme.to_string());
     }
-    let snippet = format!("{{\"enabledThemes\": {}}}", serde_json::to_string(&themes).unwrap_or_else(|_| "[]".into()));
-    let base = if settings.trim().is_empty() { "{}" } else { settings };
+    let snippet = format!(
+        "{{\"enabledThemes\": {}}}",
+        serde_json::to_string(&themes).unwrap_or_else(|_| "[]".into())
+    );
+    let base = if settings.trim().is_empty() {
+        "{}"
+    } else {
+        settings
+    };
     crate::appearance::jsonc_merge(&snippet, base, &["enabledThemes"])
 }
 
 /// `settings.json` with the client's `transparent` window option set.
 pub fn set_transparent(settings: &str, on: bool) -> String {
     let snippet = format!("{{\"transparent\": {on}}}");
-    let base = if settings.trim().is_empty() { "{}" } else { settings };
+    let base = if settings.trim().is_empty() {
+        "{}"
+    } else {
+        settings
+    };
     crate::appearance::jsonc_merge(&snippet, base, &["transparent"])
 }
 
@@ -143,7 +164,10 @@ pub fn apply_palette(p: &Palette, opacity: f64) -> Result<Vec<PathBuf>> {
         let settings = dir.join("settings/settings.json");
         let text = fs::read_to_string(&settings).unwrap_or_default();
         fs::create_dir_all(dir.join("settings"))?;
-        fs::write(&settings, set_transparent(&enable(&text, THEME_FILE), opacity < 1.0))?;
+        fs::write(
+            &settings,
+            set_transparent(&enable(&text, THEME_FILE), opacity < 1.0),
+        )?;
         written.push(file);
     }
     Ok(written)
@@ -155,11 +179,16 @@ mod tests {
 
     #[test]
     fn translucent_backgrounds_and_window() {
-        let p = crate::palette::parse_base16(include_str!("../data/base16/everforest.yaml"), "t").unwrap();
+        let p = crate::palette::parse_base16(include_str!("../data/base16/everforest.yaml"), "t")
+            .unwrap();
         let solid = css(&p, 1.0);
         assert!(!solid.contains("rgba(") && !solid.contains("transparent !important"));
         let glass = css(&p, 0.7);
-        assert!(glass.contains("--bg-4: rgba(") && glass.contains(", 0.70);") && glass.contains("background: transparent !important"));
+        assert!(
+            glass.contains("--bg-4: rgba(")
+                && glass.contains(", 0.70);")
+                && glass.contains("background: transparent !important")
+        );
         let s = set_transparent("{\n  \"autoUpdate\": true\n}\n", true);
         let v: serde_json::Value = serde_json::from_str(&s).unwrap();
         assert_eq!(v["transparent"], serde_json::json!(true));
@@ -171,7 +200,10 @@ mod tests {
         let s = "{\n  \"autoUpdate\": true,\n  \"enabledThemes\": [\"mine.css\"]\n}\n";
         let once = enable(s, THEME_FILE);
         let v: serde_json::Value = serde_json::from_str(&once).unwrap();
-        assert_eq!(v["enabledThemes"], serde_json::json!(["mine.css", THEME_FILE]));
+        assert_eq!(
+            v["enabledThemes"],
+            serde_json::json!(["mine.css", THEME_FILE])
+        );
         assert_eq!(v["autoUpdate"], true);
         assert_eq!(enable(&once, THEME_FILE), once);
         let fresh: serde_json::Value = serde_json::from_str(&enable("", THEME_FILE)).unwrap();

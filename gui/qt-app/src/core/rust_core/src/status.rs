@@ -53,12 +53,14 @@ pub fn status() -> String {
 
     emit("kde_color_scheme", kdeglobals("General", "ColorScheme"));
     emit("kde_accent", kdeglobals("General", "AccentColor"));
-    emit("kde_accent_source",
-         if kdeglobals("General", "accentColorFromWallpaper").as_deref() == Some("true") {
-             Some("wallpaper".to_string())
-         } else {
-             Some("explicit".to_string())
-         });
+    emit(
+        "kde_accent_source",
+        if kdeglobals("General", "accentColorFromWallpaper").as_deref() == Some("true") {
+            Some("wallpaper".to_string())
+        } else {
+            Some("explicit".to_string())
+        },
+    );
     emit("kde_look_and_feel", kdeglobals("KDE", "LookAndFeelPackage"));
     emit("kde_widget_style", kdeglobals("KDE", "widgetStyle"));
 
@@ -76,7 +78,10 @@ pub fn status() -> String {
     );
     emit("kwin_blur", kwin("Plugins", "blurEnabled"));
     emit("kwin_contrast", kwin("Plugins", "contrastEnabled"));
-    emit("kwin_better_blur_dx", kwin("Plugins", "better_blur_dxEnabled"));
+    emit(
+        "kwin_better_blur_dx",
+        kwin("Plugins", "better_blur_dxEnabled"),
+    );
     // Ground truth from the running wm: which KWin effects are actually loaded.
     // One best-effort D-Bus call, bounded by `timeout` (absent on CI).
     emit("kwin_loaded_effects", Some(kwin_loaded_effects()));
@@ -133,7 +138,11 @@ pub fn status() -> String {
     );
     emit(
         "klassy_corner_radius",
-        ini_group_key(&cfg.join("klassy/klassyrc"), "Windeco", "WindowCornerRadius"),
+        ini_group_key(
+            &cfg.join("klassy/klassyrc"),
+            "Windeco",
+            "WindowCornerRadius",
+        ),
     );
 
     emit(
@@ -160,13 +169,22 @@ pub fn status() -> String {
         .map(|rel| live_path(rel))
         .unwrap_or_else(|| home_dir().join(".zen/user.js"));
     for (key, pref) in [
-        ("zen_transparent_browser", "browser.tabs.allow_transparent_browser"),
+        (
+            "zen_transparent_browser",
+            "browser.tabs.allow_transparent_browser",
+        ),
         ("zen_linux_transparency", "zen.widget.linux.transparency"),
-        ("zen_custom_stylesheets", "toolkit.legacyUserProfileCustomizations.stylesheets"),
+        (
+            "zen_custom_stylesheets",
+            "toolkit.legacyUserProfileCustomizations.stylesheets",
+        ),
         ("zen_active_theme", "extensions.activeThemeID"),
         ("zen_content_theme", "browser.theme.content-theme"),
         ("zen_toolbar_theme", "browser.theme.toolbar-theme"),
-        ("zen_transparency_color", "mod.sameerasw.zen_transparency_color"),
+        (
+            "zen_transparency_color",
+            "mod.sameerasw.zen_transparency_color",
+        ),
         ("zen_bg_color_enabled", "mod.sameerasw.zen_bg_color_enabled"),
         ("zen_bg_opacity", "mod.sameerasw.zen_bg_opacity"),
         ("zen_window_scheme", "zen.view.window.scheme"),
@@ -196,14 +214,32 @@ pub fn status() -> String {
     );
     emit(
         "cursor_theme",
-        json_key_value(&cfg.join("Cursor/User/settings.json"), "workbench.colorTheme"),
+        json_key_value(
+            &cfg.join("Cursor/User/settings.json"),
+            "workbench.colorTheme",
+        ),
     );
 
     // Obsidian used to dump the whole appearance.json (raw `{}` or fragments).
     // Only the two meaningful strings are reported now.
     let obsidian_json = home_dir().join("obsidian/vault/.obsidian/appearance.json");
     emit("obsidian_theme", json_key_value(&obsidian_json, "theme"));
-    emit("obsidian_css_theme", json_key_value(&obsidian_json, "cssTheme"));
+    emit(
+        "obsidian_css_theme",
+        json_key_value(&obsidian_json, "cssTheme"),
+    );
 
+    if let Ok(operations) = crate::operation::list() {
+        emit("apply_operation_busy", Some(operations["busy"].to_string()));
+        let interrupted = operations["operations"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|record| record["interrupted"] == true)
+            .filter_map(|record| record["id"].as_str())
+            .collect::<Vec<_>>()
+            .join(",");
+        emit("apply_recovery_required", Some(interrupted));
+    }
     out
 }

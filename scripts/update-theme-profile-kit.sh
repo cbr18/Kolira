@@ -14,7 +14,9 @@ Usage: update-theme-profile-kit.sh [OPTIONS]
 Update theme-profile-kit from git, then reinstall the scripts and the GUI.
 
 Options:
+  --restart     Restart a running KDE Theme Manager on the new version.
   -h, --help    Show this help message and exit.
+Other options go to install-theme-profile-kit.sh as they are.
 EOF
   exit 0
 fi
@@ -43,8 +45,8 @@ if [ -d "$PROJECT_DIR/.git" ]; then
   fi
 
   say "Запуск установки"
-  exec "$SCRIPT_DIR/install-theme-profile-kit.sh"
+  exec "$SCRIPT_DIR/install-theme-profile-kit.sh" "$@"
 else
   say "Не git-репозиторий. Просто переустановка."
-  exec "$SCRIPT_DIR/install-theme-profile-kit.sh"
+  exec "$SCRIPT_DIR/install-theme-profile-kit.sh" "$@"
 fi

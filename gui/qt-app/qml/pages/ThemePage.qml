@@ -9,13 +9,12 @@ import Components 1.0
  *  Kvantum/GTK choices and application theme adapters.
  */
 Kirigami.ScrollablePage {
+    padding: Platform.Units.gridUnit
     id: page
 
     title: qsTr("Theme")
     property string profileName: ""
     property string selectedScope: "live"
-    property string message: ""
-    property bool messageOk: true
 
     readonly property bool glassMode: themeController.isGlass
     readonly property bool compact: width < Platform.Units.gridUnit * 36
@@ -26,14 +25,12 @@ Kirigami.ScrollablePage {
         return values
     }
 
-    function showMessage(text, ok) {
-        page.message = text
-        page.messageOk = ok
-        messageBox.visible = text !== ""
-        if (ok)
-            messageTimer.restart()
-        else
-            messageTimer.stop()
+
+
+    function openGroup(group) {
+        pageStack.layers.push(Qt.resolvedUrl("ThemeComponentsPage.qml"), {
+            groupId: group.id, groupTitle: group.label, groupDescription: group.description
+        })
     }
 
     function scopeLabel() {
@@ -69,7 +66,6 @@ Kirigami.ScrollablePage {
 
     Connections {
         target: themeBundle
-        function onToast(text, ok) { page.showMessage(text, ok) }
         function onScopeChanged() {
             page.selectedScope = themeBundle.scope === "live"
                 ? "live" : themeBundle.scope.replace("profile:", "")
@@ -80,13 +76,9 @@ Kirigami.ScrollablePage {
         color: page.glassMode ? ThemeColors.glassPanel() : ThemeColors.pageBg(page.glassMode)
     }
 
-    Timer {
-        id: messageTimer
-        interval: 6000
-        onTriggered: messageBox.visible = false
-    }
 
-    Kirigami.Dialog {
+
+    AppDialog {
         id: saveProfileDialog
         title: qsTr("Save theme bundle as profile")
         standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
@@ -144,7 +136,7 @@ Kirigami.ScrollablePage {
         }
     }
 
-    Kirigami.Dialog {
+    AppDialog {
         id: customThemeDialog
         title: qsTr("Create custom derived theme")
         standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
@@ -173,7 +165,7 @@ Kirigami.ScrollablePage {
         }
     }
 
-    Kirigami.Dialog {
+    AppDialog {
         id: revertDialog
         title: qsTr("Revert theme changes?")
         standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
@@ -189,10 +181,9 @@ Kirigami.ScrollablePage {
     }
 
     ColumnLayout {
-        Layout.margins: Platform.Units.largeSpacing
         spacing: Platform.Units.largeSpacing
 
-        RowLayout {
+        ActionFlow {
             Layout.fillWidth: true
             spacing: Platform.Units.mediumSpacing
 
@@ -201,6 +192,8 @@ Kirigami.ScrollablePage {
                 text: page.selectedScope === "live"
                     ? qsTr("Live theme bundle")
                     : qsTr("Saved theme bundle")
+                width: Math.min(implicitWidth, parent.width)
+                wrapMode: Text.Wrap
                 color: ThemeColors.fgColor(page.glassMode)
                 Layout.fillWidth: true
             }
@@ -218,7 +211,7 @@ Kirigami.ScrollablePage {
                     ? 0 : page.scopeChoices.indexOf(page.selectedScope)
                 displayText: currentIndex === 0 ? qsTr("Live system") : currentText
                 enabled: !themeBundle.busy
-                Layout.preferredWidth: Platform.Units.gridUnit * 11
+                width: Math.min(implicitWidth, parent.width)
                 onActivated: function(index) {
                     if (index >= 0 && index < page.scopeChoices.length)
                         page.switchScope(page.scopeChoices[index])
@@ -226,7 +219,7 @@ Kirigami.ScrollablePage {
                 Accessible.name: qsTr("Theme scope")
             }
 
-            Button {
+            AppButton {
                 text: qsTr("Refresh")
                 icon.name: "view-refresh"
                 enabled: !themeBundle.busy
@@ -234,19 +227,7 @@ Kirigami.ScrollablePage {
             }
         }
 
-        Kirigami.InlineMessage {
-            id: messageBox
-            Layout.fillWidth: true
-            visible: false
-            text: page.message
-            type: page.messageOk
-                ? Kirigami.MessageType.Positive : Kirigami.MessageType.Error
-            showCloseButton: true
-            onVisibleChanged: {
-                if (!visible)
-                    page.message = ""
-            }
-        }
+
 
         Kirigami.Card {
             Layout.fillWidth: true
@@ -260,13 +241,15 @@ Kirigami.ScrollablePage {
             contentItem: ColumnLayout {
                 spacing: Platform.Units.mediumSpacing
 
-                RowLayout {
+                ActionFlow {
                     Layout.fillWidth: true
                     spacing: Platform.Units.smallSpacing
 
                     Kirigami.Heading {
                         level: 2
                         text: page.scopeLabel()
+                        width: Math.min(implicitWidth, parent.width)
+                        wrapMode: Text.Wrap
                         color: ThemeColors.fgColor(page.glassMode)
                     }
 
@@ -279,32 +262,31 @@ Kirigami.ScrollablePage {
                         closable: false
                     }
 
-                    Item { Layout.fillWidth: true }
 
-                    Button {
+                    AppButton {
                         text: qsTr("Apply profile")
                         icon.name: "dialog-ok-apply"
                         highlighted: true
                         visible: page.selectedScope !== "live"
                         enabled: !themeBundle.busy
-                        onClicked: themeBundle.applyProfile(page.selectedScope)
+                        onClicked: profileController.previewApply(page.selectedScope, false)
                     }
                 }
 
                 Label {
                     Layout.fillWidth: true
                     text: page.selectedScope === "live"
-                        ? qsTr("Active profile: %1 · %2 change(s)").arg(themeBundle.activeProfile || "—").arg(themeBundle.sessionChanges)
+                        ? qsTr("Active profile: %1 · %n change(s)", "", themeBundle.sessionChanges).arg(themeBundle.activeProfile || "—")
                         : qsTr("This profile is a saved theme bundle. Apply it to make it active.")
                     wrapMode: Text.WordWrap
                     color: ThemeColors.dimColor(page.glassMode)
                 }
 
-                RowLayout {
+                ActionFlow {
                     Layout.fillWidth: true
                     spacing: Platform.Units.smallSpacing
 
-                    Button {
+                    AppButton {
                         text: qsTr("Save as profile…")
                         icon.name: "document-save-as"
                         enabled: page.selectedScope === "live" && !themeBundle.busy
@@ -316,7 +298,7 @@ Kirigami.ScrollablePage {
                         }
                     }
 
-                    Button {
+                    AppButton {
                         text: qsTr("Create custom theme…")
                         icon.name: "document-new"
                         enabled: page.selectedScope === "live" && !themeBundle.busy
@@ -326,9 +308,8 @@ Kirigami.ScrollablePage {
                         }
                     }
 
-                    Item { Layout.fillWidth: true }
 
-                    Button {
+                    AppButton {
                         text: qsTr("Apply changes")
                         icon.name: "dialog-ok-apply"
                         highlighted: true
@@ -338,7 +319,7 @@ Kirigami.ScrollablePage {
                         onClicked: themeBundle.applyChanges()
                     }
 
-                    Button {
+                    AppButton {
                         text: qsTr("Undo")
                         icon.name: "edit-undo"
                         visible: themeBundle.sessionChanges > 0 || themeBundle.undoDepth > 0
@@ -347,7 +328,7 @@ Kirigami.ScrollablePage {
                         onClicked: themeBundle.undo()
                     }
 
-                    Button {
+                    AppButton {
                         text: qsTr("Revert")
                         icon.name: "document-revert"
                         visible: themeBundle.sessionChanges > 0 || themeBundle.undoDepth > 0
@@ -369,51 +350,42 @@ Kirigami.ScrollablePage {
                 model: themeBundle.groups
 
                 Kirigami.Card {
+                    id: groupCard
+                    objectName: "themeGroup_" + modelData.id
+                    function openGroup() { page.openGroup(modelData) }
                     required property var modelData
                     Layout.fillWidth: true
                     activeFocusOnTab: true
                     Accessible.role: Accessible.Button
                     Accessible.name: modelData.label
                     Accessible.description: page.groupSummary(modelData)
+                    Accessible.onPressAction: groupCard.openGroup()
 
                     background: Rectangle {
                         radius: Platform.Units.smallSpacing
-                        border.width: groupTile.activeFocus ? 2 : 1
-                        color: groupHover.hovered || groupTile.activeFocus
+                        border.width: groupCard.activeFocus ? 2 : 1
+                        color: groupHover.hovered || groupCard.activeFocus
                             ? ThemeColors.cardHoverBg(page.glassMode)
                             : ThemeColors.cardBg(page.glassMode)
-                        border.color: groupTile.activeFocus
+                        border.color: groupCard.activeFocus
                             ? ThemeColors.accent()
                             : ThemeColors.cardBorder(page.glassMode)
                     }
 
                     HoverHandler { id: groupHover }
                     TapHandler {
-                        onTapped: pageStack.layers.push(
-                            Qt.resolvedUrl("ThemeComponentsPage.qml"), {
-                                groupId: modelData.id,
-                                groupTitle: modelData.label,
-                                groupDescription: modelData.description,
-                                components: modelData.components
-                            })
+                        onTapped: groupCard.openGroup()
                     }
                     Keys.onPressed: function(event) {
                         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
                                 || event.key === Qt.Key_Space) {
-                            pageStack.layers.push(
-                                Qt.resolvedUrl("ThemeComponentsPage.qml"), {
-                                    groupId: modelData.id,
-                                    groupTitle: modelData.label,
-                                    groupDescription: modelData.description,
-                                    components: modelData.components
-                                })
+                            groupCard.openGroup()
                             event.accepted = true
                         }
                     }
 
                     contentItem: ColumnLayout {
                         id: groupTile
-                        anchors.margins: Platform.Units.mediumSpacing
                         spacing: Platform.Units.smallSpacing
 
                         RowLayout {
@@ -442,17 +414,12 @@ Kirigami.ScrollablePage {
                             wrapMode: Text.Wrap
                         }
 
-                        Button {
+                        AppButton {
+                            objectName: "openGroup_" + modelData.id
                             Layout.alignment: Qt.AlignRight
                             text: qsTr("Open")
                             icon.name: "go-next"
-                            onClicked: pageStack.layers.push(
-                                Qt.resolvedUrl("ThemeComponentsPage.qml"), {
-                                    groupId: modelData.id,
-                                    groupTitle: modelData.label,
-                                    groupDescription: modelData.description,
-                                    components: modelData.components
-                                })
+                            onClicked: groupCard.openGroup()
                         }
                     }
                 }
@@ -465,14 +432,15 @@ Kirigami.ScrollablePage {
                 Accessible.role: Accessible.Button
                 Accessible.name: qsTr("Palette")
                 Accessible.description: qsTr("One base16 palette for the colour scheme, terminals and Kvantum")
+                Accessible.onPressAction: paletteCard.openPalette()
 
                 background: Rectangle {
                     radius: Platform.Units.smallSpacing
-                    border.width: paletteTile.activeFocus ? 2 : 1
-                    color: paletteHover.hovered || paletteTile.activeFocus
+                    border.width: paletteCard.activeFocus ? 2 : 1
+                    color: paletteHover.hovered || paletteCard.activeFocus
                         ? ThemeColors.cardHoverBg(page.glassMode)
                         : ThemeColors.cardBg(page.glassMode)
-                    border.color: paletteTile.activeFocus
+                    border.color: paletteCard.activeFocus
                         ? ThemeColors.accent()
                         : ThemeColors.cardBorder(page.glassMode)
                 }
@@ -492,7 +460,6 @@ Kirigami.ScrollablePage {
 
                 contentItem: ColumnLayout {
                     id: paletteTile
-                    anchors.margins: Platform.Units.mediumSpacing
                     spacing: Platform.Units.smallSpacing
 
                     RowLayout {
@@ -512,7 +479,8 @@ Kirigami.ScrollablePage {
                         }
                     }
 
-                    RowLayout {
+                    Flow {
+                        Layout.fillWidth: true
                         spacing: 2
                         visible: paletteController.hasPalette
                         Repeater {
@@ -532,13 +500,13 @@ Kirigami.ScrollablePage {
                     Label {
                         Layout.fillWidth: true
                         text: paletteController.hasPalette
-                            ? qsTr("%1 · %2").arg(paletteController.palette.name).arg(paletteController.palette.source)
+                            ? qsTr("%1 · %2").arg(paletteController.palette.name).arg(paletteController.palette.sourceText)
                             : qsTr("No palette yet — gallery or wallpaper")
                         wrapMode: Text.WordWrap
                         color: ThemeColors.dimColor(page.glassMode)
                     }
 
-                    Button {
+                    AppButton {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Open palette")
                         icon.name: "go-next"
@@ -554,14 +522,15 @@ Kirigami.ScrollablePage {
                 Accessible.role: Accessible.Button
                 Accessible.name: qsTr("Application themes")
                 Accessible.description: qsTr("Choose themes for supported applications")
+                Accessible.onPressAction: appsCard.openApps()
 
                 background: Rectangle {
                     radius: Platform.Units.smallSpacing
-                    border.width: appsTile.activeFocus ? 2 : 1
-                    color: appsHover.hovered || appsTile.activeFocus
+                    border.width: appsCard.activeFocus ? 2 : 1
+                    color: appsHover.hovered || appsCard.activeFocus
                         ? ThemeColors.cardHoverBg(page.glassMode)
                         : ThemeColors.cardBg(page.glassMode)
-                    border.color: appsTile.activeFocus
+                    border.color: appsCard.activeFocus
                         ? ThemeColors.accent()
                         : ThemeColors.cardBorder(page.glassMode)
                 }
@@ -581,7 +550,6 @@ Kirigami.ScrollablePage {
 
                 contentItem: ColumnLayout {
                     id: appsTile
-                    anchors.margins: Platform.Units.mediumSpacing
                     spacing: Platform.Units.smallSpacing
 
                     RowLayout {
@@ -612,7 +580,7 @@ Kirigami.ScrollablePage {
                         color: ThemeColors.dimColor(page.glassMode)
                     }
 
-                    Button {
+                    AppButton {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Choose app themes")
                         icon.name: "go-next"

@@ -5,13 +5,12 @@
 //! and the FFI library (`kde_theme_core.so`) both use these functions.
 
 use std::fs;
-use std::io::Write;
-use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{anyhow, Context, Result};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::appearance;
 use crate::config_parser::{ini_group_key, ini_group_lines};
@@ -75,10 +74,7 @@ fn build_manifest(profile: &str, rel_paths: &[String]) -> ThemeManifest {
             if matched.is_empty() {
                 None
             } else {
-                Some(ManifestComponent {
-                    id,
-                    paths: matched,
-                })
+                Some(ManifestComponent { id, paths: matched })
             }
         })
         .collect();
@@ -89,12 +85,11 @@ fn build_manifest(profile: &str, rel_paths: &[String]) -> ThemeManifest {
         "accentColorFromWallpaper",
     )
     .as_deref()
-    == Some("true");
+        == Some("true");
 
     ThemeManifest {
         schema_version: MANIFEST_SCHEMA_VERSION,
-        created_at: chrono::Local::now()
-            .to_rfc3339_opts(chrono::SecondsFormat::Secs, false),
+        created_at: chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false),
         tool_version: env!("CARGO_PKG_VERSION").to_string(),
         name: profile.to_string(),
         description: String::new(),
@@ -158,7 +153,6 @@ pub fn list_profiles() -> Result<Vec<ProfileInfo>> {
         return Ok(vec![]);
     }
 
-    let active = get_active_profile().unwrap_or_default();
     let mut profiles = Vec::new();
 
     for entry in fs::read_dir(&profiles_dir)? {
@@ -169,24 +163,45 @@ pub fn list_profiles() -> Result<Vec<ProfileInfo>> {
             if validate_profile_name(&name).is_err() {
                 continue;
             }
-            let profile_path = entry.path();
-            let is_active = name == active;
-            let components = get_profile_components(&name)?;
-            let created_at = get_profile_created_at(&profile_path)?;
-
-            profiles.push(ProfileInfo {
-                name,
-                is_active,
-                components,
-                created_at,
-                description: read_manifest(&profile_path).description,
-                wallpaper_path: String::new(),
-            });
+            profiles.push(profile_info(&name)?);
         }
     }
 
     profiles.sort_by(|a, b| a.name.cmp(&b.name));
     Ok(profiles)
+}
+
+/// Metadata for all clients; theme.json takes precedence over snapshot manifests.
+pub fn profile_info(name: &str) -> Result<ProfileInfo> {
+    let dir = safe_profile_dir(name)?;
+    let manifest = read_manifest(&dir);
+    let package = fs::read(dir.join("theme.json"))
+        .ok()
+        .and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).ok());
+    let created = package
+        .as_ref()
+        .and_then(|v| v["created"].as_str())
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| get_profile_created_at(&dir).unwrap_or_default());
+    let description = package
+        .as_ref()
+        .and_then(|v| v["description"].as_str())
+        .map(str::to_string)
+        .unwrap_or(manifest.description);
+    let wallpaper = package
+        .as_ref()
+        .and_then(|v| v["wallpaper"].as_str())
+        .unwrap_or("")
+        .to_string();
+    Ok(ProfileInfo {
+        name: name.into(),
+        is_active: get_active_profile().unwrap_or_default() == name,
+        components: get_profile_components(name)?,
+        created_at: created,
+        description,
+        wallpaper_path: wallpaper,
+    })
 }
 
 /// Get active profile name
@@ -310,7 +325,24 @@ fn run_external(cmd: &str, args: &[&str]) {
         return;
     }
     crate::paths::log_step(&format!("run {cmd} {}", args.join(" ")));
-    let _ = crate::paths::status_bounded(Command::new(cmd).args(args).stderr(std::process::Stdio::null()));
+    let status = crate::paths::status_bounded(
+        Command::new(cmd)
+            .args(args)
+            .stderr(std::process::Stdio::null()),
+    );
+    if matches!(
+        cmd,
+        "plasma-apply-colorscheme"
+            | "plasma-apply-lookandfeel"
+            | "plasma-apply-desktoptheme"
+            | "plasma-apply-cursortheme"
+            | "kvantummanager"
+            | "kwriteconfig6"
+    ) && which::which(cmd).is_ok()
+        && !status.is_some_and(|s| s.success())
+    {
+        crate::operation::note_hook_error(format!("{cmd} failed or timed out"));
+    }
 }
 
 /// Run an external command and return its trimmed stdout (empty on failure).
@@ -318,9 +350,14 @@ fn run_external_capture(cmd: &str, args: &[&str]) -> String {
     if no_apply() {
         return String::new();
     }
-    crate::paths::output_bounded(Command::new(cmd).args(args).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::null()))
-        .map(|(_, out)| String::from_utf8_lossy(&out).trim().to_string())
-        .unwrap_or_default()
+    crate::paths::output_bounded(
+        Command::new(cmd)
+            .args(args)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null()),
+    )
+    .map(|(_, out)| String::from_utf8_lossy(&out).trim().to_string())
+    .unwrap_or_default()
 }
 
 pub(crate) fn unique_dir(root: &Path, prefix: &str) -> Result<PathBuf> {
@@ -335,7 +372,10 @@ pub(crate) fn unique_dir(root: &Path, prefix: &str) -> Result<PathBuf> {
             return Ok(candidate);
         }
     }
-    Err(anyhow!("Could not create a unique directory under {}", root.display()))
+    Err(anyhow!(
+        "Could not create a unique directory under {}",
+        root.display()
+    ))
 }
 
 fn remove_path(path: &Path) -> Result<()> {
@@ -369,8 +409,10 @@ pub(crate) fn copy_tree(src: &Path, dst: &Path) -> Result<()> {
         return Ok(());
     }
 
-    fs::copy(src, dst)?;
-    fs::set_permissions(dst, fs::Permissions::from_mode(meta.permissions().mode()))?;
+    if !meta.is_file() {
+        return Err(anyhow!("Unsupported special file: {}", src.display()));
+    }
+    crate::gui_api::write_bytes(dst, &fs::read(src)?, Some(meta.permissions().mode()))?;
     Ok(())
 }
 
@@ -379,6 +421,9 @@ pub(crate) fn copy_tree(src: &Path, dst: &Path) -> Result<()> {
 fn copy_tracked_into(target: &Path, rel_paths: &[String]) -> Result<()> {
     fs::create_dir_all(target)?;
     for rel in rel_paths {
+        if appearance::is_preserved(rel) {
+            continue;
+        }
         let src = live_path(rel);
         if !src.exists() {
             continue;
@@ -390,7 +435,8 @@ fn copy_tracked_into(target: &Path, rel_paths: &[String]) -> Result<()> {
         if fs::symlink_metadata(&dst).is_ok() {
             remove_path(&dst)?;
         }
-        copy_tree(&src, &dst).with_context(|| format!("Failed to copy {} -> {}", src.display(), dst.display()))?;
+        copy_tree(&src, &dst)
+            .with_context(|| format!("Failed to copy {} -> {}", src.display(), dst.display()))?;
     }
     Ok(())
 }
@@ -401,6 +447,9 @@ fn copy_tracked_into(target: &Path, rel_paths: &[String]) -> Result<()> {
 fn copy_tracked_appearance(target: &Path, rel_paths: &[String]) -> Result<()> {
     fs::create_dir_all(target)?;
     for rel in rel_paths {
+        if appearance::is_preserved(rel) {
+            continue;
+        }
         let src = live_path(rel);
         if !src.exists() {
             continue;
@@ -412,7 +461,9 @@ fn copy_tracked_appearance(target: &Path, rel_paths: &[String]) -> Result<()> {
         if fs::symlink_metadata(&dst).is_ok() {
             remove_path(&dst)?;
         }
-        let text = (src.is_file()).then(|| fs::read_to_string(&src).ok()).flatten();
+        let text = (src.is_file())
+            .then(|| fs::read_to_string(&src).ok())
+            .flatten();
         if rel == crate::extras::OMP_THEME {
             continue; // written below from the prompt the shell really uses
         }
@@ -422,7 +473,9 @@ fn copy_tracked_appearance(target: &Path, rel_paths: &[String]) -> Result<()> {
                     fs::write(&dst, look)?;
                 }
             }
-            _ => copy_tree(&src, &dst).with_context(|| format!("Failed to copy {} -> {}", src.display(), dst.display()))?,
+            _ => copy_tree(&src, &dst).with_context(|| {
+                format!("Failed to copy {} -> {}", src.display(), dst.display())
+            })?,
         }
     }
     Ok(())
@@ -433,7 +486,8 @@ fn copy_tracked_appearance(target: &Path, rel_paths: &[String]) -> Result<()> {
 /// user's config still holds it.
 fn capture_derived(target: &Path, rel_paths: &[String]) -> Result<()> {
     if rel_paths.iter().any(|r| r == crate::extras::OMP_THEME) {
-        let src = crate::extras::omp_current().unwrap_or_else(|| live_path(crate::extras::OMP_THEME));
+        let src =
+            crate::extras::omp_current().unwrap_or_else(|| live_path(crate::extras::OMP_THEME));
         if src.is_file() {
             let dst = target.join(crate::extras::OMP_THEME);
             if let Some(p) = dst.parent() {
@@ -442,7 +496,9 @@ fn capture_derived(target: &Path, rel_paths: &[String]) -> Result<()> {
             fs::copy(&src, &dst)?;
         }
     }
-    if rel_paths.iter().any(|r| r == crate::extras::GHOSTTY_HOST) && !live_path(crate::extras::GHOSTTY_THEME).exists() {
+    if rel_paths.iter().any(|r| r == crate::extras::GHOSTTY_HOST)
+        && !live_path(crate::extras::GHOSTTY_THEME).exists()
+    {
         if let Ok(host) = fs::read_to_string(live_path(crate::extras::GHOSTTY_HOST)) {
             let (look, _) = crate::extras::ghostty_split(&host);
             if !look.trim().is_empty() {
@@ -465,18 +521,35 @@ pub(crate) fn split_live_hosts(rel_paths: &[String]) -> Result<()> {
             continue;
         }
         let host_path = live_path(host);
-        let Ok(text) = fs::read_to_string(&host_path) else { continue };
-        let Some((_, look)) = appearance::include_from_host(host, &text)? else { continue };
+        let Ok(text) = fs::read_to_string(&host_path) else {
+            continue;
+        };
+        let Some((_, look)) = appearance::include_from_host(host, &text)? else {
+            continue;
+        };
         let backups = backups_dir();
         fs::create_dir_all(&backups)?;
-        let app = if host == appearance::KITTY_HOST { "kitty" } else { "alacritty" };
+        let app = if host == appearance::KITTY_HOST {
+            "kitty"
+        } else {
+            "alacritty"
+        };
         let backup = unique_dir(&backups, &format!("pre-split-{app}"))?;
         copy_tracked_into(&backup, &[host.to_string(), include.to_string()])?;
         let include_path = live_path(include);
         let existing = fs::read_to_string(&include_path).unwrap_or_default();
         // Lines from the host come last: they are what the user saw.
         let merged = if host == appearance::KITTY_HOST {
-            format!("{}{}{}", existing, if existing.is_empty() || existing.ends_with('\n') { "" } else { "\n" }, look)
+            format!(
+                "{}{}{}",
+                existing,
+                if existing.is_empty() || existing.ends_with('\n') {
+                    ""
+                } else {
+                    "\n"
+                },
+                look
+            )
         } else {
             merge_toml(&existing, &look)?
         };
@@ -492,7 +565,10 @@ fn merge_toml(base: &str, over: &str) -> Result<String> {
     let over: toml_edit::DocumentMut = over.parse()?;
     fn merge(into: &mut toml_edit::Table, from: &toml_edit::Table) {
         for (k, v) in from.iter() {
-            match (into.get_mut(k).and_then(toml_edit::Item::as_table_mut), v.as_table()) {
+            match (
+                into.get_mut(k).and_then(toml_edit::Item::as_table_mut),
+                v.as_table(),
+            ) {
                 (Some(dst), Some(src)) => merge(dst, src),
                 _ => {
                     into.insert(k, v.clone());
@@ -508,19 +584,27 @@ fn write_text(path: &Path, text: &str) -> Result<()> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
-    fs::write(path, text).with_context(|| format!("write {}", path.display()))
+    crate::gui_api::write_bytes(path, text.as_bytes(), None)
+        .with_context(|| format!("write {}", path.display()))
 }
 
 pub(crate) fn write_active(name: &str) -> Result<()> {
-    let path = active_file();
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?;
+    validate_profile_name(name)?;
+    let _lock = crate::gui_api::lock_file(&crate::paths::theme_root().join("active-marker.lock"))?;
+    crate::gui_api::write_bytes(&active_file(), format!("{name}\n").as_bytes(), Some(0o600))
+}
+
+pub fn clear_stale_active(expected: &str) -> Result<bool> {
+    let _lock = crate::operation::MutationGuard::acquire()?;
+    validate_profile_name(expected)?;
+    let _lock = crate::gui_api::lock_file(&crate::paths::theme_root().join("active-marker.lock"))?;
+    if get_active_profile()? == expected && !safe_profile_dir(expected)?.is_dir() {
+        if active_file().exists() {
+            fs::remove_file(active_file())?;
+        }
+        return Ok(true);
     }
-    let mut opts = fs::OpenOptions::new();
-    opts.write(true).create(true).truncate(true).mode(0o600);
-    let mut file = opts.open(&path)?;
-    writeln!(file, "{name}")?;
-    Ok(())
+    Ok(false)
 }
 
 fn write_manifest(target: &Path, profile: &str, rel_paths: &[String]) -> Result<()> {
@@ -531,10 +615,16 @@ fn write_manifest(target: &Path, profile: &str, rel_paths: &[String]) -> Result<
         "timestamp={}\n",
         chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false)
     ));
-    out.push_str(&format!("user={}\n", std::env::var("USER").unwrap_or_default()));
+    out.push_str(&format!(
+        "user={}\n",
+        std::env::var("USER").unwrap_or_default()
+    ));
     out.push('\n');
     out.push_str("[tracked]\n");
     for rel in rel_paths {
+        if appearance::is_preserved(rel) {
+            continue;
+        }
         out.push_str(rel);
         out.push('\n');
     }
@@ -561,17 +651,29 @@ fn capture_kde_effects_state(target: &Path) -> Result<()> {
         notification = run_external_capture(
             "busctl",
             &[
-                "--user", "call", "org.freedesktop.Notifications", "/org/freedesktop/Notifications",
-                "org.freedesktop.Notifications", "GetServerInformation",
+                "--user",
+                "call",
+                "org.freedesktop.Notifications",
+                "/org/freedesktop/Notifications",
+                "org.freedesktop.Notifications",
+                "GetServerInformation",
             ],
         );
     }
 
-    let mut support = run_external_capture("qdbus6", &["org.kde.KWin", "/KWin", "supportInformation"]);
+    let mut support =
+        run_external_capture("qdbus6", &["org.kde.KWin", "/KWin", "supportInformation"]);
     if support.is_empty() {
         support = run_external_capture(
             "busctl",
-            &["--user", "call", "org.kde.KWin", "/KWin", "org.kde.KWin", "supportInformation"],
+            &[
+                "--user",
+                "call",
+                "org.kde.KWin",
+                "/KWin",
+                "org.kde.KWin",
+                "supportInformation",
+            ],
         );
     }
 
@@ -580,7 +682,14 @@ fn capture_kde_effects_state(target: &Path) -> Result<()> {
     if active_effects.is_empty() {
         active_effects = run_external_capture(
             "busctl",
-            &["--user", "call", "org.kde.KWin", "/Effects", "org.kde.kwin.Effects", "activeEffects"],
+            &[
+                "--user",
+                "call",
+                "org.kde.KWin",
+                "/Effects",
+                "org.kde.kwin.Effects",
+                "activeEffects",
+            ],
         );
     }
 
@@ -589,7 +698,14 @@ fn capture_kde_effects_state(target: &Path) -> Result<()> {
     if loaded_effects.is_empty() {
         loaded_effects = run_external_capture(
             "busctl",
-            &["--user", "call", "org.kde.KWin", "/Effects", "org.kde.kwin.Effects", "loadedEffects"],
+            &[
+                "--user",
+                "call",
+                "org.kde.KWin",
+                "/Effects",
+                "org.kde.kwin.Effects",
+                "loadedEffects",
+            ],
         );
     }
 
@@ -607,7 +723,10 @@ fn capture_kde_effects_state(target: &Path) -> Result<()> {
         "contrastEnabled",
         "translucencyEnabled",
     ] {
-        summary.push_str(&format!("{key}={}\n", ini_group_key(&kwinrc, "Plugins", key).unwrap_or_default()));
+        summary.push_str(&format!(
+            "{key}={}\n",
+            ini_group_key(&kwinrc, "Plugins", key).unwrap_or_default()
+        ));
     }
     summary.push_str("\n[notification-server]\n");
     summary.push_str(&notification);
@@ -625,7 +744,12 @@ fn capture_kde_effects_state(target: &Path) -> Result<()> {
     )?;
 
     let mut glass = String::new();
-    for group in ["Effect-blur", "Effect-blurplus", "Effect-better-blur-dx", "Effect-translucency"] {
+    for group in [
+        "Effect-blur",
+        "Effect-blurplus",
+        "Effect-better-blur-dx",
+        "Effect-translucency",
+    ] {
         glass.push_str(&format!("[{group}]\n"));
         for line in ini_group_lines(&kwinrc, group) {
             glass.push_str(&line);
@@ -642,37 +766,72 @@ fn capture_kde_effects_state(target: &Path) -> Result<()> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 fn stop_plasma_shell_for_restore() {
-    run_external("systemctl", &["--user", "reset-failed", "plasma-plasmashell.service"]);
-    run_external("systemctl", &["--user", "stop", "plasma-plasmashell.service"]);
+    run_external(
+        "systemctl",
+        &["--user", "reset-failed", "plasma-plasmashell.service"],
+    );
+    run_external(
+        "systemctl",
+        &["--user", "stop", "plasma-plasmashell.service"],
+    );
 }
 
 fn plasma_shell_active() -> bool {
     if no_apply() {
         return true;
     }
-    crate::paths::status_bounded(Command::new("systemctl").args(["--user", "is-active", "--quiet", "plasma-plasmashell.service"]))
-        .map(|s| s.success())
-        .unwrap_or(true)
+    crate::paths::status_bounded(Command::new("systemctl").args([
+        "--user",
+        "is-active",
+        "--quiet",
+        "plasma-plasmashell.service",
+    ]))
+    .map(|s| s.success())
+    .unwrap_or(true)
 }
 
 fn start_plasma_shell() {
-    run_external("systemctl", &["--user", "reset-failed", "plasma-plasmashell.service"]);
-    run_external("systemctl", &["--user", "start", "plasma-plasmashell.service"]);
+    run_external(
+        "systemctl",
+        &["--user", "reset-failed", "plasma-plasmashell.service"],
+    );
+    run_external(
+        "systemctl",
+        &["--user", "start", "plasma-plasmashell.service"],
+    );
     if !no_apply() {
         std::thread::sleep(std::time::Duration::from_secs(1));
     }
     if !plasma_shell_active() {
-        run_external("systemctl", &["--user", "reset-failed", "plasma-plasmashell.service"]);
-        run_external("systemctl", &["--user", "start", "plasma-plasmashell.service"]);
+        run_external(
+            "systemctl",
+            &["--user", "reset-failed", "plasma-plasmashell.service"],
+        );
+        run_external(
+            "systemctl",
+            &["--user", "start", "plasma-plasmashell.service"],
+        );
     }
+}
+
+/// Best-effort recovery when an adapter loses the applying CLI process.
+pub fn recover_desktop_shell() {
+    start_plasma_shell();
 }
 
 fn sync_kwin_effect(source: &Path, effect: &str) {
     let key = format!("{effect}Enabled");
-    let enabled = ini_group_key(&source.join(".config/kwinrc"), "Plugins", &key).unwrap_or_default();
+    let enabled =
+        ini_group_key(&source.join(".config/kwinrc"), "Plugins", &key).unwrap_or_default();
     match enabled.as_str() {
-        "true" => run_external("qdbus6", &["org.kde.KWin", "/Effects", "loadEffect", effect]),
-        "false" => run_external("qdbus6", &["org.kde.KWin", "/Effects", "unloadEffect", effect]),
+        "true" => run_external(
+            "qdbus6",
+            &["org.kde.KWin", "/Effects", "loadEffect", effect],
+        ),
+        "false" => run_external(
+            "qdbus6",
+            &["org.kde.KWin", "/Effects", "unloadEffect", effect],
+        ),
         _ => {}
     }
 }
@@ -692,23 +851,42 @@ fn apply_kitty_live(source: &Path) {
 fn reload_kitty(socket: &str, config: &Path, config_str: &str) {
     run_external("kitty", &["@", "--to", socket, "load-config", config_str]);
 
-    let opacity = std::fs::read_to_string(config)
-        .ok()
-        .and_then(|content| {
-            content.lines().find_map(|line| {
-                let mut parts = line.split_whitespace();
-                if parts.next() == Some("background_opacity") {
-                    parts.next().map(|v| v.to_string())
-                } else {
-                    None
-                }
-            })
-        });
+    let opacity = std::fs::read_to_string(config).ok().and_then(|content| {
+        content.lines().find_map(|line| {
+            let mut parts = line.split_whitespace();
+            if parts.next() == Some("background_opacity") {
+                parts.next().map(|v| v.to_string())
+            } else {
+                None
+            }
+        })
+    });
     if let Some(opacity) = opacity {
-        run_external("kitty", &["@", "--to", socket, "set-background-opacity", "--all", &opacity]);
+        run_external(
+            "kitty",
+            &[
+                "@",
+                "--to",
+                socket,
+                "set-background-opacity",
+                "--all",
+                &opacity,
+            ],
+        );
     }
 
-    run_external("kitty", &["@", "--to", socket, "set-colors", "--all", "--configured", config_str]);
+    run_external(
+        "kitty",
+        &[
+            "@",
+            "--to",
+            socket,
+            "set-colors",
+            "--all",
+            "--configured",
+            config_str,
+        ],
+    );
 }
 
 /// Order of qdbus commands matches the historical bash script.
@@ -725,7 +903,10 @@ pub fn validate_reload_command(command: &str) -> Result<Vec<String>> {
     if trimmed.is_empty() {
         return Err(anyhow!("Reload command is empty"));
     }
-    if let Some(bad) = trimmed.chars().find(|c| RELOAD_COMMAND_FORBIDDEN.contains(c)) {
+    if let Some(bad) = trimmed
+        .chars()
+        .find(|c| RELOAD_COMMAND_FORBIDDEN.contains(c))
+    {
         return Err(anyhow!(
             "Reload command contains a forbidden shell character: {bad:?} \
              (commands run without a shell)"
@@ -766,16 +947,29 @@ pub(crate) fn run_custom_reload_hooks(rel_paths: &[String]) {
             Ok(argv) => {
                 let mut iter = argv.into_iter();
                 let binary = iter.next().unwrap_or_default();
-                let status = crate::paths::status_bounded(Command::new(&binary).args(iter.collect::<Vec<_>>()).stderr(std::process::Stdio::null()));
+                let status = crate::paths::status_bounded(
+                    Command::new(&binary)
+                        .args(iter.collect::<Vec<_>>())
+                        .stderr(std::process::Stdio::null()),
+                );
                 match status {
                     Some(s) if s.success() => {}
                     Some(s) => {
-                        eprintln!("Warning: reload command for '{}' exited with {s}", component.id)
+                        eprintln!(
+                            "Warning: reload command for '{}' exited with {s}",
+                            component.id
+                        )
                     }
-                    None => eprintln!("Warning: could not run reload command for '{}'", component.id),
+                    None => eprintln!(
+                        "Warning: could not run reload command for '{}'",
+                        component.id
+                    ),
                 }
             }
-            Err(e) => eprintln!("Warning: invalid reload command for '{}': {e}", component.id),
+            Err(e) => eprintln!(
+                "Warning: invalid reload command for '{}': {e}",
+                component.id
+            ),
         }
     }
 }
@@ -823,11 +1017,24 @@ fn reapply_color_scheme(source: &Path) {
     // service still believed "accent from wallpaper = off" and dropped the
     // wallpaper accent. Re-write the flag with --notify; flip first, because
     // writing an unchanged value emits nothing.
-    let (flag, flipped) = if from_wallpaper { ("true", "false") } else { ("false", "true") };
+    let (flag, flipped) = if from_wallpaper {
+        ("true", "false")
+    } else {
+        ("false", "true")
+    };
     for value in [flipped, flag] {
         run_external(
             "kwriteconfig6",
-            &["--notify", "--file", "kdeglobals", "--group", "General", "--key", "accentColorFromWallpaper", value],
+            &[
+                "--notify",
+                "--file",
+                "kdeglobals",
+                "--group",
+                "General",
+                "--key",
+                "accentColorFromWallpaper",
+                value,
+            ],
         );
     }
 
@@ -846,7 +1053,14 @@ fn reapply_color_scheme(source: &Path) {
     // plasma-apply-colorscheme emits when it does apply.
     run_external(
         "dbus-send",
-        &["--session", "--type=signal", "/KGlobalSettings", "org.kde.KGlobalSettings.notifyChange", "int32:0", "int32:0"],
+        &[
+            "--session",
+            "--type=signal",
+            "/KGlobalSettings",
+            "org.kde.KGlobalSettings.notifyChange",
+            "int32:0",
+            "int32:0",
+        ],
     );
 }
 
@@ -861,20 +1075,35 @@ fn reapply_widget_style(source: &Path) {
 
     run_external(
         "kwriteconfig6",
-        &["--file", "kdeglobals", "--group", "KDE", "--key", "widgetStyle", &widget_style],
+        &[
+            "--file",
+            "kdeglobals",
+            "--group",
+            "KDE",
+            "--key",
+            "widgetStyle",
+            &widget_style,
+        ],
     );
 
     if widget_style != "kvantum" {
         return;
     }
-    let Some(theme) = ini_group_key(&source.join(".config/Kvantum/kvantum.kvconfig"), "General", "theme") else {
+    let Some(theme) = ini_group_key(
+        &source.join(".config/Kvantum/kvantum.kvconfig"),
+        "General",
+        "theme",
+    ) else {
         return;
     };
     if theme.is_empty() {
         return;
     }
     // Without the theme the tool waits on a dialog; the report lists it as missing.
-    if !["/usr/share/Kvantum".into(), live_path(".config/Kvantum")].iter().any(|root: &PathBuf| root.join(&theme).is_dir()) {
+    if !["/usr/share/Kvantum".into(), live_path(".config/Kvantum")]
+        .iter()
+        .any(|root: &PathBuf| root.join(&theme).is_dir())
+    {
         eprintln!("Warning: Kvantum theme {theme} is not installed");
         return;
     }
@@ -885,12 +1114,24 @@ fn apply_live_hooks(source: &Path) {
     // Read from the profile, never via `kreadconfig6` on the live config: that
     // used to pass the profile path as an extra positional argument, making
     // kreadconfig6 print --help into kdeglobals as the LookAndFeelPackage name.
-    let look_and_feel = ini_group_key(&source.join(".config/kdeglobals"), "KDE", "LookAndFeelPackage")
-        .unwrap_or_default();
+    let look_and_feel = ini_group_key(
+        &source.join(".config/kdeglobals"),
+        "KDE",
+        "LookAndFeelPackage",
+    )
+    .unwrap_or_default();
     if !look_and_feel.is_empty() {
         run_external(
             "kwriteconfig6",
-            &["--file", "kdeglobals", "--group", "KDE", "--key", "LookAndFeelPackage", &look_and_feel],
+            &[
+                "--file",
+                "kdeglobals",
+                "--group",
+                "KDE",
+                "--key",
+                "LookAndFeelPackage",
+                &look_and_feel,
+            ],
         );
     }
 
@@ -908,7 +1149,16 @@ fn apply_live_hooks(source: &Path) {
         let _ = fs::remove_file(crate::paths::cache_home().join("icon-cache.kcache"));
     }
     for group in 0..6 {
-        run_external("dbus-send", &["--session", "--type=signal", "/KIconLoader", "org.kde.KIconLoader.iconChanged", &format!("int32:{group}")]);
+        run_external(
+            "dbus-send",
+            &[
+                "--session",
+                "--type=signal",
+                "/KIconLoader",
+                "org.kde.KIconLoader.iconChanged",
+                &format!("int32:{group}"),
+            ],
+        );
     }
     run_external("systemctl", &["--user", "stop", "swaync.service"]);
     run_external("qdbus6", &["org.kde.KWin", "/KWin", "reconfigure"]);
@@ -916,7 +1166,10 @@ fn apply_live_hooks(source: &Path) {
     // Built into KWin: as the theme says (absent = KWin's default).
     for effect in ["blur", "contrast"] {
         sync_kwin_effect(source, effect);
-        run_external("qdbus6", &["org.kde.KWin", "/Effects", "reconfigureEffect", effect]);
+        run_external(
+            "qdbus6",
+            &["org.kde.KWin", "/Effects", "reconfigureEffect", effect],
+        );
     }
     // Third-party effects: every installed one, off when the theme predates it.
     crate::kwin_effects::sync(&source.join(".config/kwinrc"));
@@ -947,7 +1200,11 @@ pub(crate) fn theme_file(theme: &Path, rel: &str) -> PathBuf {
     // Konsole: the receiver's default profile ← the theme's profile.
     if rel.starts_with(".local/share/konsole/") && rel.ends_with(".profile") {
         if let Ok(entries) = fs::read_dir(theme.join(".local/share/konsole")) {
-            let mut profiles: Vec<PathBuf> = entries.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "profile")).collect();
+            let mut profiles: Vec<PathBuf> = entries
+                .flatten()
+                .map(|e| e.path())
+                .filter(|p| p.extension().is_some_and(|x| x == "profile"))
+                .collect();
             profiles.sort();
             if let Some(p) = profiles.into_iter().next() {
                 return p;
@@ -955,7 +1212,10 @@ pub(crate) fn theme_file(theme: &Path, rel: &str) -> PathBuf {
         }
     }
     // Vencord and Vesktop share the themes/settings format.
-    for (from, to) in [(".config/Vencord/", ".config/vesktop/"), (".config/vesktop/", ".config/Vencord/")] {
+    for (from, to) in [
+        (".config/Vencord/", ".config/vesktop/"),
+        (".config/vesktop/", ".config/Vencord/"),
+    ] {
         if let Some(inner) = rel.strip_prefix(from) {
             let other = theme.join(to).join(inner);
             if other.exists() {
@@ -964,10 +1224,20 @@ pub(crate) fn theme_file(theme: &Path, rel: &str) -> PathBuf {
         }
     }
     for root in PROFILE_ROOTS {
-        let Some(rest) = rel.strip_prefix(&format!("{root}/")) else { continue };
-        let Some((_, inner)) = rest.split_once('/') else { continue };
-        let Ok(entries) = fs::read_dir(theme.join(root)) else { continue };
-        let mut dirs: Vec<PathBuf> = entries.flatten().map(|e| e.path()).filter(|p| p.join(inner).exists()).collect();
+        let Some(rest) = rel.strip_prefix(&format!("{root}/")) else {
+            continue;
+        };
+        let Some((_, inner)) = rest.split_once('/') else {
+            continue;
+        };
+        let Ok(entries) = fs::read_dir(theme.join(root)) else {
+            continue;
+        };
+        let mut dirs: Vec<PathBuf> = entries
+            .flatten()
+            .map(|e| e.path())
+            .filter(|p| p.join(inner).exists())
+            .collect();
         dirs.sort();
         if let Some(dir) = dirs.into_iter().next() {
             return dir.join(inner);
@@ -980,7 +1250,8 @@ pub(crate) fn theme_file(theme: &Path, rel: &str) -> PathBuf {
 /// which screen each desktop item sits on. Plasma rewrites these itself.
 fn is_desktop_icon_key(group: &str, key: &str) -> bool {
     group == "[ScreenMapping]"
-        || (group.ends_with("[General]") && matches!(key, "positions" | "changedPositions" | "lastResolution"))
+        || (group.ends_with("[General]")
+            && matches!(key, "positions" | "changedPositions" | "lastResolution"))
 }
 
 /// `restored` (a theme's appletsrc) with every desktop-icon key taken from
@@ -993,7 +1264,9 @@ pub(crate) fn keep_desktop_icons(restored: &str, live: &str) -> String {
             group = line.to_string();
             continue;
         }
-        let Some((key, _)) = line.split_once('=') else { continue };
+        let Some((key, _)) = line.split_once('=') else {
+            continue;
+        };
         if is_desktop_icon_key(&group, key.trim()) {
             match keep.iter_mut().find(|(g, _)| *g == group) {
                 Some((_, lines)) => lines.push(line.to_string()),
@@ -1008,7 +1281,11 @@ pub(crate) fn keep_desktop_icons(restored: &str, live: &str) -> String {
     let flush = |out: &mut Vec<String>, group: &str, seen: &mut Vec<String>| {
         if let Some((_, lines)) = keep.iter().find(|(g, _)| g == group) {
             // Before the blank separator line, if the group ends with one.
-            let at = if out.last().is_some_and(|l| l.is_empty()) { out.len() - 1 } else { out.len() };
+            let at = if out.last().is_some_and(|l| l.is_empty()) {
+                out.len() - 1
+            } else {
+                out.len()
+            };
             for (i, l) in lines.iter().enumerate() {
                 out.insert(at + i, l.clone());
             }
@@ -1022,7 +1299,10 @@ pub(crate) fn keep_desktop_icons(restored: &str, live: &str) -> String {
             out.push(line.to_string());
             continue;
         }
-        if line.split_once('=').is_some_and(|(k, _)| is_desktop_icon_key(&group, k.trim())) {
+        if line
+            .split_once('=')
+            .is_some_and(|(k, _)| is_desktop_icon_key(&group, k.trim()))
+        {
             continue;
         }
         out.push(line.to_string());
@@ -1042,90 +1322,139 @@ pub(crate) fn keep_desktop_icons(restored: &str, live: &str) -> String {
     text
 }
 
-fn restore_from_profile(profile: &str, rel_paths: &[String]) -> Result<()> {
-    let source = safe_profile_dir(profile)?;
+fn restore_from_profile(profile: &str, source: &Path, rel_paths: &[String]) -> Result<()> {
+    let mut plan = crate::change_plan::Plan::default();
+    plan_restore(profile, source, rel_paths, &mut plan)?;
+    plan.commit()
+}
+
+pub(crate) fn plan_restore(
+    profile: &str,
+    source: &Path,
+    rel_paths: &[String],
+    plan: &mut crate::change_plan::Plan,
+) -> Result<()> {
     if !source.is_dir() {
         return Err(anyhow!("Profile not found: {profile}"));
     }
 
     for rel in rel_paths {
-        let src = theme_file(&source, rel);
+        if appearance::is_preserved(rel) {
+            continue;
+        }
+        let src = theme_file(source, rel);
         let dst = live_path(rel);
         match appearance::policy(rel) {
             appearance::Policy::OmpHost => {
                 // Only point existing oh-my-posh lines at the theme's prompt.
-                if source.join(crate::extras::OMP_THEME).is_file() && dst.is_file() {
-                    let live = fs::read_to_string(&dst)?;
+                if source.join(crate::extras::OMP_THEME).is_file() && plan.is_file(&dst)? {
+                    let live = plan.text(&dst)?.context("Config missing")?;
                     let updated = appearance::applied(rel, "", Some(&live))?;
                     if updated != live {
-                        write_text(&dst, &updated)?;
+                        plan.write_text(&dst, updated, "apply")?;
                     }
                 }
             }
             appearance::Policy::GhosttyHost => {
-                if source.join(crate::extras::GHOSTTY_THEME).is_file() && (dst.is_file() || which::which("ghostty").is_ok()) {
-                    let live = fs::read_to_string(&dst).ok();
-                    write_text(&dst, &appearance::applied(rel, "", live.as_deref())?)?;
+                if source.join(crate::extras::GHOSTTY_THEME).is_file()
+                    && (plan.is_file(&dst)? || which::which("ghostty").is_ok())
+                {
+                    let live = plan.text(&dst)?;
+                    plan.write_text(
+                        &dst,
+                        appearance::applied(rel, "", live.as_deref())?,
+                        "apply",
+                    )?;
                 }
             }
             appearance::Policy::KittyHost | appearance::Policy::AlacrittyHost => {
-                let include = if rel == appearance::KITTY_HOST { appearance::KITTY_THEME } else { appearance::ALACRITTY_THEME };
+                let include = if rel == appearance::KITTY_HOST {
+                    appearance::KITTY_THEME
+                } else {
+                    appearance::ALACRITTY_THEME
+                };
                 let has_include = source.join(include).is_file();
                 // Old themes keep the look inside the host config: derive the
                 // include file from it (a new theme's include is restored as a
                 // whole file by its own entry).
                 if !has_include {
-                    if let Ok(theme_host) = fs::read_to_string(&src) {
-                        if let Some((inc, look)) = appearance::include_from_host(rel, &theme_host)? {
-                            write_text(&live_path(inc), &look)?;
+                    if let Some(theme_host) = plan.text(&src)? {
+                        if let Some((inc, look)) = appearance::include_from_host(rel, &theme_host)?
+                        {
+                            plan.write_text(&live_path(inc), look, "apply")?;
                         }
                     }
                 }
-                let app = if rel == appearance::KITTY_HOST { "kitty" } else { "alacritty" };
-                if (has_include || src.is_file()) && (dst.is_file() || which::which(app).is_ok()) {
-                    let live = fs::read_to_string(&dst).ok();
-                    write_text(&dst, &appearance::applied(rel, "", live.as_deref())?)?;
+                let app = if rel == appearance::KITTY_HOST {
+                    "kitty"
+                } else {
+                    "alacritty"
+                };
+                if (has_include || src.is_file())
+                    && (plan.is_file(&dst)? || which::which(app).is_ok())
+                {
+                    let live = plan.text(&dst)?;
+                    plan.write_text(
+                        &dst,
+                        appearance::applied(rel, "", live.as_deref())?,
+                        "apply",
+                    )?;
                 }
             }
             policy => {
                 if !src.exists() {
                     // Not in this theme: nothing of another theme stays.
-                    reset_unspecified(rel, &dst, &policy)?;
+                    plan_reset(rel, &dst, &policy, plan)?;
                     continue;
                 }
-                if crate::tracked_apps::app_absent_for(rel, &dst) {
+                if crate::tracked_apps::app_absent_without_parent(
+                    rel,
+                    dst.parent()
+                        .map(|p| plan.get(p))
+                        .transpose()?
+                        .is_some_and(|p| !matches!(p, crate::change_plan::Entry::Missing)),
+                ) {
                     continue;
-                }
-                if let Some(parent) = dst.parent() {
-                    fs::create_dir_all(parent)?;
                 }
                 let theme_text = (!matches!(policy, appearance::Policy::Whole) && src.is_file())
-                    .then(|| fs::read_to_string(&src).ok())
+                    .then(|| plan.text(&src).ok().flatten())
                     .flatten();
-                let live_layout_file = matches!(policy, appearance::Policy::Appletsrc | appearance::Policy::PanelViews);
-                if live_layout_file && !dst.is_file() {
+                let live_layout_file = matches!(
+                    policy,
+                    appearance::Policy::Appletsrc | appearance::Policy::PanelViews
+                );
+                if live_layout_file && !plan.is_file(&dst)? {
                     // No layout here yet: Plasma makes its default one; the
                     // theme never brings the author's layout.
                     continue;
                 }
                 match theme_text {
                     Some(theme_text) if matches!(policy, appearance::Policy::PanelViews) => {
-                        let live = fs::read_to_string(&dst).unwrap_or_default();
-                        let theme_layout = fs::read_to_string(theme_file(&source, APPLETSRC_REL)).ok();
-                        let live_layout = fs::read_to_string(live_path(APPLETSRC_REL)).ok();
-                        let merged = crate::layout::panel_views_merge(&theme_text, &live, theme_layout.as_deref(), live_layout.as_deref());
+                        let live = plan.text(&dst)?.unwrap_or_default();
+                        let theme_layout = plan.text(&theme_file(source, APPLETSRC_REL))?;
+                        let live_layout = plan.text(&live_path(APPLETSRC_REL))?;
+                        let merged = crate::layout::panel_views_merge(
+                            &theme_text,
+                            &live,
+                            theme_layout.as_deref(),
+                            live_layout.as_deref(),
+                        );
                         if merged != live {
-                            write_text(&dst, &merged)?;
+                            plan.write_text(&dst, merged, "apply")?;
                         }
                     }
                     Some(theme_text) => {
-                        let live = fs::read_to_string(&dst).ok();
-                        write_text(&dst, &appearance::applied(rel, &theme_text, live.as_deref())?)?;
+                        let live = plan.text(&dst)?;
+                        plan.write_text(
+                            &dst,
+                            appearance::applied(rel, &theme_text, live.as_deref())?,
+                            "apply",
+                        )?;
                         if rel.starts_with(".local/share/konsole/") && rel.ends_with(".profile") {
-                            crate::konsole::finish_profile(rel)?;
+                            crate::konsole::plan_finish_profile(rel, plan)?;
                         }
                     }
-                    None => copy_tree(&src, &dst).with_context(|| {
+                    None => plan.copy(&src, &dst, "apply").with_context(|| {
                         format!("Failed to restore {} -> {}", src.display(), dst.display())
                     })?,
                 }
@@ -1133,9 +1462,16 @@ fn restore_from_profile(profile: &str, rel_paths: &[String]) -> Result<()> {
         }
     }
     if !source.join(".local/share/konsole").is_dir() {
-        crate::konsole::reset_generated()?;
+        crate::konsole::plan_reset_generated(plan)?;
     }
-    write_active(profile)?;
+    plan.put(
+        &active_file(),
+        crate::change_plan::Entry::File {
+            bytes: format!("{profile}\n").into_bytes(),
+            mode: 0o600,
+        },
+        "active_profile",
+    )?;
     Ok(())
 }
 
@@ -1143,29 +1479,37 @@ fn restore_from_profile(profile: &str, rel_paths: &[String]) -> Result<()> {
 /// files lose their look keys (other keys stay the user's); of the files that
 /// are all look, only the ones we generate (`theme-profile*`) are removed: any
 /// other is the user's own. The prompt file stays, a shell config points at it.
-fn reset_unspecified(rel: &str, dst: &Path, policy: &appearance::Policy) -> Result<()> {
+fn plan_reset(
+    rel: &str,
+    dst: &Path,
+    policy: &appearance::Policy,
+    plan: &mut crate::change_plan::Plan,
+) -> Result<()> {
     use appearance::Policy as P;
     match policy {
         P::Whole => {
-            let ours = |p: &Path| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with("theme-profile"));
+            let ours = |p: &Path| {
+                p.file_name()
+                    .is_some_and(|n| n.to_string_lossy().starts_with("theme-profile"))
+            };
             if rel == crate::extras::OMP_THEME {
                 return Ok(());
             }
             if dst.is_dir() {
-                for entry in fs::read_dir(dst)?.flatten() {
-                    if entry.path().is_file() && ours(&entry.path()) {
-                        fs::remove_file(entry.path())?;
+                for path in plan.children(dst)? {
+                    if plan.is_file(&path)? && ours(&path) {
+                        plan.remove(&path, "reset")?;
                     }
                 }
-            } else if dst.is_file() && ours(dst) {
-                fs::remove_file(dst)?;
+            } else if plan.is_file(dst)? && ours(dst) {
+                plan.remove(dst, "reset")?;
             }
         }
         P::Ini(_) | P::Kv(_) | P::Jsonc(_) | P::Prefs(_) | P::Lines(_) | P::KwinRc => {
-            if let Ok(live) = fs::read_to_string(dst) {
+            if let Some(live) = plan.text(dst)? {
                 let reset = appearance::applied(rel, "", Some(&live))?;
                 if reset != live && !reset.trim().is_empty() {
-                    write_text(dst, &reset)?;
+                    plan.write_text(dst, reset, "reset")?;
                 }
             }
         }
@@ -1190,12 +1534,19 @@ pub fn apply_profile_impl(profile: &str, components: Option<Vec<String>>) -> Res
 /// CLI variant: unknown components warn (like the historical bash script)
 /// instead of failing; `--components=all` and a plain call select everything.
 pub fn apply_profile_cli(profile: &str, components: Option<Vec<String>>) -> Result<PathBuf> {
+    apply_profile_cli_keeping(profile, components, false)
+}
+pub fn apply_profile_cli_keeping(
+    profile: &str,
+    components: Option<Vec<String>>,
+    keep_wallpaper: bool,
+) -> Result<PathBuf> {
     validate_profile_name(profile)?;
     let rel_paths = resolve_cli_paths(components)?;
     if rel_paths.is_empty() {
         return Err(anyhow!("No valid components selected"));
     }
-    apply_with_paths(profile, &rel_paths)
+    apply_with_paths_keeping(profile, &rel_paths, keep_wallpaper, &[])
 }
 
 /// Apply every tracked file plus `extras` — the theme's own assets (its
@@ -1207,11 +1558,24 @@ pub fn apply_profile_with(profile: &str, extras: &[String]) -> Result<PathBuf> {
 
 /// [`apply_profile_with`]; `keep_wallpaper`: the desktop keeps what it shows;
 /// `keep_fields`: fields that keep their live value (what this machine lacks).
-pub fn apply_profile_keeping(profile: &str, extras: &[String], keep_wallpaper: bool, keep_fields: &[String]) -> Result<PathBuf> {
+pub fn apply_profile_keeping(
+    profile: &str,
+    extras: &[String],
+    keep_wallpaper: bool,
+    keep_fields: &[String],
+) -> Result<PathBuf> {
     validate_profile_name(profile)?;
+    let dir = safe_profile_dir(profile)?;
+    for relative in extras {
+        crate::theme::validate_asset_restore(&dir, relative)?;
+    }
     let mut rel_paths = resolve_cli_paths(None)?;
     for e in extras {
-        if !e.contains("..") && !e.starts_with('/') && !rel_paths.contains(e) {
+        if !appearance::is_preserved(e)
+            && !e.contains("..")
+            && !e.starts_with('/')
+            && !rel_paths.contains(e)
+        {
             rel_paths.push(e.clone());
         }
     }
@@ -1256,14 +1620,15 @@ fn apply_with_paths(profile: &str, rel_paths: &[String]) -> Result<PathBuf> {
 }
 
 /// The live value of each field in `ids`, or KDE's default when it has none.
-fn live_values(ids: &[String]) -> Vec<(String, serde_json::Value)> {
+pub(crate) fn live_values(ids: &[String]) -> Vec<(String, serde_json::Value)> {
     let mut ids: Vec<String> = ids.to_vec();
     if ids.iter().any(|i| i == "decoration_theme") {
         ids.push("decoration_library".to_string());
     }
     ids.iter()
         .map(|id| {
-            let live = crate::field::field(id).and_then(|f| crate::field::read(f, &crate::field::Base::Live));
+            let live = crate::field::field(id)
+                .and_then(|f| crate::field::read(f, &crate::field::Base::Live));
             let fallback = match id.as_str() {
                 "icon_theme" => "breeze",
                 "cursor_theme" => "breeze_cursors",
@@ -1273,12 +1638,30 @@ fn live_values(ids: &[String]) -> Vec<(String, serde_json::Value)> {
                 "decoration_library" => "org.kde.breeze",
                 _ => "Breeze",
             };
-            (id.clone(), live.unwrap_or_else(|| serde_json::Value::from(fallback)))
+            (
+                id.clone(),
+                live.unwrap_or_else(|| serde_json::Value::from(fallback)),
+            )
         })
         .collect()
 }
 
-fn apply_with_paths_keeping(profile: &str, rel_paths: &[String], keep_wallpaper: bool, keep_fields: &[String]) -> Result<PathBuf> {
+fn apply_with_paths_keeping(
+    profile: &str,
+    rel_paths: &[String],
+    keep_wallpaper: bool,
+    keep_fields: &[String],
+) -> Result<PathBuf> {
+    crate::operation::run(profile, || {
+        apply_with_paths_keeping_inner(profile, rel_paths, keep_wallpaper, keep_fields)
+    })
+}
+fn apply_with_paths_keeping_inner(
+    profile: &str,
+    rel_paths: &[String],
+    keep_wallpaper: bool,
+    keep_fields: &[String],
+) -> Result<PathBuf> {
     crate::paths::log_step(&format!("apply {profile}: start"));
     let dir = safe_profile_dir(profile)?;
     if !dir.is_dir() {
@@ -1287,7 +1670,21 @@ fn apply_with_paths_keeping(profile: &str, rel_paths: &[String], keep_wallpaper:
 
     let backups = backups_dir();
     fs::create_dir_all(&backups)?;
+    // Reject a broad custom root before copying: its backup must never be
+    // recursively included in itself (for example a component tracking .config).
+    for relative in rel_paths {
+        let path = live_path(relative);
+        if backups.starts_with(&path)
+            || crate::paths::theme_root()
+                .join("operations")
+                .starts_with(&path)
+        {
+            return Err(anyhow!("Apply footprint includes its own backup/state: {}; narrow the custom component paths",path.display()));
+        }
+    }
     let backup = unique_dir(&backups, &format!("pre-apply-{profile}"))?;
+    fs::create_dir_all(&backup)?;
+    fs::set_permissions(&backup, fs::Permissions::from_mode(0o700))?;
     if copy_tracked_into(&backup, rel_paths)
         .and(capture_kde_effects_state(&backup))
         .and(write_manifest(&backup, profile, rel_paths))
@@ -1297,6 +1694,43 @@ fn apply_with_paths_keeping(profile: &str, rel_paths: &[String], keep_wallpaper:
         return Err(anyhow!("Failed to create pre-apply backup"));
     }
 
+    // Freeze input and validate every config before stopping Plasma or undoing
+    // the previous theme. The operation's recovery copy includes journal state.
+    let prepared = backup.join("prepared-source");
+    copy_tree(&dir, &prepared)?;
+    validate_restore(&prepared, rel_paths)?;
+    let mut footprint = resolve_cli_paths(None)?;
+    footprint.extend_from_slice(rel_paths);
+    footprint.extend(crate::undo::affected_paths());
+    footprint.extend([
+        ".config/konsolerc".into(),
+        appearance::KITTY_THEME.into(),
+        appearance::ALACRITTY_THEME.into(),
+    ]);
+    let mut roots: Vec<PathBuf> = footprint
+        .iter()
+        .filter(|p| !appearance::is_preserved(p))
+        .map(|p| live_path(p))
+        .collect();
+    roots.extend([
+        active_file(),
+        crate::paths::theme_root().join("apply-journal"),
+        wallpaper_dir(),
+    ]);
+    for f in crate::field::registry() {
+        if let Some(path) = crate::field::file_for(f, &crate::field::Base::Live) {
+            roots.push(path);
+        }
+    }
+    // Wallpaper restore may use its original location outside the usual folder.
+    if let Ok(original) = fs::read_to_string(prepared.join("wallpaper/source")) {
+        if !original.trim().is_empty() {
+            roots.push(PathBuf::from(original.trim()));
+        }
+    }
+    crate::preview::verify_before_write(&prepared)?;
+    crate::operation::prepare(&backup, roots)?;
+    let dir = prepared;
     if !no_apply() {
         stop_plasma_shell_for_restore();
     }
@@ -1315,48 +1749,43 @@ fn apply_with_paths_keeping(profile: &str, rel_paths: &[String], keep_wallpaper:
     }
     let kept = live_values(keep_fields);
     crate::paths::log_step("undoing the previous theme");
-    let journal = crate::undo::revert();
+    let journal = crate::undo::revert()?;
     let before = crate::undo::baseline(&journal_rels);
     crate::paths::log_step("restoring files");
-    match restore_from_profile(profile, rel_paths) {
+    match restore_from_profile(profile, &dir, rel_paths) {
         Ok(()) => {
             if !kept.is_empty() {
                 let only: Vec<&str> = kept.iter().map(|(id, _)| id.as_str()).collect();
-                crate::field::apply_with(&kept, &only);
-            }
-            if let (Some(live), Ok(restored)) = (live_appletsrc.as_deref(), fs::read_to_string(&appletsrc)) {
-                let _ = fs::write(&appletsrc, keep_desktop_icons(&restored, live));
-                if keep_wallpaper {
-                    if let Ok(now) = fs::read_to_string(&appletsrc) {
-                        let _ = fs::write(&appletsrc, crate::layout::keep_live_wallpaper(&now, live));
-                    }
+                let report = crate::field::apply_with(&kept, &only);
+                if !report.errors.is_empty() {
+                    anyhow::bail!(
+                        "Keeping installed fields failed: {}",
+                        report.errors.join("; ")
+                    );
                 }
             }
-            // Resolve (and if needed restore) the profile wallpaper while
-            // plasmashell is stopped, so the restored appletsrc finds its file.
-            let wallpaper = if tracks_desktop_layout(rel_paths) && !keep_wallpaper {
-                profile_wallpaper(&dir)
-            } else {
-                None
-            };
-            // A theme from elsewhere names its author's path: plasmashell starts
-            // with this machine's copy instead of a blank desktop.
-            if let (Some(path), Ok(text)) = (&wallpaper, fs::read_to_string(&appletsrc)) {
-                let fixed = crate::layout::point_missing_wallpapers(&text, path);
-                if fixed != text {
-                    let _ = fs::write(&appletsrc, fixed);
-                }
-            }
-            if let Err(e) = restore_active_kvantum_theme(&dir, rel_paths) {
-                eprintln!("Warning: could not restore the Kvantum theme: {e}");
-            }
+            let mut post = crate::change_plan::Plan::default();
+            let wallpaper = plan_post_restore(
+                &dir,
+                rel_paths,
+                keep_wallpaper,
+                &kept,
+                live_appletsrc.as_deref(),
+                &mut post,
+            )?;
+            post.commit()?;
             if rel_paths.iter().any(|p| p == GTK3_SETTINGS) {
                 // From the live file: it holds what was really applied, a theme
                 // this machine lacks is not in it.
                 let ini = live_path(GTK3_SETTINGS);
-                let live_gtk = crate::theme::load(&dir).ok().and_then(|p| p.gsettings_gtk_theme).filter(|_| !keep_fields.iter().any(|f| f == "gtk_theme"));
+                let live_gtk = crate::theme::load(&dir)
+                    .ok()
+                    .and_then(|p| p.gsettings_gtk_theme)
+                    .filter(|_| !keep_fields.iter().any(|f| f == "gtk_theme"));
                 crate::field::sync_gtk_desktop_full(
-                    live_gtk.or_else(|| ini_group_key(&ini, "Settings", "gtk-theme-name")).as_deref(),
+                    live_gtk
+                        .or_else(|| ini_group_key(&ini, "Settings", "gtk-theme-name"))
+                        .as_deref(),
                     ini_group_key(&ini, "Settings", "gtk-application-prefer-dark-theme").as_deref(),
                     ini_group_key(&ini, "Settings", "gtk-icon-theme-name").as_deref(),
                     ini_group_key(&ini, "Settings", "gtk-cursor-theme-name").as_deref(),
@@ -1364,6 +1793,9 @@ fn apply_with_paths_keeping(profile: &str, rel_paths: &[String], keep_wallpaper:
             }
             crate::paths::log_step("live hooks");
             apply_live_hooks(&dir);
+            if !plasma_shell_active() {
+                anyhow::bail!("plasmashell did not restart");
+            }
             if let Some(path) = wallpaper {
                 let shown = plasma_wallpaper_from(&live_path(APPLETSRC_REL));
                 if shown.as_deref() != Some(path.to_string_lossy().as_ref()) {
@@ -1371,19 +1803,11 @@ fn apply_with_paths_keeping(profile: &str, rel_paths: &[String], keep_wallpaper:
                 }
             }
             run_custom_reload_hooks(rel_paths);
-            match journal {
-                Ok(journal) => crate::undo::record(journal, &before).with_context(|| "apply journal")?,
-                Err(e) => eprintln!("Warning: could not undo the previous theme: {e:#}"),
-            }
+            crate::undo::record(journal, &before).with_context(|| "apply journal")?;
             crate::paths::log_step(&format!("apply {profile}: done"));
             Ok(backup)
         }
-        Err(e) => {
-            if !no_apply() {
-                start_plasma_shell();
-            }
-            Err(e)
-        }
+        Err(e) => Err(e),
     }
 }
 
@@ -1459,7 +1883,9 @@ fn profile_wallpaper_in(profile_dir: &Path, walls: &Path) -> Option<PathBuf> {
             if target.is_file() {
                 return Some(target);
             }
-            let parent_ok = target.parent().is_some_and(|p| fs::create_dir_all(p).is_ok());
+            let parent_ok = target
+                .parent()
+                .is_some_and(|p| fs::create_dir_all(p).is_ok());
             if parent_ok && fs::copy(&copy, &target).is_ok() {
                 return Some(target);
             }
@@ -1484,9 +1910,13 @@ pub(crate) fn apply_wallpaper_live(path: &Path) {
     }
     // plasmashell may take a while to come back on a slow machine.
     for attempt in 0..20 {
-        let applied = crate::paths::status_bounded(Command::new("plasma-apply-wallpaperimage").arg(path).stderr(std::process::Stdio::null()))
-            .map(|s| s.success())
-            .unwrap_or(false);
+        let applied = crate::paths::status_bounded(
+            Command::new("plasma-apply-wallpaperimage")
+                .arg(path)
+                .stderr(std::process::Stdio::null()),
+        )
+        .map(|s| s.success())
+        .unwrap_or(false);
         if applied {
             return;
         }
@@ -1532,26 +1962,8 @@ fn capture_active_kvantum_theme(target: &Path, rel_paths: &[String]) -> Result<(
     if let Some(parent) = dest.parent() {
         fs::create_dir_all(parent)?;
     }
-    copy_tree(&source, &dest).with_context(|| format!("Failed to copy Kvantum theme {}", source.display()))
-}
-
-/// Put the profile's Kvantum theme directory back (merge, like any restore).
-fn restore_active_kvantum_theme(profile_dir: &Path, rel_paths: &[String]) -> Result<()> {
-    if !rel_paths.iter().any(|p| p == KVANTUM_CONFIG_REL) {
-        return Ok(());
-    }
-    let Some(rel) = kvantum_theme_rel(&profile_dir.join(KVANTUM_CONFIG_REL)) else {
-        return Ok(());
-    };
-    let saved = profile_dir.join(&rel);
-    if !saved.is_dir() || rel_paths.contains(&rel) {
-        return Ok(());
-    }
-    let live = live_path(&rel);
-    if let Some(parent) = live.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    copy_tree(&saved, &live)
+    copy_tree(&source, &dest)
+        .with_context(|| format!("Failed to copy Kvantum theme {}", source.display()))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1571,6 +1983,7 @@ pub fn save_profile_impl(profile: &str, components: Option<Vec<String>>) -> Resu
 
 /// CLI variant: bash-compatible component selection (warn + skip unknown).
 pub fn save_profile_cli(profile: &str, components: Option<Vec<String>>) -> Result<()> {
+    let _lock = crate::operation::MutationGuard::acquire()?;
     validate_profile_name(profile)?;
     reject_case_duplicate(profile)?;
     let rel_paths = resolve_cli_paths(components)?;
@@ -1586,7 +1999,10 @@ fn save_with_paths(profile: &str, rel_paths: &[String]) -> Result<()> {
     let tmp = unique_dir(&profiles, &format!(".save-{profile}"))?;
     let built = split_live_hosts(rel_paths)
         .and(copy_tracked_appearance(&tmp, rel_paths))
-        .and(crate::kwin_effects::pin_states(&tmp.join(".config/kwinrc")).map_err(anyhow::Error::from))
+        .and(
+            crate::kwin_effects::pin_states(&tmp.join(".config/kwinrc"))
+                .map_err(anyhow::Error::from),
+        )
         .and(capture_derived(&tmp, rel_paths))
         .and(capture_wallpaper(&tmp, rel_paths))
         .and(capture_active_kvantum_theme(&tmp, rel_paths))
@@ -1615,7 +2031,9 @@ fn save_with_paths(profile: &str, rel_paths: &[String]) -> Result<()> {
         if let Some(b) = backup {
             let _ = fs::rename(b, &target);
         }
-        return Err(anyhow!("Failed to activate the new profile snapshot: {profile}: {e}"));
+        return Err(anyhow!(
+            "Failed to activate the new profile snapshot: {profile}: {e}"
+        ));
     }
 
     write_active(profile)?;
@@ -1628,6 +2046,7 @@ fn save_with_paths(profile: &str, rel_paths: &[String]) -> Result<()> {
 
 /// Delete a profile and clear the active marker when it pointed at it.
 pub fn delete_profile(profile_name: &str) -> Result<()> {
+    let _lock = crate::operation::MutationGuard::acquire()?;
     let profile_dir = safe_profile_dir(profile_name)?;
     if !profile_dir.exists() && !profile_dir.is_symlink() {
         return Err(anyhow!("Profile not found: {profile_name}"));
@@ -1637,6 +2056,7 @@ pub fn delete_profile(profile_name: &str) -> Result<()> {
     } else {
         fs::remove_dir_all(&profile_dir)?;
     }
+    let _lock = crate::gui_api::lock_file(&crate::paths::theme_root().join("active-marker.lock"))?;
     let marker = active_file();
     if let Ok(active) = fs::read_to_string(&marker) {
         if active.trim() == profile_name {
@@ -1737,9 +2157,18 @@ mod tests {
         std::fs::create_dir_all(theme.join(".zen/abc.Default (release)/chrome")).unwrap();
         std::fs::write(theme.join(".zen/abc.Default (release)/user.js"), "x").unwrap();
         // The receiver's profile folder is named differently.
-        assert_eq!(theme_file(theme, ".zen/xyz.Default (release)/user.js"), theme.join(".zen/abc.Default (release)/user.js"));
-        assert_eq!(theme_file(theme, ".zen/xyz.Default (release)/chrome/none.css"), theme.join(".zen/xyz.Default (release)/chrome/none.css"));
-        assert_eq!(theme_file(theme, ".config/kdeglobals"), theme.join(".config/kdeglobals"));
+        assert_eq!(
+            theme_file(theme, ".zen/xyz.Default (release)/user.js"),
+            theme.join(".zen/abc.Default (release)/user.js")
+        );
+        assert_eq!(
+            theme_file(theme, ".zen/xyz.Default (release)/chrome/none.css"),
+            theme.join(".zen/xyz.Default (release)/chrome/none.css")
+        );
+        assert_eq!(
+            theme_file(theme, ".config/kdeglobals"),
+            theme.join(".config/kdeglobals")
+        );
     }
 
     #[test]
@@ -1790,9 +2219,7 @@ mod tests {
     fn reload_command_rejects_empty_and_unknown_binary() {
         assert!(validate_reload_command("").is_err());
         assert!(validate_reload_command("   ").is_err());
-        assert!(
-            validate_reload_command("definitely-not-a-real-binary-ktm --x").is_err()
-        );
+        assert!(validate_reload_command("definitely-not-a-real-binary-ktm --x").is_err());
     }
 }
 
@@ -1809,7 +2236,11 @@ mod wallpaper_tests {
         let original = tmp.path().join("walls/forest.jpg");
         fs::create_dir_all(original.parent().unwrap()).unwrap();
         fs::write(saved.join("forest.jpg"), b"jpeg-bytes").unwrap();
-        fs::write(saved.join(PROFILE_WALLPAPER_SOURCE), format!("{}\n", original.display())).unwrap();
+        fs::write(
+            saved.join(PROFILE_WALLPAPER_SOURCE),
+            format!("{}\n", original.display()),
+        )
+        .unwrap();
 
         // Original missing (its folder exists) → the copy is put back where it was.
         assert_eq!(profile_wallpaper(&profile), Some(original.clone()));
@@ -1831,9 +2262,16 @@ mod wallpaper_tests {
         fs::create_dir_all(&saved).unwrap();
         let foreign = tmp.path().join("no-such-folder/Wallpaper/sea.jpg");
         fs::write(saved.join("sea.jpg"), b"jpeg").unwrap();
-        fs::write(saved.join(PROFILE_WALLPAPER_SOURCE), format!("{}\n", foreign.display())).unwrap();
+        fs::write(
+            saved.join(PROFILE_WALLPAPER_SOURCE),
+            format!("{}\n", foreign.display()),
+        )
+        .unwrap();
         let walls = tmp.path().join("my-walls");
-        assert_eq!(profile_wallpaper_in(&profile, &walls), Some(walls.join("sea.jpg")));
+        assert_eq!(
+            profile_wallpaper_in(&profile, &walls),
+            Some(walls.join("sea.jpg"))
+        );
         assert!(!tmp.path().join("no-such-folder").exists());
     }
 
@@ -1853,4 +2291,211 @@ mod wallpaper_tests {
         fs::remove_file(&image).unwrap();
         assert_eq!(profile_wallpaper(&profile), None);
     }
+}
+
+/// Validate pure config merges without modifying the live machine.
+fn validate_restore(source: &Path, rel_paths: &[String]) -> Result<()> {
+    for rel in rel_paths {
+        if appearance::is_preserved(rel) {
+            continue;
+        }
+        let src = theme_file(source, rel);
+        let policy = appearance::policy(rel);
+        let dst = live_path(rel);
+        if src.is_file() && dst.is_dir() {
+            return Err(anyhow!("Config target is a directory: {}", dst.display()));
+        }
+        if !matches!(policy, appearance::Policy::Whole) && src.exists() {
+            if !src.is_file() {
+                return Err(anyhow!("Expected config file: {}", src.display()));
+            }
+            let text = fs::read_to_string(&src)?;
+            let live = fs::read_to_string(live_path(rel)).ok();
+            appearance::applied(rel, &text, live.as_deref())?;
+            if matches!(
+                policy,
+                appearance::Policy::KittyHost | appearance::Policy::AlacrittyHost
+            ) {
+                appearance::include_from_host(rel, &text)?;
+            }
+        }
+    }
+    Ok(())
+}
+/// Re-establish the desktop after restoring files. Optional hooks stay best effort.
+pub(crate) fn recover_after_rollback() -> Result<()> {
+    let source = tempfile::tempdir()?;
+    for rel in [
+        ".config/kdeglobals",
+        ".config/kwinrc",
+        ".config/kitty/kitty.conf",
+    ] {
+        let live = live_path(rel);
+        if live.is_file() {
+            let target = source.path().join(rel);
+            fs::create_dir_all(target.parent().unwrap())?;
+            fs::copy(live, target)?;
+        }
+    }
+    reapply_color_scheme(source.path());
+    reapply_widget_style(source.path());
+    run_external("qdbus6", &["org.kde.KWin", "/KWin", "reconfigure"]);
+    apply_kitty_live(source.path());
+    start_plasma_shell();
+    if !plasma_shell_active() {
+        return Err(anyhow!(
+            "plasmashell did not restart; start plasma-plasmashell.service manually"
+        ));
+    }
+    crate::operation::hook_checkpoint()
+}
+
+/// Pure preflight used before dependency installers may run.
+pub(crate) fn preflight(profile: &str, extras: &[String]) -> Result<()> {
+    let source = safe_profile_dir(profile)?;
+    if !source.is_dir() {
+        return Err(anyhow!("Profile not found: {profile}"));
+    }
+    let mut paths = resolve_cli_paths(None)?;
+    paths.extend_from_slice(extras);
+    validate_restore(&source, &paths)
+}
+
+pub(crate) fn pause_for_recovery() {
+    if !no_apply() {
+        stop_plasma_shell_for_restore();
+    }
+}
+
+/// File-only post-processing is shared verbatim with the read-only preview.
+pub(crate) fn plan_post_restore(
+    source: &Path,
+    rels: &[String],
+    keep_wallpaper: bool,
+    kept: &[(String, serde_json::Value)],
+    old_layout: Option<&str>,
+    plan: &mut crate::change_plan::Plan,
+) -> Result<Option<PathBuf>> {
+    for (id, value) in kept {
+        let Some(field) = crate::field::field(id) else {
+            continue;
+        };
+        let Some(path) = crate::field::file_for(field, &crate::field::Base::Live) else {
+            continue;
+        };
+        let text = plan.text(&path)?.unwrap_or_default();
+        plan.write_text(
+            &path,
+            crate::field::set_ini_text(
+                &text,
+                &field.group,
+                &field.key,
+                &crate::field::value_str(value),
+            ),
+            "kept_missing",
+        )?;
+        for (key, gtk_key) in crate::field::GTK_MIRROR.iter().filter(|(key, _)| key == id) {
+            let _ = key;
+            for relative in [
+                ".config/gtk-3.0/settings.ini",
+                ".config/gtk-4.0/settings.ini",
+            ] {
+                let path = live_path(relative);
+                let text = plan.text(&path)?.unwrap_or_default();
+                plan.write_text(
+                    &path,
+                    crate::field::set_ini_text(
+                        &text,
+                        "Settings",
+                        gtk_key,
+                        &crate::field::value_str(value),
+                    ),
+                    "kept_missing",
+                )?;
+            }
+        }
+    }
+    let appletsrc = live_path(APPLETSRC_REL);
+    if let (Some(live), Some(restored)) = (old_layout, plan.text(&appletsrc)?) {
+        let text = keep_desktop_icons(&restored, live);
+        let text = if keep_wallpaper {
+            crate::layout::keep_live_wallpaper(&text, live)
+        } else {
+            text
+        };
+        plan.write_text(&appletsrc, text, "layout_preserved")?;
+    }
+    let wallpaper = if tracks_desktop_layout(rels) && !keep_wallpaper {
+        plan_wallpaper(source, plan)?
+    } else {
+        None
+    };
+    if let (Some(path), Some(text)) = (&wallpaper, plan.text(&appletsrc)?) {
+        let fixed =
+            crate::layout::point_missing_wallpapers_with(&text, path, |file| plan.is_file(file))?;
+        if fixed != text {
+            plan.write_text(&appletsrc, fixed, "wallpaper")?;
+        }
+    }
+    if rels.iter().any(|p| p == KVANTUM_CONFIG_REL) {
+        if let Some(relative) = kvantum_theme_rel(&source.join(KVANTUM_CONFIG_REL)) {
+            let saved = source.join(&relative);
+            if saved.is_dir() && !rels.contains(&relative) {
+                plan.copy(&saved, &live_path(&relative), "kvantum")?;
+            }
+        }
+    }
+    crate::kwin_effects::plan_sync(&source.join(".config/kwinrc"), plan)?;
+    // The notification hook below always rewrites this flag, even when an
+    // older snapshot omitted it. Include that persistent write in the plan.
+    let globals = source.join(".config/kdeglobals");
+    if !no_apply()
+        && ini_group_key(&globals, "General", "ColorScheme").is_some_and(|v| !v.is_empty())
+    {
+        let flag = if ini_group_key(&globals, "General", "accentColorFromWallpaper").as_deref()
+            == Some("true")
+        {
+            "true"
+        } else {
+            "false"
+        };
+        let path = live_path(".config/kdeglobals");
+        let text = plan.text(&path)?.unwrap_or_default();
+        plan.write_text(
+            &path,
+            crate::field::set_ini_text(&text, "General", "accentColorFromWallpaper", flag),
+            "accent_notification",
+        )?;
+    }
+    Ok(wallpaper)
+}
+fn plan_wallpaper(source: &Path, plan: &mut crate::change_plan::Plan) -> Result<Option<PathBuf>> {
+    let dir = source.join(PROFILE_WALLPAPER_DIR);
+    let original = plan
+        .text(&dir.join(PROFILE_WALLPAPER_SOURCE))?
+        .map(|p| PathBuf::from(p.trim()))
+        .filter(|p| !p.as_os_str().is_empty());
+    if let Some(path) = &original {
+        if plan.is_file(path)? {
+            return Ok(Some(path.clone()));
+        }
+    }
+    let copy = if dir.is_dir() {
+        plan.children(&dir)?
+            .into_iter()
+            .find(|p| p.is_file() && p.file_name().is_some_and(|n| n != PROFILE_WALLPAPER_SOURCE))
+    } else {
+        None
+    };
+    if let Some(copy) = copy {
+        let name = copy.file_name().context("Wallpaper name")?;
+        let target = original
+            .filter(|p| p.parent().is_some_and(Path::is_dir))
+            .unwrap_or_else(|| wallpaper_dir().join(name));
+        if !plan.is_file(&target)? {
+            plan.copy(&copy, &target, "wallpaper")?;
+        }
+        return Ok(Some(target));
+    }
+    Ok(bundle_wallpaper(source))
 }

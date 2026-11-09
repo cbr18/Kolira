@@ -1,9 +1,9 @@
 //! Wallpaper Core Implementation
 
-use std::path::{Path, PathBuf};
+use anyhow::{Context, Result};
 use std::fs;
+use std::path::{Path, PathBuf};
 use std::process::Command;
-use anyhow::{Result, Context};
 
 const THUMB_WIDTH: &str = "420";
 const THUMB_HEIGHT: &str = "260";
@@ -41,28 +41,55 @@ fn file_newer_than(file: &str, thumb: &Path) -> bool {
 fn make_thumb(file: &str, thumb: &Path) -> bool {
     let width: u32 = THUMB_WIDTH.parse().unwrap_or(0);
     let height: u32 = THUMB_HEIGHT.parse().unwrap_or(0);
-    let status = Command::new("magick")
-        .arg(file)
-        .args(["-thumbnail", &format!("{THUMB_WIDTH}x{THUMB_HEIGHT}^")])
-        .args(["-gravity", "center"])
-        .args(["-extent", &format!("{THUMB_WIDTH}x{THUMB_HEIGHT}")])
-        .arg("(")
-        .args(["-size", &format!("{THUMB_WIDTH}x{THUMB_HEIGHT}"), "xc:none"])
-        .args(["-fill", "white"])
-        .arg("-draw")
-        .arg(format!(
-            "roundrectangle 0,0,{},{},{},{}",
-            width.saturating_sub(1),
-            height.saturating_sub(1),
-            THUMB_RADIUS,
-            THUMB_RADIUS
+    let status = crate::paths::status_bounded(
+        Command::new("magick")
+            .arg(file)
+            .args(["-thumbnail", &format!("{THUMB_WIDTH}x{THUMB_HEIGHT}^")])
+            .args(["-gravity", "center"])
+            .args(["-extent", &format!("{THUMB_WIDTH}x{THUMB_HEIGHT}")])
+            .arg("(")
+            .args(["-size", &format!("{THUMB_WIDTH}x{THUMB_HEIGHT}"), "xc:none"])
+            .args(["-fill", "white"])
+            .arg("-draw")
+            .arg(format!(
+                "roundrectangle 0,0,{},{},{},{}",
+                width.saturating_sub(1),
+                height.saturating_sub(1),
+                THUMB_RADIUS,
+                THUMB_RADIUS
+            ))
+            .arg(")")
+            .args([
+                "-alpha",
+                "set",
+                "-compose",
+                "DstIn",
+                "-composite",
+                thumb.to_string_lossy().as_ref(),
+            ])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null()),
+    );
+    status.is_some_and(|s| s.success())
+}
+
+/// Apply one image through the same core for GUI and all wallpaper binaries.
+pub fn apply_image(path: &str) -> Result<()> {
+    if crate::field::no_apply() || std::env::var_os("WALLPAPER_DRY_RUN").is_some() {
+        return Ok(());
+    }
+    let _lock = crate::operation::MutationGuard::acquire()?;
+    if crate::paths::status_bounded(
+        std::process::Command::new("plasma-apply-wallpaperimage").arg(path),
+    )
+    .is_some_and(|s| s.success())
+    {
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!(
+            "Failed to apply wallpaper (or command timed out): {path}"
         ))
-        .arg(")")
-        .args(["-alpha", "set", "-compose", "DstIn", "-composite", thumb.to_string_lossy().as_ref()])
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status();
-    status.map(|s| s.success()).unwrap_or(false)
+    }
 }
 
 /// Outcome of the interactive picker.
@@ -85,6 +112,9 @@ pub fn pick_wallpaper_flow(
     thumb_dir: &Path,
     style: &Path,
 ) -> Result<PickOutcome> {
+    if crate::field::no_apply() {
+        return Ok(PickOutcome::Cancelled);
+    }
     let files = list_wallpapers_in(dir)?;
     if files.is_empty() {
         return Err(anyhow::anyhow!("No wallpapers found"));
@@ -152,7 +182,9 @@ pub fn pick_wallpaper_flow(
         // A typed custom entry is not a position.
         return Err(anyhow::anyhow!("Invalid selection: not a position"));
     }
-    let index: usize = selection.parse().map_err(|_| anyhow::anyhow!("Invalid selection"))?;
+    let index: usize = selection
+        .parse()
+        .map_err(|_| anyhow::anyhow!("Invalid selection"))?;
     let Some(selected) = displayed.get(index) else {
         return Err(anyhow::anyhow!("Selection out of range"));
     };
@@ -199,6 +231,12 @@ pub fn wallpaper_dir() -> PathBuf {
         &crate::paths::config_home().join("user-dirs.dirs"),
         &crate::paths::home_dir(),
     )
+}
+
+/// GUI's explicit directory choice wins; otherwise use the shared resolver.
+pub fn gui_wallpaper_dir() -> PathBuf {
+    settings_wallpaper_dir(&crate::paths::settings_file(), &crate::paths::home_dir())
+        .unwrap_or_else(wallpaper_dir)
 }
 
 /// Pure resolution behind [`wallpaper_dir`] (testable without touching `$HOME`).
@@ -299,7 +337,9 @@ pub fn plasma_wallpaper_from(config: &Path) -> Option<String> {
             }
             continue;
         }
-        let Some((id, in_image)) = current.as_ref() else { continue };
+        let Some((id, in_image)) = current.as_ref() else {
+            continue;
+        };
         let entry = containments.entry(id.clone()).or_default();
         if *in_image {
             if let Some(value) = trimmed.strip_prefix("Image=") {
@@ -475,7 +515,10 @@ mod tests {
              [Containments][4][Wallpaper][org.kde.slideshow][General]\nSlidePaths=/w\n",
         );
         // Screen 0 wins over file order; the slideshow has no Image.
-        assert_eq!(plasma_wallpaper_from(&rc).as_deref(), Some("/w/pri mary.jpg"));
+        assert_eq!(
+            plasma_wallpaper_from(&rc).as_deref(),
+            Some("/w/pri mary.jpg")
+        );
 
         // Two activities on screen 0: the later Image= wins.
         let mut text = fs::read_to_string(&rc).unwrap();
@@ -484,14 +527,20 @@ mod tests {
              [Containments][9][Wallpaper][org.kde.image][General]\nImage=/w/activity.png\n",
         );
         write(&rc, &text);
-        assert_eq!(plasma_wallpaper_from(&rc).as_deref(), Some("/w/activity.png"));
+        assert_eq!(
+            plasma_wallpaper_from(&rc).as_deref(),
+            Some("/w/activity.png")
+        );
     }
 
     #[test]
     fn no_image_wallpaper_is_none() {
         let tmp = tempfile::tempdir().unwrap();
         let rc = tmp.path().join("appletsrc");
-        write(&rc, "[Containments][1]\nlastScreen=0\nwallpaperplugin=org.kde.potd\n");
+        write(
+            &rc,
+            "[Containments][1]\nlastScreen=0\nwallpaperplugin=org.kde.potd\n",
+        );
         assert_eq!(plasma_wallpaper_from(&rc), None);
     }
 }

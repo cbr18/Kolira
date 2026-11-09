@@ -34,7 +34,13 @@ pub fn theme_root() -> PathBuf {
     let in_dot_config = home_dir().join(".config").join(DATA_DIR);
     // Unit tests read this path with the real HOME: they must not move real data.
     if !cfg!(test) {
-        migrate_old_names(&[config_home().join(OLD_DATA_DIR), home_dir().join(".config").join(OLD_DATA_DIR)], &preferred);
+        migrate_old_names(
+            &[
+                config_home().join(OLD_DATA_DIR),
+                home_dir().join(".config").join(OLD_DATA_DIR),
+            ],
+            &preferred,
+        );
     }
     if preferred.exists() || !in_dot_config.exists() {
         preferred
@@ -61,7 +67,9 @@ fn migrate_old_names(old_roots: &[PathBuf], new_root: &Path) {
         move_children(&old_themes, &themes);
         let _ = std::fs::remove_dir(&old_themes);
     }
-    let Ok(entries) = std::fs::read_dir(&themes) else { return };
+    let Ok(entries) = std::fs::read_dir(&themes) else {
+        return;
+    };
     for entry in entries.flatten() {
         let inner = entry.path().join(".config").join(OLD_DATA_DIR);
         if inner.is_dir() {
@@ -72,7 +80,9 @@ fn migrate_old_names(old_roots: &[PathBuf], new_root: &Path) {
 }
 
 fn move_children(from: &Path, to: &Path) {
-    let Ok(entries) = std::fs::read_dir(from) else { return };
+    let Ok(entries) = std::fs::read_dir(from) else {
+        return;
+    };
     let _ = std::fs::create_dir_all(to);
     for entry in entries.flatten() {
         let target = to.join(entry.file_name());
@@ -151,8 +161,38 @@ pub fn validate_profile_name(name: &str) -> Result<()> {
     }
 }
 
+/// Agent control files are workspace metadata, not theme assets. An imported
+/// package must not become a source of trusted client instructions or hooks.
+pub fn is_agent_metadata(path: &Path) -> bool {
+    path.components().any(|component| {
+        let name = component.as_os_str().to_string_lossy().to_ascii_lowercase();
+        [
+            ".git",
+            ".codex",
+            ".claude",
+            ".agents",
+            "agents.md",
+            "agents.override.md",
+            "claude.md",
+            "claude.local.md",
+            "agents.md.kit-new",
+            "agents.override.md.kit-new",
+            "claude.md.kit-new",
+            "claude.local.md.kit-new",
+        ]
+        .contains(&name.as_str())
+    })
+}
+
 pub fn profile_dir(name: &str) -> Result<PathBuf> {
     validate_profile_name(name)?;
+    // Name syntax stays identical to Python's validator. These root paths
+    // belong to workspace metadata, never to an import/save destination.
+    if is_agent_metadata(Path::new(name)) {
+        return Err(anyhow!(
+            "Theme destination is reserved for workspace instructions: {name}"
+        ));
+    }
     Ok(profiles_dir().join(name))
 }
 
@@ -165,8 +205,15 @@ pub fn log_step(message: &str) {
         let _ = std::fs::rename(&path, theme_root().join("apply.log.old"));
     }
     let _ = std::fs::create_dir_all(theme_root());
-    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&path) {
-        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)
+    {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
         let _ = writeln!(f, "{now} {message}");
         let _ = f.sync_data();
     }
@@ -174,7 +221,10 @@ pub fn log_step(message: &str) {
 
 /// How long an external tool may take (`KTM_COMMAND_TIMEOUT`, seconds).
 fn command_timeout() -> std::time::Duration {
-    let secs = std::env::var("KTM_COMMAND_TIMEOUT").ok().and_then(|v| v.parse().ok()).unwrap_or(60);
+    let secs = std::env::var("KTM_COMMAND_TIMEOUT")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(60);
     std::time::Duration::from_secs(secs)
 }
 
@@ -186,36 +236,92 @@ pub fn status_bounded(cmd: &mut std::process::Command) -> Option<std::process::E
 }
 
 /// [`status_bounded`] that also returns what the command printed.
-pub fn output_bounded(cmd: &mut std::process::Command) -> Option<(std::process::ExitStatus, Vec<u8>)> {
+pub fn output_bounded(
+    cmd: &mut std::process::Command,
+) -> Option<(std::process::ExitStatus, Vec<u8>)> {
     output_bounded_for(cmd, command_timeout())
 }
 
 /// [`output_bounded`] with its own limit (a store's installer, a terminal the
 /// user is typing in).
-pub fn output_bounded_for(cmd: &mut std::process::Command, limit: std::time::Duration) -> Option<(std::process::ExitStatus, Vec<u8>)> {
-    use std::io::Read;
-    let mut child = cmd.spawn().ok()?;
-    let mut stdout = child.stdout.take();
-    let reader = std::thread::spawn(move || {
+pub fn output_bounded_for(
+    cmd: &mut std::process::Command,
+    limit: std::time::Duration,
+) -> Option<(std::process::ExitStatus, Vec<u8>)> {
+    use std::{
+        io::Read,
+        os::unix::process::CommandExt,
+        process::Stdio,
+        time::{Duration, Instant},
+    };
+    let own_group = std::env::var_os("KTM_DEP_OPERATION").is_none();
+    if own_group {
+        cmd.process_group(0);
+    }
+    let mut child = cmd.stdout(Stdio::piped()).spawn().ok()?;
+    let mut stdout = child.stdout.take()?;
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
         let mut out = Vec::new();
-        if let Some(pipe) = stdout.as_mut() {
-            let _ = pipe.read_to_end(&mut out);
-        }
-        out
+        // Diagnostics/probes are bounded in memory as well as time.
+        let _ = stdout.by_ref().take(16 << 20).read_to_end(&mut out);
+        let _ = tx.send(out);
     });
-    let deadline = std::time::Instant::now() + limit;
+    let deadline = Instant::now() + limit;
     loop {
         match child.try_wait() {
-            Ok(Some(status)) => return Some((status, reader.join().unwrap_or_default())),
-            Ok(None) if std::time::Instant::now() < deadline => std::thread::sleep(std::time::Duration::from_millis(25)),
-            Ok(None) => {
-                eprintln!("Warning: {:?} did not finish in time; stopped it", cmd.get_program());
+            Ok(Some(status)) => {
+                if own_group {
+                    terminate_group(child.id());
+                }
+                let remaining = deadline
+                    .saturating_duration_since(Instant::now())
+                    .min(Duration::from_secs(1));
+                return rx.recv_timeout(remaining).ok().map(|out| (status, out));
+            }
+            Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(25)),
+            _ => {
+                if own_group {
+                    terminate_group(child.id());
+                }
                 let _ = child.kill();
                 let _ = child.wait();
                 return None;
             }
-            Err(_) => return None,
         }
+    }
+}
+
+fn terminate_group(pid: u32) {
+    let _ = std::process::Command::new("kill")
+        .args(["-KILL", "--", &format!("-{pid}")])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status();
+}
+
+#[cfg(test)]
+mod process_tests {
+    use super::*;
+    #[test]
+    fn a_descendant_holding_stdout_does_not_block_a_finished_parent() {
+        let start = std::time::Instant::now();
+        let result = output_bounded_for(
+            std::process::Command::new("sh").args(["-c", "sleep 20 & printf done"]),
+            std::time::Duration::from_secs(2),
+        );
+        assert_eq!(result.unwrap().1, b"done");
+        assert!(start.elapsed() < std::time::Duration::from_secs(3));
+    }
+    #[test]
+    fn hanging_commands_have_a_deadline() {
+        let start = std::time::Instant::now();
+        assert!(output_bounded_for(
+            std::process::Command::new("sleep").arg("20"),
+            std::time::Duration::from_millis(100)
+        )
+        .is_none());
+        assert!(start.elapsed() < std::time::Duration::from_secs(2));
     }
 }
 
@@ -226,9 +332,16 @@ mod migration_tests {
     #[test]
     fn old_folder_names_move_and_nothing_is_overwritten() {
         let tmp = tempfile::tempdir().unwrap();
-        let (old, new) = (tmp.path().join("theme-profile"), tmp.path().join("kde-theme-profile"));
+        let (old, new) = (
+            tmp.path().join("theme-profile"),
+            tmp.path().join("kde-theme-profile"),
+        );
         std::fs::create_dir_all(old.join("profiles/mine/.config/theme-profile")).unwrap();
-        std::fs::write(old.join("profiles/mine/.config/theme-profile/palette.json"), "p").unwrap();
+        std::fs::write(
+            old.join("profiles/mine/.config/theme-profile/palette.json"),
+            "p",
+        )
+        .unwrap();
         std::fs::create_dir_all(old.join("backups/one")).unwrap();
         std::fs::write(old.join("active-profile"), "mine").unwrap();
         std::fs::write(old.join("app-preferences.json"), "old").unwrap();
@@ -236,11 +349,22 @@ mod migration_tests {
         std::fs::create_dir_all(new.join("backups/deploy")).unwrap();
         std::fs::write(new.join("app-preferences.json"), "new").unwrap();
         migrate_old_names(std::slice::from_ref(&old), &new);
-        assert!(new.join("themes/mine/.config/kde-theme-profile/palette.json").is_file());
+        assert!(new
+            .join("themes/mine/.config/kde-theme-profile/palette.json")
+            .is_file());
         assert!(new.join("backups/one").is_dir() && new.join("backups/deploy").is_dir());
-        assert_eq!(std::fs::read_to_string(new.join("active-profile")).unwrap(), "mine");
-        assert_eq!(std::fs::read_to_string(new.join("app-preferences.json")).unwrap(), "new");
-        assert_eq!(std::fs::read_to_string(old.join("app-preferences.json")).unwrap(), "old");
+        assert_eq!(
+            std::fs::read_to_string(new.join("active-profile")).unwrap(),
+            "mine"
+        );
+        assert_eq!(
+            std::fs::read_to_string(new.join("app-preferences.json")).unwrap(),
+            "new"
+        );
+        assert_eq!(
+            std::fs::read_to_string(old.join("app-preferences.json")).unwrap(),
+            "old"
+        );
         assert!(!old.join("profiles").exists() && !new.join("profiles").exists());
         // Done: a second run changes nothing.
         migrate_old_names(std::slice::from_ref(&old), &new);

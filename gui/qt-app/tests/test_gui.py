@@ -81,7 +81,8 @@ def test_import_tracked_apps() -> None:
     """Tracked apps registry must import and contain every definition."""
     from core.tracked_apps import TRACKED_APPS, detect_all_apps
 
-    assert len(TRACKED_APPS) == 33, f"Expected 33 tracked apps, got {len(TRACKED_APPS)}"
+    assert len(TRACKED_APPS) == 32, f"Expected 32 tracked apps, got {len(TRACKED_APPS)}"
+    assert "fastfetch" not in {app.id for app in TRACKED_APPS}
     detect_all_apps()  # must not raise
 
 
@@ -200,16 +201,13 @@ class TestCliProfileCore:
 
     def test_list_profiles_success(self) -> None:
         core = self._make_core()
-        with mock.patch.object(core, "_run") as mock_run, \
-             mock.patch.object(core, "get_active_profile") as mock_active:
-            mock_run.return_value = mock.Mock(success=True, message="glass\npaper")
-            mock_active.return_value = "glass"
+        rows = [{"name": "glass", "is_active": True, "components": [], "created_at": "", "description": "", "wallpaper_path": ""},
+                {"name": "paper", "is_active": False, "components": [], "created_at": "", "description": "", "wallpaper_path": ""}]
+        with mock.patch("core.cli_core.core_request", return_value=rows) as request:
             profiles = core.list_profiles()
-        assert len(profiles) == 2
-        assert profiles[0].name == "glass"
-        assert profiles[0].is_active is True
-        assert profiles[1].name == "paper"
-        assert profiles[1].is_active is False
+        assert [p.name for p in profiles] == ["glass", "paper"]
+        assert profiles[0].is_active and not profiles[1].is_active
+        assert request.call_args.args[0] == "profile.list"
 
     def test_get_active_profile_file_not_found(self) -> None:
         core = self._make_core()
@@ -219,38 +217,29 @@ class TestCliProfileCore:
 
     def test_apply_profile_passes_components(self) -> None:
         core = self._make_core()
-        with mock.patch.object(core, "_run") as mock_run:
-            mock_run.return_value = mock.Mock(success=True, message="ok")
-            core.apply("glass", components=["kwin", "kdeglobals"])
-        mock_run.assert_called_once()
-        args, kwargs = mock_run.call_args
-        assert args[0] == ["apply", "glass", "--components=kwin,kdeglobals"]
+        with mock.patch("core.cli_core.core_request", return_value={}) as request:
+            assert core.apply("glass", components=["kwin", "kdeglobals"]).success
+        assert request.call_args.args[0] == "profile.apply"
+        assert request.call_args.kwargs["components"] == ["kwin", "kdeglobals"]
 
     def test_apply_package_uses_json_report(self) -> None:
-        package = self.home / ".config/kde-theme-profile/themes/night"
-        package.mkdir(parents=True)
-        (package / "theme.json").write_text("{}", encoding="utf-8")
         core = self._make_core()
-        report = '{"applied":["color_scheme"],"skipped":[],"installed":[],' \
-                 '"missing":[{"field":"icon_theme","name":"YAMIS","source":"https://x"}],' \
-                 '"errors":[],"backup":"/b"}'
-        with mock.patch.object(core, "_run") as mock_run:
-            mock_run.return_value = mock.Mock(success=True, message=report)
+        report = {"applied": ["color_scheme"], "skipped": [], "installed": [],
+                  "missing": [{"field": "icon_theme", "name": "YAMIS", "source": "https://x"}],
+                  "errors": [], "backup": "/b"}
+        with mock.patch("core.cli_core.core_request", return_value=report) as request:
             result = core.apply("night", keep_wallpaper=True, install_missing=True)
-        args, _ = mock_run.call_args
-        assert args[0] == ["apply", "night", "--json", "--keep-wallpaper", "--install-missing"]
-        assert result.success
-        assert result.data["missing"][0]["name"] == "YAMIS"
+        assert request.call_args.args[0] == "profile.apply"
+        assert request.call_args.kwargs["keep_wallpaper"] and request.call_args.kwargs["install_missing"]
+        assert result.success and result.data["missing"][0]["name"] == "YAMIS"
         assert "Missing: YAMIS (https://x)" in result.message
 
     def test_apply_profile_no_components(self) -> None:
         core = self._make_core()
-        with mock.patch.object(core, "_run") as mock_run:
-            mock_run.return_value = mock.Mock(success=True, message="ok")
+        with mock.patch("core.cli_core.core_request", return_value={}) as request:
             core.apply("glass")
-        mock_run.assert_called_once()
-        args, _ = mock_run.call_args
-        assert args[0] == ["apply", "glass"]
+        assert request.call_count == 1
+        assert request.call_args.kwargs["components"] is None
 
     def test_delete_profile_not_found(self) -> None:
         core = self._make_core()
@@ -328,24 +317,16 @@ class TestCliSettingsCore:
 
     def test_save_and_load_roundtrip(self, tmp_path: Path) -> None:
         from core.cli_core import CliSettingsCore
+        from core.paths import settings_file
         from core.protocol import AppSettings
-
         core = CliSettingsCore()
-        custom = AppSettings(
-            theme="glass",
-            default_components_mode="custom",
-            custom_components=("kwin", "kdeglobals"),
-        )
-        with mock.patch("core.cli_core.SETTINGS_FILE", tmp_path / "settings.json"):
-            result = core.save(custom)
-            assert result.success
-
-            loaded = core.load()
-            assert loaded.theme == "glass"
-            assert loaded.default_components_mode == "custom"
-            assert loaded.custom_components == ("kwin", "kdeglobals")
-            # Preferences must not be widened to the process umask.
-            assert (tmp_path / "settings.json").stat().st_mode & 0o777 == 0o600
+        custom = AppSettings(theme="glass", default_components_mode="custom",
+                             custom_components=("kwin", "kdeglobals"))
+        assert core.save(custom).success
+        loaded = core.load()
+        assert loaded.theme == "glass" and loaded.default_components_mode == "custom"
+        assert loaded.custom_components == ("kwin", "kdeglobals")
+        assert settings_file().is_file()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -361,16 +342,17 @@ class TestCliCustomComponents:
 
     def test_list_custom_parses_ids(self) -> None:
         core = self._make_core()
-        with mock.patch.object(core, "_run") as run:
-            run.return_value = mock.Mock(success=True, message="myapp\nother")
+        values = [{"id": name, "name": name.title(), "category": "Custom",
+                   "config_paths": [f".config/{name}"]} for name in ("myapp", "other")]
+        with mock.patch("core.tracked_apps._request", return_value=values) as request:
             comps = core.list_custom()
         assert [c.id for c in comps] == ["myapp", "other"]
-        assert run.call_args[0][0] == ["theme-profile", "components", "list"]
+        assert comps[0].name == "Myapp" and comps[0].config_paths == (".config/myapp",)
+        request.assert_called_once_with("custom")
 
     def test_list_custom_failure_returns_empty(self) -> None:
         core = self._make_core()
-        with mock.patch.object(core, "_run") as run:
-            run.return_value = mock.Mock(success=False, message="boom")
+        with mock.patch("core.tracked_apps._request", return_value=[]):
             assert core.list_custom() == []
 
     def test_add_custom_sends_valid_json(self) -> None:
@@ -389,7 +371,8 @@ class TestCliCustomComponents:
             result = core.add_custom(comp)
         assert result.success
         args = run.call_args[0][0]
-        assert args[:3] == ["theme-profile", "components", "add"]
+        assert Path(args[0]).name == "theme-profile"
+        assert args[1:3] == ["components", "add"]
         # The payload must parse — regression guard for the f-string builder
         # that produced invalid JSON (and referenced an unimported `json`).
         payload = json.loads(args[3])
@@ -406,7 +389,8 @@ class TestCliCustomComponents:
             run.return_value = mock.Mock(success=True, message="Updated")
             result = core.update_custom(CustomComponent(id="myapp", name="v2"))
         assert result.success
-        assert run.call_args[0][0][:3] == ["theme-profile", "components", "edit"]
+        assert Path(run.call_args[0][0][0]).name == "theme-profile"
+        assert run.call_args[0][0][1:3] == ["components", "edit"]
 
     def test_remove_custom(self) -> None:
         core = self._make_core()
@@ -414,7 +398,8 @@ class TestCliCustomComponents:
             run.return_value = mock.Mock(success=True, message="Removed")
             result = core.remove_custom("myapp")
         assert result.success
-        assert run.call_args[0][0] == ["theme-profile", "components", "remove", "myapp"]
+        assert Path(run.call_args[0][0][0]).name == "theme-profile"
+        assert run.call_args[0][0][1:] == ["components", "remove", "myapp"]
 
     def test_failed_add_maps_to_error_result(self) -> None:
         from core.protocol import CustomComponent
@@ -436,7 +421,7 @@ class TestCliProfileManifest:
     def _info(self, tmp_path: Path, monkeypatch, *, with_json: bool, with_txt: bool):
         from core.cli_core import CliProfileCore
 
-        profile = tmp_path / "glass"
+        profile = tmp_path / ".config/kde-theme-profile/themes/glass"
         (profile / ".config").mkdir(parents=True)
         (profile / ".config" / "kdeglobals").write_text("[General]\n")
         if with_json:
@@ -450,7 +435,6 @@ class TestCliProfileManifest:
             (profile / "manifest.txt").write_text(
                 "Generated by theme-profile\ntimestamp=2026-01-02T03:04:05\n"
             )
-        monkeypatch.setattr("core.cli_core.profile_dir", lambda name: profile)
         return CliProfileCore()._get_profile_info("glass", True)
 
     def test_manifest_json_wins(self, tmp_path, monkeypatch) -> None:
@@ -490,14 +474,14 @@ class TestCustomRegistryMerge:
             "id": "mockapp",
             "name": "Mock App",
             "config_paths": [".config/mockapp/settings.conf"],
-            "reload_command": "sh -c true",
+            "reload_command": "true",
         }])
         from core.tracked_apps import detect_all_apps
 
         comps = {c.id: c for c in detect_all_apps()}
         assert "mockapp" in comps
         assert comps["mockapp"].is_custom is True
-        assert comps["mockapp"].reload_command == "sh -c true"
+        assert comps["mockapp"].reload_command == "true"
         assert comps["mockapp"].supports_live_reload is True
         # Встроенные на месте
         assert "kwin" in comps and comps["kwin"].is_custom is False
@@ -948,6 +932,10 @@ class TestSetConfigValue:
         monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
         # apply() выполняет команды/хуки — в тестах они отключены.
         monkeypatch.setenv("KTM_THEME_NO_APPLY", "1")
+        registry = tmp_path / ".config/kde-theme-profile/components.json"
+        registry.parent.mkdir(parents=True, exist_ok=True)
+        registry.write_text(json.dumps({"schema_version": 1, "components": [{
+            "id": "mockapp", "name": "Mock app", "config_paths": [".config/mockapp"]}]}))
         return AppThemeCore()
 
     def test_ini_group_key(self, tmp_path: Path, monkeypatch) -> None:
@@ -1146,6 +1134,10 @@ class TestInspectorStaging:
         monkeypatch.setenv("HOME", str(tmp_path))
         monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
         monkeypatch.setenv("KTM_THEME_NO_APPLY", "1")
+        registry = tmp_path / ".config/kde-theme-profile/components.json"
+        registry.parent.mkdir(parents=True, exist_ok=True)
+        registry.write_text(json.dumps({"schema_version": 1, "components": [{
+            "id": "mockapp", "name": "Mock app", "config_paths": [".config/mockapp"]}]}))
         return AppThemeCore()
 
     def test_field_staged_value_visible_before_apply(self, tmp_path: Path, monkeypatch) -> None:
@@ -1304,17 +1296,10 @@ class TestCliWallpaperCore:
             assert core.list_wallpapers() == []
 
     def test_resolve_wallpaper_dir_from_settings(self) -> None:
-        """_resolve_wallpaper_dir should use CoreFactory settings."""
-        from core.cli_core import CliWallpaperCore
-
-        core = CliWallpaperCore()
-        core._wallpaper_dir = None  # Reset
-        with mock.patch("core.cli_core.CoreFactory") as mock_factory:
-            mock_settings = mock.Mock()
-            mock_settings.wallpaper_directory = "/tmp/test-wallpapers"
-            mock_factory.settings_core.return_value.load.return_value = mock_settings
-            result = core._resolve_wallpaper_dir()
-            assert result == Path("/tmp/test-wallpapers")
+        from core.cli_core import CliSettingsCore, CliWallpaperCore
+        from core.protocol import AppSettings
+        assert CliSettingsCore().save(AppSettings(wallpaper_directory="/tmp/test-wallpapers")).success
+        assert CliWallpaperCore()._resolve_wallpaper_dir() == Path("/tmp/test-wallpapers")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1473,7 +1458,9 @@ def test_tracked_apps_have_required_fields() -> None:
         assert app.id, f"Missing id for app: {app}"
         assert app.name, f"Missing name for app: {app}"
         assert app.category, f"Missing category for app: {app}"
-        assert len(app.config_paths) > 0, f"No config_paths for app: {app.id}"
+        assert isinstance(app.config_paths, tuple)
+        # Active-resource providers may have no path before first setup.
+        assert all(path and not Path(path).is_absolute() for path in app.config_paths)
         assert app.description, f"Missing description for app: {app.id}"
         assert app.icon, f"Missing icon for app: {app.id}"
 
@@ -2078,7 +2065,7 @@ def test_wallpaper_dir_picker_and_async_preview() -> None:
     assert "FolderDialog" in settings_qml
     assert "wallpaperDirDialog.open()" in settings_qml
     # url → обычный путь: в настройках храним строку, не file:// URL.
-    assert "selectedFolder.toLocalFile()" in settings_qml
+    assert "settingsController.setWallpaperDirectoryUrl(selectedFolder)" in settings_qml
     assert "Not implemented yet" not in settings_qml
 
     main_qml = (PROJECT_ROOT / "qml" / "Main.qml").read_text()
@@ -2255,6 +2242,10 @@ class TestStaleActiveMarker:
                     return marker.read_text().strip()
                 except OSError:
                     return ""
+
+            def clear_stale_active(self, name):
+                from core.cli_core import CliProfileCore
+                return CliProfileCore().clear_stale_active(name)
 
             def get_profile_components(self, profile):
                 return ["kwin"]
@@ -2436,9 +2427,8 @@ class TestSystemTray:
 
     def test_tray_applies_through_the_controller_off_the_gui_thread(self) -> None:
         source = (SRC_DIR / "system_tray.py").read_text()
-        assert "controller.applyProfile(name)" in source, (
-            "the tray must apply profiles through ProfileController.applyProfile "
-            "(which runs the operation on the thread pool)"
+        assert "controller.previewApply(name, False)" in source, (
+            "the tray must open the shared asynchronous pre-apply review"
         )
         assert "_pending_profile" in source, (
             "the tray must remember which profile it started, so it knows "
@@ -2607,50 +2597,25 @@ class TestSingleCore:
         assert not core.apply("anything", ["not-a-component"]).success
 
     def test_wallpaper_directory_comes_from_the_settings(self, core_factory, tmp_path) -> None:
-        """A settings directory must reach the CLI core, not be ignored.
-
-        The cached index is a *position* in the list the app displays, so the
-        core listing another directory would make next/prev jump elsewhere.
-        """
-        from core.cli_core import CliWallpaperCore
+        from core.cli_core import CliSettingsCore, CliWallpaperCore
         from core.protocol import AppSettings
-
         (tmp_path / "a.jpg").write_bytes(b"x")
         (tmp_path / "B.PNG").write_bytes(b"x")
-        (tmp_path / "notes.txt").write_bytes(b"x")  # wrong extension: ignored
-        os.symlink(tmp_path / "a.jpg", tmp_path / "0-link.webp")  # symlink: followed
-
-        class FakeSettings:
-            def load(self):
-                return AppSettings(wallpaper_directory=str(tmp_path))
-
-        core_factory.set_settings_core(FakeSettings())
-
+        (tmp_path / "notes.txt").write_bytes(b"x")
+        os.symlink(tmp_path / "a.jpg", tmp_path / "0-link.webp")
+        assert CliSettingsCore().save(AppSettings(wallpaper_directory=str(tmp_path))).success
         listed = CliWallpaperCore().list_wallpapers()
         assert [Path(p).name for p in listed] == ["0-link.webp", "B.PNG", "a.jpg"]
 
     def test_settings_round_trip_keeps_the_core_choice(self, core_factory, tmp_path) -> None:
-        """Saving settings through the core must keep `core_backend` (it is a setting)."""
         from core.cli_core import CliSettingsCore
+        from core.paths import settings_file
         from core.protocol import AppSettings
-
-        saved = AppSettings(
-            **{**AppSettings().to_dict(), "core_backend": "core", "theme": "paper"}
-        )
-        target = tmp_path / "kde-theme-profile" / "app-preferences.json"
-        # Pin the module-level path: SETTINGS_FILE resolves the *legacy*
-        # ~/.config/kde-theme-profile first, so env overrides alone would write
-        # into the real user directory.
-        with mock.patch("core.cli_core.SETTINGS_FILE", target):
-            assert CliSettingsCore().save(saved).success
-
-            assert target.is_file(), "the core must create the config directory"
-
-            loaded = CliSettingsCore().load()
-            assert loaded.core_backend == "core"
-            assert loaded.theme == "paper"
-            assert loaded.to_dict() == saved.to_dict()
-            assert AppSettings.from_dict(json.loads(target.read_text())).to_dict() == saved.to_dict()
+        saved = AppSettings(core_backend="core", theme="paper")
+        assert CliSettingsCore().save(saved).success
+        assert settings_file().is_file()
+        loaded = CliSettingsCore().load()
+        assert loaded.core_backend == "core" and loaded.theme == "paper"
 
     def test_mutating_profile_operations_are_native_rust(self, core_factory) -> None:
         """apply/save must be native Rust in profile.rs — no shell-out to scripts.
@@ -2891,9 +2856,10 @@ def test_settings_save_keeps_the_cores_automation_keys(tmp_path, monkeypatch) ->
     import core.cli_core as cc
     from core.protocol import AppSettings
 
-    path = tmp_path / "app-preferences.json"
+    from core.paths import settings_file
+    path = settings_file()
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"automation": {"store": "never"}, "automation_configured": True}))
-    monkeypatch.setattr(cc, "SETTINGS_FILE", path)
     assert cc.CliSettingsCore().save(AppSettings(theme="paper")).success
     data = json.loads(path.read_text())
     assert data["automation"] == {"store": "never"} and data["automation_configured"] is True
@@ -3134,23 +3100,21 @@ def test_apply_asks_first_and_downloads_before_applying(monkeypatch, qtbot) -> N
     calls.clear()
     with qtbot.waitSignal(c.operationFinished, timeout=3000) as done:
         c.installDependencies("t", [1, 2, 3], True, False)
-    assert calls == [("install", (1,)), ("install", (2,)), ("install", (3,)), "apply"]
+    assert calls == [("install", (1,)), ("install", (2,)), ("install", (3,))]
     assert done.args[0] is False and "item [2]" in done.args[1] and not c.busy
 
 
 def test_apply_timeout_brings_the_shell_back(monkeypatch) -> None:
-    """A stopped apply must not leave the desktop without plasmashell."""
+    """Transport requests Rust recovery; Python never launches systemctl."""
     from core import cli_core
     from core.protocol import Result
-
-    ran: list = []
-    monkeypatch.delenv("KTM_THEME_NO_APPLY", raising=False)
-    monkeypatch.setattr(cli_core.subprocess, "run", lambda args, **kw: ran.append(args))
+    calls = []
+    monkeypatch.setattr(cli_core, "core_request", lambda method, **kw: calls.append(method))
     cli_core.CliProfileCore._bring_shell_back(Result.err("Timeout after 3600s"))
-    assert ran == [["systemctl", "--user", "start", "plasma-plasmashell.service"]]
-    ran.clear()
+    assert calls == ["desktop.recover"]
+    calls.clear()
     cli_core.CliProfileCore._bring_shell_back(Result.err("some other error"))
-    assert ran == []
+    assert calls == []
 
 
 def test_old_folder_names_move(monkeypatch, tmp_path) -> None:

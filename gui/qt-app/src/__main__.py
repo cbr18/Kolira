@@ -13,10 +13,9 @@ from typing import Optional
 # Добавляем src в путь для импортов
 sys.path.insert(0, str(Path(__file__).parent))
 
-from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtCore import QDir, QUrl, QCoreApplication, QTimer, Qt
+from PySide6.QtCore import QDir, QUrl, QCoreApplication, QTimer, QThreadPool, Qt
 from PySide6.QtGui import QPalette, QColor
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 
@@ -26,12 +25,9 @@ import PySide6.QtQuick  # noqa: F401
 
 # Импорт контроллеров
 from app_icon import app_icon
-from controllers import MainController, register_controllers
+from controllers import register_controllers
 from theme_controller import register_theme_controller
 from system_tray import register_system_tray
-
-# Регистрация мета-типов для QML (not needed in PySide6, Python types auto-registered)
-from core.protocol import Result, ProfileInfo, Component, AppStatus, AppSettings
 
 
 def _show_help() -> int:
@@ -266,6 +262,14 @@ def _maybe_setup_screenshot(app: QApplication, main_window: object) -> None:
     QTimer.singleShot(2500, _grab)
 
 
+def _close_core_session() -> None:
+    # Do not remove RPC state while an apply worker still owns it. A busy
+    # session remains in XDG cache for recovery; durable backups are separate.
+    if QThreadPool.globalInstance().waitForDone(5000):
+        from core.protocol import CoreFactory
+        CoreFactory.close_session()
+
+
 def main() -> int:
     # Handle --help / -h early (before QML engine setup)
     if "--help" in sys.argv or "-h" in sys.argv:
@@ -294,6 +298,7 @@ def main() -> int:
     )
 
     app = QApplication(sys.argv)
+    app.aboutToQuit.connect(_close_core_session)
     app.setWindowIcon(app_icon())
 
     # Переводы по системной локали (без ручного выбора языка). QTranslator
@@ -391,6 +396,7 @@ def main() -> int:
             "components": "openThemeComponentsPageDefault",
             "apps": "openThemeApplicationsPage",
             "palette": "openPalettePage",
+            "dependencies": "openDependenciesPage",
         }.get(page, "openThemePage")
         QTimer.singleShot(
             0,

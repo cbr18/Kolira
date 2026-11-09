@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "KDE Theme Manager appearance package",
+  "type": "object",
+  "required": ["schema", "name"],
+  "properties": {
+    "schema": {"const": "theme-profile/theme@2"},
+    "name": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"},
+    "description": {"type": "string"},
+    "created": {"type": "string"},
+    "generator": {"type": "string"},
+    "appearance_only": {"type": "boolean"},
+    "values": {"type": "object", "description": "Field IDs and normalized values from agent.schema.fields"},
+    "palette": {"anyOf": [{"type":"null"},{"$ref":"#/$defs/palette"}]},
+    "wallpaper": {"type": ["string", "null"]},
+    "gsettings_gtk_theme": {"type": ["string", "null"]},
+    "assets": {"type":"array", "items":{"$ref":"#/$defs/asset"}},
+    "dependencies": {"type":"array", "items":{"$ref":"#/$defs/dependency"}},
+    "sources": {"type":"object", "additionalProperties":{"type":"object", "properties":{"store":{"type":"string"},"id":{"type":"string"},"url":{"type":"string"}}}}
+  },
+  "$defs": {
+    "palette": {"type":"object", "required":["name","variant","base","accent"], "properties":{
+      "name":{"type":"string"},"author":{"type":"string"},"source":{"type":"string"},
+      "variant":{"enum":["light","dark"]}, "accent":{"type":"string","pattern":"^#[0-9a-fA-F]{6}$"},
+      "base":{"type":"array","minItems":16,"maxItems":16,"items":{"type":"string","pattern":"^#[0-9a-fA-F]{6}$"}}
+    }},
+    "asset": {"type":"object", "required":["kind","name","path","origin","redistributable"], "properties":{
+      "kind":{"type":"string"},"name":{"type":"string"},"path":{"type":"string","description":"Validated package-relative appearance resource path"},
+      "origin":{"type":"string"},"redistributable":{"type":"boolean"},"license":{"type":"string"},"source":{"type":"string"}
+    }},
+    "dependency": {"type":"object", "required":["kind","name","source"], "properties":{
+      "kind":{"type":"string"},"name":{"type":"string"},"source":{"type":"string"},"id":{"type":"string"},"title":{"type":"string"},"url":{"type":"string"},"exact":{"type":"boolean"}
+    }}
+  }
+}

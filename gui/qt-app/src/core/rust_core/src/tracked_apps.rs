@@ -1,9 +1,8 @@
 //! Tracked Apps Core Implementation
 
-use std::path::{Path, PathBuf};
-use std::process::Command;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 use which;
 
 use crate::custom_components::merged_component_defs;
@@ -16,23 +15,29 @@ use crate::paths::live_path;
 /// profile name into receivers' `~/.zen`).
 pub fn zen_profile_dir() -> Option<String> {
     let root = crate::paths::home_dir().join(".zen");
-    default_browser_profile(&root).filter(|d| root.join(d).is_dir()).or_else(|| {
-        let mut dirs: Vec<String> = std::fs::read_dir(&root)
-            .ok()?
-            .flatten()
-            .filter(|e| e.path().is_dir())
-            .map(|e| e.file_name().to_string_lossy().to_string())
-            .filter(|n| n.contains("Default"))
-            .collect();
-        dirs.sort();
-        dirs.into_iter().next()
-    })
+    default_browser_profile(&root)
+        .filter(|d| root.join(d).is_dir())
+        .or_else(|| {
+            let mut dirs: Vec<String> = std::fs::read_dir(&root)
+                .ok()?
+                .flatten()
+                .filter(|e| e.path().is_dir())
+                .map(|e| e.file_name().to_string_lossy().to_string())
+                .filter(|n| n.contains("Default"))
+                .collect();
+            dirs.sort();
+            dirs.into_iter().next()
+        })
 }
 
 /// `Default=` of `installs.ini`, else the `Default=1` profile of `profiles.ini`.
 fn default_browser_profile(root: &Path) -> Option<String> {
     if let Ok(text) = std::fs::read_to_string(root.join("installs.ini")) {
-        if let Some(dir) = text.lines().find_map(|l| l.strip_prefix("Default=").map(|v| v.trim().to_string())).filter(|v| !v.is_empty()) {
+        if let Some(dir) = text
+            .lines()
+            .find_map(|l| l.strip_prefix("Default=").map(|v| v.trim().to_string()))
+            .filter(|v| !v.is_empty())
+        {
             return Some(dir);
         }
     }
@@ -52,7 +57,9 @@ fn default_browser_profile(root: &Path) -> Option<String> {
 
 /// Relative config paths for the detected Zen profile.
 pub fn zen_config_paths() -> Vec<String> {
-    let Some(dir) = zen_profile_dir() else { return Vec::new() };
+    let Some(dir) = zen_profile_dir() else {
+        return Vec::new();
+    };
     let rel = |suffix: &str| format!(".zen/{dir}/{suffix}");
     vec![
         rel("user.js"),
@@ -68,7 +75,9 @@ pub fn zen_config_paths() -> Vec<String> {
 pub fn firefox_profile_dir() -> Option<String> {
     let root = crate::paths::home_dir().join(".mozilla/firefox");
     let value = |text: &str, key: &str| -> Option<String> {
-        text.lines().find_map(|l| l.strip_prefix(key).map(|v| v.trim().to_string())).filter(|v| !v.is_empty())
+        text.lines()
+            .find_map(|l| l.strip_prefix(key).map(|v| v.trim().to_string()))
+            .filter(|v| !v.is_empty())
     };
     if let Ok(text) = std::fs::read_to_string(root.join("installs.ini")) {
         if let Some(dir) = value(&text, "Default=") {
@@ -102,7 +111,8 @@ pub fn firefox_profile_dir() -> Option<String> {
 /// Theme files of the default Firefox profile (user.js keeps only the
 /// appearance prefs — appearance.rs).
 pub fn firefox_config_paths() -> Vec<String> {
-    let Some(dir) = firefox_profile_dir().filter(|d| !d.contains("..") && !d.starts_with('/')) else {
+    let Some(dir) = firefox_profile_dir().filter(|d| !d.contains("..") && !d.starts_with('/'))
+    else {
         return Vec::new();
     };
     ["user.js", "chrome/userChrome.css", "chrome/userContent.css"]
@@ -113,7 +123,7 @@ pub fn firefox_config_paths() -> Vec<String> {
 
 /// Asset paths of what is *active* on this machine (2026-11-04: the registry
 /// used to hard-code one user's assets — Sandstone, glass/paper Look & Feel,
-/// noctalia/paper btop themes, a fastfetch image, every Zed theme and colour
+/// noctalia/paper btop themes, every Zed theme and colour
 /// scheme — so every theme carried every other theme's assets). A theme
 /// carries only the assets it uses; applying restores them from its
 /// `theme.json` asset list (theme.rs).
@@ -122,22 +132,35 @@ pub mod active_assets {
     use crate::paths::{config_home, data_home, home_dir};
 
     fn rel(path: &std::path::Path) -> Option<String> {
-        path.strip_prefix(home_dir()).ok().map(|p| p.to_string_lossy().to_string())
+        path.strip_prefix(home_dir())
+            .ok()
+            .map(|p| p.to_string_lossy().to_string())
     }
 
     fn live(id: &str) -> Option<String> {
-        field(id).and_then(|f| read(f, &Base::Live)).map(|v| value_str(&v)).filter(|v| !v.is_empty() && !v.contains('/'))
+        field(id)
+            .and_then(|f| read(f, &Base::Live))
+            .map(|v| value_str(&v))
+            .filter(|v| !v.is_empty() && !v.contains('/'))
     }
 
     pub fn kvantum() -> Vec<String> {
         let mut out = vec![".config/Kvantum/kvantum.kvconfig".to_string()];
         if let Some(theme) = live("kvantum_theme") {
             let root = config_home().join("Kvantum");
-            let dir = if root.join(&theme).join(format!("{theme}.kvconfig")).is_file() {
+            let dir = if root
+                .join(&theme)
+                .join(format!("{theme}.kvconfig"))
+                .is_file()
+            {
                 Some(root.join(&theme))
             } else {
                 std::fs::read_dir(&root).ok().and_then(|it| {
-                    let mut dirs: Vec<_> = it.flatten().map(|e| e.path()).filter(|d| d.join(format!("{theme}.kvconfig")).is_file()).collect();
+                    let mut dirs: Vec<_> = it
+                        .flatten()
+                        .map(|e| e.path())
+                        .filter(|d| d.join(format!("{theme}.kvconfig")).is_file())
+                        .collect();
                     dirs.sort();
                     dirs.into_iter().next()
                 })
@@ -150,26 +173,11 @@ pub mod active_assets {
     pub fn btop() -> Vec<String> {
         let mut out = vec![".config/btop/btop.conf".to_string()];
         if let Some(theme) = live("btop_theme") {
-            let file = config_home().join("btop/themes").join(format!("{theme}.theme"));
+            let file = config_home()
+                .join("btop/themes")
+                .join(format!("{theme}.theme"));
             if file.is_file() {
                 out.extend(rel(&file));
-            }
-        }
-        out
-    }
-
-    pub fn fastfetch() -> Vec<String> {
-        let mut out = vec![".config/fastfetch/config.jsonc".to_string()];
-        let config = config_home().join("fastfetch/config.jsonc");
-        if let Ok(text) = std::fs::read_to_string(&config) {
-            if let Some(source) = crate::field::json_get(&text, &["logo".to_string(), "source".to_string()]).map(|v| value_str(&v)) {
-                let home = home_dir().to_string_lossy().to_string();
-                let expanded = source.replacen('~', &home, 1).replace("$HOME", &home);
-                let path = std::path::PathBuf::from(expanded);
-                // Only a logo kept next to the config travels with a theme.
-                if path.is_file() && path.starts_with(config_home().join("fastfetch")) {
-                    out.extend(rel(&path));
-                }
             }
         }
         out
@@ -180,7 +188,9 @@ pub mod active_assets {
         for id in ["zed_dark", "zed_light"] {
             if let Some(theme) = live(id) {
                 if let Some(file) = crate::theme::zed_theme_file_pub(&theme) {
-                    if let Some(r) = rel(&file).filter(|r| r.starts_with(".config/zed/themes/") && !out.contains(r)) {
+                    if let Some(r) = rel(&file)
+                        .filter(|r| r.starts_with(".config/zed/themes/") && !out.contains(r))
+                    {
                         out.push(r);
                     }
                 }
@@ -191,7 +201,11 @@ pub mod active_assets {
 
     pub fn color_scheme() -> Vec<String> {
         live("color_scheme")
-            .map(|name| data_home().join("color-schemes").join(format!("{name}.colors")))
+            .map(|name| {
+                data_home()
+                    .join("color-schemes")
+                    .join(format!("{name}.colors"))
+            })
             .filter(|p| p.is_file())
             .and_then(|p| rel(&p))
             .into_iter()
@@ -229,9 +243,17 @@ pub struct TrackedAppDef {
 /// the next time a profile is saved.
 pub fn component_config_paths() -> Vec<(String, Vec<String>)> {
     let all = merged_component_defs();
-    all
-        .into_iter()
-        .map(|app| (app.id, app.config_paths))
+    all.into_iter()
+        .filter(|app| app.id != "fastfetch")
+        .map(|app| {
+            (
+                app.id,
+                app.config_paths
+                    .into_iter()
+                    .filter(|path| !crate::appearance::is_preserved(path))
+                    .collect(),
+            )
+        })
         .collect()
 }
 
@@ -426,18 +448,6 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             description: "Resource monitor with themes".to_string(),
             icon: "utilities-system-monitor".to_string(),
             docs_url: "https://github.com/aristocratos/btop".to_string(),
-        },
-        TrackedAppDef {
-            id: "fastfetch".to_string(),
-            name: "Fastfetch".to_string(),
-            category: "Sysinfo".to_string(),
-            config_paths: active_assets::fastfetch(),
-            detect_command: Some("fastfetch".to_string()),
-            flatpak_id: None,
-            supports_live_reload: false,
-            description: "System info tool with custom logo/config".to_string(),
-            icon: "preferences-desktop-theme".to_string(),
-            docs_url: "https://github.com/fastfetch-cli/fastfetch".to_string(),
         },
         TrackedAppDef {
             id: "zed".to_string(),
@@ -684,7 +694,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
 /// a `detect_command` is missing, otherwise apps that are installed outside
 /// flatpak (e.g. zen with a local ~/.zen profile) were reported as
 /// "not_installed" even though their configs are right there.
-fn detect_app_status(app: &TrackedAppDef) -> crate::types::AppStatus {
+pub(crate) fn detect_app_status(app: &TrackedAppDef) -> crate::types::AppStatus {
     if let Some(cmd) = &app.detect_command {
         // `a|b`: any alternative counts (Zed ships as `zeditor` on Arch).
         let found = cmd
@@ -718,25 +728,29 @@ fn detect_app_status(app: &TrackedAppDef) -> crate::types::AppStatus {
 /// have (`~/.config/Cursor`, `~/obsidian/vault`). The app counts as here when
 /// its command exists or its folder (`dst`'s parent) already does.
 pub fn app_absent_for(rel: &str, dst: &std::path::Path) -> bool {
-    if dst.parent().is_some_and(|p| p.exists()) {
+    app_absent_without_parent(rel, dst.parent().is_some_and(|p| p.exists()))
+}
+pub(crate) fn app_absent_without_parent(rel: &str, parent_exists: bool) -> bool {
+    if parent_exists {
         return false;
     }
     get_tracked_apps()
         .iter()
         .find(|a| a.config_paths.iter().any(|p| p == rel))
-        .is_some_and(|a| a.detect_command.is_some() && matches!(detect_app_status(a), crate::types::AppStatus::NotInstalled))
+        .is_some_and(|a| {
+            a.detect_command.is_some()
+                && matches!(detect_app_status(a), crate::types::AppStatus::NotInstalled)
+        })
 }
 
 /// Check if flatpak is installed
-fn is_flatpak_installed(flatpak_id: &str) -> bool {
-    let output = Command::new("flatpak")
-        .args(["list", "--app", "--columns=application"])
-        .output();
-    
-    match output {
-        Ok(output) => String::from_utf8_lossy(&output.stdout).contains(flatpak_id),
-        Err(_) => false,
-    }
+pub(crate) fn is_flatpak_installed(flatpak_id: &str) -> bool {
+    [
+        crate::paths::data_home().join("flatpak/app"),
+        PathBuf::from("/var/lib/flatpak/app"),
+    ]
+    .iter()
+    .any(|root| root.join(flatpak_id).join("current").exists())
 }
 
 /// Build Component from TrackedAppDef

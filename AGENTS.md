@@ -19,7 +19,8 @@ edit the kit and re-run the installer.
 
 The end-user data directory (`~/.config/kde-theme-profile/`: `themes/`, `backups/`, `manifests/`,
 `active-profile`, `app-preferences.json`) is separate from the code and is never
-touched by install/update.
+replaced as a deployed code directory. Install/update registers dependencies through
+Rust and synchronizes bundled themes according to the documented preservation rules.
 
 ## Architecture decision (fixed — no other variants)
 
@@ -49,6 +50,16 @@ When in doubt: new logic goes to the Rust core; GUI-only glue (Qt signal/slot,
 QML mapping) goes to Python. If you think bash is needed, it is a decision to
 be reviewed, not an implementation detail.
 
+## Task tracking
+
+- Read `tasks/README.md` first for current open work and verification limits.
+- `tasks/*.md` record individual tasks, decisions, implementation and validation.
+- `plans/*.md` contain implementation plans linked from tasks; they are not a separate queue.
+- `docs/ROADMAP.md` summarises direction and completed work. Original `docs/TZ-*.md`
+  specifications and historical unchecked lists do not by themselves mean open work.
+- When completing a task, update its status and `tasks/README.md` together; distinguish
+  implemented fixes from pending reproduction or live-session validation.
+
 ## Documentation rule (mandatory)
 
 **Every code change must be reflected in the documentation in the same task.**
@@ -70,6 +81,7 @@ A change is not done until the docs agree with the code. At minimum:
 | `docs/CURRENT_APP.md` | Current app, tracked paths, directory layout, known limits |
 | `docs/THEME_INSPECTOR.md` | Theme Inspector UX + architecture |
 | `docs/ROLLBACK.md` | Backup layout and recovery |
+| `docs/APPLY_PROTECTION.md` | Appearance lock, operation records, rollback and interruption recovery |
 | `docs/ROADMAP.md` | Direction and completed work |
 | `CHANGELOG.md` | What changed for users, per version: add every user-visible change under `Unreleased`; a release moves it under its version |
 | `docs/TZ-QT-APP.md`, `docs/TZ-THEME-INSPECTOR.md` | Original specifications |
@@ -77,6 +89,7 @@ A change is not done until the docs agree with the code. At minimum:
 | `docs/MCP.md` | Local MCP server usage, tool contract and safety notes |
 | `docs/PALETTE.md` | base16 palette model, `theme-profile palette` CLI, base16 → KDE role mapping |
 | `docs/THEMES.md` | Theme format (appearance-only snapshot + `theme.json`), per-file appearance policies, dependencies, save/apply/check/migrate, export/import |
+| `docs/DEPENDENCIES.md` | Dependency registry, ownership, operations, cancellation, GUI and CLI |
 | `gui/qt-app/README.md` | GUI details: cores, tray, theming, wallpapers, architecture, dev commands |
 
 ## Contracts that must not drift
@@ -89,9 +102,9 @@ A change is not done until the docs agree with the code. At minimum:
   `XDG_DATA_HOME` / `XDG_CACHE_HOME`. Data lives in
   `$XDG_CONFIG_HOME/kde-theme-profile` (themes in `themes/`). Data under the
   pre-0.6.0 names (`theme-profile/`, `profiles/`) is moved there on start, by
-  `paths.rs` and its twin `core/paths.py`: same moves, nothing overwritten. A
+  Rust `paths.rs` (Python only resolves paths): nothing overwritten. A
   theme's *snapshot* keeps the `.config/...` layout inside.
-- **Wallpaper list ordering**: shared by the Rust CLI and the Python GUI core —
+- **Wallpaper list ordering**: implemented once in Rust for CLI and GUI —
   follow symlinks, extensions `jpg jpeg png webp bmp` (case-insensitive),
   byte/code-point order (`Vec<String>::sort()` / `sorted()`). See the table in
   `gui/qt-app/README.md`.
@@ -102,6 +115,10 @@ A change is not done until the docs agree with the code. At minimum:
   tests and dry runs).
 - **JSONC files** (Zed / VS Code / Cursor / Obsidian / fastfetch) are patched by
   value position and never reserialised.
+- **Appearance mutation lock**: profile Apply, Inspector, fields, app themes,
+  palettes and wallpapers share Rust `operation::MutationGuard`. Keep lock order
+  global appearance → Inspector session. Profile transactions go through
+  `operation::run`; do not bypass pending recovery or discard recovery errors.
 - **Single core**: `gui/qt-app/src/core/cli_core.py` shells to the Rust CLI for
   profile/wallpaper operations; the backend name is `core` (`auto` is the same
   thing). Select with `--core`, `$KTM_CORE` or *Settings → Core*.
@@ -112,10 +129,10 @@ A change is not done until the docs agree with the code. At minimum:
 # Build the Rust CLI first
 cd gui/qt-app/src/core/rust_core && cargo build --release && cargo test && cargo clippy --all-targets -- -D warnings
 
-# Python tests (offscreen Qt; 276 tests)
+# Python tests (offscreen Qt; the current count is printed by pytest)
 cd gui/qt-app && QT_QPA_PLATFORM=offscreen uv run --project . --extra dev pytest tests -q
 
-# Bash + installer tests (~245 assertions) — from the repo root
+# Bash + installer tests (~250 assertions) — from the repo root
 bash tests/test-scripts.sh
 
 # A friend's whole story on a clean machine (real KWin + plasmashell; slow, needs Docker)
@@ -145,7 +162,7 @@ codebase to satisfy them unless asked.
    backup; do **not** edit Zen `prefs.js` (use the profile `user.js`).
 4. Prefer `uv` for Python and `cargo` for Rust on this machine.
 5. Keep writes to config files atomic and permission-preserving
-   (`gui/qt-app/src/core/fileutil.py`).
+   (Rust `gui/qt-app/src/core/rust_core/src/gui_api.rs::write_bytes`).
 
 ## License
 

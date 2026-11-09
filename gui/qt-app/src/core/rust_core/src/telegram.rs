@@ -32,7 +32,8 @@ use crate::palette::{kde_roles, Palette, Rgb};
 
 /// Where the generated palette lives (and travels in a theme).
 pub const PALETTE_FILE: &str = ".local/share/TelegramDesktop/theme-profile.tdesktop-palette";
-const DEFAULT_PALETTE_URL: &str = "https://raw.githubusercontent.com/desktop-app/lib_ui/master/ui/colors.palette";
+const DEFAULT_PALETTE_URL: &str =
+    "https://raw.githubusercontent.com/desktop-app/lib_ui/master/ui/colors.palette";
 
 /// Default Telegram palette anchors: background, text, accent blue, and the
 /// green of outgoing messages.
@@ -53,7 +54,8 @@ pub fn default_palette() -> Result<String> {
             return Ok(text);
         }
     }
-    let text = crate::net::http_get(DEFAULT_PALETTE_URL, 1 << 20).context("cannot fetch Telegram's default palette")?;
+    let text = crate::net::http_get(DEFAULT_PALETTE_URL, 1 << 20)
+        .context("cannot fetch Telegram's default palette")?;
     if parse(&text).len() < 100 {
         return Err(anyhow!("unexpected Telegram palette format"));
     }
@@ -72,15 +74,20 @@ fn parse(text: &str) -> Vec<(String, String)> {
             let (key, rest) = line.split_once(':')?;
             let key = key.trim();
             let value = rest.trim().strip_suffix(';')?.trim();
-            (!key.is_empty() && key.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') && !value.is_empty())
-                .then(|| (key.to_string(), value.to_string()))
+            (!key.is_empty()
+                && key.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+                && !value.is_empty())
+            .then(|| (key.to_string(), value.to_string()))
         })
         .collect()
 }
 
 /// Outgoing-message colours (green in the default palette).
 fn outgoing(key: &str) -> bool {
-    key.starts_with("msgOut") || key.starts_with("historyOut") || key.starts_with("msgFileOut") || key.starts_with("msgFileThumbLinkOut")
+    key.starts_with("msgOut")
+        || key.starts_with("historyOut")
+        || key.starts_with("msgFileOut")
+        || key.starts_with("msgFileThumbLinkOut")
 }
 
 /// The recoloured palette file for palette `p`.
@@ -117,7 +124,9 @@ pub fn follows_file() -> bool {
 
 /// Telegram's binary, if installed.
 fn telegram_bin() -> Option<PathBuf> {
-    ["Telegram", "telegram-desktop"].iter().find_map(|b| which::which(b).ok())
+    ["Telegram", "telegram-desktop"]
+        .iter()
+        .find_map(|b| which::which(b).ok())
 }
 
 /// Palette target outcome.
@@ -160,19 +169,41 @@ mod tests {
     fn parses_keys_values_and_references() {
         let entries = parse(SAMPLE);
         assert_eq!(entries.len(), 7);
-        assert_eq!(entries[4], ("activeButtonFg".to_string(), "windowFgActive".to_string()));
+        assert_eq!(
+            entries[4],
+            ("activeButtonFg".to_string(), "windowFgActive".to_string())
+        );
     }
 
     #[test]
     fn recolours_into_the_palette() {
-        let p = crate::palette::parse_base16(include_str!("../data/base16/everforest.yaml"), "t").unwrap();
+        let p = crate::palette::parse_base16(include_str!("../data/base16/everforest.yaml"), "t")
+            .unwrap();
         let roles = kde_roles(&p);
         let out = generate(&p, SAMPLE);
-        let get = |k: &str| out.lines().find_map(|l| l.strip_prefix(&format!("{k}: "))).unwrap().trim_end_matches(';').to_string();
+        let get = |k: &str| {
+            out.lines()
+                .find_map(|l| l.strip_prefix(&format!("{k}: ")))
+                .unwrap()
+                .trim_end_matches(';')
+                .to_string()
+        };
         assert_eq!(get("activeButtonFg"), "windowFgActive", "references kept");
-        assert_eq!(get("windowFgActive"), roles.selection_text.hex(), "text on the accent");
-        assert_ne!(get("windowBg"), "#ffffff", "white background follows the dark palette");
-        assert!(get("shadowFg").len() == 9 && get("shadowFg").ends_with("18"), "alpha kept: {}", get("shadowFg"));
+        assert_eq!(
+            get("windowFgActive"),
+            roles.selection_text.hex(),
+            "text on the accent"
+        );
+        assert_ne!(
+            get("windowBg"),
+            "#ffffff",
+            "white background follows the dark palette"
+        );
+        assert!(
+            get("shadowFg").len() == 9 && get("shadowFg").ends_with("18"),
+            "alpha kept: {}",
+            get("shadowFg")
+        );
         assert_ne!(get("msgOutBg"), "#effdde", "outgoing green recoloured");
     }
 }

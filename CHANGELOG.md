@@ -1,52 +1,74 @@
 # Changelog
 
-What changed for users, newest first. Every user-visible change goes under
-`Unreleased` in the same commit; a release moves it under its version.
-
 ## Unreleased
 
-## 0.6.0 — 2026-11-07
+- GUI: единые отступы диалогов/страниц и каналы скроллбаров; перенос действий
+  при узком окне/крупном шрифте, полный выбор темы приложения и длинный текст.
+- GUI: актуальные значения после «Открыть», видимые ошибки дочерних страниц и
+  редактора приложения, фокус карточек и клавиатурная палитра (Tab/Shift+Tab,
+  Enter и Space для цветов и акцента). Сводки профилей
+  загружаются одним фоновым Rust-запросом.
+- Перевод: известные статусы приложений/зависимостей, история и расписание,
+  множественные формы, даты/размеры по локали и названия компонентов.
 
-### Important
+- Расписание тем в локальной Plasma-сессии: правила времени/дней, фоновый Rust
+  исполнитель, XDG autostart, результаты и защита от повторов/параллельного apply.
+- История 10 завершённых смен с источником, отчётом и проверкой бэкапов;
+  восстановление завершённой смены создаёт новую страховочную транзакцию.
+- Offline-подготовка темы через MCP `prepare_theme` / Rust `agent.prepare`,
+  обнаружение возможностей/схемы, управляемые инструкции в каталоге тем и
+  запуск установленного MCP независимо от cwd.
+- MCP получает асинхронный запуск, статус и безопасную отмену Rust jobs зависимостей.
+- Импорт тем не принимает управляющие файлы агентов и не заменяет корневые
+  инструкции; экспорт исключает их из ресурсов.
 
-- **Data moved:** `~/.config/theme-profile/profiles/` is now
-  `~/.config/kde-theme-profile/themes/`. Themes, backups and settings move by
-  themselves on the first start; nothing is overwritten.
-- Applying a theme no longer changes panel and widget layouts, the login screen
-  (SDDM) or Neovim.
+- Перед ручным Apply в GUI и трее добавлен просмотр файловых изменений,
+  сбросов, зависимостей и перезапусков. Можно сохранить текущее оформление
+  и оставить обои; устаревший просмотр требует нового подтверждения.
+  Добавлены CLI `preview` / `--preview-token` и MCP `preview_profile`.
+- Исправлено сохранение текущих обоев при Apply старых снимков; файловые
+  преобразования KWin/Konsole и прогноз используют общие Rust-функции,
+  Konsole учитывает XDG_CONFIG_HOME. Перезапуски приложений учитывают
+  фактические изменения, включая восстановление предыдущей темы.
 
-### Added
+- В Paper исправлена внутренняя светлая рамка на кнопках: hover использует
+  штатное затемнение Sandstone, а рамка фокуса показывается при клавиатурной
+  навигации. Другие режимы оформления сохраняют стандартное поведение Qt.
 
-- The first install saves your current look as the theme `my-original-look`
-  (`--no-original-theme` skips it).
-- Going back to a saved theme leaves nothing of the other one: an apply journal
-  undoes what the previous theme left, keeping what you changed since.
-- What a theme does not specify goes back to the program's default.
-- The window's Apply shows what is missing before anything changes: *Download and
-  apply* or *Apply without them*. Downloads can be stopped.
-- Step log `apply.log`: after a freeze its last line names the step.
-- Theme constructor (`theme-profile new`, own Look & Feel), palette with preview,
-  dependencies with their sources, automation choices per user, MCP tools, Russian
-  translation of data texts, six bundled themes.
+- Защищено применение темы: единая блокировка GUI/CLI/Inspector, предварительная
+  проверка и копия исходной темы, автоматический откат файлов при ошибке записи
+  или обязательного внешнего шага. Неуспешный Apply возвращает ошибку с ID операции,
+  путём бэкапа и отдельным результатом восстановления.
+- Добавлены `theme-profile operations list|show|recover` и обнаружение прерванных
+  операций в GUI. Обычное восстановление сохраняет последующие личные изменения;
+  принудительная замена доступна явно через `--force`. Бэкапы остаются доступными.
 
-### Fixed
+- Завершён перенос оставшейся бизнес-логики в Rust: Inspector и Undo/Revert,
+  темы приложений, клонирование KDE/Kvantum, настройки, реестры и обои.
+  GUI остаётся Python/PySide6 + QML; общий JSON API обслуживает GUI и MCP.
+- Настройки сохраняют неизвестные ключи и политики automation, параллельные
+  запросы сериализуются; сессии/бэкапы приватны, запись сохраняет права файлов.
+  TOML сохраняет типы и комментарии; ошибки Apply/Undo доступны для повтора.
+  MCP возвращает `isError:true` при неуспехе операции.
 
-- The app crashed at start on a fresh Plasma without colours in `kdeglobals`.
-- Applying could leave the desktop without panels: the app killed an apply after 60
-  seconds, and `kvantummanager` hung on a missing theme. External tools now have a
-  time limit and Plasma always comes back.
-- A failed or stalled download no longer blocks the app; one failed item costs only
-  itself.
-- Icons, cursor, GTK theme, window decoration and Plasma style a machine lacks are
-  not switched to.
-- Icons in running apps follow a theme change; the GTK theme, icons and cursor reach
-  GSettings, which Wayland GTK apps read (a light browser had white text).
-- App buttons follow theme changes from anywhere, without a restart.
-- A theme without a wallpaper leaves any kind of wallpaper alone.
-- Window rules keep KWin 6's `Order=` format.
-- Blur no longer spreads over the transparent margins of panels and notifications.
+- Исправлены 11 дефектов аудита: ограничены назначения ресурсов темы и ссылки
+  при восстановлении, сохранены неудачные staged-правки и корректный результат
+  частичного Apply, MCP проверяет запросы/имя до изменений и продолжает работу
+  после некорректного запроса, bat ограничен таймаутом с диагностикой.
+- Исправлены обновление открытой страницы компонентов, выбор папки обоев,
+  состояние ошибки предпросмотра, гонка поиска палитр, рост объектов фоновых
+  задач и исчезновение таблицы зависимостей из-за длинного журнала.
+- Удалены неиспользуемые внутренние функции и импорты; offscreen Python-тесты
+  стали обязательными в CI, добавлены проверки CLI/установщика и shellcheck.
 
-### Removed
+- Добавлена страница «Зависимости»: галочки выбора, отдельные столбцы названия
+  и категории, установка, удаление выбранных и переустановка с проверкой состояния
+  и предупреждением о затронутых темах.
+- Единый реестр Rust учитывает зависимости приложения и тем, происхождение и
+  владение ресурсами. Старый реестр мигрируется с резервной копией; внешние и
+  изменённые файлы защищены от удаления.
+- Установка показывает прогресс и поддерживает отмену текущей загрузки.
+  Ошибки не приводят к автоматическому применению темы; добавлены явное применение
+  без зависимостей и «Больше не спрашивать» для магазинов и пакетов.
 
-- Steam, SDDM, Neovim and the Simple Application Launcher widget are no longer
-  themed, listed or installed.
+- Темы больше не меняют fastfetch и меню запуска Plasma, включая значок кнопки. Старые темы и журнал отката также оставляют fastfetch без изменений. Simple Application Launcher не требуется.

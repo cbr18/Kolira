@@ -1,0 +1,70 @@
+{
+  "plasma_global": {
+    "field": "look_and_feel",
+    "choice": true
+  },
+  "plasma_style": {
+    "field": "plasma_theme",
+    "choice": true
+  },
+  "color_scheme": {
+    "field": "color_scheme",
+    "choice": true
+  },
+  "decoration_theme": {
+    "field": "decoration_theme",
+    "choice": true
+  },
+  "icon_theme": {
+    "field": "icon_theme",
+    "choice": true
+  },
+  "cursor_theme": {
+    "field": "cursor_theme",
+    "choice": true
+  },
+  "ui_font": {
+    "field": "ui_font",
+    "choice": false
+  },
+  "wallpaper": {
+    "field": "",
+    "choice": false
+  },
+  "corner_radius": {
+    "field": "klassy_radius",
+    "choice": false
+  },
+  "blur_strength": {
+    "field": "blur_strength",
+    "choice": false
+  },
+  "translucency": {
+    "field": "translucency_inactive",
+    "choice": false
+  },
+  "animations": {
+    "field": "animation_factor",
+    "choice": false
+  },
+  "widget_style": {
+    "field": "widget_style",
+    "choice": true
+  },
+  "kvantum_theme": {
+    "field": "kvantum_theme",
+    "choice": true
+  },
+  "kvantum_translucent": {
+    "field": "kvantum_translucent",
+    "choice": false
+  },
+  "gtk_theme": {
+    "field": "gtk_theme",
+    "choice": true
+  },
+  "gtk_dark": {
+    "field": "gtk_dark",
+    "choice": false
+  }
+}

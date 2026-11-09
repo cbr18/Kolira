@@ -8,13 +8,22 @@ import Components 1.0
 
 /*! One high-level theme component group (KDE/Plasma, Desktop, Qt/Kvantum, GTK). */
 Kirigami.ScrollablePage {
+    padding: Platform.Units.gridUnit
     id: page
+    objectName: "themeComponentsPage"
 
     title: page.groupTitle
     property string groupId: ""
     property string groupTitle: ""
     property string groupDescription: ""
-    property var components: []
+    readonly property var components: {
+        const groups = themeBundle.groups
+        for (let i = 0; i < groups.length; ++i) {
+            if (groups[i].id === page.groupId)
+                return groups[i].components
+        }
+        return []
+    }
     property string wallpaperComponentId: ""
 
     readonly property bool glassMode: themeController.isGlass
@@ -44,7 +53,6 @@ Kirigami.ScrollablePage {
     }
 
     ColumnLayout {
-        Layout.margins: Platform.Units.largeSpacing
         spacing: Platform.Units.largeSpacing
 
         Kirigami.InlineMessage {
@@ -194,7 +202,7 @@ Kirigami.ScrollablePage {
                             }
                         }
 
-                        Button {
+                        AppButton {
                             visible: modelData.kind === "wallpaper"
                             text: qsTr("Choose…")
                             icon.name: "document-open-folder"
@@ -219,14 +227,14 @@ Kirigami.ScrollablePage {
                             visible: text !== ""
                         }
 
-                        Button {
+                        AppButton {
                             text: qsTr("KDE settings")
                             icon.name: "settings-configure"
                             visible: modelData.externalModule !== ""
                             onClicked: themeBundle.openSystemSettings(modelData.externalModule)
                         }
 
-                        Button {
+                        AppButton {
                             text: qsTr("Customize")
                             icon.name: "document-edit"
                             visible: !page.readOnly && modelData.legacySection !== ""

@@ -19,7 +19,18 @@ fn style_path() -> PathBuf {
 fn wofi(prompt: &str, width: &str, height: &str) -> Option<String> {
     let style = style_path().to_string_lossy().to_string();
     let output = Command::new("wofi")
-        .args(["--dmenu", "--insensitive", "--prompt", prompt, "--width", width, "--height", height, "--style", &style])
+        .args([
+            "--dmenu",
+            "--insensitive",
+            "--prompt",
+            prompt,
+            "--width",
+            width,
+            "--height",
+            height,
+            "--style",
+            &style,
+        ])
         .stdin(Stdio::null())
         .output()
         .ok()?;
@@ -53,14 +64,30 @@ fn profile_menu(prompt: &str) -> Option<String> {
     if options.is_empty() {
         return None;
     }
-    wofi_with_input(prompt, "360", "260", &options)
-        .map(|choice| choice.split_whitespace().next().unwrap_or(&choice).to_string())
+    wofi_with_input(prompt, "360", "260", &options).map(|choice| {
+        choice
+            .split_whitespace()
+            .next()
+            .unwrap_or(&choice)
+            .to_string()
+    })
 }
 
 fn wofi_with_input(prompt: &str, width: &str, height: &str, input: &str) -> Option<String> {
     let style = style_path().to_string_lossy().to_string();
     let mut child = Command::new("wofi")
-        .args(["--dmenu", "--insensitive", "--prompt", prompt, "--width", width, "--height", height, "--style", &style])
+        .args([
+            "--dmenu",
+            "--insensitive",
+            "--prompt",
+            prompt,
+            "--width",
+            width,
+            "--height",
+            height,
+            "--style",
+            &style,
+        ])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
@@ -80,7 +107,8 @@ fn wofi_with_input(prompt: &str, width: &str, height: &str, input: &str) -> Opti
 
 fn main() -> ExitCode {
     let active = active_profile();
-    let choices = "Apply profile\nSave as\nOpen profile folder\nRestart Plasma Shell\nStatus\nCancel\n";
+    let choices =
+        "Apply profile\nSave as\nOpen profile folder\nRestart Plasma Shell\nStatus\nCancel\n";
 
     let action = match wofi_with_input(&format!("Theme: {active}"), "380", "260", choices) {
         Some(a) => a,
@@ -101,7 +129,11 @@ fn main() -> ExitCode {
         }
         "Save as" => {
             let default = active_profile();
-            if let Some(name) = wofi(&format!("Save as profile name (default {default})"), "420", "120") {
+            if let Some(name) = wofi(
+                &format!("Save as profile name (default {default})"),
+                "420",
+                "120",
+            ) {
                 let name = name.split_whitespace().next().unwrap_or(&name).to_string();
                 match save_profile_cli(&name, None) {
                     Ok(()) => println!("Saved profile: {name}"),

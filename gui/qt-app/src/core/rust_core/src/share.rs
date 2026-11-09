@@ -29,9 +29,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::paths::{backups_dir, home_dir, profile_dir, validate_profile_name};
-use crate::wallpaper::APPLETSRC_REL;
 use crate::profile::{case_duplicate_of, keep_desktop_icons, resolve_cli_paths, unique_dir};
 use crate::theme::{self, Missing};
+use crate::wallpaper::APPLETSRC_REL;
 
 pub const FORMAT: &str = "theme-profile/export@1";
 pub const EXPORT_MANIFEST: &str = "export.json";
@@ -56,7 +56,11 @@ const LIBRARY_ROOTS: &[&str] = &[
 /// `kvantum.kvconfig` selector) always; other library entries only when they
 /// belong to one of the theme's assets.
 fn exported(rel: &Path, asset_paths: &[PathBuf]) -> bool {
-    let Some(root) = LIBRARY_ROOTS.iter().map(Path::new).find(|r| rel.starts_with(r)) else {
+    let Some(root) = LIBRARY_ROOTS
+        .iter()
+        .map(Path::new)
+        .find(|r| rel.starts_with(r))
+    else {
         return true;
     };
     if root == Path::new(".config/Kvantum") && rel.parent() == Some(root) {
@@ -145,7 +149,13 @@ pub fn token_to_home(text: &str, home: &str) -> String {
     let home = home.trim_end_matches('/');
     let mut out: Vec<String> = text
         .split('\n')
-        .map(|line| if line.contains("[$e]=") { line.to_string() } else { replace_prefix(line, HOME_TOKEN, home) })
+        .map(|line| {
+            if line.contains("[$e]=") {
+                line.to_string()
+            } else {
+                replace_prefix(line, HOME_TOKEN, home)
+            }
+        })
         .collect();
     if out.last().is_some_and(String::is_empty) && !text.ends_with('\n') {
         out.pop();
@@ -158,7 +168,10 @@ fn is_text(bytes: &[u8]) -> bool {
 }
 
 pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().map(|b| format!("{b:02x}")).collect()
+    Sha256::digest(bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -172,7 +185,10 @@ fn walk(root: &Path, rel: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
         return Ok(()); // never follow links out of the theme
     }
     if meta.is_dir() {
-        let mut entries: Vec<_> = fs::read_dir(&path)?.flatten().map(|e| e.file_name()).collect();
+        let mut entries: Vec<_> = fs::read_dir(&path)?
+            .flatten()
+            .map(|e| e.file_name())
+            .collect();
         entries.sort();
         for name in entries {
             walk(root, &rel.join(name), out)?;
@@ -193,7 +209,11 @@ pub(crate) fn theme_files(dir: &Path, include_wallpaper: bool) -> Result<Vec<Pat
 
 /// Assets `export --public` leaves out (not marked redistributable).
 fn withheld(package: &theme::Package) -> Vec<&theme::Asset> {
-    package.assets.iter().filter(|a| !a.redistributable).collect()
+    package
+        .assets
+        .iter()
+        .filter(|a| !a.redistributable)
+        .collect()
 }
 
 fn theme_files_for(dir: &Path, include_wallpaper: bool, public: bool) -> Result<Vec<PathBuf>> {
@@ -205,7 +225,13 @@ fn theme_files_for(dir: &Path, include_wallpaper: bool, public: bool) -> Result<
         }
     }
     let mut roots: Vec<String> = resolve_cli_paths(None)?;
-    roots.extend(package.assets.iter().filter(|a| a.kind != "wallpaper").map(|a| a.path.clone()));
+    roots.extend(
+        package
+            .assets
+            .iter()
+            .filter(|a| a.kind != "wallpaper")
+            .map(|a| a.path.clone()),
+    );
     if include_wallpaper && package.wallpaper.is_some() {
         roots.push("wallpaper".into());
     }
@@ -217,14 +243,25 @@ fn theme_files_for(dir: &Path, include_wallpaper: bool, public: bool) -> Result<
         walk(dir, &rel, &mut rels)?;
     }
 
-    let asset_paths: Vec<PathBuf> = package.assets.iter().map(|a| PathBuf::from(&a.path)).collect();
+    let asset_paths: Vec<PathBuf> = package
+        .assets
+        .iter()
+        .map(|a| PathBuf::from(&a.path))
+        .collect();
     rels.retain(|rel| exported(rel, &asset_paths));
+    rels.retain(|rel| !crate::paths::is_agent_metadata(rel));
     // Look & Feel layout scripts would bring the author's panels (layout.rs).
-    rels.retain(|rel| !crate::layout::is_laf_layout(rel));
+    rels.retain(|rel| {
+        !crate::layout::is_laf_layout(rel)
+            && !crate::appearance::is_preserved(&rel.to_string_lossy())
+    });
     let unused = crate::appearance::unused_files_in(dir);
     rels.retain(|rel| !unused.iter().any(|u| rel == Path::new(u)));
     if public {
-        let held: Vec<PathBuf> = withheld(&package).iter().map(|a| PathBuf::from(&a.path)).collect();
+        let held: Vec<PathBuf> = withheld(&package)
+            .iter()
+            .map(|a| PathBuf::from(&a.path))
+            .collect();
         rels.retain(|rel| !held.iter().any(|h| rel.starts_with(h)));
         // Look & Feel previews are screenshots of the author's desktop.
         rels.retain(|rel| !rel.to_string_lossy().contains("/contents/previews/"));
@@ -234,7 +271,11 @@ fn theme_files_for(dir: &Path, include_wallpaper: bool, public: bool) -> Result<
 
 fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(String, Vec<u8>)>> {
     let package = theme::load(dir)?;
-    let wallpaper_ok = !options.public || package.assets.iter().any(|a| a.kind == "wallpaper" && a.redistributable);
+    let wallpaper_ok = !options.public
+        || package
+            .assets
+            .iter()
+            .any(|a| a.kind == "wallpaper" && a.redistributable);
     let include_wallpaper = options.include_wallpaper && wallpaper_ok;
     let rels = theme_files_for(dir, include_wallpaper, options.public)?;
 
@@ -245,8 +286,14 @@ fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(
         let key = rel.to_string_lossy().to_string();
         let bytes = fs::read(dir.join(rel)).with_context(|| format!("read {key}"))?;
         match String::from_utf8(bytes.clone()) {
-            Ok(text) if !matches!(crate::appearance::policy(&key), crate::appearance::Policy::Whole) => {
-                let has_include = crate::appearance::include_of(&key).is_some_and(|inc| rels.iter().any(|r| r == Path::new(inc)));
+            Ok(text)
+                if !matches!(
+                    crate::appearance::policy(&key),
+                    crate::appearance::Policy::Whole
+                ) =>
+            {
+                let has_include = crate::appearance::include_of(&key)
+                    .is_some_and(|inc| rels.iter().any(|r| r == Path::new(inc)));
                 for (k, t) in crate::appearance::normalize(&key, &text, has_include)? {
                     entries.push((k, t.into_bytes()));
                 }
@@ -267,7 +314,12 @@ fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(
                 }
             }
             if key == "manifest.txt" {
-                text = text.lines().filter(|l| !l.starts_with("user=")).collect::<Vec<_>>().join("\n") + "\n";
+                text = text
+                    .lines()
+                    .filter(|l| !l.starts_with("user="))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+                    + "\n";
             }
             bytes = home_to_token(&text, &home).into_bytes();
         }
@@ -275,8 +327,11 @@ fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(
     }
 
     // theme.json last, adjusted: name, and no wallpaper when it is left out.
-    let mut json: serde_json::Value = serde_json::from_slice(&fs::read(dir.join(theme::MANIFEST))?)?;
+    let mut json: serde_json::Value =
+        serde_json::from_slice(&fs::read(dir.join(theme::MANIFEST))?)?;
     json["name"] = serde_json::Value::from(name);
+    json["assets"] = serde_json::to_value(&package.assets)?;
+    json["dependencies"] = serde_json::to_value(&package.dependencies)?;
     if options.public {
         let held = withheld(&package);
         let mut deps: Vec<crate::deps::Dependency> = package.dependencies.clone();
@@ -299,7 +354,10 @@ fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(
         }
     }
     let text = serde_json::to_string_pretty(&json)? + "\n";
-    files.push((theme::MANIFEST.into(), home_to_token(&text, &home).into_bytes()));
+    files.push((
+        theme::MANIFEST.into(),
+        home_to_token(&text, &home).into_bytes(),
+    ));
     Ok(files)
 }
 
@@ -310,7 +368,10 @@ fn manifest_for(name: &str, files: &[(String, Vec<u8>)]) -> ExportManifest {
         exported: chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false),
         generator: format!("theme-profile {}", env!("CARGO_PKG_VERSION")),
         home_token: HOME_TOKEN.into(),
-        files: files.iter().map(|(k, b)| (k.clone(), sha256_hex(b))).collect(),
+        files: files
+            .iter()
+            .map(|(k, b)| (k.clone(), sha256_hex(b)))
+            .collect(),
     }
 }
 
@@ -371,7 +432,10 @@ pub fn export_dir(name: &str, out: &Path, options: &ExportOptions) -> Result<usi
         fs::write(&dst, bytes)?;
     }
     fs::create_dir_all(out)?;
-    fs::write(out.join(EXPORT_MANIFEST), serde_json::to_string_pretty(&manifest)? + "\n")?;
+    fs::write(
+        out.join(EXPORT_MANIFEST),
+        serde_json::to_string_pretty(&manifest)? + "\n",
+    )?;
     Ok(files.len())
 }
 
@@ -398,7 +462,10 @@ fn read_export(src: &Path) -> Result<Vec<(String, Vec<u8>)>> {
         safe_rel(Path::new(&key))?;
         *total += bytes.len() as u64;
         if files.len() >= MAX_FILES || *total > MAX_BYTES {
-            bail!("theme archive too large (limit {MAX_FILES} files / {} MiB)", MAX_BYTES >> 20);
+            bail!(
+                "theme archive too large (limit {MAX_FILES} files / {} MiB)",
+                MAX_BYTES >> 20
+            );
         }
         files.push((key, bytes));
         Ok(())
@@ -420,8 +487,10 @@ fn read_export(src: &Path) -> Result<Vec<(String, Vec<u8>)>> {
         return Ok(files);
     }
 
-    let mut zip = zip::ZipArchive::new(fs::File::open(src).with_context(|| format!("open {}", src.display()))?)
-        .context("not a zip archive")?;
+    let mut zip = zip::ZipArchive::new(
+        fs::File::open(src).with_context(|| format!("open {}", src.display()))?,
+    )
+    .context("not a zip archive")?;
     if zip.len() > MAX_FILES + 1 {
         bail!("theme archive has too many entries");
     }
@@ -444,6 +513,111 @@ fn read_export(src: &Path) -> Result<Vec<(String, Vec<u8>)>> {
     Ok(files)
 }
 
+/// What the kit's themes looked like when last installed here:
+/// `<theme root>/bundled-themes.json`, name → (kit version, installed files).
+fn bundled_record_path() -> PathBuf {
+    crate::paths::theme_root().join("bundled-themes.json")
+}
+
+/// Hash of every file under `dir`: changes when anything in the theme changes.
+fn tree_fingerprint(dir: &Path) -> String {
+    let mut files: Vec<String> = Vec::new();
+    let mut stack = vec![dir.to_path_buf()];
+    while let Some(folder) = stack.pop() {
+        let Ok(entries) = fs::read_dir(&folder) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if let Ok(bytes) = fs::read(&path) {
+                let rel = path
+                    .strip_prefix(dir)
+                    .unwrap_or(&path)
+                    .to_string_lossy()
+                    .to_string();
+                files.push(format!("{rel} {}", sha256_hex(&bytes)));
+            }
+        }
+    }
+    files.sort();
+    sha256_hex(files.join("\n").as_bytes())
+}
+
+/// Bring the kit's ready themes up to date: add the new ones, replace the ones
+/// the kit changed unless the user changed them here (the replaced one is backed
+/// up). A theme with no record of how it was installed is left alone, it may hold
+/// the user's edits. A kept theme is mentioned once per kit version. Returns one
+/// line per theme that needs saying.
+pub fn sync_bundled(themes: &Path) -> Result<Vec<String>> {
+    let path = bundled_record_path();
+    let mut record: BTreeMap<String, (String, String)> = fs::read(&path)
+        .ok()
+        .and_then(|b| serde_json::from_slice(&b).ok())
+        .unwrap_or_default();
+    let mut dirs: Vec<PathBuf> = fs::read_dir(themes)?
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.join(EXPORT_MANIFEST).is_file())
+        .collect();
+    dirs.sort();
+    let mut lines = Vec::new();
+    for dir in dirs {
+        let manifest: ExportManifest = match fs::read(dir.join(EXPORT_MANIFEST))
+            .map_err(anyhow::Error::from)
+            .and_then(|b| Ok(serde_json::from_slice(&b)?))
+        {
+            Ok(m) => m,
+            Err(e) => {
+                lines.push(format!("Could not read {}: {e:#}", dir.display()));
+                continue;
+            }
+        };
+        let name = manifest.theme.clone();
+        let kit = sha256_hex(serde_json::to_string(&manifest.files)?.as_bytes());
+        let existing = case_duplicate_of(&name).unwrap_or_else(|| name.clone());
+        let installed = profile_dir(&existing)?;
+        let force = if !installed.exists() {
+            false
+        } else {
+            match record.get(&existing) {
+                Some((old_kit, _)) if *old_kit == kit => continue,
+                Some((_, files)) if *files == tree_fingerprint(&installed) => true,
+                // Said once per kit version; an empty fingerprint never matches,
+                // so a theme of unknown origin is never replaced by itself.
+                other => {
+                    let files = other.map(|(_, f)| f.clone()).unwrap_or_default();
+                    lines.push(format!("Kept theme {existing}: it may hold your changes (new version: theme-profile import {} --force)", dir.display()));
+                    record.insert(existing.clone(), (kit, files));
+                    continue;
+                }
+            }
+        };
+        match import(
+            &dir,
+            &ImportOptions {
+                name: Some(existing.clone()),
+                force,
+            },
+        ) {
+            Ok(_) => {
+                record.insert(
+                    existing.clone(),
+                    (kit, tree_fingerprint(&profile_dir(&existing)?)),
+                );
+                lines.push(format!(
+                    "{} theme: {existing}",
+                    if force { "Updated" } else { "Added" }
+                ));
+            }
+            Err(e) => lines.push(format!("Could not add theme {existing}: {e:#}")),
+        }
+    }
+    fs::write(&path, serde_json::to_vec_pretty(&record)?)?;
+    Ok(lines)
+}
+
 /// Import a theme from `src` (`.zip` or unpacked directory).
 pub fn import(src: &Path, options: &ImportOptions) -> Result<ImportReport> {
     let mut files = read_export(src)?;
@@ -452,11 +626,15 @@ pub fn import(src: &Path, options: &ImportOptions) -> Result<ImportReport> {
         .position(|(k, _)| k == EXPORT_MANIFEST)
         .ok_or_else(|| anyhow!("{EXPORT_MANIFEST} missing — not a theme export"))?;
     let (_, manifest_bytes) = files.remove(at);
-    let manifest: ExportManifest = serde_json::from_slice(&manifest_bytes).context("invalid export.json")?;
+    let manifest: ExportManifest =
+        serde_json::from_slice(&manifest_bytes).context("invalid export.json")?;
     if manifest.format != FORMAT {
         bail!("unsupported export format {:?}", manifest.format);
     }
     for (key, bytes) in &files {
+        if crate::paths::is_agent_metadata(Path::new(key)) {
+            bail!("Agent instructions/configuration are not theme content: {key}");
+        }
         match manifest.files.get(key) {
             Some(sum) if *sum == sha256_hex(bytes) => {}
             Some(_) => bail!("checksum mismatch: {key}"),
@@ -464,16 +642,23 @@ pub fn import(src: &Path, options: &ImportOptions) -> Result<ImportReport> {
         }
     }
     if files.len() != manifest.files.len() {
-        bail!("export is incomplete ({} of {} files)", files.len(), manifest.files.len());
+        bail!(
+            "export is incomplete ({} of {} files)",
+            files.len(),
+            manifest.files.len()
+        );
     }
     let theme_json = files
         .iter()
         .find(|(k, _)| k == theme::MANIFEST)
         .ok_or_else(|| anyhow!("theme.json missing"))?;
-    let package: theme::Package = serde_json::from_slice(&theme_json.1).context("invalid theme.json")?;
+    let package: theme::Package =
+        serde_json::from_slice(&theme_json.1).context("invalid theme.json")?;
     if package.schema != theme::SCHEMA {
         bail!("unsupported theme schema {:?}", package.schema);
     }
+
+    theme::validate_assets(&package)?;
 
     let name = options.name.clone().unwrap_or_else(|| package.name.clone());
     validate_profile_name(&name)?;
@@ -485,12 +670,18 @@ pub fn import(src: &Path, options: &ImportOptions) -> Result<ImportReport> {
         bail!("theme \"{name}\" already exists (use --name=NEW or --force)");
     }
 
-    let profiles = target.parent().ok_or_else(|| anyhow!("bad profiles dir"))?.to_path_buf();
+    let profiles = target
+        .parent()
+        .ok_or_else(|| anyhow!("bad profiles dir"))?
+        .to_path_buf();
     fs::create_dir_all(&profiles)?;
     let tmp = unique_dir(&profiles, &format!(".import-{name}"))?;
     let home = home_dir().to_string_lossy().to_string();
     let written = (|| -> Result<()> {
         for (key, bytes) in &files {
+            if crate::appearance::is_preserved(key) {
+                continue;
+            }
             let dst = tmp.join(key);
             if let Some(parent) = dst.parent() {
                 fs::create_dir_all(parent)?;
@@ -520,7 +711,13 @@ pub fn import(src: &Path, options: &ImportOptions) -> Result<ImportReport> {
     fs::rename(&tmp, &target)?;
     let missing = theme::check(&name)?;
     let dependencies = theme::needed(&name)?;
-    Ok(ImportReport { name, files: files.len(), replaced, missing, dependencies })
+    Ok(ImportReport {
+        name,
+        files: files.len(),
+        replaced,
+        missing,
+        dependencies,
+    })
 }
 
 #[cfg(test)]
@@ -531,21 +728,48 @@ mod tests {
     fn home_token_round_trip_respects_name_boundaries() {
         let text = "Image=file:///home/cbr/Pics/a.jpg\nother=/home/cbr18/x\nend=/home/cbr";
         let out = home_to_token(text, "/home/cbr");
-        assert_eq!(out, "Image=file://$HOME/Pics/a.jpg\nother=/home/cbr18/x\nend=$HOME");
-        assert_eq!(token_to_home(&out, "/home/anna/"), "Image=file:///home/anna/Pics/a.jpg\nother=/home/cbr18/x\nend=/home/anna");
+        assert_eq!(
+            out,
+            "Image=file://$HOME/Pics/a.jpg\nother=/home/cbr18/x\nend=$HOME"
+        );
+        assert_eq!(
+            token_to_home(&out, "/home/anna/"),
+            "Image=file:///home/anna/Pics/a.jpg\nother=/home/cbr18/x\nend=/home/anna"
+        );
         assert_eq!(token_to_home("$HOMEDIR stays", "/h"), "$HOMEDIR stays");
         // KDE's own expanding entries keep their literal $HOME.
-        assert_eq!(token_to_home("A[$e]=file:$HOME/x\nB=file://$HOME/y\n", "/home/u"), "A[$e]=file:$HOME/x\nB=file:///home/u/y\n");
+        assert_eq!(
+            token_to_home("A[$e]=file:$HOME/x\nB=file://$HOME/y\n", "/home/u"),
+            "A[$e]=file:$HOME/x\nB=file:///home/u/y\n"
+        );
     }
 
     #[test]
     fn exports_carry_only_the_library_entries_the_theme_uses() {
-        let assets = vec![PathBuf::from(".local/share/color-schemes/Mine.colors"), PathBuf::from(".config/Kvantum/Orchis")];
-        assert!(exported(Path::new(".local/share/color-schemes/Mine.colors"), &assets));
-        assert!(!exported(Path::new(".local/share/color-schemes/Sweet.colors"), &assets));
-        assert!(exported(Path::new(".config/Kvantum/Orchis/OrchisDark.kvconfig"), &assets));
-        assert!(!exported(Path::new(".config/Kvantum/Sandstone/Sandstone.svg"), &assets));
-        assert!(exported(Path::new(".config/Kvantum/kvantum.kvconfig"), &assets));
+        let assets = vec![
+            PathBuf::from(".local/share/color-schemes/Mine.colors"),
+            PathBuf::from(".config/Kvantum/Orchis"),
+        ];
+        assert!(exported(
+            Path::new(".local/share/color-schemes/Mine.colors"),
+            &assets
+        ));
+        assert!(!exported(
+            Path::new(".local/share/color-schemes/Sweet.colors"),
+            &assets
+        ));
+        assert!(exported(
+            Path::new(".config/Kvantum/Orchis/OrchisDark.kvconfig"),
+            &assets
+        ));
+        assert!(!exported(
+            Path::new(".config/Kvantum/Sandstone/Sandstone.svg"),
+            &assets
+        ));
+        assert!(exported(
+            Path::new(".config/Kvantum/kvantum.kvconfig"),
+            &assets
+        ));
         assert!(exported(Path::new(".config/kdeglobals"), &assets));
     }
 

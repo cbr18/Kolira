@@ -6,3 +6,9 @@ singleton ThemeColors 1.0 ThemeColors.qml
 singleton TypeScale 1.0 TypeScale.qml
 AutomationList 1.0 AutomationList.qml
 PalettePreview 1.0 PalettePreview.qml
+AppButton 1.0 AppButton.qml
+ApplyPreviewDialog 1.0 ApplyPreviewDialog.qml
+AppDialog 1.0 AppDialog.qml
+ActionFlow 1.0 ActionFlow.qml
+InsetScrollView 1.0 InsetScrollView.qml
+ColorSwatch 1.0 ColorSwatch.qml

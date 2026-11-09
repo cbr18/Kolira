@@ -1,0 +1,4 @@
+FROM archlinux:latest
+RUN pacman -Syu --noconfirm --needed python sudo
+ENV KTM_DEPENDENCY_CONTAINER=1
+CMD ["python", "/src/tests/e2e/dependency-cycle.py", "/src/gui/qt-app/src/core/rust_core/target/release/theme-profile", "package", "jq", "jq"]

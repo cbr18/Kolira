@@ -99,7 +99,8 @@ fn validate_custom(c: &CustomComponent) -> Result<()> {
         if !is_valid_rel_path(p) {
             return Err(anyhow!(
                 "Invalid config path {:?} in component '{}': must be relative, no '..'",
-                p, c.id
+                p,
+                c.id
             ));
         }
     }
@@ -107,9 +108,8 @@ fn validate_custom(c: &CustomComponent) -> Result<()> {
     // a single PATH binary without shell operators (mirrors the GUI check).
     if let Some(cmd) = c.reload_command.as_deref() {
         if !cmd.trim().is_empty() {
-            crate::profile::validate_reload_command(cmd).map_err(|e| {
-                anyhow!("Invalid reload_command in component '{}': {e:#}", c.id)
-            })?;
+            crate::profile::validate_reload_command(cmd)
+                .map_err(|e| anyhow!("Invalid reload_command in component '{}': {e:#}", c.id))?;
         }
     }
     Ok(())
@@ -122,13 +122,25 @@ pub fn load_custom_components() -> Result<Vec<CustomComponent>> {
         return Ok(vec![]);
     }
     let content = std::fs::read_to_string(&path)?;
-    let file: ComponentsFile = serde_json::from_str(&content)?;
+    let raw: serde_json::Value = serde_json::from_str(&content)?;
+    let file: ComponentsFile = serde_json::from_value(raw.clone())?;
     // Mark every loaded entry as custom.
     let marked: Vec<CustomComponent> = file
         .components
         .into_iter()
         .map(|mut c| {
             c.is_custom = true;
+            let explicit = raw["components"]
+                .as_array()
+                .and_then(|items| items.iter().find(|v| v["id"] == c.id))
+                .is_some_and(|v| v.get("supports_live_reload").is_some());
+            if !explicit
+                && c.reload_command
+                    .as_ref()
+                    .is_some_and(|command| !command.trim().is_empty())
+            {
+                c.supports_live_reload = true;
+            }
             c
         })
         .collect();
@@ -192,10 +204,7 @@ pub fn remove_custom_component(id: &str) -> Result<()> {
     }
     let existing = load_custom_components()?;
     let prev_len = existing.len();
-    let next: Vec<CustomComponent> = existing
-        .into_iter()
-        .filter(|c| c.id != id)
-        .collect();
+    let next: Vec<CustomComponent> = existing.into_iter().filter(|c| c.id != id).collect();
     if next.len() == prev_len {
         return Err(anyhow!("No custom component with id '{id}'"));
     }
@@ -207,8 +216,7 @@ pub fn remove_custom_component(id: &str) -> Result<()> {
 pub fn merged_component_defs() -> Vec<crate::tracked_apps::TrackedAppDef> {
     let built = crate::tracked_apps::get_tracked_apps();
     let custom = load_custom_components().unwrap_or_default();
-    let built_ids: std::collections::HashSet<String> =
-        built.iter().map(|a| a.id.clone()).collect();
+    let built_ids: std::collections::HashSet<String> = built.iter().map(|a| a.id.clone()).collect();
     let mut out: Vec<crate::tracked_apps::TrackedAppDef> = built;
     for c in custom {
         if built_ids.contains(&c.id) {

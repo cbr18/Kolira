@@ -5,6 +5,12 @@
 
 ---
 
+Импорт и применение проверяют назначения ресурсов темы: посторонние файлы HOME
+не могут быть объявлены ресурсами оформления. При ошибке Inspector Apply
+неудачные правки остаются подготовленными для повторения; успешные доступны
+через Undo. Подробнее: [формат тем](docs/THEMES.md),
+[Inspector](docs/THEME_INSPECTOR.md).
+
 ## Table of Contents / Оглавление
 
 - [Overview](#overview--обзор)
@@ -26,7 +32,7 @@
 
 ## Overview / Обзор
 
-Позволяет переключаться между темами оформления **glass** (полупрозрачное стекло с размытием) и **paper** (светлая/solid тема) одной командой, сохраняя и восстанавливая десятки настроек: KWin эффекты, темы GTK/Qt, настройки терминалов (kitty, Alacritty), редакторов (Zed, VS Code, Cursor), браузера Zen, Obsidian, btop, fastfetch, wofi, цветовые схемы Plasma и больше.
+Позволяет переключаться между темами оформления **glass** (полупрозрачное стекло с размытием) и **paper** (светлая/solid тема) одной командой, сохраняя и восстанавливая десятки настроек: KWin эффекты, темы GTK/Qt, настройки терминалов (kitty, Alacritty), редакторов (Zed, VS Code, Cursor), браузера Zen, Obsidian, btop, wofi, цветовые схемы Plasma и больше.
 
 ## Contents / Состав
 
@@ -58,6 +64,14 @@ For normal use install it once — see below.
 Requires KDE Plasma 6 + Kirigami. See `gui/qt-app/README.md` for details.
 
 ## Dependencies / Зависимости
+
+В приложении есть страница **«Зависимости»**: отдельные столбцы названия и
+категории, галочки выбора, установка, удаление выбранных и переустановка.
+Реестр показывает фактическое состояние и использующие ресурс темы, защищает
+внешние/изменённые файлы. Перед удалением общей зависимости показывает затронутые
+темы. «Больше не спрашивать» сохраняет выбор отдельно для магазинов и пакетов;
+изменить его можно в настройках автоматизации. Прогресс, отмена и ошибки установки
+доступны без блокировки интерфейса. [Подробности и CLI](docs/DEPENDENCIES.md).
 
 Everything ships with KDE Plasma 6 — nothing extra to install:
 
@@ -135,6 +149,14 @@ A virtual environment is created inside the installed app only when the system
 Python cannot `import PySide6` (e.g. `pyside6` is not installed from the
 distro); with a system PySide6 the copy stays ~650 KB.
 
+### Apply protection
+
+Profile application is serialized across GUI and CLI. Invalid preparation leaves
+appearance unchanged; a failed write or required external step restores backed-up
+files and reports recovery errors separately. Interrupted operations block new
+appearance changes until reviewed with `theme-profile operations list` and
+`theme-profile operations recover ID`. See [recovery rules and limits](docs/APPLY_PROTECTION.md).
+
 ### GUI core / Ядро GUI
 
 The app has a **single core** — a Python adapter (`core/cli_core.py`) that
@@ -147,6 +169,11 @@ kde-theme-manager --core core      # core | auto — one and the same core
 kde-theme-manager --list-cores     # show the core and what it delegates to
 KTM_CORE=core kde-theme-manager    # per-run override
 ```
+
+Inspector, application theme adapters, resource cloning, settings, registry and
+wallpaper operations execute in Rust. Python handles Qt models and presentation.
+See the [local JSON API and session contract](docs/CORE_API.md); update the CLI
+and GUI together.
 
 (The former second core — the `libkde_theme_core.so` shared library — was
 removed; the app always starts on the single CLI-backed core.)
@@ -189,7 +216,8 @@ when that config cannot be read.
 
 The list itself is a shared contract between all three scripts and the Qt app:
 same extensions (`jpg`, `jpeg`, `png`, `webp`, `bmp`), symlinks followed, and
-**byte order** (`LC_ALL=C sort`, i.e. `Path.is_file()` + `sorted()` in Python).
+**byte order** (`Vec<String>::sort()` in the shared Rust implementation;
+GUI delegates to the same list).
 The cached index is a *position* in that list, so a locale-aware sort
 (`ru_RU.UTF-8`, which folds case and ignores punctuation) made the GUI resolve
 the index to a different image than the one applied. All three scripts must keep
@@ -328,7 +356,14 @@ commands (D-Bus, `plasma-apply-*`, `kvantummanager`) for dry runs.
 
 Fetches latest from git (`--ff-only`), then reinstalls the scripts **and** the GUI
 (re-runs the installer, so the launcher, desktop entry and icon are refreshed
-too). Warns if you have uncommitted local changes.
+too). Options go to the installer: `--restart` restarts a running KDE Theme Manager
+on the new version. Warns if you have uncommitted local changes.
+
+The ready themes follow the kit: new ones are added, and ones the kit changed are
+replaced (the old one goes to `backups/`) unless you changed them; then the
+installer says so once per version and gives the command. Themes installed before
+this feature have no record of their original state, so they are kept the same way.
+Nothing is applied.
 
 ## Uninstall / Удаление
 
@@ -394,3 +429,42 @@ See [`docs/ROLLBACK.md`](docs/ROLLBACK.md) for full instructions. Quick summary:
 ## License / Лицензия
 
 MIT — see [`LICENSE`](LICENSE).
+
+Fastfetch (конфиг и логотип) и меню запуска Plasma (включая значок кнопки)
+не входят в темы и сохраняются без изменений, в том числе при применении старых тем.
+Simple Application Launcher не требуется и не устанавливается.
+
+### Просмотр перед применением
+
+В GUI и трее Apply сначала открывает список изменений с diff, сбросами,
+зависимостями и перезапусками. Здесь можно сохранить текущее оформление и
+оставить обои. При изменении исходного состояния требуется новое подтверждение.
+CLI: `theme-profile preview Paper --json`, затем
+`theme-profile apply Paper --preview-token=TOKEN`.
+[Подробности и границы предварительного расчёта](docs/APPLY_PREVIEW.md).
+
+### Расписание и история смен
+
+В меню приложения доступны расписание тем и история последних 10 смен с
+подробностями и переходом к резервной копии. Восстановление завершённой смены
+сначала создаёт страховочную копию текущего состояния. Успешная смена не
+показывает всплывающий отчёт; ошибки сохраняются в истории.
+
+Расписание работает в Plasma и при закрытом окне приложения. Выберите тему,
+время, дни недели, сохраните правило и включите исполнитель. Пропущенные во
+время сна события не догоняются; недостающие зависимости устанавливаются
+вручную. [Правила времени и CLI](docs/SCHEDULING.md).
+
+Для агентов добавлен MCP `prepare_theme` / Rust API `agent.prepare`: подготовка
+нового пакета без смены живого оформления. Установщик доставляет инструкции в
+пользовательский каталог `themes/`, сохраняя изменённые пользователем файлы.
+[Подключение MCP и рецепт](docs/MCP.md).
+
+### Читаемость и язык GUI
+
+Поддерживаются окно 640×480 и увеличенный системный шрифт: действия переносятся,
+полосы не перекрывают текст, диалоги имеют внутренние поля. Цвета палитры доступны
+с клавиатуры, ошибки видны на текущем экране, сводки профилей загружаются в фоне.
+Русский выбирается по системной локали и охватывает известные статусы ядра,
+историю/расписание и локальные форматы. Имена, пути и неизвестные внешние сообщения
+сохраняются без перевода.

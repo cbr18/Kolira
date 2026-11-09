@@ -41,56 +41,16 @@ _DATA_DIR = "kde-theme-profile"
 _OLD_DATA_DIR = "theme-profile"
 
 
-def _move_children(source: Path, target: Path) -> None:
-    try:
-        entries = list(source.iterdir())
-        target.mkdir(parents=True, exist_ok=True)
-    except OSError:
-        return
-    for entry in entries:
-        destination = target / entry.name
-        try:
-            if not destination.exists():
-                entry.rename(destination)
-            elif entry.is_dir() and destination.is_dir() and entry.name == "backups":
-                _move_children(entry, destination)
-                entry.rmdir()
-        except OSError:
-            pass
-
-
-def _remove_if_empty(path: Path) -> None:
-    try:
-        path.rmdir()
-    except OSError:
-        pass
-
-
-def _migrate_old_names(old_roots: list[Path], new_root: Path) -> None:
-    """Twin of ``paths::migrate_old_names`` in the Rust core: same moves, same rules."""
-    for old in old_roots:
-        if old.is_dir() and old != new_root:
-            _move_children(old, new_root)
-            _remove_if_empty(old)
-    old_themes, themes = new_root / "profiles", new_root / "themes"
-    if old_themes.is_dir():
-        _move_children(old_themes, themes)
-        _remove_if_empty(old_themes)
-    if themes.is_dir():
-        for theme in themes.iterdir():
-            inner = theme / ".config" / _OLD_DATA_DIR
-            if inner.is_dir():
-                _move_children(inner, theme / ".config" / _DATA_DIR)
-                _remove_if_empty(inner)
+def _migrate_old_names(old_roots=None, new_root=None) -> None:
+    """Compatibility entry point; Rust owns the canonical migration."""
+    from .cli_core import core_request
+    core_request("paths.migrate")
 
 
 def theme_root() -> Path:
-    """Data folder; data under the pre-0.6.0 names is moved here first."""
+    """Resolve the GUI's data location; Rust migrates data on operations."""
     preferred = config_home() / _DATA_DIR
     in_dot_config = home_dir() / ".config" / _DATA_DIR
-    # Tests read this path, some with the real HOME: they must not move real data.
-    if "PYTEST_CURRENT_TEST" not in os.environ:
-        _migrate_old_names([config_home() / _OLD_DATA_DIR, home_dir() / ".config" / _OLD_DATA_DIR], preferred)
     return preferred if preferred.exists() or not in_dot_config.exists() else in_dot_config
 
 

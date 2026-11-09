@@ -1,0 +1,255 @@
+[
+  {
+    "id": "zed",
+    "name": "Zed",
+    "icon": "zed",
+    "launch_command": [
+      "zed"
+    ],
+    "binaries": [
+      "zeditor",
+      "zed",
+      "zedit"
+    ],
+    "flatpak_ids": [
+      "dev.zed.Zed"
+    ],
+    "config_paths": [
+      ".config/zed/settings.json"
+    ],
+    "integration": "generic",
+    "capabilities": {
+      "detect": true,
+      "current_theme": true,
+      "installed_themes": true,
+      "apply_theme": true,
+      "launch": true,
+      "open_theme_settings": true,
+      "open_config": false,
+      "theme_store": true
+    },
+    "settings_rel": ".config/zed/settings.json",
+    "built_in_themes": [
+      "Zed (Default)",
+      "Ayu Dark",
+      "Ayu Light",
+      "One Dark",
+      "One Light",
+      "Solarized Dark",
+      "Solarized Light"
+    ]
+  },
+  {
+    "id": "vscode",
+    "name": "VS Code",
+    "icon": "vscode",
+    "launch_command": [
+      "code"
+    ],
+    "binaries": [
+      "code",
+      "code-oss",
+      "codium",
+      "vscodium"
+    ],
+    "flatpak_ids": [
+      "com.visualstudio.code",
+      "com.vscodium.codium"
+    ],
+    "config_paths": [
+      ".config/Code/User/settings.json"
+    ],
+    "integration": "generic",
+    "capabilities": {
+      "detect": true,
+      "current_theme": true,
+      "installed_themes": true,
+      "apply_theme": true,
+      "launch": true,
+      "open_theme_settings": true,
+      "open_config": false,
+      "theme_store": true
+    },
+    "settings_rel": ".config/Code/User/settings.json",
+    "extensions_rel": ".vscode/extensions"
+  },
+  {
+    "id": "cursor",
+    "name": "Cursor",
+    "icon": "cursor",
+    "launch_command": [
+      "cursor"
+    ],
+    "binaries": [
+      "cursor"
+    ],
+    "flatpak_ids": [],
+    "config_paths": [
+      ".config/Cursor/User/settings.json"
+    ],
+    "integration": "generic",
+    "capabilities": {
+      "detect": true,
+      "current_theme": true,
+      "installed_themes": true,
+      "apply_theme": true,
+      "launch": true,
+      "open_theme_settings": true,
+      "open_config": false,
+      "theme_store": true
+    },
+    "settings_rel": ".config/Cursor/User/settings.json",
+    "extensions_rel": ".cursor/extensions"
+  },
+  {
+    "id": "obsidian",
+    "name": "Obsidian",
+    "icon": "obsidian",
+    "launch_command": [
+      "obsidian"
+    ],
+    "binaries": [],
+    "flatpak_ids": [
+      "md.obsidian.Obsidian"
+    ],
+    "config_paths": [],
+    "integration": "generic",
+    "capabilities": {
+      "detect": true,
+      "current_theme": true,
+      "installed_themes": true,
+      "apply_theme": true,
+      "launch": true,
+      "open_theme_settings": true,
+      "open_config": false
+    }
+  },
+  {
+    "id": "discord",
+    "name": "Discord",
+    "icon": "discord",
+    "launch_command": [
+      "discord"
+    ],
+    "binaries": [
+      "discord",
+      "Discord",
+      "vesktop"
+    ],
+    "flatpak_ids": [
+      "com.discordapp.Discord",
+      "dev.vencord.Vesktop"
+    ],
+    "config_paths": [
+      ".config/discord/settings.json"
+    ],
+    "integration": "config",
+    "capabilities": {
+      "detect": true,
+      "current_theme": true,
+      "installed_themes": false,
+      "apply_theme": false,
+      "launch": true,
+      "open_theme_settings": true,
+      "open_config": true
+    }
+  },
+  {
+    "id": "telegram",
+    "name": "Telegram Desktop",
+    "icon": "telegram",
+    "launch_command": [
+      "telegram-desktop"
+    ],
+    "binaries": [
+      "telegram-desktop",
+      "Telegram",
+      "telegram"
+    ],
+    "flatpak_ids": [
+      "org.telegram.desktop"
+    ],
+    "config_paths": [
+      ".config/telegram-desktop/themes"
+    ],
+    "integration": "config",
+    "capabilities": {
+      "detect": true,
+      "current_theme": false,
+      "installed_themes": true,
+      "apply_theme": false,
+      "launch": true,
+      "open_theme_settings": true,
+      "open_config": true
+    }
+  },
+  {
+    "id": "btop",
+    "name": "btop",
+    "icon": "btop",
+    "launch_command": [
+      "btop"
+    ],
+    "binaries": [],
+    "flatpak_ids": [],
+    "config_paths": [
+      ".config/btop/btop.conf"
+    ],
+    "integration": "generic",
+    "capabilities": {
+      "detect": true,
+      "current_theme": true,
+      "installed_themes": true,
+      "apply_theme": true,
+      "launch": true,
+      "open_theme_settings": false,
+      "open_config": false
+    }
+  },
+  {
+    "id": "kitty",
+    "name": "Kitty",
+    "icon": "kitty",
+    "launch_command": [
+      "kitty"
+    ],
+    "binaries": [],
+    "flatpak_ids": [],
+    "config_paths": [
+      ".config/kitty/kitty.conf"
+    ],
+    "integration": "config",
+    "capabilities": {
+      "detect": true,
+      "current_theme": false,
+      "installed_themes": false,
+      "apply_theme": false,
+      "launch": true,
+      "open_theme_settings": false,
+      "open_config": true
+    }
+  },
+  {
+    "id": "alacritty",
+    "name": "Alacritty",
+    "icon": "alacritty",
+    "launch_command": [
+      "alacritty"
+    ],
+    "binaries": [],
+    "flatpak_ids": [],
+    "config_paths": [
+      ".config/alacritty/alacritty.toml"
+    ],
+    "integration": "config",
+    "capabilities": {
+      "detect": true,
+      "current_theme": false,
+      "installed_themes": false,
+      "apply_theme": false,
+      "launch": true,
+      "open_theme_settings": false,
+      "open_config": true
+    }
+  }
+]

@@ -300,7 +300,7 @@ class SystemTrayController(QObject):
     # ──────────────────────────────────────────────────────────────
 
     def _apply_profile(self, name: str) -> None:
-        """Применить профиль из трея (без диалога — это «быстрое» переключение)."""
+        """Open the shared pre-apply review from the tray."""
         controller = self._profile_controller
         if controller is None or not name:
             return
@@ -308,7 +308,7 @@ class SystemTrayController(QObject):
             self._rebuild_profiles_menu()
             return
         self._pending_profile = name
-        controller.applyProfile(name)
+        controller.previewApply(name, False)
 
     @Slot(bool, str)
     def _on_profile_operation_finished(self, success: bool, message: str) -> None:
@@ -383,20 +383,6 @@ class SystemTrayController(QObject):
             self._main_window.raise_()
             self._main_window.requestActivate()
 
-    def _hide_window(self) -> None:
-        """Скрыть главное окно."""
-        if self._main_window:
-            self._main_window.hide()
-
-    def _toggle_window_visibility(self) -> None:
-        """Переключить видимость окна: видимое и активное — скрыть, иначе
-        показать поверх (окно, перекрытое другими или свёрнутое, поднимается,
-        а не прячется)."""
-        if self._main_window:
-            if self._main_window.isVisible() and self._main_window.isActive():
-                self._main_window.hide()
-            else:
-                self._show_window()
 
     def set_notify_on_success(self, value: bool) -> None:
         self._notify_on_success = bool(value)

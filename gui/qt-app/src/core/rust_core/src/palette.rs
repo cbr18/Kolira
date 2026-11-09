@@ -16,8 +16,8 @@ use serde::{Deserialize, Serialize};
 
 /// Slot names in order (`base00`…`base0F`).
 pub const SLOTS: [&str; 16] = [
-    "base00", "base01", "base02", "base03", "base04", "base05", "base06", "base07",
-    "base08", "base09", "base0A", "base0B", "base0C", "base0D", "base0E", "base0F",
+    "base00", "base01", "base02", "base03", "base04", "base05", "base06", "base07", "base08",
+    "base09", "base0A", "base0B", "base0C", "base0D", "base0E", "base0F",
 ];
 
 /// Minimal WCAG AA contrast for body text.
@@ -62,7 +62,11 @@ impl Rgb {
     pub fn mix(self, other: Rgb, amount: f64) -> Rgb {
         let t = amount.clamp(0.0, 1.0);
         let blend = |a: u8, b: u8| (f64::from(a) + (f64::from(b) - f64::from(a)) * t).round() as u8;
-        Rgb(blend(self.0, other.0), blend(self.1, other.1), blend(self.2, other.2))
+        Rgb(
+            blend(self.0, other.0),
+            blend(self.1, other.1),
+            blend(self.2, other.2),
+        )
     }
 }
 
@@ -106,7 +110,10 @@ impl Palette {
     /// Check slot count and colour syntax (after deserialising untrusted JSON).
     pub fn validate(&self) -> Result<()> {
         if self.base.len() != 16 {
-            return Err(anyhow!("palette needs 16 base colours, got {}", self.base.len()));
+            return Err(anyhow!(
+                "palette needs 16 base colours, got {}",
+                self.base.len()
+            ));
         }
         for (slot, value) in SLOTS.iter().zip(&self.base) {
             Rgb::parse(value).with_context(|| slot.to_string())?;
@@ -144,7 +151,9 @@ impl Palette {
         ] {
             let ratio = contrast(fg, bg);
             if ratio < MIN_TEXT_CONTRAST {
-                out.push(format!("{label}: contrast {ratio:.1}:1 < {MIN_TEXT_CONTRAST}:1"));
+                out.push(format!(
+                    "{label}: contrast {ratio:.1}:1 < {MIN_TEXT_CONTRAST}:1"
+                ));
             }
         }
         out
@@ -170,7 +179,9 @@ pub fn parse_base16(text: &str, source: &str) -> Result<Palette> {
 
     for raw in text.lines() {
         let line = strip_yaml_comment(raw);
-        let Some((key, value)) = line.split_once(':') else { continue };
+        let Some((key, value)) = line.split_once(':') else {
+            continue;
+        };
         let key = key.trim();
         let value = value.trim().trim_matches('"').trim_matches('\'').trim();
         match key {
@@ -199,9 +210,15 @@ pub fn parse_base16(text: &str, source: &str) -> Result<Palette> {
         .map(|(s, _)| *s)
         .collect();
     if !missing.is_empty() {
-        return Err(anyhow!("not a base16 scheme: missing {}", missing.join(", ")));
+        return Err(anyhow!(
+            "not a base16 scheme: missing {}",
+            missing.join(", ")
+        ));
     }
-    let base: Vec<String> = base.into_iter().map(|v| v.expect("checked above")).collect();
+    let base: Vec<String> = base
+        .into_iter()
+        .map(|v| v.expect("checked above"))
+        .collect();
     // Schemes without `variant` (legacy format): decide by background luminance.
     let variant = variant.unwrap_or_else(|| {
         if Rgb::parse(&base[0]).expect("parsed").luminance() < 0.5 {
@@ -211,7 +228,11 @@ pub fn parse_base16(text: &str, source: &str) -> Result<Palette> {
         }
     });
     let palette = Palette {
-        name: if name.is_empty() { "Untitled".to_string() } else { name },
+        name: if name.is_empty() {
+            "Untitled".to_string()
+        } else {
+            name
+        },
         author,
         variant,
         accent: accent.unwrap_or_else(|| base[0x0D].clone()),
@@ -237,8 +258,8 @@ fn strip_yaml_comment(line: &str) -> &str {
 }
 
 pub fn load(path: &Path) -> Result<Palette> {
-    let text = std::fs::read_to_string(path)
-        .with_context(|| format!("cannot read {}", path.display()))?;
+    let text =
+        std::fs::read_to_string(path).with_context(|| format!("cannot read {}", path.display()))?;
     parse_base16(&text, &format!("base16:{}", path.display()))
 }
 
@@ -357,7 +378,14 @@ pub fn kde_scheme_id(p: &Palette) -> String {
             first.to_string() + chars.as_str()
         })
         .collect();
-    format!("ThemeProfile{}", if camel.is_empty() { "Palette".into() } else { camel })
+    format!(
+        "ThemeProfile{}",
+        if camel.is_empty() {
+            "Palette".into()
+        } else {
+            camel
+        }
+    )
 }
 
 /// Full KDE `.colors` file for the palette.
@@ -444,8 +472,22 @@ pub const KITTY_END: &str = "# END theme-profile palette";
 pub fn ansi16(p: &Palette) -> [Rgb; 16] {
     let s = |i: usize| p.slot(i);
     [
-        s(0x02), s(0x08), s(0x0B), s(0x0A), s(0x0D), s(0x0E), s(0x0C), s(0x05),
-        s(0x03), s(0x08), s(0x0B), s(0x0A), s(0x0D), s(0x0E), s(0x0C), s(0x07),
+        s(0x02),
+        s(0x08),
+        s(0x0B),
+        s(0x0A),
+        s(0x0D),
+        s(0x0E),
+        s(0x0C),
+        s(0x05),
+        s(0x03),
+        s(0x08),
+        s(0x0B),
+        s(0x0A),
+        s(0x0D),
+        s(0x0E),
+        s(0x0C),
+        s(0x07),
     ]
 }
 
@@ -513,10 +555,14 @@ pub fn kitty_conf_with_palette(existing: &str, p: &Palette) -> String {
 pub fn alacritty_with_palette(existing: &str, p: &Palette) -> Result<String> {
     use toml_edit::{value, DocumentMut, Item, Table};
 
-    let mut doc: DocumentMut = existing.parse().context("alacritty.toml is not valid TOML")?;
+    let mut doc: DocumentMut = existing
+        .parse()
+        .context("alacritty.toml is not valid TOML")?;
     let r = kde_roles(p);
     let ansi = ansi16(p);
-    let names = ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"];
+    let names = [
+        "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white",
+    ];
 
     let colors = doc
         .entry("colors")
@@ -535,11 +581,31 @@ pub fn alacritty_with_palette(existing: &str, p: &Palette) -> Result<String> {
         }
         Ok(())
     };
-    set("primary", vec![("background", r.window), ("foreground", r.text)])?;
+    set(
+        "primary",
+        vec![("background", r.window), ("foreground", r.text)],
+    )?;
     set("cursor", vec![("text", r.window), ("cursor", r.text)])?;
-    set("selection", vec![("text", r.selection_text), ("background", r.accent)])?;
-    set("normal", names.iter().copied().zip(ansi[..8].iter().copied()).collect())?;
-    set("bright", names.iter().copied().zip(ansi[8..].iter().copied()).collect())?;
+    set(
+        "selection",
+        vec![("text", r.selection_text), ("background", r.accent)],
+    )?;
+    set(
+        "normal",
+        names
+            .iter()
+            .copied()
+            .zip(ansi[..8].iter().copied())
+            .collect(),
+    )?;
+    set(
+        "bright",
+        names
+            .iter()
+            .copied()
+            .zip(ansi[8..].iter().copied())
+            .collect(),
+    )?;
     Ok(doc.to_string())
 }
 
@@ -548,12 +614,34 @@ pub fn alacritty_with_palette(existing: &str, p: &Palette) -> Result<String> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Targets a palette can be applied to.
-pub const TARGETS: [&str; 11] = ["kde", "kitty", "alacritty", "konsole", "ghostty", "discord", "spicetify", "cava", "telegram", "gtk", "kvantum"];
+pub const TARGETS: [&str; 11] = [
+    "kde",
+    "kitty",
+    "alacritty",
+    "konsole",
+    "ghostty",
+    "discord",
+    "spicetify",
+    "cava",
+    "telegram",
+    "gtk",
+    "kvantum",
+];
 
 /// Targets used when none are given. `kvantum` is opt-in: it switches the Qt
 /// widget style, which the user may have chosen deliberately (e.g. Breeze).
 /// `gtk` is opt-in too: it overrides libadwaita's own look.
-pub const DEFAULT_TARGETS: [&str; 9] = ["kde", "kitty", "alacritty", "konsole", "ghostty", "discord", "spicetify", "cava", "telegram"];
+pub const DEFAULT_TARGETS: [&str; 9] = [
+    "kde",
+    "kitty",
+    "alacritty",
+    "konsole",
+    "ghostty",
+    "discord",
+    "spicetify",
+    "cava",
+    "telegram",
+];
 
 /// Extra knobs for [`apply`].
 #[derive(Debug, Default, Clone)]
@@ -575,9 +663,13 @@ fn run(cmd: &str, args: &[&str]) -> bool {
     if no_apply() {
         return true;
     }
-    crate::paths::status_bounded(std::process::Command::new(cmd).args(args).stderr(std::process::Stdio::null()))
-        .map(|s| s.success())
-        .unwrap_or(false)
+    crate::paths::status_bounded(
+        std::process::Command::new(cmd)
+            .args(args)
+            .stderr(std::process::Stdio::null()),
+    )
+    .map(|s| s.success())
+    .unwrap_or(false)
 }
 
 /// Remote-control sockets of running kitty instances started with
@@ -599,7 +691,9 @@ fn kitty_sockets_in(dir: &Path) -> Vec<String> {
                         || name
                             .strip_prefix(BASE)
                             .and_then(|rest| rest.strip_prefix('-'))
-                            .is_some_and(|pid| !pid.is_empty() && pid.bytes().all(|b| b.is_ascii_digit()));
+                            .is_some_and(|pid| {
+                                !pid.is_empty() && pid.bytes().all(|b| b.is_ascii_digit())
+                            });
                     is_ours.then(|| format!("unix:{}", dir.join(&name).display()))
                 })
                 .collect()
@@ -640,10 +734,14 @@ fn backup(path: &Path, stamp: &str) -> Result<()> {
 /// never overwritten. A missing terminal config is skipped, not created. The
 /// palette becomes the live palette (`palette.json`).
 pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<Vec<String>> {
+    let _lock = crate::operation::MutationGuard::acquire()?;
     p.validate()?;
     for target in targets {
         if !TARGETS.contains(&target.as_str()) {
-            return Err(anyhow!("unknown target {target:?} (known: {})", TARGETS.join(", ")));
+            return Err(anyhow!(
+                "unknown target {target:?} (known: {})",
+                TARGETS.join(", ")
+            ));
         }
     }
     let wants = |t: &str| targets.iter().any(|x| x == t);
@@ -652,12 +750,23 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
 
     if wants("kde") {
         let id = kde_scheme_id(p);
-        let path = crate::paths::data_home().join("color-schemes").join(format!("{id}.colors"));
+        let path = crate::paths::data_home()
+            .join("color-schemes")
+            .join(format!("{id}.colors"));
         write_atomic(&path, &kde_color_scheme(p))?;
         // An explicit palette accent must not be overridden by the wallpaper.
         run(
             "kwriteconfig6",
-            &["--notify", "--file", "kdeglobals", "--group", "General", "--key", "accentColorFromWallpaper", "false"],
+            &[
+                "--notify",
+                "--file",
+                "kdeglobals",
+                "--group",
+                "General",
+                "--key",
+                "accentColorFromWallpaper",
+                "false",
+            ],
         );
         // Two calls on purpose: with `--accent-color`, plasma-apply-colorscheme
         // only sets the accent and silently ignores the scheme argument.
@@ -667,7 +776,11 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
             "kde: {} ({}){}",
             path.display(),
             id,
-            if applied { "" } else { " — plasma-apply-colorscheme failed" }
+            if applied {
+                ""
+            } else {
+                " — plasma-apply-colorscheme failed"
+            }
         ));
     }
 
@@ -688,15 +801,34 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
             // Live reload needs a kitty started with allow_remote_control and
             // listen_on unix:/tmp/kitty-theme-profile (see AGENTS.md).
             let config = host.to_string_lossy().to_string();
-            let sockets = if which::which("kitty").is_ok() { kitty_sockets() } else { Vec::new() };
+            let sockets = if which::which("kitty").is_ok() {
+                kitty_sockets()
+            } else {
+                Vec::new()
+            };
             let mut live = false;
             for socket in &sockets {
-                live |= run("kitty", &["@", "--to", socket, "set-colors", "--all", "--configured", &config]);
+                live |= run(
+                    "kitty",
+                    &[
+                        "@",
+                        "--to",
+                        socket,
+                        "set-colors",
+                        "--all",
+                        "--configured",
+                        &config,
+                    ],
+                );
             }
             report.push(format!(
                 "kitty: {}{}",
                 path.display(),
-                if live { "" } else { " (no running kitty to reload)" }
+                if live {
+                    ""
+                } else {
+                    " (no running kitty to reload)"
+                }
             ));
         } else {
             report.push(format!("kitty: skipped, {} not found", host.display()));
@@ -727,7 +859,10 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
     if wants("konsole") {
         if which::which("konsole").is_ok() || crate::paths::data_home().join("konsole").exists() {
             let scheme = crate::konsole::apply_palette(p)?;
-            report.push(format!("konsole: {} (new tabs/windows; open ones keep their scheme)", scheme.display()));
+            report.push(format!(
+                "konsole: {} (new tabs/windows; open ones keep their scheme)",
+                scheme.display()
+            ));
         } else {
             report.push("konsole: skipped, not installed".to_string());
         }
@@ -737,31 +872,47 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
         let opacity = options.discord_opacity.unwrap_or(1.0);
         let files = crate::discord::apply_palette(p, opacity)?;
         if files.is_empty() {
-            report.push("discord: skipped, no Vencord/Vesktop (stock Discord has no themes)".to_string());
+            report.push(
+                "discord: skipped, no Vencord/Vesktop (stock Discord has no themes)".to_string(),
+            );
         }
         for f in files {
-            let note = if opacity < 1.0 { "translucent window — restart the client" } else { "enabled; restart the client if it was not enabled before" };
+            let note = if opacity < 1.0 {
+                "translucent window — restart the client"
+            } else {
+                "enabled; restart the client if it was not enabled before"
+            };
             report.push(format!("discord: {} ({note})", f.display()));
         }
     }
 
     if wants("spicetify") {
         match crate::spicetify::apply_palette(p)? {
-            Some(path) => report.push(format!("spicetify: {} (selected; spicetify apply)", path.display())),
-            None => report.push("spicetify: skipped, no ~/.config/spicetify/config-xpui.ini".to_string()),
+            Some(path) => report.push(format!(
+                "spicetify: {} (selected; spicetify apply)",
+                path.display()
+            )),
+            None => report
+                .push("spicetify: skipped, no ~/.config/spicetify/config-xpui.ini".to_string()),
         }
     }
 
     if wants("ghostty") {
         match crate::extras::ghostty_apply_palette(p)? {
-            Some(path) => report.push(format!("ghostty: {} (included by config; new windows)", path.display())),
+            Some(path) => report.push(format!(
+                "ghostty: {} (included by config; new windows)",
+                path.display()
+            )),
             None => report.push("ghostty: skipped, no ~/.config/ghostty/config".to_string()),
         }
     }
 
     if wants("cava") {
         match crate::extras::cava_apply_palette(p)? {
-            Some(path) => report.push(format!("cava: {} (gradient; running cava reloaded)", path.display())),
+            Some(path) => report.push(format!(
+                "cava: {} (gradient; running cava reloaded)",
+                path.display()
+            )),
             None => report.push("cava: skipped, no ~/.config/cava/config".to_string()),
         }
     }
@@ -790,11 +941,27 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
             .unwrap_or_else(|| crate::kvantum::default_base(p).to_string());
         let (id, dir) = crate::kvantum::build(p, &base)?;
         let set = run("kvantummanager", &["--set", &id])
-            && run("kwriteconfig6", &["--notify", "--file", "kdeglobals", "--group", "KDE", "--key", "widgetStyle", "kvantum"]);
+            && run(
+                "kwriteconfig6",
+                &[
+                    "--notify",
+                    "--file",
+                    "kdeglobals",
+                    "--group",
+                    "KDE",
+                    "--key",
+                    "widgetStyle",
+                    "kvantum",
+                ],
+            );
         report.push(format!(
             "kvantum: {} (recoloured from {base}){}",
             dir.display(),
-            if set { "" } else { " — kvantummanager failed" }
+            if set {
+                ""
+            } else {
+                " — kvantummanager failed"
+            }
         ));
     }
 
@@ -811,8 +978,13 @@ mod tests {
 
     fn group<'a>(scheme: &'a str, name: &str) -> &'a str {
         let header = format!("[{name}]\n");
-        let start = scheme.find(&header).unwrap_or_else(|| panic!("missing {name}")) + header.len();
-        let end = scheme[start..].find("\n[").map_or(scheme.len(), |i| start + i);
+        let start = scheme
+            .find(&header)
+            .unwrap_or_else(|| panic!("missing {name}"))
+            + header.len();
+        let end = scheme[start..]
+            .find("\n[")
+            .map_or(scheme.len(), |i| start + i);
         &scheme[start..end]
     }
 
@@ -830,7 +1002,11 @@ mod tests {
     fn parses_legacy_format_and_guesses_variant() {
         let mut text = String::from("scheme: \"Old\"\nauthor: \"x\"\n");
         for (i, slot) in SLOTS.iter().enumerate() {
-            let v = if i == 0 { "fafafa".to_string() } else { format!("{:02x}{:02x}{:02x}", i, i, i) };
+            let v = if i == 0 {
+                "fafafa".to_string()
+            } else {
+                format!("{:02x}{:02x}{:02x}", i, i, i)
+            };
             text.push_str(&format!("{slot}: \"{v}\"\n"));
         }
         text.push_str("accent: '#a7c080'\n");
@@ -864,7 +1040,11 @@ mod tests {
         assert!((contrast(Rgb(0, 0, 0), Rgb(255, 255, 255)) - 21.0).abs() < 0.01);
         assert!((contrast(Rgb(10, 10, 10), Rgb(10, 10, 10)) - 1.0).abs() < 1e-9);
         let p = parse_base16(EVERFOREST, "t").unwrap();
-        assert!(p.contrast_warnings().is_empty(), "{:?}", p.contrast_warnings());
+        assert!(
+            p.contrast_warnings().is_empty(),
+            "{:?}",
+            p.contrast_warnings()
+        );
     }
 
     #[test]
@@ -873,10 +1053,19 @@ mod tests {
         p.set("accent", "#a7c080").unwrap();
         let s = kde_color_scheme(&p);
         for g in [
-            "ColorEffects:Disabled", "ColorEffects:Inactive", "Colors:Button",
-            "Colors:Complementary", "Colors:Header", "Colors:Header][Inactive",
-            "Colors:Selection", "Colors:Tooltip", "Colors:View", "Colors:Window",
-            "General", "KDE", "WM",
+            "ColorEffects:Disabled",
+            "ColorEffects:Inactive",
+            "Colors:Button",
+            "Colors:Complementary",
+            "Colors:Header",
+            "Colors:Header][Inactive",
+            "Colors:Selection",
+            "Colors:Tooltip",
+            "Colors:View",
+            "Colors:Window",
+            "General",
+            "KDE",
+            "WM",
         ] {
             group(&s, g);
         }
@@ -887,8 +1076,14 @@ mod tests {
         assert!(window.contains("ForegroundNegative=230,126,128\n"));
         assert_eq!(window.lines().count(), 12);
         // View is deeper (darker) than the window on a dark scheme.
-        let view_bg = group(&s, "Colors:View").lines().find(|l| l.starts_with("BackgroundNormal=")).unwrap();
-        let rgb: Vec<u8> = view_bg[17..].split(',').map(|v| v.parse().unwrap()).collect();
+        let view_bg = group(&s, "Colors:View")
+            .lines()
+            .find(|l| l.starts_with("BackgroundNormal="))
+            .unwrap();
+        let rgb: Vec<u8> = view_bg[17..]
+            .split(',')
+            .map(|v| v.parse().unwrap())
+            .collect();
         assert!(Rgb(rgb[0], rgb[1], rgb[2]).luminance() < Rgb(45, 53, 59).luminance());
         // Selection: accent background, readable text.
         let sel = group(&s, "Colors:Selection");
@@ -907,11 +1102,21 @@ mod tests {
         let window = group(&s, "Colors:Window");
         assert!(window.contains("BackgroundNormal=251,241,199\n"));
         assert!(window.contains("ForegroundNormal=80,73,69\n"));
-        let view_bg = group(&s, "Colors:View").lines().find(|l| l.starts_with("BackgroundNormal=")).unwrap();
-        let rgb: Vec<u8> = view_bg[17..].split(',').map(|v| v.parse().unwrap()).collect();
+        let view_bg = group(&s, "Colors:View")
+            .lines()
+            .find(|l| l.starts_with("BackgroundNormal="))
+            .unwrap();
+        let rgb: Vec<u8> = view_bg[17..]
+            .split(',')
+            .map(|v| v.parse().unwrap())
+            .collect();
         assert!(Rgb(rgb[0], rgb[1], rgb[2]).luminance() > Rgb(251, 241, 199).luminance());
         assert_eq!(kde_scheme_id(&p), "ThemeProfileGruvboxLightMedium");
-        assert!(p.contrast_warnings().is_empty(), "{:?}", p.contrast_warnings());
+        assert!(
+            p.contrast_warnings().is_empty(),
+            "{:?}",
+            p.contrast_warnings()
+        );
     }
 
     #[test]
@@ -920,10 +1125,15 @@ mod tests {
         p.set("accent", "#a7c080").unwrap();
         let user = "font_size 11\nbackground #000000\n";
         let once = kitty_conf_with_palette(user, &p);
-        assert!(once.starts_with("font_size 11\nbackground #000000\n\n# BEGIN theme-profile palette"));
+        assert!(
+            once.starts_with("font_size 11\nbackground #000000\n\n# BEGIN theme-profile palette")
+        );
         assert!(once.contains("\nbackground #2d353b\n"));
         assert!(once.contains("\nselection_background #a7c080\n"));
-        assert!(once.contains("\ncolor0 #475258\n"), "color0 = base02, visible on the background");
+        assert!(
+            once.contains("\ncolor0 #475258\n"),
+            "color0 = base02, visible on the background"
+        );
         assert!(once.contains("\ncolor15 #fdf6e3\n"));
         let twice = kitty_conf_with_palette(&once, &p);
         assert_eq!(once, twice, "re-applying is idempotent");
@@ -944,10 +1154,16 @@ mod tests {
         assert!(out.contains("#background = \"#1e1b2e\""));
         assert!(out.contains("key = \"V\""));
         let doc: toml::Value = toml::from_str(&out).unwrap();
-        assert_eq!(doc["colors"]["primary"]["background"].as_str(), Some("#2d353b"));
+        assert_eq!(
+            doc["colors"]["primary"]["background"].as_str(),
+            Some("#2d353b")
+        );
         assert_eq!(doc["colors"]["normal"]["red"].as_str(), Some("#e67e80"));
         assert_eq!(doc["colors"]["bright"]["white"].as_str(), Some("#fdf6e3"));
-        assert_eq!(doc["colors"]["selection"]["background"].as_str(), Some("#7fbbb3"));
+        assert_eq!(
+            doc["colors"]["selection"]["background"].as_str(),
+            Some("#7fbbb3")
+        );
         assert_eq!(alacritty_with_palette(&out, &p).unwrap(), out, "idempotent");
         assert!(alacritty_with_palette("colors = 3\n", &p).is_err());
         assert!(alacritty_with_palette("[broken\n", &p).is_err());
@@ -956,11 +1172,22 @@ mod tests {
     #[test]
     fn kitty_sockets_include_pid_suffixed_ones() {
         let tmp = tempfile::tempdir().unwrap();
-        for name in ["kitty-theme-profile-5466", "kitty-theme-profile", "kitty-theme-profile-x1", "kitty-other-1"] {
+        for name in [
+            "kitty-theme-profile-5466",
+            "kitty-theme-profile",
+            "kitty-theme-profile-x1",
+            "kitty-other-1",
+        ] {
             std::fs::write(tmp.path().join(name), "").unwrap();
         }
         let found = kitty_sockets_in(tmp.path());
         let d = tmp.path().display();
-        assert_eq!(found, vec![format!("unix:{d}/kitty-theme-profile"), format!("unix:{d}/kitty-theme-profile-5466")]);
+        assert_eq!(
+            found,
+            vec![
+                format!("unix:{d}/kitty-theme-profile"),
+                format!("unix:{d}/kitty-theme-profile-5466")
+            ]
+        );
     }
 }

@@ -35,7 +35,10 @@ const OMP_PATH: &str = "\"$HOME/.config/oh-my-posh/theme-profile.omp.json\"";
 
 /// Byte span of the `--config` value in an `oh-my-posh init` line.
 fn omp_config_span(line: &str) -> Option<(usize, usize)> {
-    if !line.contains("oh-my-posh") || !line.contains(" init ") || line.trim_start().starts_with('#') {
+    if !line.contains("oh-my-posh")
+        || !line.contains(" init ")
+        || line.trim_start().starts_with('#')
+    {
         return None;
     }
     let at = line.find("--config")?;
@@ -48,8 +51,13 @@ fn omp_config_span(line: &str) -> Option<(usize, usize)> {
         start += 1;
     }
     let end = match bytes.get(start) {
-        Some(q @ (b'\'' | b'"')) => line[start + 1..].find(*q as char).map(|e| start + 1 + e + 1)?,
-        Some(_) => line[start..].find([' ', '|', ')']).map(|e| start + e).unwrap_or(line.len()),
+        Some(q @ (b'\'' | b'"')) => line[start + 1..]
+            .find(*q as char)
+            .map(|e| start + 1 + e + 1)?,
+        Some(_) => line[start..]
+            .find([' ', '|', ')'])
+            .map(|e| start + e)
+            .unwrap_or(line.len()),
         None => return None,
     };
     Some((start, end))
@@ -59,11 +67,15 @@ fn omp_config_span(line: &str) -> Option<(usize, usize)> {
 pub fn omp_current() -> Option<PathBuf> {
     let home = home_dir();
     for rel in SHELL_HOSTS {
-        let Ok(text) = fs::read_to_string(home.join(rel)) else { continue };
+        let Ok(text) = fs::read_to_string(home.join(rel)) else {
+            continue;
+        };
         for line in text.lines() {
             if let Some((s, e)) = omp_config_span(line) {
                 let raw = line[s..e].trim_matches(['\'', '"']);
-                let expanded = raw.replace("$HOME", &home.to_string_lossy()).replace("${HOME}", &home.to_string_lossy());
+                let expanded = raw
+                    .replace("$HOME", &home.to_string_lossy())
+                    .replace("${HOME}", &home.to_string_lossy());
                 let path = match expanded.strip_prefix("~/") {
                     Some(rest) => home.join(rest),
                     None => PathBuf::from(expanded),
@@ -82,7 +94,10 @@ pub fn omp_hosts() -> Vec<String> {
     let home = home_dir();
     SHELL_HOSTS
         .iter()
-        .filter(|rel| fs::read_to_string(home.join(rel)).is_ok_and(|t| t.lines().any(|l| omp_config_span(l).is_some())))
+        .filter(|rel| {
+            fs::read_to_string(home.join(rel))
+                .is_ok_and(|t| t.lines().any(|l| omp_config_span(l).is_some()))
+        })
         .map(|r| r.to_string())
         .collect()
 }
@@ -119,11 +134,29 @@ pub const GHOSTTY_HOST: &str = ".config/ghostty/config";
 pub const GHOSTTY_THEME: &str = ".config/ghostty/theme-profile";
 pub const GHOSTTY_INCLUDE: &str = "config-file = ?theme-profile";
 const GHOSTTY_LOOK: &[&str] = &[
-    "theme", "background", "foreground", "palette", "cursor-color", "cursor-text", "cursor-style",
-    "selection-background", "selection-foreground", "background-opacity", "background-blur",
-    "background-image", "font-family", "font-family-bold", "font-family-italic",
-    "font-family-bold-italic", "font-feature", "window-padding-x", "window-padding-y",
-    "window-theme", "window-decoration", "unfocused-split-opacity", "minimum-contrast",
+    "theme",
+    "background",
+    "foreground",
+    "palette",
+    "cursor-color",
+    "cursor-text",
+    "cursor-style",
+    "selection-background",
+    "selection-foreground",
+    "background-opacity",
+    "background-blur",
+    "background-image",
+    "font-family",
+    "font-family-bold",
+    "font-family-italic",
+    "font-family-bold-italic",
+    "font-feature",
+    "window-padding-x",
+    "window-padding-y",
+    "window-theme",
+    "window-decoration",
+    "unfocused-split-opacity",
+    "minimum-contrast",
 ];
 
 fn ghostty_key(line: &str) -> Option<&str> {
@@ -151,7 +184,11 @@ pub fn ghostty_split(host: &str) -> (String, String) {
     let join = |v: Vec<&str>| {
         let s = v.join("\n");
         let s = s.trim_end();
-        if s.is_empty() { String::new() } else { format!("{s}\n") }
+        if s.is_empty() {
+            String::new()
+        } else {
+            format!("{s}\n")
+        }
     };
     (join(look), join(rest))
 }
@@ -173,8 +210,19 @@ const GHOSTTY_END: &str = "# END theme-profile palette";
 pub fn ghostty_colors(p: &Palette) -> String {
     let r = kde_roles(p);
     let mut out = format!("{GHOSTTY_BEGIN}\n");
-    let _ = writeln!(out, "background = {}\nforeground = {}", r.window.hex(), r.text.hex());
-    let _ = writeln!(out, "cursor-color = {}\nselection-background = {}\nselection-foreground = {}", r.text.hex(), r.accent.hex(), r.selection_text.hex());
+    let _ = writeln!(
+        out,
+        "background = {}\nforeground = {}",
+        r.window.hex(),
+        r.text.hex()
+    );
+    let _ = writeln!(
+        out,
+        "cursor-color = {}\nselection-background = {}\nselection-foreground = {}",
+        r.text.hex(),
+        r.accent.hex(),
+        r.selection_text.hex()
+    );
     for (i, c) in ansi16(p).iter().enumerate() {
         let _ = writeln!(out, "palette = {i}={}", c.hex());
     }
@@ -201,7 +249,11 @@ fn replace_block(existing: &str, block: &str, begin: &str, end: &str) -> String 
     }
     let body = kept.join("\n");
     let body = body.trim_end();
-    if body.is_empty() { block.to_string() } else { format!("{body}\n\n{block}") }
+    if body.is_empty() {
+        block.to_string()
+    } else {
+        format!("{body}\n\n{block}")
+    }
 }
 
 pub fn ghostty_apply_palette(p: &Palette) -> Result<Option<PathBuf>> {
@@ -215,7 +267,10 @@ pub fn ghostty_apply_palette(p: &Palette) -> Result<Option<PathBuf>> {
     if current.is_empty() {
         current = ghostty_split(&text).0; // one-time move of the look
     }
-    fs::write(&theme, replace_block(&current, &ghostty_colors(p), GHOSTTY_BEGIN, GHOSTTY_END))?;
+    fs::write(
+        &theme,
+        replace_block(&current, &ghostty_colors(p), GHOSTTY_BEGIN, GHOSTTY_END),
+    )?;
     fs::write(&host, ghostty_host(&text))?;
     Ok(Some(theme))
 }
@@ -239,9 +294,19 @@ pub fn cava_apply_palette(p: &Palette) -> Result<Option<PathBuf>> {
     text = set_ini_text(&text, "color", "gradient", "1");
     text = set_ini_text(&text, "color", "gradient_count", &stops.len().to_string());
     for (i, c) in stops.iter().enumerate() {
-        text = set_ini_text(&text, "color", &format!("gradient_color_{}", i + 1), &format!("'{}'", c.hex()));
+        text = set_ini_text(
+            &text,
+            "color",
+            &format!("gradient_color_{}", i + 1),
+            &format!("'{}'", c.hex()),
+        );
     }
-    text = set_ini_text(&text, "color", "foreground", &format!("'{}'", r.accent.hex()));
+    text = set_ini_text(
+        &text,
+        "color",
+        "foreground",
+        &format!("'{}'", r.accent.hex()),
+    );
     fs::write(&path, text)?;
     reload_cava();
     Ok(Some(path))
@@ -264,7 +329,11 @@ fn css_color(c: crate::palette::Rgb, alpha: f64) -> String {
 pub fn gtk4_css(p: &Palette, opacity: f64) -> String {
     let o = opacity.clamp(0.3, 1.0);
     let r = kde_roles(p);
-    let accent_fg = if r.accent.luminance() > 0.45 { p.slot(0) } else { crate::palette::Rgb(255, 255, 255) };
+    let accent_fg = if r.accent.luminance() > 0.45 {
+        p.slot(0)
+    } else {
+        crate::palette::Rgb(255, 255, 255)
+    };
     let solid = |x: f64| (o + (1.0 - o) * x).min(1.0);
     // Views and cards a little clearer than the window — only when translucent.
     let less = |d: f64| if o >= 1.0 { 1.0 } else { (o - d).max(0.3) };
@@ -294,7 +363,10 @@ pub fn gtk4_css(p: &Palette, opacity: f64) -> String {
         ("warning_color", r.neutral.hex()),
         ("error_color", r.negative.hex()),
     ];
-    let mut out = format!("/* {} — generated by theme-profile (libadwaita colours) */\n", p.name);
+    let mut out = format!(
+        "/* {} — generated by theme-profile (libadwaita colours) */\n",
+        p.name
+    );
     for (name, value) in rows {
         let _ = writeln!(out, "@define-color {name} {value};");
     }
@@ -309,13 +381,20 @@ pub const GTK3_CSS: &str = ".config/gtk-3.0/theme-profile.css";
 /// writes no rules at all — the GTK theme keeps its own look.
 pub fn gtk3_css(p: &Palette, opacity: f64) -> String {
     let o = opacity.clamp(0.3, 1.0);
-    let mut out = format!("/* {} — generated by theme-profile (GTK 3 translucency) */\n", p.name);
+    let mut out = format!(
+        "/* {} — generated by theme-profile (GTK 3 translucency) */\n",
+        p.name
+    );
     if o >= 1.0 {
         return out;
     }
     let r = kde_roles(p);
     let view = (o - 0.1).max(0.3);
-    let _ = writeln!(out, ".background, .background:backdrop {{ background-color: {}; }}", css_color(r.window, o));
+    let _ = writeln!(
+        out,
+        ".background, .background:backdrop {{ background-color: {}; }}",
+        css_color(r.window, o)
+    );
     let _ = writeln!(
         out,
         ".view, .view:backdrop, iconview, treeview.view, textview text, scrolledwindow viewport.frame {{ background-color: {}; }}",
@@ -327,7 +406,10 @@ pub fn gtk3_css(p: &Palette, opacity: f64) -> String {
 /// Write the GTK 4 (libadwaita) and GTK 3 colour files and import each from
 /// its `gtk.css`. Returns the GTK 4 file.
 pub fn gtk_apply_palette(p: &Palette, opacity: f64) -> Result<PathBuf> {
-    for (rel, css) in [(GTK4_CSS, gtk4_css(p, opacity)), (GTK3_CSS, gtk3_css(p, opacity))] {
+    for (rel, css) in [
+        (GTK4_CSS, gtk4_css(p, opacity)),
+        (GTK3_CSS, gtk3_css(p, opacity)),
+    ] {
         let path = home_dir().join(rel);
         if let Some(dir) = path.parent() {
             fs::create_dir_all(dir)?;
@@ -336,7 +418,11 @@ pub fn gtk_apply_palette(p: &Palette, opacity: f64) -> Result<PathBuf> {
         let host = path.with_file_name("gtk.css");
         let text = fs::read_to_string(&host).unwrap_or_default();
         if !text.lines().any(|l| l.trim() == GTK4_IMPORT) {
-            let sep = if text.is_empty() || text.ends_with('\n') { "" } else { "\n" };
+            let sep = if text.is_empty() || text.ends_with('\n') {
+                ""
+            } else {
+                "\n"
+            };
             fs::write(&host, format!("{text}{sep}{GTK4_IMPORT}\n"))?;
         }
     }
@@ -348,11 +434,12 @@ pub fn reload_cava() {
     if std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1") || which::which("pkill").is_err() {
         return;
     }
-    let _ = std::process::Command::new("pkill")
-        .args(["-USR1", "-x", "cava"])
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status();
+    let _ = crate::paths::status_bounded(
+        std::process::Command::new("pkill")
+            .args(["-USR1", "-x", "cava"])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null()),
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -365,19 +452,28 @@ pub const BAT_CONFIG: &str = ".config/bat/config";
 /// Universal variables that are fish's colours.
 pub fn fish_colour_line(line: &str) -> bool {
     let t = line.trim_start();
-    let name = t.strip_prefix("SETUVAR --export ").or_else(|| t.strip_prefix("SETUVAR ")).unwrap_or("");
+    let name = t
+        .strip_prefix("SETUVAR --export ")
+        .or_else(|| t.strip_prefix("SETUVAR "))
+        .unwrap_or("");
     name.starts_with("fish_color_") || name.starts_with("fish_pager_color_")
 }
 
 fn fish_var_name(line: &str) -> Option<&str> {
     let t = line.trim_start();
-    let rest = t.strip_prefix("SETUVAR --export ").or_else(|| t.strip_prefix("SETUVAR "))?;
+    let rest = t
+        .strip_prefix("SETUVAR --export ")
+        .or_else(|| t.strip_prefix("SETUVAR "))?;
     Some(rest.split(':').next().unwrap_or(rest))
 }
 
 /// Lines a policy keeps / merges by an identifying name.
 pub fn lines_filter(text: &str, keep: fn(&str) -> bool) -> String {
-    let mut s = text.lines().filter(|l| keep(l)).collect::<Vec<_>>().join("\n");
+    let mut s = text
+        .lines()
+        .filter(|l| keep(l))
+        .collect::<Vec<_>>()
+        .join("\n");
     s.push('\n');
     s
 }
@@ -387,7 +483,8 @@ fn name_of(line: &str) -> Option<String> {
         return Some(n.to_string());
     }
     let t = line.trim_start();
-    t.strip_prefix("--").map(|r| r.split(['=', ' ']).next().unwrap_or(r).to_string())
+    t.strip_prefix("--")
+        .map(|r| r.split(['=', ' ']).next().unwrap_or(r).to_string())
 }
 
 /// Matching lines replaced in place, new ones appended, the theme's absent
@@ -408,7 +505,13 @@ pub fn lines_merge(theme: &str, live: &str, keep: fn(&str) -> bool) -> String {
             }
         }
     }
-    out.extend(theme_lines.iter().zip(&used).filter(|(_, u)| !**u).map(|(l, _)| l.to_string()));
+    out.extend(
+        theme_lines
+            .iter()
+            .zip(&used)
+            .filter(|(_, u)| !**u)
+            .map(|(l, _)| l.to_string()),
+    );
     let mut text = out.join("\n");
     text.push('\n');
     text
@@ -431,23 +534,49 @@ mod tests {
         assert!(out.contains("abbr -a g git"));
         assert_eq!(omp_host(&out), out);
         let zsh = "eval \"$(oh-my-posh init zsh --config=~/x.json)\"\n";
-        assert!(omp_host(zsh).contains("--config=\"$HOME/.config/oh-my-posh/theme-profile.omp.json\")"));
-        assert_eq!(omp_host("# oh-my-posh init fish --config x\n"), "# oh-my-posh init fish --config x\n");
+        assert!(
+            omp_host(zsh).contains("--config=\"$HOME/.config/oh-my-posh/theme-profile.omp.json\")")
+        );
+        assert_eq!(
+            omp_host("# oh-my-posh init fish --config x\n"),
+            "# oh-my-posh init fish --config x\n"
+        );
     }
 
     #[test]
     fn gtk4_colours_for_libadwaita() {
-        let p = crate::palette::parse_base16(include_str!("../data/base16/everforest.yaml"), "test").unwrap();
+        let p =
+            crate::palette::parse_base16(include_str!("../data/base16/everforest.yaml"), "test")
+                .unwrap();
         let opaque = gtk4_css(&p, 1.0);
-        assert!(opaque.contains("@define-color window_bg_color #") && !opaque.contains("alpha("), "{opaque}");
+        assert!(
+            opaque.contains("@define-color window_bg_color #") && !opaque.contains("alpha("),
+            "{opaque}"
+        );
         let glass = gtk4_css(&p, 0.7);
-        assert!(glass.contains("@define-color window_bg_color alpha(#") && glass.contains(", 0.70);"), "{glass}");
-        assert!(glass.contains("@define-color accent_bg_color #"), "accent stays solid");
+        assert!(
+            glass.contains("@define-color window_bg_color alpha(#") && glass.contains(", 0.70);"),
+            "{glass}"
+        );
+        assert!(
+            glass.contains("@define-color accent_bg_color #"),
+            "accent stays solid"
+        );
         assert!(gtk4_css(&p, 0.0).contains(", 0.30);"), "opacity is clamped");
-        assert!(!gtk3_css(&p, 1.0).contains('{'), "opaque: the GTK 3 theme is left alone");
+        assert!(
+            !gtk3_css(&p, 1.0).contains('{'),
+            "opaque: the GTK 3 theme is left alone"
+        );
         let g3 = gtk3_css(&p, 0.7);
-        assert!(g3.contains(".background, .background:backdrop { background-color: alpha(#") && g3.contains(", 0.70); }"), "{g3}");
-        assert!(g3.contains(".view, .view:backdrop") && g3.contains(", 0.60); }"), "{g3}");
+        assert!(
+            g3.contains(".background, .background:backdrop { background-color: alpha(#")
+                && g3.contains(", 0.70); }"),
+            "{g3}"
+        );
+        assert!(
+            g3.contains(".view, .view:backdrop") && g3.contains(", 0.60); }"),
+            "{g3}"
+        );
     }
 
     #[test]
@@ -466,9 +595,17 @@ mod tests {
         let live = "SETUVAR __fish_initialized:4300\nSETUVAR fish_color_command:blue\nSETUVAR fish_user_paths:/x\n";
         let theme = "SETUVAR fish_color_command:bd93f9\nSETUVAR fish_pager_color_prefix:ff79c6\n";
         let m = lines_merge(theme, live, fish_colour_line);
-        assert!(m.contains("fish_color_command:bd93f9") && m.contains("fish_pager_color_prefix") && m.contains("fish_user_paths:/x"));
+        assert!(
+            m.contains("fish_color_command:bd93f9")
+                && m.contains("fish_pager_color_prefix")
+                && m.contains("fish_user_paths:/x")
+        );
         assert!(!m.contains("command:blue"));
-        let bat = lines_merge("--theme=\"Dracula\"\n", "--theme=\"TwoDark\"\n--style=numbers\n", bat_theme_line);
+        let bat = lines_merge(
+            "--theme=\"Dracula\"\n",
+            "--theme=\"TwoDark\"\n--style=numbers\n",
+            bat_theme_line,
+        );
         assert_eq!(bat, "--theme=\"Dracula\"\n--style=numbers\n");
     }
 }

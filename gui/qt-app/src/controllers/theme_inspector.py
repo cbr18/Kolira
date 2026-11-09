@@ -7,9 +7,9 @@ thread pool; profile snapshots stay read-only.
 
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
+from threading import Event
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Optional
@@ -19,6 +19,7 @@ from PySide6.QtCore import (
     QObject,
     QRunnable,
     QThreadPool,
+    QTimer,
     QUrl,
     Signal,
     Slot,
@@ -26,14 +27,13 @@ from PySide6.QtCore import (
 
 from core import CoreFactory
 from core.paths import (
-    active_profile_file,
     live_path,
     profile_dir,
     profiles_dir as profiles_root,
     validate_profile_name,
 )
 from core.protocol import ThemeCore
-from core.theme_core import _UNSUPPORTED_SUFFIXES, read_config_params
+from core.theme_core import read_config_params
 from core.theme_schema import FIELD_BY_ID, SECTIONS
 
 
@@ -41,8 +41,46 @@ from core.theme_schema import FIELD_BY_ID, SECTIONS
 # Local async helper (kept private to avoid a package import cycle)
 # ──────────────────────────────────────────────────────────────
 
+# Keep helpers alive independently of the page/controller until the runnable
+# has released its Qt wrapper. Owner destruction suppresses delivery, not work.
+_active_jobs: set["_Signals"] = set()
+
+
 class _Signals(QObject):
     finished = Signal(bool, str)
+
+    def __init__(self, owner: QObject, done: Callable[[bool, str], None]) -> None:
+        super().__init__()
+        self.exited = Event()
+        self._done = done
+        self._result: tuple[bool, str] = (False, "")
+        self._timer = QTimer(self)
+        self._timer.setInterval(0)
+        self._timer.timeout.connect(self._release)
+        self.finished.connect(self._finished)
+        owner.destroyed.connect(self._owner_destroyed)
+
+    @Slot()
+    def _owner_destroyed(self) -> None:
+        self._done = None
+
+    @Slot(bool, str)
+    def _finished(self, success: bool, message: str) -> None:
+        self._result = success, message
+        self._timer.start()
+
+    @Slot()
+    def _release(self) -> None:
+        if not self.exited.is_set():
+            return
+        self._timer.stop()
+        done, self._done = self._done, None
+        try:
+            if done is not None:
+                done(*self._result)
+        finally:
+            _active_jobs.discard(self)
+            self.deleteLater()
 
 
 class _Worker(QRunnable):
@@ -50,23 +88,26 @@ class _Worker(QRunnable):
         super().__init__()
         self._func = func
         self._signals = signals
+        self._exited = signals.exited
 
     def run(self) -> None:
         try:
-            success, message = self._func()
-        except Exception as exc:  # noqa: BLE001 - surface to the UI
-            success, message = False, str(exc)
-        self._signals.finished.emit(bool(success), message)
+            try:
+                success, message = self._func()
+            except Exception as exc:  # noqa: BLE001 - surface to the UI
+                success, message = False, str(exc)
+            self._signals.finished.emit(bool(success), message)
+        finally:
+            # No runnable may retain the QObject wrapper when deleteLater runs.
+            self._signals = None
+            self._func = None
+            self._exited.set()
 
 
 def _run(owner: QObject, func: Callable[[], tuple[bool, str]],
          done: Callable[[bool, str], None]) -> None:
-    signals = _Signals(owner)
-    signals.finished.connect(done)
-    # The worker keeps a Python reference to ``signals``.  Calling
-    # deleteLater() here deleted the C++ object while the worker still held the
-    # wrapper, which produced a SIGBUS in QObject::~QObject.  Parent ownership
-    # (passed to _Signals) keeps the object alive for the controller.
+    signals = _Signals(owner, done)
+    _active_jobs.add(signals)
     QThreadPool.globalInstance().start(_Worker(func, signals))
 
 
@@ -141,9 +182,8 @@ class ThemeInspectorController(QObject):
     @Property(str, notify=sectionsChanged)
     def activeProfile(self) -> str:
         try:
-            name = active_profile_file().read_text(encoding="utf-8").strip()
-            return validate_profile_name(name)
-        except (OSError, ValueError):
+            return CoreFactory.profile_core().get_active_profile()
+        except (RuntimeError, ValueError):
             return ""
 
     @Property(str, notify=sectionsChanged)
@@ -236,25 +276,15 @@ class ThemeInspectorController(QObject):
             except (IndexError, ValueError):
                 return []
         entries: list[dict] = []
-        editable_suffixes = {".json", ".jsonc", ".toml", ".js"}
-        blocked_suffixes = set(_UNSUPPORTED_SUFFIXES)
         for component in components:
             files: list[dict] = []
             for rel in component.config_paths:
                 path = live_path(rel) if base is None else base / rel
-                if not path.is_file():
-                    continue
-                parsed = read_config_params(path)
-                suffix = path.suffix.lower()
+                from core.cli_core import core_request
+                parsed = core_request("config.describe", file=str(path))
                 if parsed is None:
-                    files.append({"relPath": rel, "params": [], "truncated": False,
-                                  "note": "unsupported format", "editable": False})
                     continue
-                editable = (
-                    base is None  # только live-scope редактируется
-                    and parsed["note"] != "parse error"
-                    and (suffix in editable_suffixes or suffix not in blocked_suffixes)
-                )
+                editable = base is None and parsed["editable"]
                 files.append({
                     "relPath": rel,
                     "params": parsed["params"],
@@ -320,79 +350,6 @@ class ThemeInspectorController(QObject):
     @Slot(result=list)
     def fontFamilies(self) -> list:
         return self._core.font_families()
-
-    @Slot(str, result="QVariantMap")
-    def profileSummary(self, name: str) -> dict:
-        """Fingerprint of a saved profile for its card in "Available Profiles".
-
-        The profile cards used to repeat the same component chips for every
-        profile. The component set is almost always identical, so instead show
-        what actually distinguishes a theme: its palette, colour scheme,
-        Kvantum/Plasma assets, corner radius, blur and terminal opacity.
-        """
-        if not name:
-            return {}
-        try:
-            validate_profile_name(name)
-            root = profile_dir(name)
-        except ValueError:
-            return {}
-
-        scope = f"profile:{name}"
-
-        def field(field_id: str) -> dict:
-            try:
-                return self._core.get(field_id, scope) or {}
-            except Exception:  # noqa: BLE001 - a card must never break the UI
-                return {}
-
-        def display(field_id: str) -> str:
-            return str(field(field_id).get("display") or "")
-
-        accent = display("accent_color")
-        swatches = [
-            color
-            for color in (
-                display("window_bg"),
-                display("view_bg"),
-                accent,
-                display("text_color"),
-            )
-            if color
-        ]
-
-        # A broken or unreadable profile should still render a card; the stats
-        # are a nicety, not a requirement.
-        size_bytes = 0
-        file_count = 0
-        try:
-            for entry in root.rglob("*"):
-                try:
-                    if entry.is_file():
-                        file_count += 1
-                        size_bytes += entry.stat().st_size
-                except OSError:
-                    continue
-        except OSError:
-            pass
-
-        return {
-            "accent": accent,
-            "swatches": swatches,
-            "scheme": display("color_scheme"),
-            "lookAndFeel": display("look_and_feel"),
-            "plasmaTheme": display("plasma_theme"),
-            "kvantum": display("kvantum_theme"),
-            "radius": display("klassy_radius"),
-            "blur": display("blur_strength"),
-            "blurEnabled": bool(field("blur_enabled").get("value")),
-            "kitty": display("kitty_opacity"),
-            "iconTheme": display("icon_theme"),
-            "gtkTheme": display("gtk_theme"),
-            "decoration": display("decoration_theme"),
-            "sizeBytes": size_bytes,
-            "fileCount": file_count,
-        }
 
     @Slot(str, result=str)
     def sectionTitle(self, section: str) -> str:
@@ -618,12 +575,9 @@ class ThemeInspectorController(QObject):
                 for item in self._core.fields(section["id"], self._scope)
             }
         try:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(
-                json.dumps(data, indent=2, ensure_ascii=False) + "\n",
-                encoding="utf-8",
-            )
-        except OSError as exc:
+            from core.cli_core import core_request
+            core_request("report.export", file=str(target), data=data)
+        except (OSError, RuntimeError, ValueError) as exc:
             self.toast.emit(f"Export failed: {exc}", False)
             return
         self.toast.emit(f"Exported theme snapshot to {target}", True)

@@ -32,9 +32,16 @@ def field_texts() -> list[str]:
 
 
 def app_texts() -> list[str]:
-    from core.tracked_apps import TRACKED_APPS  # noqa: E402
+    from core.cli_core import core_request
+    import os
+    local = ROOT / "src/core/rust_core/target/release/theme-profile"
+    binary = os.environ.get("KTM_THEME_PROFILE_BIN") or (str(local) if local.is_file() else None)
+    return core_request("registry.descriptions", _binary=binary)
 
-    return list(dict.fromkeys(a.description for a in TRACKED_APPS if a.description))
+
+def inspector_texts() -> list[str]:
+    import i18n_ru
+    return list(i18n_ru.APP_THEME_CORE)
 
 
 def core_texts() -> list[str]:
@@ -46,7 +53,8 @@ def core_texts() -> list[str]:
 def message_texts() -> list[str]:
     import i18n_ru  # noqa: E402
 
-    return list(i18n_ru.CORE_MESSAGES)
+    import ui_i18n_ru
+    return list({**i18n_ru.CORE_MESSAGES, **ui_i18n_ru.CORE_MESSAGES})
 
 
 def write() -> None:
@@ -62,7 +70,7 @@ def write() -> None:
         "STRINGS = [",
     ]
     for context, texts in (("ThemeFields", field_texts()), ("TrackedApps", app_texts()), ("Core", core_texts()),
-                            ("CoreMessages", message_texts())):
+                            ("CoreMessages", message_texts()), ("AppThemeCore", inspector_texts())):
         for text in texts:
             lines.append(f"    QT_TRANSLATE_NOOP({context!r}, {text!r}),")
     lines.append("]")
@@ -83,26 +91,40 @@ def fill() -> int:
         "Core": i18n_ru.CORE,
         "CoreMessages": i18n_ru.CORE_MESSAGES,
         "AppThemeCore": i18n_ru.APP_THEME_CORE,
+        "ProfileController": i18n_ru.PROFILE_RECOVERY,
+        "ApplyPreviewDialog": i18n_ru.APPLY_PREVIEW,
+        "Main": {"Download and review": "Скачать и проверить изменения"},
     }
-    ts = TS.read_text(encoding="utf-8")
+    import ui_i18n_ru
+    tables["CoreMessages"].update(ui_i18n_ru.CORE_MESSAGES)
+    for context, entries in ui_i18n_ru.UI_TRANSLATIONS.items():
+        tables.setdefault(context, {}).update(entries)
     filled = 0
 
     def ctx_block(match: re.Match) -> str:
         nonlocal filled
         name, body = match.group(1), match.group(2)
         table = tables.get(name)
-        if not table:
+        numerus = ui_i18n_ru.UI_NUMERUS.get(name, {})
+        if not table and not numerus:
             return match.group(0)
-        for src, dst in table.items():
+        for src, dst in (table or {}).items():
             pattern = re.compile(
                 r"(<source>" + re.escape(_xml(src)) + r"</source>\s*)(?:<translation(?: type=\"unfinished\")?>[^<]*</translation>|<translation(?: type=\"unfinished\")? */>)"
             )
             body, n = pattern.subn(lambda m: m.group(1) + "<translation>" + _xml(dst) + "</translation>", body)
             filled += n
+        for src, forms in numerus.items():
+            pattern = re.compile(r"(<source>" + re.escape(_xml(src)) + r"</source>\s*)<translation(?: type=\"unfinished\")?>.*?</translation>", re.S)
+            value = "<translation>" + "".join("<numerusform>" + _xml(form) + "</numerusform>" for form in forms) + "</translation>"
+            body, n = pattern.subn(lambda m: m.group(1) + value, body)
+            filled += n
         return f"<context>\n    <name>{name}</name>{body}</context>"
 
-    ts = re.sub(r"<context>\s*<name>([^<]+)</name>(.*?)</context>", ctx_block, ts, flags=re.S)
-    TS.write_text(ts, encoding="utf-8")
+    for path in (TS, ROOT / "i18n/qml_ru.ts"):
+        ts = path.read_text(encoding="utf-8")
+        ts = re.sub(r"<context>\s*<name>([^<]+)</name>(.*?)</context>", ctx_block, ts, flags=re.S)
+        path.write_text(ts, encoding="utf-8")
     return filled
 
 

@@ -68,7 +68,8 @@ const APPS: &[App] = &[
         processes: &["firefox"],
         launch: &["firefox"],
         marker: ".mozilla/firefox",
-        warning: "open calls and downloads in Firefox stop; tabs come back if session restore is on",
+        warning:
+            "open calls and downloads in Firefox stop; tabs come back if session restore is on",
     },
 ];
 
@@ -79,8 +80,8 @@ fn no_apply() -> bool {
 /// Oldest running pid of any of `names` (the main process of the program).
 fn running(names: &[&str]) -> Option<u32> {
     names.iter().find_map(|n| {
-        let out = Command::new("pgrep").args(["-o", "-x", n]).output().ok()?;
-        String::from_utf8_lossy(&out.stdout).trim().parse().ok()
+        let (_, out) = crate::paths::output_bounded(Command::new("pgrep").args(["-o", "-x", n]))?;
+        String::from_utf8_lossy(&out).trim().parse().ok()
     })
 }
 
@@ -110,7 +111,10 @@ fn changed(dir: &Path, marker: &str, before: Option<&Path>) -> bool {
 }
 
 fn had_ours(folder: &Path) -> bool {
-    std::fs::read_dir(folder).is_ok_and(|it| it.flatten().any(|e| e.file_name().to_string_lossy().starts_with("theme-profile")))
+    std::fs::read_dir(folder).is_ok_and(|it| {
+        it.flatten()
+            .any(|e| e.file_name().to_string_lossy().starts_with("theme-profile"))
+    })
 }
 
 /// [`for_theme`] right after an apply: restarts only for programs whose
@@ -121,7 +125,8 @@ pub fn for_theme_since(dir: &Path, before: Option<&Path>) -> Vec<Action> {
     for app in APPS {
         let theme_changed = dir.join(app.marker).exists() && changed(dir, app.marker, before);
         // The theme has none of it, and an earlier one left ours: it went back to stock.
-        let reset = !dir.join(app.marker).exists() && before.is_some_and(|b| had_ours(&b.join(app.marker)));
+        let reset =
+            !dir.join(app.marker).exists() && before.is_some_and(|b| had_ours(&b.join(app.marker)));
         if (theme_changed || reset) && running(app.processes).is_some() {
             out.push(Action {
                 id: app.id.into(),
@@ -132,7 +137,10 @@ pub fn for_theme_since(dir: &Path, before: Option<&Path>) -> Vec<Action> {
             });
         }
     }
-    if dir.join(crate::telegram::PALETTE_FILE).is_file() && crate::telegram::installed() && !crate::telegram::follows_file() {
+    if dir.join(crate::telegram::PALETTE_FILE).is_file()
+        && crate::telegram::installed()
+        && !crate::telegram::follows_file()
+    {
         out.push(Action {
             id: "telegram".into(),
             kind: "manual".into(),
@@ -147,14 +155,40 @@ pub fn for_theme_since(dir: &Path, before: Option<&Path>) -> Vec<Action> {
     out
 }
 
+/// Actions derived from the actual file plan (also used after a real apply).
+pub(crate) fn for_changes(dir: &Path, changes: &[std::path::PathBuf]) -> Vec<Action> {
+    let mut out = vec![];
+    for app in APPS {
+        let root = crate::paths::live_path(app.marker);
+        if changes.iter().any(|path| path.starts_with(&root)) && running(app.processes).is_some() {
+            out.push(Action {
+                id: app.id.into(),
+                kind: "restart".into(),
+                title: format!("Restart {}", app.title),
+                reason: format!("{} reads the theme's look only when it starts", app.title),
+                warning: app.warning.into(),
+            });
+        }
+    }
+    out.extend(
+        for_theme(dir)
+            .into_iter()
+            .filter(|action| action.kind == "manual"),
+    );
+    out
+}
+
 /// Ask `pid` to quit (SIGTERM — a normal quit: browsers save the session)
 /// and wait up to `timeout` for every process named `names` to end.
 fn quit(pid: u32, names: &[&str], timeout: Duration) -> Result<()> {
-    let _ = Command::new("kill").args(["-TERM", &pid.to_string()]).status();
+    let _ = crate::paths::status_bounded(Command::new("kill").args(["-TERM", &pid.to_string()]));
     let start = Instant::now();
     while running(names).is_some() {
         if start.elapsed() > timeout {
-            bail!("it did not quit within {} s — close it yourself", timeout.as_secs());
+            bail!(
+                "it did not quit within {} s — close it yourself",
+                timeout.as_secs()
+            );
         }
         std::thread::sleep(Duration::from_millis(250));
     }

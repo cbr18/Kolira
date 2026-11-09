@@ -102,6 +102,7 @@ remove_gui() {
 }
 
 remove_cli() {
+  rm -f "$CONFIGDIR/autostart/kde-theme-manager-schedule.desktop"
   say "Removing CLI binaries"
   rm -f "$BINDIR/theme-profile"
   rm -f "$BINDIR/theme-menu"

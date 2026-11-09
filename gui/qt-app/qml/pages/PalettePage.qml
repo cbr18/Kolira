@@ -13,6 +13,7 @@ import Components 1.0
  *  same one behind "accent colour from wallpaper".
  */
 Kirigami.ScrollablePage {
+    padding: Platform.Units.gridUnit
     id: page
 
     title: qsTr("Palette")
@@ -162,13 +163,13 @@ Kirigami.ScrollablePage {
         Flow {
             Layout.fillWidth: true
             spacing: Platform.Units.smallSpacing
-            Button {
+            AppButton {
                 text: qsTr("Gallery…")
                 icon.name: "view-list-icons"
                 enabled: !paletteController.busy
                 onClicked: galleryDialog.openGallery()
             }
-            Button {
+            AppButton {
                 text: qsTr("From wallpaper")
                 icon.name: "preferences-desktop-wallpaper"
                 enabled: !paletteController.busy
@@ -176,7 +177,7 @@ Kirigami.ScrollablePage {
                 ToolTip.visible: hovered
                 ToolTip.text: qsTr("Plasma's own colour extraction (Kirigami.ImageColors) on the current wallpaper")
             }
-            Button {
+            AppButton {
                 text: qsTr("From wallpaper (detailed)")
                 icon.name: "color-picker"
                 enabled: !paletteController.busy
@@ -184,7 +185,7 @@ Kirigami.ScrollablePage {
                 ToolTip.visible: hovered
                 ToolTip.text: qsTr("Cluster the wallpaper's pixels (k-means) — more colours to choose from")
             }
-            Button {
+            AppButton {
                 text: qsTr("Import file…")
                 icon.name: "document-import"
                 enabled: !paletteController.busy
@@ -235,7 +236,7 @@ Kirigami.ScrollablePage {
                 }
                 Label {
                     Layout.fillWidth: true
-                    text: qsTr("Source: %1 · KDE scheme: %2").arg(page.pal.source || "—").arg(page.pal.kdeScheme || "—")
+                    text: qsTr("Source: %1 · KDE scheme: %2").arg(page.pal.sourceText || "—").arg(page.pal.kdeScheme || "—")
                     color: ThemeColors.dimColor(page.glassMode)
                     font.pointSize: TypeScale.caption
                     elide: Text.ElideMiddle
@@ -250,7 +251,7 @@ Kirigami.ScrollablePage {
 
                 GridLayout {
                     Layout.fillWidth: true
-                    columns: 8
+                    columns: Math.max(2, Math.min(8, Math.floor(width / (Platform.Units.gridUnit * 5))))
                     columnSpacing: Platform.Units.smallSpacing
                     rowSpacing: Platform.Units.smallSpacing
 
@@ -263,22 +264,15 @@ Kirigami.ScrollablePage {
                             Layout.fillWidth: true
                             spacing: 2
 
-                            Rectangle {
+                            ColorSwatch {
+                                objectName: "paletteSwatch_" + modelData
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: Platform.Units.gridUnit * 2.2
-                                radius: Platform.Units.smallSpacing
-                                color: parent.colorValue
-                                border.width: 1
-                                border.color: ThemeColors.cardBorder(page.glassMode)
-                                Accessible.role: Accessible.Button
-                                Accessible.name: qsTr("%1 (%2): %3").arg(modelData).arg(page.slotHints[index]).arg(parent.colorValue)
-                                TapHandler {
-                                    enabled: !paletteController.busy
-                                    onTapped: page.editSlot(modelData, parent.parent.colorValue)
-                                }
-                                HoverHandler { id: swatchHover }
-                                ToolTip.visible: swatchHover.hovered
-                                ToolTip.text: qsTr("%1 — %2. Click to change").arg(modelData).arg(page.slotHints[index])
+                                Layout.minimumWidth: 0
+                                swatchColor: parent.colorValue
+                                glassMode: page.glassMode
+                                text: qsTr("%1 (%2): %3").arg(modelData).arg(page.slotHints[index]).arg(parent.colorValue)
+                                enabled: !paletteController.busy
+                                onClicked: page.editSlot(modelData, parent.colorValue)
                             }
                             Label {
                                 Layout.fillWidth: true
@@ -294,21 +288,19 @@ Kirigami.ScrollablePage {
 
                 RowLayout {
                     spacing: Platform.Units.mediumSpacing
-                    Rectangle {
+                    ColorSwatch {
+                        objectName: "paletteAccent"
                         Layout.preferredWidth: Platform.Units.gridUnit * 4
-                        Layout.preferredHeight: Platform.Units.gridUnit * 2.2
-                        radius: Platform.Units.smallSpacing
-                        color: page.pal.accent || "#000000"
-                        border.width: 1
-                        border.color: ThemeColors.cardBorder(page.glassMode)
-                        Accessible.role: Accessible.Button
-                        Accessible.name: qsTr("Accent: %1").arg(page.pal.accent || "")
-                        TapHandler {
-                            enabled: !paletteController.busy
-                            onTapped: page.editSlot("accent", page.pal.accent)
-                        }
+                        swatchColor: page.pal.accent || "#000000"
+                        glassMode: page.glassMode
+                        text: qsTr("Accent: %1").arg(page.pal.accent || "")
+                        enabled: !paletteController.busy
+                        onClicked: page.editSlot("accent", page.pal.accent)
                     }
                     Label {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        wrapMode: Text.Wrap
                         text: qsTr("Accent %1 — selection, focus, active elements").arg(page.pal.accent || "")
                         color: ThemeColors.fgColor(page.glassMode)
                     }
@@ -383,7 +375,7 @@ Kirigami.ScrollablePage {
                     color: ThemeColors.dimColorSoft(page.glassMode)
                     font.pointSize: TypeScale.caption
                 }
-                Button {
+                AppButton {
                     Layout.alignment: Qt.AlignRight
                     text: qsTr("Apply palette")
                     icon.name: "dialog-ok-apply"
@@ -396,7 +388,7 @@ Kirigami.ScrollablePage {
     }
 
     // ── Gallery ───────────────────────────────────────────────────────
-    Kirigami.Dialog {
+    AppDialog {
         id: galleryDialog
         title: qsTr("Palette gallery")
         preferredWidth: Platform.Units.gridUnit * 30
