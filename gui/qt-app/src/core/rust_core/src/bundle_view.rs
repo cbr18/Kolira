@@ -112,6 +112,13 @@ pub fn validate(name: &str) -> Result<Value> {
     )
 }
 pub fn apply(args: &Value) -> Result<Value> {
+    if args["source"] == "mcp"
+        && args["preview_token"]
+            .as_str()
+            .is_none_or(|token| token.trim().is_empty())
+    {
+        anyhow::bail!("MCP apply requires preview_token; review profile.preview before applying");
+    }
     let name = crate::gui_api::str_arg(args, "name")?;
     crate::operation::with_source(args["source"].as_str().unwrap_or("cli"), || {
         crate::operation::run(name, || {

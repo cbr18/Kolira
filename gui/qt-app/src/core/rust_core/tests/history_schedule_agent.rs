@@ -1,5 +1,6 @@
 //! Public contracts in disposable HOME/XDG; no real desktop is modified.
 use serde_json::{json, Value};
+use std::os::unix::fs::PermissionsExt;
 use std::{
     fs,
     io::Write,
@@ -76,9 +77,10 @@ impl Home {
 fn history_restores_completed_change_with_safety_copy_and_full_report() {
     let h = Home::new();
     let before = fs::read(h.path(".config/kdeglobals")).unwrap();
+    let preview = h.ok("profile.preview", json!({"name":"probe"}));
     let applied = h.ok(
         "profile.apply",
-        json!({"name":"probe","source":"mcp","skip_dependencies":true}),
+        json!({"name":"probe","source":"mcp","skip_dependencies":true,"preview_token":preview["token"]}),
     );
     let history = h.ok("operation.list", json!({}));
     let row = &history["operations"][0];
@@ -302,7 +304,15 @@ fn forced_import_cannot_replace_root_workspace_instructions() {
         "--json",
     ]);
     assert!(out.status.success());
-    for name in ["AGENTS.md", "agents.md", "CLAUDE.md", "AGENTS.md.kit-new"] {
+    for name in [
+        "AGENTS.md",
+        "agents.md",
+        "CLAUDE.md",
+        "AGENTS.md.kit-new",
+        "README.md",
+        "readme.md",
+        "README.md.kit-new",
+    ] {
         let out = h.run(&[
             "import",
             archive.to_str().unwrap(),
@@ -355,7 +365,6 @@ fn interrupted_record_survives_history_pruning_until_explicit_recovery() {
 
 #[test]
 fn failed_completed_restore_keeps_current_bytes_in_its_safety_transaction() {
-    use std::os::unix::fs::PermissionsExt;
     let h = Home::new();
     let applied = h.ok(
         "profile.apply",
@@ -500,4 +509,94 @@ fn import_rejects_packaged_client_instructions_and_hooks_before_publication() {
         assert!(String::from_utf8_lossy(&result.stderr).contains("not theme content"));
         assert!(!h.path(&format!(".config/kolira/themes/{name}")).exists());
     }
+}
+
+#[test]
+fn mcp_apply_requires_preview_token_before_starting_transaction() {
+    let h = Home::new();
+    let before = fs::read(h.path(".config/kdeglobals")).unwrap();
+    let result = h.rpc("profile.apply", json!({"name":"probe","source":"mcp"}));
+    assert_eq!(result["ok"], false);
+    assert!(result["error"].as_str().unwrap().contains("preview_token"));
+    assert_eq!(fs::read(h.path(".config/kdeglobals")).unwrap(), before);
+    assert!(h.ok("operation.list", json!({}))["operations"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+}
+
+#[test]
+fn workspace_readme_install_preserves_edits_and_permissions() {
+    let h = Home::new();
+    let installed = h.ok("agent.install", json!({}));
+    assert_eq!(installed["version"], 2);
+    let path = h.path(".config/kolira/themes/README.md");
+    let canonical = fs::read_to_string(&path).unwrap();
+    assert!(canonical.contains("kolira core agent.prepare"));
+    assert!(canonical.contains("previewToken"));
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o640)).unwrap();
+    h.ok("agent.install", json!({}));
+    assert_eq!(
+        fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+        0o640
+    );
+    fs::write(&path, "Personal workspace documentation\n").unwrap();
+    h.ok("agent.install", json!({}));
+    assert_eq!(
+        fs::read_to_string(&path).unwrap(),
+        "Personal workspace documentation\n"
+    );
+    assert_eq!(
+        fs::read_to_string(path.with_file_name("README.md.kit-new")).unwrap(),
+        canonical
+    );
+}
+#[test]
+fn bundled_sync_follows_a_theme_that_matches_the_kit() {
+    use sha2::{Digest, Sha256};
+    let h = Home::new();
+    h.ok(
+        "agent.prepare",
+        json!({"name":"kitme","values":{"widget_style":"Breeze"}}),
+    );
+    let kit = h.path("kit");
+    let kit_theme = kit.join("kitme");
+    let out = h.run(&["export", "kitme", &format!("--dir={}", kit_theme.display())]);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let sync = || {
+        let out = h.run(&["bundled", "sync", kit.to_str().unwrap()]);
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        String::from_utf8_lossy(&out.stdout).into_owned()
+    };
+    // Installed copy is exactly the kit (as after `import --force`): not "kept".
+    assert_eq!(sync(), "");
+
+    // A new kit version replaces an unchanged copy.
+    let bump = |text: &str| {
+        let rel = ".config/kdeglobals";
+        fs::write(kit_theme.join(rel), text).unwrap();
+        let manifest_path = kit_theme.join("export.json");
+        let mut manifest: Value =
+            serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+        manifest["files"][rel] = json!(format!("{:x}", Sha256::digest(text.as_bytes())));
+        fs::write(&manifest_path, manifest.to_string()).unwrap();
+    };
+    bump("[KDE]\nwidgetStyle=Fusion\n");
+    assert_eq!(sync().trim(), "Updated theme: kitme");
+    let installed = h.path(".config/kolira/themes/kitme/.config/kdeglobals");
+    assert!(fs::read_to_string(&installed).unwrap().contains("Fusion"));
+
+    // A user's edit is still kept when the kit moves on.
+    fs::write(&installed, "[KDE]\nwidgetStyle=Mine\n").unwrap();
+    bump("[KDE]\nwidgetStyle=Oxygen\n");
+    assert!(sync().starts_with("Kept theme kitme"));
+    assert!(fs::read_to_string(&installed).unwrap().contains("Mine"));
 }

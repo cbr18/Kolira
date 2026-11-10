@@ -21,7 +21,7 @@ cyan = "#55D6D0"
 white = "#CCCCCC"
 
 [colors.bright]
-black = "#404040"
+black = "#808080"
 red = "#C83C32"
 green = "#70B237"
 yellow = "#F6C453"
@@ -31,7 +31,7 @@ cyan = "#55D6D0"
 white = "#CCCCCC"
 
 [window]
-opacity = 1.0
-blur = false
+opacity = 0.5
+blur = true
 padding.x = 10
 padding.y = 10

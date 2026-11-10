@@ -1,4 +1,4 @@
 Minecraft Overworld Dark
 Original voxel night wallpaper, pixel icons, stone-grey surfaces and grass-green accents.
-Kvantum MinecraftOverworld, Klassy square corners; no blur or KWin animation.
+Kvantum MinecraftOverworld, Klassy square corners; Glass-style Better Blur DX and translucent windows; no KWin animation.
 Monocraft is an external font dependency. Fastfetch and panel layouts are preserved.

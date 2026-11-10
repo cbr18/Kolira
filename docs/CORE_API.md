@@ -112,12 +112,14 @@ forbids implicit dependency installation. Stale state returns `PREVIEW_STALE`.
 | `schedule.enable` | `enabled` | управление исполнителем и XDG autostart |
 | `agent.capabilities` | `{}` | версия, поддерживаемые методы, генераторы и ограничения |
 | `agent.schema` | `{}` | схема темы, поля и их типы, соответствие компонентам |
-| `agent.prepare` | `name`, `values`, `description?`, `use_palette?` | новый пакет без живого применения; `package`, `path`, `missing`, `live_appearance_changed: false` |
-| `agent.install` | `{}` | управляемые `AGENTS.md`/`CLAUDE.md`; версия и результат по файлам |
+| `agent.prepare` | `name`, `values`, `description?`, `use_palette?` | новый пакет без живого применения; `package`, `path`, `missing`, `warnings` (как `kolira lint --json`), `live_appearance_changed: false` |
+| `agent.install` | `{}` | управляемые `README.md`/`AGENTS.md`/`CLAUDE.md` (версия 2); версия и результат по файлам |
 | `dependency.list` | `{}` | обновлённый реестр со стабильными ID; не устанавливает ресурсы |
 | `dependency.start` | `action`, `ids`, `confirmed?` | асинхронный существующий Rust job; возвращает его ID и состояние |
 
 `profile.apply` принимает `source` из `cli/gui/mcp/schedule` (по умолчанию `cli`).
+При `source=mcp` непустой `preview_token` обязателен: отсутствие отклоняется
+до начала транзакции; устаревший токен требует нового `profile.preview`.
 `agent.prepare` использует ID полей из `agent.schema`, не GUI-названия приложений.
 Поддерживаются поля снимка; динамические поля внутренностей Kvantum отклоняются.
 `use_palette: true` использует сохранённую палитру и генераторы KDE/Kitty/Alacritty.

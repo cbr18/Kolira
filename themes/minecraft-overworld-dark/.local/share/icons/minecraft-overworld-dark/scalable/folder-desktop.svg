@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" shape-rendering="crispEdges">
+  <!-- Chest with desktop badge -->
+  <!-- Chest side -->
+  <rect x="4" y="14" width="40" height="26" fill="#5D4037" stroke="#3E2723" stroke-width="2"/>
+  <!-- Chest top -->
+  <rect x="4" y="6" width="40" height="8" fill="#795548" stroke="#5D4037" stroke-width="2"/>
+  <rect x="8" y="18" width="12" height="8" fill="#5D4037" stroke="#3E2723" stroke-width="1"/>
+  <rect x="8" y="28" width="12" height="8" fill="#5D4037" stroke="#3E2723" stroke-width="1"/>
+  <rect x="22" y="20" width="4" height="6" fill="#FFD54F" stroke="#FBC02D" stroke-width="1"/>
+  <!-- Badge -->
+  <rect x="25" y="23" width="21" height="21" fill="#1E1E1E" stroke="#0F0F0F" stroke-width="2"/>
+  <rect x="27" y="25" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="29" y="25" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="31" y="25" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="33" y="25" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="35" y="25" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="37" y="25" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="39" y="25" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="41" y="25" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="27" y="27" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="29" y="27" width="2" height="2" fill="#55D6D0"/>
+  <rect x="31" y="27" width="2" height="2" fill="#55D6D0"/>
+  <rect x="33" y="27" width="2" height="2" fill="#55D6D0"/>
+  <rect x="35" y="27" width="2" height="2" fill="#55D6D0"/>
+  <rect x="37" y="27" width="2" height="2" fill="#55D6D0"/>
+  <rect x="39" y="27" width="2" height="2" fill="#55D6D0"/>
+  <rect x="41" y="27" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="27" y="29" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="29" y="29" width="2" height="2" fill="#55D6D0"/>
+  <rect x="31" y="29" width="2" height="2" fill="#55D6D0"/>
+  <rect x="33" y="29" width="2" height="2" fill="#55D6D0"/>
+  <rect x="35" y="29" width="2" height="2" fill="#55D6D0"/>
+  <rect x="37" y="29" width="2" height="2" fill="#55D6D0"/>
+  <rect x="39" y="29" width="2" height="2" fill="#55D6D0"/>
+  <rect x="41" y="29" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="27" y="31" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="29" y="31" width="2" height="2" fill="#55D6D0"/>
+  <rect x="31" y="31" width="2" height="2" fill="#55D6D0"/>
+  <rect x="33" y="31" width="2" height="2" fill="#55D6D0"/>
+  <rect x="35" y="31" width="2" height="2" fill="#55D6D0"/>
+  <rect x="37" y="31" width="2" height="2" fill="#55D6D0"/>
+  <rect x="39" y="31" width="2" height="2" fill="#55D6D0"/>
+  <rect x="41" y="31" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="27" y="33" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="29" y="33" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="31" y="33" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="33" y="33" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="35" y="33" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="37" y="33" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="39" y="33" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="41" y="33" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="33" y="35" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="35" y="35" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="31" y="37" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="33" y="37" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="35" y="37" width="2" height="2" fill="#AAAAAA"/>
+  <rect x="37" y="37" width="2" height="2" fill="#AAAAAA"/>
+</svg>

@@ -1822,6 +1822,7 @@ fn apply_with_paths_keeping_inner(
                     ini_group_key(&ini, "Settings", "gtk-application-prefer-dark-theme").as_deref(),
                     ini_group_key(&ini, "Settings", "gtk-icon-theme-name").as_deref(),
                     ini_group_key(&ini, "Settings", "gtk-cursor-theme-name").as_deref(),
+                    ini_group_key(&ini, "Settings", "gtk-font-name").as_deref(),
                 );
             }
             crate::paths::log_step("live hooks");

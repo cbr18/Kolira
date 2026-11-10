@@ -59,7 +59,8 @@
 kolira list               # список профилей
 kolira apply glass        # применить тему (--keep-wallpaper — не трогать обои)
 kolira save my-profile    # сохранить текущее оформление как тему-пакет
-kolira check glass        # чего не хватит при применении и где взять
+kolira check glass        # чего не хватит при применении и где взять (+ предупреждения lint)
+kolira lint glass         # значки, перекрывающие Breeze; нечитаемые цвета схемы и терминала
 kolira migrate --all      # добавить theme.json старым профилям-снимкам
 kolira export glass --out=glass.ktmtheme.zip   # переносимая копия темы
 kolira import glass.ktmtheme.zip               # [--name=NEW] [--force] [--apply]

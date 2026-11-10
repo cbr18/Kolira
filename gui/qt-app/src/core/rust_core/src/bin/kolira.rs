@@ -34,10 +34,12 @@ Usage:
   kolira list
   kolira save NAME [--description=...] [--no-wallpaper]
                               (full snapshot of the appearance files + theme.json)
-  kolira apply NAME [--install-missing] [--keep-wallpaper] [--preview-token=HASH] [--json]
+  kolira apply NAME [--install-missing] [--without-dependencies] [--keep-wallpaper] [--preview-token=HASH] [--json]
                               (restores the theme; missing assets are reported,
-                               --install-missing installs app themes from their stores)
-  kolira check NAME [--json]           (what applying NAME would miss)
+                               --install-missing installs app themes from their stores,
+                               --without-dependencies skips the dependency check and installs)
+  kolira check NAME [--json]           (what applying NAME would miss; text output adds lint warnings)
+  kolira lint NAME [--json]            (icons shadowing Breeze, unreadable scheme/terminal colours)
   kolira prune NAME|--all              (drop what is not part of the theme; backup first)
   kolira dependencies list|refresh|register-app|install|remove|reinstall|cancel|operation|orphaned
                                (registry of what themes need; orphaned lists installed-but-unused)
@@ -53,6 +55,7 @@ Usage:
                               (portable copy: $HOME for the home dir, no desktop icons)
   kolira import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
   kolira migrate NAME|--all            (add theme.json to snapshot profiles)
+  kolira bundled sync THEMES_DIR       (install kit themes; locally changed copies are kept)
   kolira new NAME [--from=THEME|neutral-light|neutral-dark] [--description=…]
                               (start a new theme from a base; replaces the live look, backup first)
   kolira look-and-feel NAME           (Look & Feel package of the live look, defaults only)
@@ -1403,6 +1406,14 @@ fn dispatch() -> ExitCode {
                     if missing.is_empty() {
                         println!("Everything this theme needs is available.");
                     }
+                    match kolira_core::lint::lint(name) {
+                        Ok(warnings) => {
+                            for w in warnings {
+                                println!("warning={}: {} ({})", w.kind, w.message, w.path);
+                            }
+                        }
+                        Err(e) => eprintln!("lint failed: {e:#}"),
+                    }
                     for m in missing {
                         println!(
                             "missing={}={}{}",
@@ -1414,6 +1425,27 @@ fn dispatch() -> ExitCode {
                                 format!(" ({})", m.source)
                             }
                         );
+                    }
+                    ExitCode::SUCCESS
+                }
+                Err(e) => fail(format!("{e:#}")),
+            }
+        }
+        "lint" => {
+            let Some(name) = args.get(1).filter(|a| !a.starts_with("--")) else {
+                return fail("Usage error: lint NAME [--json]");
+            };
+            match kolira_core::lint::lint(name) {
+                Ok(warnings) if args.iter().any(|a| a == "--json") => {
+                    println!("{}", serde_json::to_string(&warnings).unwrap_or_default());
+                    ExitCode::SUCCESS
+                }
+                Ok(warnings) => {
+                    if warnings.is_empty() {
+                        println!("No lint warnings.");
+                    }
+                    for w in warnings {
+                        println!("warning={}: {} ({})", w.kind, w.message, w.path);
                     }
                     ExitCode::SUCCESS
                 }

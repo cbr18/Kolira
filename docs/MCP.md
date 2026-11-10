@@ -12,6 +12,10 @@
 сохраняет прежнюю семантику (в том числе применение выбранных значений);
 для подготовки без живых изменений используйте отдельный `prepare_theme` (старый
 `create_profile` сохраняет совместимую семантику).
+Ошибка загрузки списка тем возвращается как ошибка MCP, а не как пустой список.
+`apply_profile` требует непустой `previewToken`; это проверяется и транспортом,
+и Rust core для `source=mcp`. Отсутствующий или устаревший токен отклоняется
+до изменения оформления.
 Если Apply полностью или частично не удался, возвращается `ok: false`,
 неудачные значения остаются подготовленными, последующее сохранение в
 `create_profile` не выполняется. MCP помечает результат с `ok:false`
@@ -82,7 +86,7 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/kolira_profile_mcp.p
 3. Подготовьте палитру через `palette_import`/`palette_set` (изменяет сохранённое
    состояние палитры, не оформление). `prepare_theme` принимает `name`, `values`
    (ID **полей** → значения), `description?`, `use_palette?`.
-4. Ответ: `name`, `package`, `path`, `missing`, `live_appearance_changed: false`.
+4. Ответ: `name`, `package`, `path`, `missing`, `warnings` (`[{kind, path, message}]`, как `kolira lint --json`), `live_appearance_changed: false`.
    Проверяйте `validate_profile`, `list_dependencies` и `export_theme`.
 5. Для явного применения: `preview_profile`, затем после просмотра
    `apply_profile` с выданным `previewToken`. Изменение состояния требует нового
@@ -123,9 +127,12 @@ KTM_THEME_NO_APPLY=1 uv run --project gui/qt-app python mcp/kolira_profile_mcp.p
 
 ## Инструкции каталога тем
 
-`core agent.install` вызывается установщиком CLI и доставляет канонический
-`AGENTS.md` версии 1 и `CLAUDE.md` с `@AGENTS.md` в XDG-каталог `themes/`.
-Единый источник — `rust_core/data/theme-agents.md`, встроенный в Rust CLI.
+`core agent.install` вызывается установщиком CLI и доставляет канонические
+`README.md` и `AGENTS.md` версии 2 и совместимый `CLAUDE.md` с `@AGENTS.md` в XDG-каталог `themes/`.
+Источники — `rust_core/data/theme-agents.md` и
+`rust_core/data/theme-workspace-readme.md`, встроенные в Rust CLI. README содержит
+рабочие CLI/MCP-рецепты offline-подготовки, клонирования, проверки и применения;
+AGENTS задаёт правила работы агента, проверки результата и восстановления.
 Хэши последней управляемой версии хранятся отдельно в `agent-instructions.json`.
 Неизменённые файлы обновляются с копией старой версии в `backups/agent-instructions-*`;
 изменённые пользователем остаются на месте, новый текст — в `<имя>.kit-new`.

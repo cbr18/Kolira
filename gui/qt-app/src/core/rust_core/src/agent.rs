@@ -24,6 +24,10 @@ pub fn install() -> Result<Value> {
     let mut results = vec![];
     for (name, text) in [
         ("AGENTS.md", include_str!("../data/theme-agents.md")),
+        (
+            "README.md",
+            include_str!("../data/theme-workspace-readme.md"),
+        ),
         ("CLAUDE.md", "# kolira workspace\n\n@AGENTS.md\n"),
     ] {
         let path = dir.join(name);
@@ -55,18 +59,18 @@ pub fn install() -> Result<Value> {
         }
     }
     write_bytes(&manifest, &serde_json::to_vec_pretty(&hashes)?, None)?;
-    Ok(json!({"version":1,"files":results}))
+    Ok(json!({"version":2,"files":results}))
 }
 pub fn capabilities() -> Value {
     json!({"api":1,"version":env!("CARGO_PKG_VERSION"),"theme_schema":theme::SCHEMA,
         "offline_prepare":"agent.prepare","schema":"agent.schema","history":"operation.list",
         "restore":"operation.restore","schedule":["schedule.list","schedule.put","schedule.delete","schedule.enable"],
         "prepare_generators":["kde","kitty","alacritty"],"instructions":paths::profiles_dir().join("AGENTS.md"),
-        "apply_requires_explicit_user_intent":true,"no_apply_disables_file_writes":false})
+        "workspace_readme":paths::profiles_dir().join("README.md"),"mcp_apply_requires_preview":true,"apply_requires_explicit_user_intent":true,"no_apply_disables_file_writes":false})
 }
 pub fn schema() -> Value {
     json!({"schema":theme::SCHEMA,"package_schema":serde_json::from_str::<Value>(include_str!("../data/theme-schema.json")).expect("valid package schema"),"fields":field::registry().iter().map(|f| json!({"id":f.id,"label":f.label,"type":f.kind,"source":f.source,"file":f.file,"profile_tracked":f.profile_tracked,"choices":f.choices,"offline":f.profile_tracked && f.source != "kvantum" && !f.file.is_empty()})).collect::<Vec<_>>(),"components":crate::bundle_view::components(),
-        "reserved_workspace_paths":["AGENTS.md","AGENTS.override.md","CLAUDE.md","CLAUDE.local.md","AGENTS.md.kit-new","AGENTS.override.md.kit-new","CLAUDE.md.kit-new","CLAUDE.local.md.kit-new"],"name_pattern":"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$","prepare":{"name":"required string","values":"field-id to typed value","description":"optional string","use_palette":"optional bool; uses saved palette without applying"},
+        "reserved_workspace_paths":["README.md","README.md.kit-new","AGENTS.md","AGENTS.override.md","CLAUDE.md","CLAUDE.local.md","AGENTS.md.kit-new","AGENTS.override.md.kit-new","CLAUDE.md.kit-new","CLAUDE.local.md.kit-new"],"name_pattern":"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$","prepare":{"name":"required string","values":"field-id to typed value","description":"optional string","use_palette":"optional bool; uses saved palette without applying"},
         "assets":"Local user resources may be copied into the package; publication requires license review"})
 }
 pub fn prepare(args: &Value) -> Result<Value> {
@@ -191,6 +195,6 @@ pub fn prepare(args: &Value) -> Result<Value> {
     // temp and destination share a filesystem; the package appears atomically.
     fs::rename(temp.path(), &target)?;
     Ok(
-        json!({"name":name,"package":package,"path":target,"missing":theme::check(name)?,"live_appearance_changed":false}),
+        json!({"name":name,"package":package,"path":target,"missing":theme::check(name)?,"warnings":crate::lint::lint(name)?,"live_appearance_changed":false}),
     )
 }

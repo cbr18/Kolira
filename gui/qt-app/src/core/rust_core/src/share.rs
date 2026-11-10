@@ -552,6 +552,40 @@ fn tree_fingerprint(dir: &Path) -> String {
     sha256_hex(files.join("\n").as_bytes())
 }
 
+/// Does the installed theme hold exactly what importing `kit` would write:
+/// every exported file (with `$HOME` expanded in text) and nothing else?
+fn installed_matches_kit(kit: &Path, installed: &Path, manifest: &ExportManifest) -> bool {
+    let home = home_dir().to_string_lossy().into_owned();
+    let mut count = 0usize;
+    let mut stack = vec![installed.to_path_buf()];
+    while let Some(folder) = stack.pop() {
+        let Ok(entries) = fs::read_dir(&folder) else {
+            return false;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push(path);
+            } else {
+                count += 1;
+            }
+        }
+    }
+    count == manifest.files.len()
+        && manifest.files.keys().all(|rel| {
+            let (Ok(want), Ok(have)) = (fs::read(kit.join(rel)), fs::read(installed.join(rel)))
+            else {
+                return false;
+            };
+            if have == want {
+                return true;
+            }
+            is_text(&want)
+                && std::str::from_utf8(&want)
+                    .is_ok_and(|text| token_to_home(text, &home).as_bytes() == have.as_slice())
+        })
+}
+
 /// Bring the kit's ready themes up to date: add the new ones, replace the ones
 /// the kit changed unless the user changed them here (the replaced one is backed
 /// up). A theme with no record of how it was installed is left alone, it may hold
@@ -591,6 +625,12 @@ pub fn sync_bundled(themes: &Path) -> Result<Vec<String>> {
             match record.get(&existing) {
                 Some((old_kit, _)) if *old_kit == kit => continue,
                 Some((_, files)) if *files == tree_fingerprint(&installed) => true,
+                // Already this kit version (e.g. after a manual `import --force`
+                // of it): nothing to keep or replace, just remember it.
+                _ if installed_matches_kit(&dir, &installed, &manifest) => {
+                    record.insert(existing.clone(), (kit, tree_fingerprint(&installed)));
+                    continue;
+                }
                 // Said once per kit version; an empty fingerprint never matches,
                 // so a theme of unknown origin is never replaced by itself.
                 other => {

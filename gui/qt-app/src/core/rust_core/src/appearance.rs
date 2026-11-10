@@ -108,6 +108,7 @@ const KDEGLOBALS: &[Rule] = &[
             "smallestReadableFont",
             "toolBarFont",
             "menuFont",
+            "activeFont",
             "XftAntialias",
             "XftHintStyle",
             "XftSubPixel",

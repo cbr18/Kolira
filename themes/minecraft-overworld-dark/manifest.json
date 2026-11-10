@@ -3,7 +3,7 @@
   "created_at": "2026-11-09T14:00:00+10:00",
   "tool_version": "0.6.0",
   "name": "minecraft-overworld-dark",
-  "description": "Minecraft-inspired voxel night landscape, stone-grey surfaces, grass-green accents, square bevelled Qt/GTK controls, pixel icons and Monocraft. Opaque windows and disabled KWin animations; Klassy decoration and Kvantum widget style.",
+  "description": "Minecraft-inspired voxel night landscape, stone-grey surfaces, grass-green accents, square bevelled Qt/GTK controls, pixel icons and Monocraft. Glass-style Better Blur DX, translucent windows and disabled KWin animations; Klassy decoration and Kvantum widget style.",
   "wallpaper": "wallpaper/minecraft-overworld-night.png",
   "accent_from_wallpaper": false,
   "components": [
@@ -11,6 +11,12 @@
       "id": "kwin",
       "paths": [
         ".config/kwinrc"
+      ]
+    },
+    {
+      "id": "plasma_shell",
+      "paths": [
+        ".config/plasmarc"
       ]
     },
     {

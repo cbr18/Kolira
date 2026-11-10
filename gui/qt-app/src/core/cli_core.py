@@ -154,8 +154,8 @@ class CliProfileCore(ProfileCore):
         try:
             return [ProfileInfo(**{**row, "components": tuple(row["components"])})
                     for row in core_request("profile.list", _binary=self.bin)]
-        except (ValueError, RuntimeError):
-            return []
+        except (ValueError, RuntimeError) as exc:
+            raise RuntimeError(f"Could not load profiles: {exc}") from exc
 
     def get_active_profile(self) -> str:
         return core_request("profile.active", _binary=self.bin)

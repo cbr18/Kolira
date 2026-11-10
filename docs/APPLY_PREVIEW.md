@@ -56,7 +56,9 @@ JSON API v1: `profile.preview` принимает `name`, `keep_wallpaper`, `com
 `custom_components`, `keep_wallpaper`, `components`. У файлов есть операция,
 причины, diff/признак сокращения, SHA-256/размеры, права и цели ссылок.
 `profile.apply` принимает `preview_token`; `profile.save_before_apply` — новое
-имя `name`. MCP: `preview_profile`, затем `apply_profile` с `previewToken`.
+имя `name`. MCP: `preview_profile`, затем `apply_profile` с обязательным непустым
+`previewToken`. Rust также проверяет это для `source=mcp`; прямой CLI-сценарий
+без токена сохраняется.
 
 ## Границы
 

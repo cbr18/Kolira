@@ -1,7 +1,7 @@
 [ShadowStyle]
 ShadowSizeActive=ShadowNone
 [TitleBarOpacity]
-ActiveTitleBarOpacity=100
-InactiveTitleBarOpacity=100
+ActiveTitleBarOpacity=50
+InactiveTitleBarOpacity=48
 [Windeco]
 WindowCornerRadius=0

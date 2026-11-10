@@ -10,7 +10,9 @@ them or require Simple Application Launcher.
 
 - **Native KDE UI** — Built with Kirigami/QML, follows KDE HIG
 - **Profile Management** — Apply/save/diff profiles (glass, paper, custom)
-  with optional descriptions shown on the profile cards
+  with optional descriptions shown on the profile cards. Profile refresh runs in
+  the background and coalesces repeated requests; failed reads show an error and
+  preserve the last successful list and active profile
 - **Select, then Apply** — clicking a profile only *selects* it; an explicit
   **Apply** button commits it (switching profiles is slow, so nothing happens
   until you ask for it)

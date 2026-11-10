@@ -46,15 +46,15 @@ DecorationHover=147,206,79
 
 [Colors:Selection]
 BackgroundNormal=112,178,55
-BackgroundAlternate=64,64,64
+BackgroundAlternate=96,156,45
 ForegroundNormal=0,0,0
-ForegroundInactive=153,153,153
-ForegroundActive=112,178,55
-ForegroundLink=85,214,208
-ForegroundVisited=169,133,88
-ForegroundNegative=240,111,101
-ForegroundNeutral=246,196,83
-ForegroundPositive=112,178,55
+ForegroundInactive=28,52,10
+ForegroundActive=0,0,0
+ForegroundLink=10,60,110
+ForegroundVisited=70,40,10
+ForegroundNegative=130,20,20
+ForegroundNeutral=90,60,0
+ForegroundPositive=20,70,0
 DecorationFocus=112,178,55
 DecorationHover=147,206,79
 

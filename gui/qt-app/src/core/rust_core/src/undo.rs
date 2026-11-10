@@ -282,6 +282,12 @@ pub fn revert() -> Result<Journal> {
     }
     let _ = fs::remove_dir_all(dir().join("originals"));
     for (key, value) in &journal.gsettings {
+        // Older Apply versions journalled this independent user preference.
+        // Themes no longer manage it; replaying that legacy entry would still
+        // overwrite a font the user chose after applying the old theme.
+        if key == "monospace-font-name" {
+            continue;
+        }
         crate::field::gsettings_set(key, value);
     }
     save(&journal)?;
@@ -294,7 +300,9 @@ pub(crate) fn plan_revert(plan: &mut crate::change_plan::Plan) -> Result<Journal
         .and_then(|text| serde_json::from_str(&text).ok())
         .unwrap_or_default();
     for (rel, hash) in std::mem::take(&mut j.created) {
-        if appearance::is_preserved(&rel) {
+        // Shell init lines keep pointing to this shared prompt file when the
+        // next theme has no prompt. Keep it, matching profile::plan_reset.
+        if appearance::is_preserved(&rel) || rel == crate::extras::OMP_THEME {
             continue;
         }
         let path = live_path(&rel);

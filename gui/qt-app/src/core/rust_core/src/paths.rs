@@ -213,7 +213,9 @@ pub fn profile_dir(name: &str) -> Result<PathBuf> {
     validate_profile_name(name)?;
     // Name syntax stays identical to Python's validator. These root paths
     // belong to workspace metadata, never to an import/save destination.
-    if is_agent_metadata(Path::new(name)) {
+    if is_agent_metadata(Path::new(name))
+        || ["readme.md", "readme.md.kit-new"].contains(&name.to_ascii_lowercase().as_str())
+    {
         return Err(anyhow!(
             "Theme destination is reserved for workspace instructions: {name}"
         ));

@@ -100,3 +100,26 @@ def test_missing_cli_has_actionable_error(tmp_path, monkeypatch):
     error, result = call(server, 'get_capabilities')
     assert error and result['error']['code'] == 'core_unavailable'
     assert result['error']['message'] and result['error']['next_action']
+
+
+def test_list_profiles_reports_core_failure_instead_of_empty_workspace(tmp_path):
+    server = KoliraMcpServer()
+    server.profiles.bin = str(tmp_path / 'missing-cli')
+    error, result = call(server, 'list_profiles')
+    assert error
+    assert result['error']['code'] == 'core_unavailable'
+    assert 'Could not load profiles' in result['error']['message']
+
+
+@pytest.mark.parametrize('token', [None, '', '   '])
+def test_mcp_apply_requires_nonempty_preview_before_any_mutation(tmp_path, token):
+    server = KoliraMcpServer()
+    error, prepared = call(server, 'prepare_theme', name='probe', values={'widget_style': 'Breeze'})
+    assert not error, prepared
+    arguments = {'name': 'probe'}
+    if token is not None:
+        arguments['previewToken'] = token
+    error, result = call(server, 'apply_profile', **arguments)
+    assert error and result['error']['code'] == 'invalid_arguments'
+    assert not (tmp_path / '.config/kdeglobals').exists()
+    assert call(server, 'list_operations')[1]['operations'] == []

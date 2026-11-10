@@ -22,6 +22,7 @@ def test_interrupted_apply_is_reported_once_without_changing_active_profile(qtbo
     ctrl.operationFinished.connect(lambda ok, msg: messages.append((ok, msg)))
     ctrl.refresh()
     ctrl.refresh()
+    qtbot.waitUntil(lambda: not ctrl.refreshing and not ctrl._summary_running, timeout=5000)
     assert ctrl.activeProfile == 'glass'
     assert len(messages) == 1 and messages[0][0] is False
     assert 'apply-interrupted' in messages[0][1] and '/private/backup' in messages[0][1]

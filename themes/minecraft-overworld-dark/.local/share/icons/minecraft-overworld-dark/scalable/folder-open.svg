@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" shape-rendering="crispEdges">
+  <!-- Open chest -->
+  <!-- Open chest: raised lid and dark inside -->
+  <rect x="4" y="2" width="40" height="6" fill="#8D6E63" stroke="#5D4037" stroke-width="2"/>
+  <rect x="4" y="10" width="40" height="30" fill="#5D4037" stroke="#3E2723" stroke-width="2"/>
+  <rect x="7" y="12" width="34" height="6" fill="#1B1B1B"/>
+  <rect x="8" y="22" width="12" height="8" fill="#5D4037" stroke="#3E2723" stroke-width="1"/>
+  <rect x="22" y="22" width="12" height="8" fill="#5D4037" stroke="#3E2723" stroke-width="1"/>
+  <rect x="22" y="8" width="4" height="4" fill="#FFD54F" stroke="#FBC02D" stroke-width="1"/>
+</svg>

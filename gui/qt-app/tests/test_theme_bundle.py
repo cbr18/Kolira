@@ -812,7 +812,8 @@ def test_mcp_automation_and_actions(monkeypatch: pytest.MonkeyPatch, cli_bundle_
     bad = json.loads(call("run_action", {"id": "rm -rf"})["content"][0]["text"])
     assert bad["ok"] is False
 
-    applied = json.loads(call("apply_profile", {"name": "night"})["content"][0]["text"])
+    preview = json.loads(call("preview_profile", {"name": "night"})["content"][0]["text"])
+    applied = json.loads(call("apply_profile", {"name": "night", "previewToken": preview["previewToken"]})["content"][0]["text"])
     assert "dependencies" in applied and "actions" in applied
 
 

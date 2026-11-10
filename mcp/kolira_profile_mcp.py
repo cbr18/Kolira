@@ -321,7 +321,7 @@ class KoliraMcpServer:
                         "keepWallpaper": {"type": "boolean", "description": "Do not change the wallpaper even if the theme has one."},
                         "installMissing": {"type": "boolean", "description": "Install missing VS Code/Cursor/Zed themes from their official stores."},
                     },
-                    "required": ["name"],
+                    "required": ["name", "previewToken"],
                 },
             },
             {
@@ -642,6 +642,8 @@ class KoliraMcpServer:
         return {"ok": True, "previewToken": (result.data or {}).get("token", ""), **(result.data or {})}
 
     def _apply_profile(self, arguments: dict) -> dict:
+        if not str(arguments.get("previewToken") or "").strip():
+            raise ValueError("previewToken is required; call preview_profile and review its result first")
         result = self.profiles.apply(str(arguments.get("name") or ""),
             keep_wallpaper=bool(arguments.get("keepWallpaper", False)),
             install_missing=bool(arguments.get("installMissing", False)),

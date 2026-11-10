@@ -24,6 +24,7 @@ pub mod konsole;
 pub mod kvantum;
 pub mod kwin_effects;
 pub mod layout;
+pub mod lint;
 pub mod net;
 pub mod oklab;
 pub mod palette;

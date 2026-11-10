@@ -499,3 +499,65 @@ fn broad_custom_component_cannot_copy_its_backup_into_itself() {
         .next()
         .is_none());
 }
+
+#[test]
+fn legacy_monospace_journal_does_not_overwrite_personal_font() {
+    let h = Home::new();
+    h.write(
+        ".config/kolira/apply-journal/journal.json",
+        r#"{"gsettings":{"monospace-font-name":"Monocraft 10","gtk-theme":"OldGTK"}}"#,
+    );
+    h.executable("systemctl", "#!/bin/sh\nexit 0\n");
+    h.executable("gsettings", "#!/bin/sh\nif [ \"$1\" = set ]; then printf '%s\\n' \"$3=$4\" >> \"$HOME/gsettings-writes\"; else printf \"'Hack 10'\\n\"; fi\n");
+    let out = h
+        .command(&["apply", "probe", "--without-dependencies", "--json"])
+        .env_remove("KTM_THEME_NO_APPLY")
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let writes = fs::read_to_string(h.path("gsettings-writes")).unwrap();
+    assert!(writes.contains("gtk-theme=OldGTK"), "{writes}");
+    assert!(!writes.contains("monospace-font-name="), "{writes}");
+}
+
+#[test]
+fn switching_to_theme_without_prompt_keeps_shell_config_target() {
+    let h = Home::new();
+    h.write(
+        ".config/fish/config.fish",
+        "oh-my-posh init fish --config original.json | source\n",
+    );
+    h.executable("oh-my-posh", "#!/bin/sh\nexit 0\n");
+    let prompt = r#"{"version":3,"blocks":[]}"#;
+    h.write(
+        ".config/kolira/themes/probe/.config/oh-my-posh/kolira.omp.json",
+        prompt,
+    );
+    let first = h.apply();
+    assert!(
+        first.status.success(),
+        "{}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    h.write(
+        ".config/kolira/themes/plain/theme.json",
+        r#"{"schema":"kolira/theme@2","name":"plain"}"#,
+    );
+    let next = h.run(&["apply", "plain", "--without-dependencies", "--json"]);
+    assert!(
+        next.status.success(),
+        "{}",
+        String::from_utf8_lossy(&next.stderr)
+    );
+    assert_eq!(
+        fs::read_to_string(h.path(".config/oh-my-posh/kolira.omp.json")).unwrap(),
+        prompt
+    );
+    assert!(fs::read_to_string(h.path(".config/fish/config.fish"))
+        .unwrap()
+        .contains("kolira.omp.json"));
+}

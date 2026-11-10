@@ -782,20 +782,34 @@ pub fn gtk_desktop_keys(theme: Option<&str>, dark: Option<&str>) -> Vec<(&'stati
     keys
 }
 
+fn gtk_font_gsettings_keys(
+    font: Option<&str>,
+    live_font: Option<&str>,
+) -> Vec<(&'static str, String)> {
+    let Some(font) = font.map(str::trim).filter(|v| !v.is_empty()) else {
+        return Vec::new();
+    };
+    vec![(
+        "font-name",
+        crate::appearance::keep_live_size("gtk-font-name", font, live_font),
+    )]
+}
+
 /// Under Wayland GTK 3 apps (Firefox and Zen included) take their theme from
 /// GSettings, not from `settings.ini`, and KDE's gtkconfig only updates it for
 /// changes made in System Settings. A stale dark theme there gave Zen's light
 /// panels white system text. Best-effort, like the other live hooks.
 pub fn sync_gtk_desktop(theme: Option<&str>, dark: Option<&str>) {
-    sync_gtk_desktop_full(theme, dark, None, None);
+    sync_gtk_desktop_full(theme, dark, None, None, None);
 }
 
-/// [`sync_gtk_desktop`] plus the icon and cursor themes GTK apps read there.
+/// [`sync_gtk_desktop`] plus icon, cursor, and font preferences GTK apps read there.
 pub fn sync_gtk_desktop_full(
     theme: Option<&str>,
     dark: Option<&str>,
     icons: Option<&str>,
     cursor: Option<&str>,
+    font: Option<&str>,
 ) {
     if no_apply() || cfg!(test) || which::which("gsettings").is_err() {
         return;
@@ -806,6 +820,8 @@ pub fn sync_gtk_desktop_full(
             keys.push((key, value.to_string()));
         }
     }
+    let live_font = crate::undo::gsettings_get("font-name");
+    keys.extend(gtk_font_gsettings_keys(font, live_font.as_deref()));
     for (key, value) in keys {
         // `default` already means light: a light theme leaves it alone.
         if key == "color-scheme"
@@ -1124,6 +1140,15 @@ mod tests {
             vec![("color-scheme", "prefer-dark".to_string())]
         );
         assert!(gtk_desktop_keys(Some(" "), None).is_empty());
+    }
+
+    #[test]
+    fn gtk_font_gsettings_uses_theme_family_and_keeps_live_sizes() {
+        assert_eq!(
+            gtk_font_gsettings_keys(Some("Noto Sans, 10"), Some("Monocraft  12"),),
+            vec![("font-name", "Noto Sans, 12".to_string()),]
+        );
+        assert!(gtk_font_gsettings_keys(None, Some("Monocraft 10")).is_empty());
     }
 
     #[test]

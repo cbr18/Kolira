@@ -2222,7 +2222,7 @@ class TestStaleActiveMarker:
         marker.parent.mkdir(parents=True, exist_ok=True)
         return marker
 
-    def _controller(self, tmp_path: Path, monkeypatch, names, marker):
+    def _controller(self, tmp_path: Path, monkeypatch, names, marker, qtbot):
         from controllers import ProfileController
         from core.protocol import CoreFactory, ProfileInfo
 
@@ -2254,13 +2254,15 @@ class TestStaleActiveMarker:
         controller = ProfileController()
         toasts: list[tuple[bool, str]] = []
         controller.operationFinished.connect(lambda ok, msg: toasts.append((ok, msg)))
-        controller.refresh()
+        with qtbot.waitSignal(controller.refreshFinished, timeout=5000):
+            controller.refresh()
+        qtbot.waitUntil(lambda: not controller._summary_running, timeout=5000)
         return controller, toasts
 
-    def test_missing_profile_clears_marker(self, tmp_path: Path, monkeypatch) -> None:
+    def test_missing_profile_clears_marker(self, tmp_path: Path, monkeypatch, qtbot) -> None:
         marker = self._marker(tmp_path)
         marker.write_text("ghost\n")
-        controller, toasts = self._controller(tmp_path, monkeypatch, ["glass"], marker)
+        controller, toasts = self._controller(tmp_path, monkeypatch, ["glass"], marker, qtbot)
 
         assert controller.activeProfile == ""
         assert not marker.exists()
@@ -2268,11 +2270,11 @@ class TestStaleActiveMarker:
         assert not toasts[0][0]
         assert "ghost" in toasts[0][1]
 
-    def test_valid_marker_is_kept(self, tmp_path: Path, monkeypatch) -> None:
+    def test_valid_marker_is_kept(self, tmp_path: Path, monkeypatch, qtbot) -> None:
         marker = self._marker(tmp_path)
         marker.write_text("glass\n")
         controller, toasts = self._controller(
-            tmp_path, monkeypatch, ["glass", "paper"], marker)
+            tmp_path, monkeypatch, ["glass", "paper"], marker, qtbot)
 
         assert controller.activeProfile == "glass"
         assert marker.exists()

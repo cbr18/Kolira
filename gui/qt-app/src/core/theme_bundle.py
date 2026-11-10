@@ -367,10 +367,7 @@ class ThemeBundleCore:
     def profiles(self) -> list[dict]:
         if self._profiles is None:
             return []
-        try:
-            profiles = self._profiles.list_profiles()
-        except Exception:
-            return []
+        profiles = self._profiles.list_profiles()
         return [
             {
                 "name": profile.name,

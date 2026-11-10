@@ -1,7 +1,7 @@
 [General]
 Description=Minecraft Overworld Dark
-Opacity=1
-Blur=false
+Opacity=0.5
+Blur=true
 
 [Background]
 Color=37,37,37
@@ -13,7 +13,7 @@ Color=204,204,204
 Color=64,64,64
 
 [Color0Intense]
-Color=64,64,64
+Color=128,128,128
 
 [Color0Faint]
 Color=64,64,64

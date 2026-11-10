@@ -107,6 +107,11 @@ entry). Creates timestamped backups of every replaced file in
 
 Install locations follow `XDG_BIN_HOME` / `XDG_DATA_HOME` when set.
 
+The installer also delivers `README.md` and `AGENTS.md` into the user themes
+directory (`~/.config/kolira/themes/`, XDG-aware). They describe offline authoring,
+validation and explicit apply through CLI/MCP. Edited documents are preserved;
+updates are written alongside as `.kit-new`.
+
 **Your current look is saved first.** On the first install, when you have no
 themes yet, the look you have now becomes the theme `my-original-look`, so you
 can always come back: `kolira apply my-original-look` or the app's theme
@@ -187,7 +192,8 @@ kolira apply glass        # apply a theme (creates a pre-apply backup)
 kolira apply glass --keep-wallpaper   # …but leave the wallpaper alone
 kolira save my-profile    # save the current look as a theme
 kolira save my-profile --no-wallpaper # a theme that never changes the wallpaper
-kolira check glass        # what applying would miss + where to get it
+kolira check glass        # what applying would miss + where to get it (+ lint warnings)
+kolira lint glass         # icons shadowing Breeze, unreadable scheme/terminal colours
 kolira migrate --all      # add theme.json to old snapshot profiles
 kolira prune --all        # drop leftovers that are not part of a theme (backup first)
 kolira export glass --out=glass.ktmtheme.zip  # portable copy ($HOME, no desktop icons)
@@ -288,7 +294,7 @@ and dependencies: `themes/README.md`):
 - **`everforest`** — Everforest Dark Medium, misty pine forest
 - **`dracula`** — Dracula palette on glass, official Dracula wallpaper
 - **`minecraft-overworld-dark`** — stone-grey and grass-green pixel theme, Kvantum/Klassy,
-  original voxel night wallpaper; requires Monocraft (see `themes/README.md`)
+  dark Breeze panels, Glass-style blur and original voxel night wallpaper; requires Monocraft (see `themes/README.md`)
 
 Start a new theme with `kolira new NAME --from=neutral-light`
 (or `neutral-dark`, or an existing theme to copy) — GUI: **New theme…** — then

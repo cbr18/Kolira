@@ -2,12 +2,14 @@
 author=Kolira contributors
 comment=Original Minecraft-inspired stone and oak controls; MIT
 x11drag=true
-composite=false
-translucent_windows=false
-blurring=false
-popup_blurring=false
+composite=true
+translucent_windows=true
+blurring=true
+popup_blurring=true
 animate_states=false
 no_window_pattern=true
+reduce_window_opacity=20
+reduce_menu_opacity=20
 menu_shadow_depth=0
 tooltip_shadow_depth=0
 scroll_width=16
@@ -46,7 +48,7 @@ link.visited.color=#A98558
 [Hacks]
 transparent_dolphin_view=false
 transparent_pcmanfm_sidepane=false
-blur_translucent=false
+blur_translucent=true
 respect_darkness=true
 
 [PanelButtonCommand]

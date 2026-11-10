@@ -140,6 +140,8 @@ class ProfileController(QObject):
     """Контроллер для управления профилями."""
 
     # Signals для QML
+    refreshBusyChanged = Signal()
+    refreshFinished = Signal(bool, str)
     previewRequested = Signal()
     previewChanged = Signal()
     previewBusyChanged = Signal()
@@ -162,6 +164,8 @@ class ProfileController(QObject):
     def __init__(self, parent: Optional[QObject] = None):
         super().__init__(parent)
         self._core: ProfileCore = CoreFactory.profile_core()
+        self._refresh_running = False
+        self._refresh_pending = False
         self._preview_data: dict = {}
         self._preview_serial = 0
         self._preview_running = False
@@ -258,46 +262,83 @@ class ProfileController(QObject):
             for p in self._profiles
         ]
 
+    @Property(bool, notify=refreshBusyChanged)
+    def refreshing(self) -> bool:
+        return self._refresh_running
+
     @Slot()
     def refresh(self) -> None:
-        """Обновить список профилей."""
-        self._profiles = self._core.list_profiles()
-        self._active_profile = self._core.get_active_profile()
-        stale = ""
-        if self._active_profile and all(
-            p.name != self._active_profile for p in self._profiles
-        ):
-            # Маркер указывает на удалённый профиль (каталог сняли вне
-            # приложения). Сбрасываем его — как delete_profile — иначе
-            # синхронизация темы уходит в system-detect и UI
-            # неожиданно переключается на системную (возможно светлую).
-            stale = self._active_profile
-            try:
-                self._core.clear_stale_active(stale)
-            except (OSError, AttributeError):
-                pass
-            self._active_profile = ""
-        self._rebuild_profiles_model()
-        self._update_active_components()
-        self.profilesChanged.emit()
-        self._refresh_summaries()
-        self.activeProfileChanged.emit()
-        try:
-            pending = self._core.pending_operations()
-        except (RuntimeError, ValueError, AttributeError):
+        """Read the profile snapshot off the Qt thread; keep the last good view on error."""
+        if self._refresh_running:
+            self._refresh_pending = True
+            return
+        self._refresh_running = True
+        self.refreshBusyChanged.emit()
+        core = self._core
+        payload = {}
+
+        def work():
+            profiles = core.list_profiles()
+            active = core.get_active_profile()
+            stale = ""
+            if active and all(p.name != active for p in profiles):
+                # Only Rust can confirm a stale marker. A failed read or a
+                # concurrent directory creation must not clear the GUI state.
+                clear = getattr(core, "clear_stale_active", None)
+                if clear is not None:
+                    result = clear(active)
+                    if not result.success:
+                        return False, result.message
+                    if (result.data or {}).get("cleared"):
+                        stale, active = active, ""
+                    else:
+                        profiles = core.list_profiles()
+                        active = core.get_active_profile()
+            components = next((list(p.components) for p in profiles if p.name == active), [])
             pending = []
-        for record in pending:
-            seen = getattr(self, "_reported_interrupted", set())
-            if record["id"] not in seen:
-                seen.add(record["id"])
-                self._reported_interrupted = seen
-                self.operationFinished.emit(False, self.tr("Interrupted apply %1. Backup: %2. You can continue or restore it with: kolira operations recover %1")
-                    .replace("%1", record["id"]).replace("%2", str(record.get("backup") or "")))
-        if stale:
-            self.operationFinished.emit(
-                False,
-                f"Active profile “{stale}” is missing; the marker was reset",
-            )
+            history_error = ""
+            if hasattr(core, "pending_operations"):
+                try:
+                    pending = core.pending_operations()
+                except (RuntimeError, ValueError) as exc:
+                    history_error = str(exc)
+            payload.update(profiles=profiles, active=active, components=components,
+                           stale=stale, pending=pending, history_error=history_error)
+            return True, ""
+
+        def done(ok, message):
+            self._refresh_running = False
+            if self._refresh_pending:
+                self._refresh_pending = False
+                self.refresh()
+                return
+            if ok:
+                self._profiles = payload["profiles"]
+                self._active_profile = payload["active"]
+                self._components_for_active = payload["components"]
+                self._rebuild_profiles_model()
+                self.profilesChanged.emit()
+                self._refresh_summaries()
+                self.activeProfileChanged.emit()
+                self.componentsForProfileChanged.emit(self._components_for_active)
+                for record in payload["pending"]:
+                    seen = getattr(self, "_reported_interrupted", set())
+                    if record["id"] not in seen:
+                        seen.add(record["id"])
+                        self._reported_interrupted = seen
+                        self.operationFinished.emit(False, self.tr("Interrupted apply %1. Backup: %2. You can continue or restore it with: kolira operations recover %1")
+                            .replace("%1", record["id"]).replace("%2", str(record.get("backup") or "")))
+                if payload["stale"]:
+                    self.operationFinished.emit(False,
+                        f"Active profile “{payload['stale']}” is missing; the marker was reset")
+                if payload["history_error"]:
+                    self.operationFinished.emit(False, localize(payload["history_error"]))
+            else:
+                self.operationFinished.emit(False, localize(message))
+            self.refreshBusyChanged.emit()
+            self.refreshFinished.emit(ok, message)
+
+        _run_async(self, work, done)
 
     def _update_active_components(self) -> None:
         if self._active_profile:
@@ -1520,15 +1561,18 @@ class MainController(QObject):
         if self._initialized:
             return
         self._initialized = True
+        self._profile.refreshFinished.connect(self._startup_refresh_finished)
         self._profile.refresh()
         self._wallpaper.refresh()
         self._tracked_apps.refresh()
         self._settings.load()
         self._theme.refresh()
 
-        # Opt-in: re-apply the last active profile after the UI is up.  The
-        # setting existed for a long time but was never read.
-        if self._settings.autoApplyOnStartup and self._profile.activeProfile:
+    def _startup_refresh_finished(self, ok: bool, message: str) -> None:
+        self._profile.refreshFinished.disconnect(self._startup_refresh_finished)
+        # Refresh is asynchronous: wait for the active profile before honoring
+        # the user's existing startup opt-in.
+        if ok and self._settings.autoApplyOnStartup and self._profile.activeProfile:
             profile = self._profile.activeProfile
             QTimer.singleShot(0, lambda: self._profile.applyProfileNow(profile))
 

@@ -26,13 +26,13 @@ takes the family from the theme and keeps the live size.
 
 | File | Stored and applied | Left alone |
 |---|---|---|
-| `kdeglobals` | `[Colors:*]`, `[ColorEffects:*]`, `[WM]`, `[Icons]`, font families (live sizes kept), `General` ColorScheme/Accent*, `KDE` LookAndFeelPackage/widgetStyle/contrast/AnimationDurationFactor | `[KScreen]` scaling, `TerminalApplication`, `[KFileDialog Settings]`, `[PreviewSettings]`, other `[KDE]` behaviour |
+| `kdeglobals` | `[Colors:*]`, `[ColorEffects:*]`, `[WM]`, `[Icons]`, `[General]` font families including the active window title font (`activeFont`, live sizes kept), ColorScheme/Accent*, `KDE` LookAndFeelPackage/widgetStyle/contrast/AnimationDurationFactor | `[KScreen]` scaling, `TerminalApplication`, `[KFileDialog Settings]`, `[PreviewSettings]`, other `[KDE]` behaviour |
 | `kwinrc` | `[Effect-*]`, `[Round-Corners]` (Rounded Corners effect), `[org.kde.kdecoration2]`, effect switches in `[Plugins]`. Better Blur DX in the bundled themes blurs everything except `WindowClasses=plasmashell\\nswaync`: forced blur covers the whole surface, so panels and notifications, whose surfaces have transparent margins, use the exact area they request instead of getting a halo. The settings of an effect the theme keeps off are left out (`<id>Enabled=false`, or no key for `translucency`/`blurplus`, which are off by default) | `[Desktops]`, `[Tiling]`, `[Windows]`, `[Wayland]`, KWin *scripts* in `[Plugins]` (krohnkite, snapping…); the live settings of an effect the theme keeps off |
 | `kwinrulesrc` | rules with a look property, reduced to their match keys (`Description`, `wmclass*`, `title*`, `types`, …) and look properties (`opacityactive/inactive`, `noborder`, `decocolor`, `decorationpolicy` + their `…rule`); merged by id — a live rule with the same id keeps its behaviour keys. The rule list is written in the live file's format (KWin 6: `Order=`, older: `count`/`rules`) | the user's other rules; position, size, desktops, shortcuts and other behaviour properties |
 | `plasmarc` | `[Theme]` | `[Wallpapers]` list |
 | `plasmashellrc` | per panel `[PlasmaViews][Panel N]` `floating`, `panelOpacity`; a live panel takes the theme panel with the same id, else the one on the same screen edge, else the first | thickness, lengths, alignment, offsets, auto-hide (`panelVisibility`), `[Updates]` |
 | `plasma-org.kde.plasma.desktop-appletsrc` | per containment only `plugin`/`formfactor`/`location`/`lastScreen`/`wallpaperplugin` (to match, never restored); each desktop's active wallpaper plugin settings → the live desktop on the same screen (else the first); look keys of widgets the user already has — Panel Colorizer `globalSettings`/`configurationOverrides`/`isEnabled`/`hideWidget` — the n-th live widget of a kind takes the theme's n-th (else first). A Panel Colorizer switched off in the theme keeps only `isEnabled=false`: applying turns the user's off, keeps their styling, and it is not a dependency | which panels and widgets exist, their order and place, every other widget setting (favourites, weather location, clock format…), activities, desktop icons; a theme never adds a widget — a styled one the user lacks is simply not styled |
-| GTK `settings.ini` | theme, icons, cursor theme, font family (live size kept), dark preference, title-bar buttons, animations, font rendering; apply and `field set` also write `gtk-theme` and `color-scheme` to GSettings `org.gnome.desktop.interface` (Wayland GTK 3 apps, Firefox and Zen included, read the theme there, and a stale dark theme gives a light browser white system text) | cursor size, cursor blinking, sounds, `gtk-modules`, … |
+| GTK `settings.ini` | theme, icons, cursor theme, font family (live size kept), dark preference, title-bar buttons, animations, font rendering; apply also syncs `font-name` to GSettings while preserving the independent `monospace-font-name` preference. Apply and `field set` write `gtk-theme` and `color-scheme` to GSettings `org.gnome.desktop.interface` (Wayland GTK 3 apps, Firefox and Zen included, read the theme there, and a stale dark theme gives a light browser white system text) | cursor size, cursor blinking, sounds, `gtk-modules`, … |
 | `kcminputrc` | `[Mouse] cursorTheme` | cursor size, mouse settings |
 | `btop.conf` | `color_theme`, `theme_background`, `truecolor`, `rounded_corners`, `graph_symbol*` | ~70 behaviour keys |
 | VS Code / Cursor `settings.json` | `workbench.colorTheme`/`iconTheme`/`productIconTheme`/`colorCustomizations`, `editor.tokenColorCustomizations`, editor/terminal font family, weight, ligatures, line highlight, APC / Animations / Custom UI Style keys | font sizes, line height, everything else (SSH hosts, AI, wrapping, …) |
@@ -103,11 +103,13 @@ it as the theme `my-original-look` (`install-kolira.sh
 says what it contains, so each apply first undoes what the previous one left, from
 a journal in `<theme root>/apply-journal/` (local state, never in a theme):
 
-- files that did not exist before the theme are removed;
+- files that did not exist before the theme are removed, except the shared
+  `oh-my-posh/kolira.omp.json`: existing shell init lines still point to it when
+  the next theme does not supply a prompt;
 - whole files it replaced get their earlier content back;
 - `kwinrc` effect settings and `kwinrulesrc` rules it wrote go back to what they
   were (a theme's rule does not stay in the user's rules);
-- GSettings `gtk-theme` / `color-scheme` go back to their earlier value;
+- GSettings `gtk-theme` / `color-scheme` / `font-name` go back to their earlier value; legacy journal entries for `monospace-font-name` are ignored to preserve the current independent user preference;
 - browser prefs: a pref set in `user.js` stays in `prefs.js`, so the earlier value
   (or, for known look prefs, the default) is written to `user.js` for the next start.
 
@@ -198,6 +200,7 @@ kolira new NAME --from=neutral-light|neutral-dark|THEME [--description=...]
 kolira look-and-feel NAME           # the live look as a Global Theme (no layout)
 kolira apply NAME [--keep-wallpaper] [--install-missing] [--json]
 kolira check NAME [--json]          # what the theme references but this machine lacks
+kolira lint NAME [--json]           # authoring problems check cannot see (see below)
 kolira migrate NAME|--all           # add theme.json to a snapshot profile (files untouched)
 kolira prune NAME|--all             # drop what is not part of the theme, incl. layouts (backup first)
 kolira export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper] [--public]
@@ -533,14 +536,27 @@ also honour `--keep-wallpaper`. Konsole profile paths respect XDG_CONFIG_HOME.
 Экспорт исключает такие метаданные из деревьев ресурсов. Таким образом чужой
 пакет не становится источником доверенных инструкций или клиентских hooks.
 
+Bundled synchronization preserves locally modified or untracked theme copies.
+A copy that already holds exactly the kit's files (for example after the
+`import --force` below) is recorded as in sync, so later kit versions update it.
+To explicitly replace such a copy with the current kit, use
+`kolira import /path/to/kit/themes/minecraft-overworld-dark --force`.
+The old package is moved to a `pre-import-minecraft-overworld-dark-*` backup;
+import alone does not apply it. Applying with `--keep-wallpaper` preserves the
+current desktop image.
+
 ## Bundled pixel theme: Minecraft Overworld Dark
 
 `themes/minecraft-overworld-dark` ships original stone/oak Kvantum SVG parts,
 a KDE colour scheme, a small SVG icon theme inheriting `breeze,hicolor`,
 a Zed theme family, btop and Konsole palettes, GTK CSS and a generated voxel
 night wallpaper. The MIT asset provenance is recorded in its `LICENSE`.
-Kvantum (`MinecraftOverworld`), Klassy and Monocraft are external dependencies;
-GTK uses the system Breeze base with local overrides. VS Code and Cursor use
+Better Blur DX, Kvantum (`MinecraftOverworld`), Klassy and Monocraft are external dependencies;
+GTK uses the system Breeze base with local overrides. Better Blur DX uses the Glass
+profile settings (strength 11, contrast 80); terminals use 50% background opacity,
+Kvantum windows/menus reduce opacity by 20%, and Klassy titles use 50%/48%.
+Plasma panels explicitly use
+the built-in `breeze-dark` style, also in the Look and Feel defaults. VS Code and Cursor use
 built-in Default Dark Modern plus local colour customizations. No store
 extension UUID or unrelated prompt package is required. Fastfetch, desktop
 geometry, panel layouts and application behaviour are not part of the theme.
@@ -551,6 +567,29 @@ restores them through XDG_DATA_HOME and includes only declared icon packages
 in exports. Traversal, container-root destinations and symlinks are rejected
 with the same checks as other directory assets. Unbundled icon themes remain
 external references; public export respects each asset's redistribution flag.
+
+A small icon theme that inherits Breeze must not ship generic prefix names.
+KIconLoader shortens a missing name at each dash *inside the current theme*
+before it reaches the inherited one, so a bundled `preferences-desktop.svg`
+replaced every `preferences-desktop-*` System Settings icon, and `folder.svg`
+replaces every `folder-*` one. Minecraft therefore ships no `preferences-*` or
+`games` icon, and gives its chest `folder` explicit variants (`folder-open`,
+documents, downloads, music, pictures, videos, `user-home`, `user-desktop`);
+the remaining `folder-*` names still show the plain chest.
+
+`kolira lint NAME [--json]` (also appended to the text output of `kolira check`
+and returned as `warnings` by `agent.prepare`) reports what availability checks
+cannot see: a bundled icon that replaces inherited icons (`N` shadows every
+inherited `N-*` without its own file; `-symbolic` variants and parents not
+installed here are ignored), KDE colour sets Window/View/Button/Tooltip/Header
+whose `ForegroundNormal` is below 4.5:1 or `ForegroundInactive` below 2:1 against
+`BackgroundNormal` (Selection is skipped — stock Breeze keeps its secondary
+selection colours near the accent), and kitty/Alacritty/Konsole palettes whose
+foreground is below 4.5:1 or bright black below 2:1 against the background
+(fish autosuggestions use bright black). `check --json` keeps its `missing` list.
+Its `[Colors:Selection]` uses dark foreground variants that stay readable on the
+green selection; with an explicit accent KDE recomputes the selection background
+on apply.
 
 The package's `values` are captured from its snapshot through Rust `field get`,
 so Inspector values and dependency checks describe the files actually applied.
