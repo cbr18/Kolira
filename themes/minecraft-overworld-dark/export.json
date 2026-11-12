@@ -2,7 +2,7 @@
   "format": "kolira/export@1",
   "theme": "minecraft-overworld-dark",
   "exported": "2026-11-09T15:29:44+10:00",
-  "generator": "kolira 0.6.0",
+  "generator": "kolira 0.7.0",
   "home_token": "$HOME",
   "files": {
     ".config/Code/User/settings.json": "6bfb6ee8706033fbe079ad45764cfec827b516d2a85818bdd1b9d53a7cb30668",

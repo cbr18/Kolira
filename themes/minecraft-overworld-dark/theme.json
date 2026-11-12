@@ -3,7 +3,7 @@
   "name": "minecraft-overworld-dark",
   "description": "Minecraft-inspired voxel night landscape, stone-grey surfaces, grass-green accents, square bevelled Qt/GTK controls, pixel icons and Monocraft. Glass-style Better Blur DX, translucent windows and disabled KWin animations; Klassy decoration and Kvantum widget style.",
   "created": "2026-11-09T14:00:00+10:00",
-  "generator": "kolira 0.6.0",
+  "generator": "kolira 0.7.0",
   "values": {
     "accent_color": "112,178,55",
     "accent_from_wallpaper": false,

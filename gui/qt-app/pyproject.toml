@@ -1,6 +1,6 @@
 [project]
 name = "kolira"
-version = "0.6.0"
+version = "0.7.0"
 description = "KDE Plasma Theme Profile Manager - Qt/QML UI"
 readme = "README.md"
 requires-python = ">=3.11"

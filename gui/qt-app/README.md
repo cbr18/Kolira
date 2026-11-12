@@ -1,4 +1,4 @@
-# kolira — Qt/QML Application (v0.6.0)
+# kolira — Qt/QML Application (v0.7.0)
 
 Native KDE Plasma application for managing theme profiles and wallpapers.
 

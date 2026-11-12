@@ -1,7 +1,8 @@
 # Kolira
 
-> **Save and switch KDE Plasma themes with one command.**
-> Переключайтесь между профилями оформления **glass** (полупрозрачное стекло) и **paper** (светлая/solid тема), сохраняя и восстанавливая десятки настроек.
+> **Create, inspect and apply themes for KDE Plasma.**
+> Kolira сохраняет оформление в переносимые темы, помогает собирать их из
+> установленных компонентов и палитр, а затем применяет с резервной копией.
 
 ---
 
@@ -32,7 +33,11 @@
 
 ## Overview / Обзор
 
-Позволяет переключаться между темами оформления **glass** (полупрозрачное стекло с размытием) и **paper** (светлая/solid тема) одной командой, сохраняя и восстанавливая десятки настроек: KWin эффекты, темы GTK/Qt, настройки терминалов (kitty, Alacritty), редакторов (Zed, VS Code, Cursor), браузера Zen, Obsidian, btop, wofi, цветовые схемы Plasma и больше.
+Kolira управляет темами оформления KDE Plasma. Можно сохранить текущий вид,
+создать тему из палитры или установленных компонентов, посмотреть изменения
+перед применением, а затем вернуть сохранённое состояние. Темы могут включать
+настройки Plasma и KWin, GTK/Qt, обои, терминалы и поддерживаемые приложения.
+Приложение также ведёт историю смен и поддерживает восстановление и расписание.
 
 ## Contents / Состав
 
@@ -73,7 +78,8 @@ Requires KDE Plasma 6 + Kirigami. See `gui/qt-app/README.md` for details.
 изменить его можно в настройках автоматизации. Прогресс, отмена и ошибки установки
 доступны без блокировки интерфейса. [Подробности и CLI](docs/DEPENDENCIES.md).
 
-Everything ships with KDE Plasma 6 — nothing extra to install:
+Зависимости зависят от используемых возможностей. Для основных операций нужны
+утилиты Plasma; меню и выбор обоев используют дополнительные программы:
 
 | Package | Why |
 |---|---|
@@ -157,11 +163,19 @@ distro); with a system PySide6 the copy stays ~650 KB.
 
 ### Apply protection
 
-Profile application is serialized across GUI and CLI. Invalid preparation leaves
-appearance unchanged; a failed write or required external step restores backed-up
-files and reports recovery errors separately. Interrupted operations block new
-appearance changes until reviewed with `kolira operations list` and
-`kolira operations recover ID`. See [recovery rules and limits](docs/APPLY_PROTECTION.md).
+Изменения через GUI и CLI выполняются по очереди. Если подготовка не удалась,
+оформление не меняется. После сбоя или прерывания запись операции и резервная
+копия остаются для проверки. Когда процесс завершился, старая запись сама по
+себе не мешает новым изменениям. Посмотреть её или запустить восстановление:
+
+```bash
+kolira operations list
+kolira operations show apply-ID
+kolira operations recover apply-ID
+```
+
+Восстановление может обнаружить конфликт с более поздними личными изменениями.
+Подробности и ограничения описаны в [правилах восстановления](docs/APPLY_PROTECTION.md).
 
 ### GUI core / Ядро GUI
 

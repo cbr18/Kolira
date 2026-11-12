@@ -1,7 +1,7 @@
 """
 Kolira — Qt/QML Application Entry Point.
 
-v0.6.0 — Native KDE UI with Kirigami, Clean Architecture, Rust core + CLI.
+v0.7.0 — Native KDE UI with Kirigami, Clean Architecture, Rust core + CLI.
 """
 
 import enum
@@ -33,7 +33,7 @@ from system_tray import register_system_tray
 def _show_help() -> int:
     """Print help to stdout (avoids QWidget/QApplication dependency)."""
     print(
-        """Kolira v0.6.0
+        """Kolira v0.7.0
 A Qt/QML-based theme profile manager for KDE Plasma.
 
 Usage: kolira-gui [options]
@@ -277,7 +277,7 @@ def main() -> int:
 
     # Handle --version
     if "--version" in sys.argv:
-        print("kolira 0.6.0")
+        print("kolira 0.7.0")
         return 0
 
     if "--list-cores" in sys.argv:
@@ -288,7 +288,7 @@ def main() -> int:
 
     # Настройка приложения
     QCoreApplication.setApplicationName("kolira")
-    QCoreApplication.setApplicationVersion("0.6.0")
+    QCoreApplication.setApplicationVersion("0.7.0")
     QCoreApplication.setOrganizationName("cbr")
     QCoreApplication.setOrganizationDomain("github.com/cbr18/Kolira")
 

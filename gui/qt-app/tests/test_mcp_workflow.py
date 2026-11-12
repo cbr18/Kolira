@@ -87,7 +87,7 @@ def test_installed_mcp_stdio_from_nested_theme_cwd_survives_invalid_requests(tmp
     responses = [json.loads(line) for line in proc.stdout.splitlines()]
     assert len(responses) == len(requests)
     assert responses[0]['error']['code'] == -32600
-    assert responses[1]['result']['serverInfo']['version'] == '0.6.0'
+    assert responses[1]['result']['serverInfo']['version'] == '0.7.0'
     assert any(t['name'] == 'prepare_theme' for t in responses[2]['result']['tools'])
     assert not responses[3]['result']['isError'], responses[3]
     assert not responses[4]['result']['isError'], responses[4]

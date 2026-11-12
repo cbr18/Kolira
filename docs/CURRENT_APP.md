@@ -1,6 +1,6 @@
-# Текущее приложение: kolira (0.6.0)
+# Текущее приложение: kolira (0.7.0)
 
-> **Статус**: 0.6.0 — Rust CLI + Qt/QML приложение kolira.
+> **Статус**: 0.7.0 — Rust CLI + Qt/QML приложение kolira.
 > **GUI**: устанавливается по умолчанию (см. [gui/qt-app/README.md](../gui/qt-app/README.md)).
 
 ---
