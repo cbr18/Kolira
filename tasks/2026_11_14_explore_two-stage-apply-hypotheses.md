@@ -1,10 +1,10 @@
-# Гипотезы: двухэтапный apply тем (этап 1 + фоновый докатчик) и write_if_changed
+# Гипотезы: двухэтапный apply тем (этап 1 + этап 2 внутри `apply`) — ВСЕ ПРОВЕРЕНЫ И РЕАЛИЗОВАНЫ
 
 Ветка: `explore/two-stage-apply`
-Связанная задача: `tasks/2026_11_14_11_05_two-stage-apply-write-if-changed.md`
+Связанная задача: `tasks/2026_11_14_11_05_two-stage-apply-write-if-changed.md` (РЕАЛИЗОВАНО)
 
-Этот файл — exploration с результатами проверок. План реализации — в задаче
-`tasks/2026_11_14_11_05_two-stage-apply-write-if-changed.md`.
+Решение: одна команда `kolira apply <тема>` применяет тему полностью (этап 1 + этап 2).
+Флаг `--without-sync` пропускает этап 2. Отдельная команда `kolira sync` убрана.
 
 ---
 

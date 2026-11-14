@@ -121,7 +121,7 @@ pub struct SaveOptions {
     pub include_wallpaper: bool,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ApplyOptions {
     /// Install missing app themes from their official store before applying.
     pub install_missing: bool,
@@ -129,6 +129,20 @@ pub struct ApplyOptions {
     pub keep_wallpaper: bool,
     /// Explicit user choice: apply without starting any dependency installation.
     pub skip_dependencies: bool,
+    /// Run stage 2 (editor/messenger/terminal themes) after stage 1.
+    /// Set false to apply only KDE/Qt/GTK/wallpaper under MutationGuard.
+    pub sync_apps: bool,
+}
+
+impl Default for ApplyOptions {
+    fn default() -> Self {
+        Self {
+            install_missing: false,
+            keep_wallpaper: false,
+            skip_dependencies: false,
+            sync_apps: true,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -146,6 +160,9 @@ pub struct ApplyReport {
     /// App settings not touched because the app has no config here.
     pub skipped: Vec<String>,
     pub installed: Vec<String>,
+    /// Editor / messenger / terminal themes applied by the background sync
+    /// stage (stage 2). Empty for plain `apply` without `--with-apps`.
+    pub synced: Vec<String>,
     pub missing: Vec<Missing>,
     pub errors: Vec<String>,
     pub backup: String,
@@ -1633,11 +1650,104 @@ fn apply_inner(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
             crate::profile::apply_wallpaper_live(&path);
         }
     }
+    // Stage 2: editor / messenger / terminal themes (no MutationGuard, no
+    // Plasma restart). Skipped when sync_apps is false (--without-sync).
+    if options.sync_apps {
+        match apply_editor_themes(name, &package, options.install_missing) {
+            Ok(synced) => {
+                report.synced = synced;
+            }
+            Err(e) => {
+                report.errors.push(format!("stage 2 sync: {e:#}"));
+            }
+        }
+    }
     crate::operation::note_report(serde_json::to_value(&report)?)?;
     if !report.errors.is_empty() {
         anyhow::bail!("Apply follow-up failed: {}", report.errors.join("; "));
     }
     Ok(report)
+}
+
+/// Stage 2 (background sync): install editor themes carried by theme `name`
+/// from the theme's cached assets (`assets/editor-themes/<editor>/<id>/`),
+/// falling back to the official store when the cache is missing.
+///
+/// Runs outside `MutationGuard` — no Plasma restart, no desktop blocking.
+/// Returns human-readable lines for the apply/sync report.
+pub fn apply_editor_themes(
+    name: &str,
+    package: &Package,
+    install_missing: bool,
+) -> Result<Vec<String>> {
+    let dir = profile_dir(name)?;
+    let mut installed: Vec<String> = Vec::new();
+    let no_apply = std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1");
+
+    for ed in &package.editor_themes {
+        let cache_dir = dir.join(&ed.local_path);
+        let result = if cache_dir.is_dir() {
+            // Offline install from the theme's own cache.
+            stores::install_from_cache(&ed.editor, &cache_dir)
+        } else if !ed.url.is_empty() && !no_apply && crate::net::network_enabled() {
+            // Cache absent: download once now, then install.
+            match stores::download_vsix(&ed.url, &cache_dir) {
+                Ok(vsix_path) => {
+                    match stores::extract_vsix(&vsix_path, &cache_dir) {
+                        Ok(ext_root) => {
+                            let _ = std::fs::remove_file(&vsix_path);
+                            stores::install_from_cache(&ed.editor, &ext_root)
+                        }
+                        Err(e) => Err(anyhow!(
+                            "extract {} {}: {e:#}",
+                            ed.editor, ed.id
+                        )),
+                    }
+                }
+                Err(e) => Err(anyhow!("download {} {}: {e:#}", ed.editor, ed.id)),
+            }
+        } else if install_missing && !no_apply {
+            // Fall back to the store CLI.
+            match stores::install(&ed.editor, &ed.id) {
+                Ok(r) => {
+                    installed.push(format!(
+                        "{} {} ({} themes)",
+                        ed.editor,
+                        ed.id,
+                        r.themes.len()
+                    ));
+                    continue;
+                }
+                Err(e) => {
+                    installed.push(format!(
+                        "editor theme {} {}: {e:#}",
+                        ed.editor, ed.id
+                    ));
+                    continue;
+                }
+            }
+        } else {
+            Err(anyhow!(
+                "editor theme cache missing for {} {}",
+                ed.editor, ed.id
+            ))
+        };
+
+        match result {
+            Ok(paths) => {
+                for p in paths {
+                    installed.push(format!("editor theme {} -> {}", ed.editor, p));
+                }
+            }
+            Err(e) => {
+                installed.push(format!(
+                    "editor theme {} {}: {e:#}",
+                    ed.editor, ed.id
+                ));
+            }
+        }
+    }
+    Ok(installed)
 }
 
 /// What applying `name` would miss (no changes made).

@@ -34,10 +34,11 @@ Usage:
   kolira list
   kolira save NAME [--description=...] [--no-wallpaper]
                               (full snapshot of the appearance files + theme.json)
-  kolira apply NAME [--install-missing] [--without-dependencies] [--keep-wallpaper] [--preview-token=HASH] [--json]
+  kolira apply NAME [--install-missing] [--without-dependencies] [--keep-wallpaper] [--without-sync] [--preview-token=HASH] [--json]
                               (restores the theme; missing assets are reported,
                                --install-missing installs app themes from their stores,
-                               --without-dependencies skips the dependency check and installs)
+                               --without-dependencies skips the dependency check,
+                               --without-sync skips editor/messenger/terminal themes)
   kolira check NAME [--json]           (what applying NAME would miss; text output adds lint warnings)
   kolira lint NAME [--json]            (icons shadowing Breeze, unreadable scheme/terminal colours)
   kolira prune NAME|--all              (drop what is not part of the theme; backup first)
@@ -867,6 +868,7 @@ fn dispatch() -> ExitCode {
                     install_missing: args.iter().any(|a| a == "--install-missing"),
                     keep_wallpaper: args.iter().any(|a| a == "--keep-wallpaper"),
                     skip_dependencies: args.iter().any(|a| a == "--without-dependencies"),
+                    sync_apps: !args.iter().any(|a| a == "--without-sync"),
                 };
                 return match theme::apply(name, &options) {
                     Ok(report) if args.iter().any(|a| a == "--json") => {

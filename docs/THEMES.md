@@ -228,29 +228,30 @@ kolira automation [--json] | set KEY=ask|always|never … | ask   # the user's c
   MIT; a Kvantum recolour follows its base — see `docs/PALETTE.md`); marks set
   with `kolira license` carry over across re-saves, including a hand
   mark on a generated asset (Paper's Breeze-derived scheme).
-- **apply**:
+- **apply** (full theme apply):
+  - **Stage 1 — blocking, under `MutationGuard`** (default): restores KDE Plasma,
+    KWin, Qt, GTK, wallpaper from the theme snapshot. Pre-apply backup, plasmashell
+    stopped and restarted, colour scheme / accent / widget style / KWin effects /
+    kitty re-applied.
+  - **Stage 2 — background, no `MutationGuard`, no Plasma restart** (default):
+    installs editor themes (VS Code / Cursor / VSCodium / Windsurf / Zed),
+    messengers (Discord, Vesktop, Vencord, BetterDiscord), terminals (Konsole,
+    Kitty, Alacritty) and shell tools (fish, starship, btop, fastfetch, tmux)
+    from the theme's cached `assets/editor-themes/` (offline, no network) or from
+    the official store with `--install-missing`. VS Code / Cursor / VSCodium
+    extensions are unpacked into the editor's `extensions/` folder; a native
+    extension folder with `"_watch": true` is created so the editor reloads the
+    theme without a window restart. Zed theme JSON files are copied to
+    `~/.config/zed/themes/`. Errors in one adapter do not stop the others.
+  - `--without-sync`: skips stage 2, applies only stage 1 (KDE/Qt/GTK/wallpaper).
   1. `--install-missing`: installs missing VS Code / Cursor / Zed themes from
      their official stores;
-  2. puts back local assets that live outside the tracked files (only if absent);
-  3. editor themes: installs from the theme's cached `assets/editor-themes/`
-     (offline, no network) or from the official store if the cache is absent and
-     `--install-missing` is given. VS Code / Cursor / VSCodium extensions are
-     unpacked into the editor's `extensions/` folder; a native extension folder
-     with `"_watch": true` is created so the editor reloads the theme without a
-     window restart. Zed theme JSON files are copied to `~/.config/zed/themes/`;
-  3. the restore: pre-apply backup of every tracked file (whole, as they were)
-     in `backups/pre-apply-<name>-…`, plasmashell stopped, whole files copied
-     and mixed files merged (above), the colour scheme / accent / widget style
-     / KWin effects / kitty re-applied, plasmashell restarted (this is what
-     repaints panels and running apps);
-  4. wallpaper: the theme's wallpaper is written to the desktops and applied; a
-     theme without a wallpaper, or `--keep-wallpaper`, leaves the desktop's
-     wallpaper settings as they are, of any kind (slideshow, picture of the day).
-     Such a theme stores no wallpaper path or plugin, nor does `export
-     --no-wallpaper`;
-  5. report: `missing` (field, name, where to get it: KDE Store search link,
-     store URL or Zed extension id); `--json` prints `{applied, skipped,
-     installed, missing, errors, backup}` (used by the GUI and MCP).
+  2. `--keep-wallpaper`: leaves the current wallpaper even when the theme
+     carries one;
+  3. `--without-dependencies`: skips the dependency check and installs;
+  4. `--preview-token=HASH`: confirmed preview token (GUI/MCP);
+  5. `--json`: prints `{applied, skipped, installed, synced, missing, errors,
+     backup}` (used by the GUI and MCP).
 - **new** starts a theme (`rust_core/src/constructor.rs`). From
   `neutral-light`/`neutral-dark` it applies a neutral template to the live
   session — Breeze colour scheme, widget style, icons, cursor, Plasma style and

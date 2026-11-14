@@ -141,6 +141,7 @@ fn apply_inner(args: &Value) -> Result<Value> {
             install_missing: args["install_missing"].as_bool().unwrap_or(false),
             skip_dependencies: args["preview_token"].is_string()
                 || args["skip_dependencies"].as_bool().unwrap_or(false),
+            sync_apps: true,
         };
         return Ok(serde_json::to_value(crate::theme::apply(name, &options)?)?);
     }
