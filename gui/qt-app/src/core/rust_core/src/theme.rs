@@ -31,10 +31,12 @@ use crate::field::{self, Base};
 use crate::palette::{self, Palette};
 use crate::paths::{data_home, home_dir, live_path, profile_dir, validate_profile_name};
 use crate::profile::copy_tree;
+use crate::stores;
 use crate::wallpaper::{plasma_wallpaper_from, APPLETSRC_REL};
 
 pub const MANIFEST: &str = "theme.json";
 pub const SCHEMA: &str = "kolira/theme@2";
+pub const EDITOR_THEMES_DIR: &str = "assets/editor-themes";
 
 /// Branding does not invalidate packages exported by earlier versions.
 pub fn supported_schema(schema: &str) -> bool {
@@ -105,6 +107,12 @@ pub struct Package {
     /// GTK apps really used when this theme was saved.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub gsettings_gtk_theme: Option<String>,
+    /// Editor themes bundled with or referenced by this theme: VS Code,
+    /// Cursor, VSCodium, Windsurf, Zed. Downloaded on first save and cached
+    /// under `assets/editor-themes/`; installed from the local cache during
+    /// apply (offline) or from the official store if the cache is missing.
+    #[serde(default)]
+    pub editor_themes: Vec<crate::types::EditorTheme>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -424,6 +432,7 @@ fn asset_root(kind: &str, path: &str) -> Option<&'static str> {
         "konsole-scheme" => (".local/share/konsole", ".colorscheme"),
         "icons" => (".local/share/icons", ""),
         "wallpaper" => ("wallpaper", ""),
+        "editor-theme" => (EDITOR_THEMES_DIR, ""),
         _ => return None,
     };
     let tail = Path::new(path).strip_prefix(root).ok()?;
@@ -451,6 +460,7 @@ pub(crate) fn validate_asset_restore(dir: &Path, relative: &str) -> Result<()> {
         "zed",
         "konsole-scheme",
         "icons",
+        "editor-theme",
     ]
     .into_iter()
     .find_map(|kind| asset_root(kind, relative))
@@ -959,12 +969,76 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
     ] {
         if let Some(theme) = values.get(id).map(field::value_str) {
             if let Some(ext) = vscode_theme_extension(app, &theme) {
+                let url = match store {
+                    "vscode-marketplace" => stores::vscode_marketplace_download_url(&ext),
+                    "open-vsx" => stores::open_vsx_download_url(&ext),
+                    _ => String::new(),
+                };
+                let cache_rel = format!("assets/editor-themes/{app}/{ext}");
+                let cache_dir = dir.join(&cache_rel);
+                // Try to copy from the live install first (offline, no network).
+                let mut cached = false;
+                if let Some(ext_dir) = find_installed_extension(app, &ext) {
+                    let _ = std::fs::remove_dir_all(&cache_dir);
+                    if let Err(e) = copy_dir_recursive(&ext_dir, &cache_dir) {
+                        eprintln!("warning: cache {app} {ext}: {e:#}");
+                    } else {
+                        cached = true;
+                    }
+                }
+                // Fall back to downloading from the store if network is available.
+                if !cached && !url.is_empty() && crate::net::network_enabled() {
+                    match stores::download_vsix(&url, &cache_dir) {
+                        Ok(vsix_path) => {
+                            match stores::extract_vsix(&vsix_path, &cache_dir) {
+                                Ok(ext_root) => {
+                                    let _ = std::fs::remove_file(&vsix_path);
+                                    if ext_root != cache_dir {
+                                        let _ = std::fs::remove_dir_all(&cache_dir);
+                                        let _ = copy_dir_recursive(&ext_root, &cache_dir);
+                                    }
+                                    cached = true;
+                                }
+                                Err(e) => {
+                                    eprintln!("warning: extract {app} {ext}: {e:#}");
+                                }
+                            }
+                        }
+                        Err(e) => eprintln!("warning: download {app} {ext}: {e:#}"),
+                    }
+                }
+                if cached {
+                    let publisher = ext.split('.').next().unwrap_or(ext.as_str());
+                    let name = ext.split('.').nth(1).unwrap_or(ext.as_str());
+                    if let Err(e) = stores::create_native_extension(&cache_dir, &cache_dir, publisher, name) {
+                        eprintln!("warning: native extension {app} {ext}: {e:#}");
+                    }
+                    package.editor_themes.push(crate::types::EditorTheme {
+                        editor: app.into(),
+                        store: store.into(),
+                        id: ext.clone(),
+                        version: String::new(),
+                        url: url.clone(),
+                        local_path: cache_rel,
+                        native_watch: true,
+                    });
+                } else {
+                    package.editor_themes.push(crate::types::EditorTheme {
+                        editor: app.into(),
+                        store: store.into(),
+                        id: ext.clone(),
+                        version: String::new(),
+                        url: url.clone(),
+                        local_path: String::new(),
+                        native_watch: true,
+                    });
+                }
                 package.sources.insert(
                     id.into(),
                     Source {
                         store: store.into(),
                         id: ext,
-                        url: String::new(),
+                        url,
                     },
                 );
             }
@@ -1627,6 +1701,64 @@ fn share_editor_sources(values: &BTreeMap<String, Value>, sources: &mut BTreeMap
             }
         }
     }
+}
+
+/// Find an installed VS Code/Cursor extension directory by extension id.
+/// Scans the editor's `extensions/` folder for a `package.json` whose
+/// `publisher.name` matches `ext` or whose folder name starts with `<id>-`.
+fn find_installed_extension(app: &str, ext: &str) -> Option<PathBuf> {
+    let home = crate::paths::home_dir();
+    let roots: Vec<PathBuf> = match app {
+        "cursor" => vec![home.join(".cursor/extensions")],
+        _ => vec![
+            home.join(".vscode/extensions"),
+            home.join(".vscode-oss/extensions"),
+        ],
+    };
+    let (publisher, name) = ext.split_once('.')?;
+    for root in roots {
+        let Ok(entries) = fs::read_dir(&root) else { continue };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let folder = path.file_name()?.to_string_lossy().to_string();
+            // Folder names are like `publisher.name-version` or `publisher.name`.
+            if !folder.starts_with(ext) {
+                continue;
+            }
+            let pkg = path.join("package.json");
+            if pkg.is_file() {
+                if let Ok(text) = fs::read_to_string(&pkg) {
+                    if let Ok(pkg) = serde_json::from_str::<serde_json::Value>(&text) {
+                        let p = pkg.get("publisher")?.as_str()?;
+                        let n = pkg.get("name")?.as_str()?;
+                        if p == publisher && n == name {
+                            return Some(path);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Recursively copy `src` directory into `dst`.
+fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let src_path = entry.path();
+        let dst_path = dst.join(entry.file_name());
+        if src_path.is_dir() {
+            copy_dir_recursive(&src_path, &dst_path)?;
+        } else {
+            std::fs::copy(&src_path, &dst_path)?;
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]

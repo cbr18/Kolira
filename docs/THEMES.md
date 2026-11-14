@@ -185,12 +185,19 @@ and its backup remain available.
 | `wallpaper` | `wallpaper/<file>`, or `null` → applying keeps the current wallpaper |
 | `assets[]` | `{kind, name, path, origin: generated\|user, redistributable}` — local assets, `path` inside the theme |
 | `sources` | field id → `{store, id, url}`: editor-theme extensions (`vscode-marketplace`, `open-vsx`, `zed`) |
+| `editor_themes[]` | `{editor, store, id, version, url, local_path, native_watch}` — editor themes bundled with or referenced by this theme, cached under `assets/editor-themes/<editor>/<id>/` and installed from the local cache during apply (offline) or from the official store if the cache is missing |
 | `dependencies[]` | `{kind, name, source, id, title, url, exact}` — everything the theme needs that does not travel inside it (see *Dependencies*) |
 | `appearance_only` | the stored files hold only the look |
 
 System resources (Breeze, `/usr/share/Kvantum/*`, icon themes, Zed and VS Code
 built-ins, …) are referenced by name, not copied. Editor themes from the VS Code
 Marketplace / Open VSX / Zed extensions are referenced through `sources`.
+Editor theme binaries (`.vsix` for VS Code / Cursor / VSCodium, extension
+archives for Zed) are downloaded on first save and cached inside the theme at
+`assets/editor-themes/<editor>/<store-id>/`, so a later apply works offline.
+Authors may also place their own extension files directly in
+`assets/editor-themes/` in the theme repository and reference them with
+`local_path` set and `store: "local"`.
 
 ## CLI
 
@@ -225,6 +232,12 @@ kolira automation [--json] | set KEY=ask|always|never … | ask   # the user's c
   1. `--install-missing`: installs missing VS Code / Cursor / Zed themes from
      their official stores;
   2. puts back local assets that live outside the tracked files (only if absent);
+  3. editor themes: installs from the theme's cached `assets/editor-themes/`
+     (offline, no network) or from the official store if the cache is absent and
+     `--install-missing` is given. VS Code / Cursor / VSCodium extensions are
+     unpacked into the editor's `extensions/` folder; a native extension folder
+     with `"_watch": true` is created so the editor reloads the theme without a
+     window restart. Zed theme JSON files are copied to `~/.config/zed/themes/`;
   3. the restore: pre-apply backup of every tracked file (whole, as they were)
      in `backups/pre-apply-<name>-…`, plasmashell stopped, whole files copied
      and mixed files merged (above), the colour scheme / accent / widget style
