@@ -11,11 +11,13 @@
   Новое поле `editor_themes[]` в `theme.json`.
 - `kolira apply <тема>` теперь применяет тему полностью: этап 1 — блокирующий
   под `MutationGuard` (KDE/Qt/GTK/обои, перезапуск plasmashell), этап 2 — фоновый
-  без блокировки (темы редакторов, Discord/Vesktop/Vencord, Konsole/Ghostty/Kitty/Alacritty,
-  Cava, Telegram, рыбные утилиты из кэша темы или из магазина). `--without-sync`
-  пропускает этап 2. Для VS Code/Cursor/VSCodium создаётся нативная папка
-  расширения с `"_watch": true` — тема перезагружается в редакторе без
-  перезапуска окна.
+  без блокировки (темы редакторов VS Code/Cursor/VSCodium/Zed, мессенджеры
+  Discord/Vesktop/Vencord, терминалы Konsole/Ghostty/Kitty/Alacritty, Cava,
+  Telegram, браузеры Firefox/Chromium из кэша темы или из магазина).
+  `--without-sync` пропускает этап 2. Для VS Code/Cursor/VSCodium создаётся
+  нативная папка расширения с `"_watch": true` — тема перезагружается в
+  редакторе без перезапуска окна. Firefox получает `userChrome.css`,
+  Chromium — `Default/Preferences` с цветами палитры.
 
 ## 0.7.0 — 2026-11-12
 
