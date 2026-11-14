@@ -204,12 +204,14 @@ class CliProfileCore(ProfileCore):
 
     def apply(self, profile: str, components: Optional[list[str]] = None,
               keep_wallpaper: bool = False, install_missing: bool = False,
-              skip_dependencies: bool = False, preview_token: Optional[str] = None, source: str = "gui") -> Result:
+              skip_dependencies: bool = False, without_sync: bool = False,
+              preview_token: Optional[str] = None, source: str = "gui") -> Result:
         extra = {"preview_token": preview_token} if preview_token is not None else {}
         try:
             report = core_request("profile.apply", _binary=self.bin, _timeout=3600, name=profile, components=components,
                 keep_wallpaper=keep_wallpaper, install_missing=install_missing,
-                skip_dependencies=skip_dependencies, source=source, **extra)
+                skip_dependencies=skip_dependencies, without_sync=without_sync,
+                source=source, **extra)
         except (ValueError, RuntimeError) as exc:
             result = Result.err(str(exc))
             self._bring_shell_back(result)

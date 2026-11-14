@@ -31,6 +31,7 @@ class ThemeBundleController(QObject):
     busyChanged = Signal()
     storeChanged = Signal()
     toast = Signal(str, bool)
+    withoutSyncChanged = Signal()
 
     def __init__(self, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
@@ -48,6 +49,7 @@ class ThemeBundleController(QObject):
         self._store_items: list = []
         self._store_app = ""
         self._store_busy = False
+        self._without_sync = False
         self.refresh()
 
     # ── properties ───────────────────────────────────────────────────────
@@ -82,6 +84,16 @@ class ThemeBundleController(QObject):
     @Property(bool, notify=scopeChanged)
     def readOnly(self) -> bool:
         return self._scope != "live"
+
+    @Property(bool, notify=withoutSyncChanged)
+    def withoutSync(self) -> bool:
+        return self._without_sync
+
+    @Slot(bool)
+    def setWithoutSync(self, value: bool) -> None:
+        if self._without_sync != value:
+            self._without_sync = value
+            self.withoutSyncChanged.emit()
 
     @Property(int, notify=groupsChanged)
     def sessionChanges(self) -> int:
@@ -264,7 +276,7 @@ class ThemeBundleController(QObject):
             return
 
         def work() -> tuple[bool, str]:
-            result = self._core.apply()
+            result = self._core.apply(without_sync=self._without_sync)
             return result.success, result.message
 
         def done(success: bool, message: str) -> None:

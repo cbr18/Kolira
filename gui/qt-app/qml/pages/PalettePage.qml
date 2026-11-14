@@ -383,7 +383,65 @@ Kirigami.ScrollablePage {
                     enabled: !paletteController.busy && page.selectedTargets().length > 0
                     onClicked: paletteController.apply(page.selectedTargets(), "")
                 }
+                AppButton {
+                    Layout.alignment: Qt.AlignRight
+                    text: qsTr("Save as theme…")
+                    icon.name: "document-save-as"
+                    enabled: !paletteController.busy && paletteController.hasPalette
+                    onClicked: saveThemeDialog.open()
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Save the current palette and applied look as a reusable theme")
+                }
             }
+        }
+    }
+
+    AppDialog {
+        id: saveThemeDialog
+        title: qsTr("Save theme from palette")
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+        preferredWidth: 460
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: Platform.Units.smallSpacing
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                text: qsTr("The current palette and applied look will be saved as a v2 theme bundle. You can apply it again later with <i>kolira apply</i> or from the Theme page.")
+                color: ThemeColors.fgColor(page.glassMode)
+            }
+            TextField {
+                id: themeNameField
+                Layout.fillWidth: true
+                placeholderText: qsTr("Theme name")
+            }
+            Label {
+                id: themeNameError
+                Layout.fillWidth: true
+                visible: false
+                wrapMode: Text.WordWrap
+                color: ThemeColors.negative()
+                text: qsTr("Use letters, digits, dots, dashes or underscores; the first character must not be a dot.")
+            }
+            TextField {
+                id: themeDescriptionField
+                Layout.fillWidth: true
+                placeholderText: qsTr("Description (optional)")
+            }
+        }
+
+        onAccepted: {
+            const name = themeNameField.text.trim()
+            if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(name)) {
+                themeNameError.visible = true
+                saveThemeDialog.open()
+                return
+            }
+            themeBundle.saveProfile(name, themeDescriptionField.text.trim())
+            themeNameField.text = ""
+            themeDescriptionField.text = ""
+            themeNameError.visible = false
         }
     }
 
