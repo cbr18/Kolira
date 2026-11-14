@@ -64,4 +64,13 @@ pub struct EditorTheme {
     /// the editor reloads the theme without a window restart.
     #[serde(default)]
     pub native_watch: bool,
+    /// When false, this editor theme is listed but not installed on apply.
+    /// Useful to keep a reference without forcing the editor theme on every
+    /// machine. Defaults to true.
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+}
+
+fn default_true() -> bool {
+    true
 }

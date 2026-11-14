@@ -34,6 +34,12 @@ use crate::profile::copy_tree;
 use crate::stores;
 use crate::wallpaper::{plasma_wallpaper_from, APPLETSRC_REL};
 
+// Stage 2 adapters (no MutationGuard, no Plasma restart).
+use crate::discord;
+use crate::konsole;
+use crate::extras;
+use crate::telegram;
+
 pub const MANIFEST: &str = "theme.json";
 pub const SCHEMA: &str = "kolira/theme@2";
 pub const EDITOR_THEMES_DIR: &str = "assets/editor-themes";
@@ -1038,6 +1044,7 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
                         url: url.clone(),
                         local_path: cache_rel,
                         native_watch: true,
+                        enabled: true,
                     });
                 } else {
                     package.editor_themes.push(crate::types::EditorTheme {
@@ -1048,6 +1055,7 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
                         url: url.clone(),
                         local_path: String::new(),
                         native_watch: true,
+                        enabled: true,
                     });
                 }
                 package.sources.insert(
@@ -1669,12 +1677,12 @@ fn apply_inner(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
     Ok(report)
 }
 
-/// Stage 2 (background sync): install editor themes carried by theme `name`
-/// from the theme's cached assets (`assets/editor-themes/<editor>/<id>/`),
-/// falling back to the official store when the cache is missing.
+/// Stage 2 (background sync): install editor themes, messengers, terminals
+/// and shell tools carried by theme `name`.
 ///
 /// Runs outside `MutationGuard` — no Plasma restart, no desktop blocking.
-/// Returns human-readable lines for the apply/sync report.
+/// Each adapter is independent: an error in one does not stop the others.
+/// Returns human-readable lines for the apply report.
 pub fn apply_editor_themes(
     name: &str,
     package: &Package,
@@ -1684,7 +1692,11 @@ pub fn apply_editor_themes(
     let mut installed: Vec<String> = Vec::new();
     let no_apply = std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1");
 
+    // ── 1. Editor themes (VS Code / Cursor / VSCodium / Windsurf / Zed) ──
     for ed in &package.editor_themes {
+        if !ed.enabled {
+            continue;
+        }
         let cache_dir = dir.join(&ed.local_path);
         let result = if cache_dir.is_dir() {
             // Offline install from the theme's own cache.
@@ -1747,6 +1759,71 @@ pub fn apply_editor_themes(
             }
         }
     }
+
+    // ── 2. Palette-driven adapters (need the theme's base16 palette) ──
+    let Some(palette) = &package.palette else {
+        return Ok(installed);
+    };
+    let opacity = 1.0;
+
+    // Discord / Vencord / Vesktop — CSS theme + transparency toggle.
+    if !no_apply {
+        match discord::apply_palette(palette, opacity) {
+            Ok(written) => {
+                for p in written {
+                    installed.push(format!("discord theme -> {}", p.display()));
+                }
+            }
+            Err(e) => installed.push(format!("discord theme: {e:#}")),
+        }
+    }
+
+    // Konsole — colourscheme + select in default profile.
+    if !no_apply {
+        match konsole::apply_palette(palette) {
+            Ok(path) => installed.push(format!("konsole scheme -> {}", path.display())),
+            Err(e) => installed.push(format!("konsole scheme: {e:#}")),
+        }
+    }
+
+    // Ghostty — colours in ghostty/kolira, host config gains include line.
+    if !no_apply {
+        match extras::ghostty_apply_palette(palette) {
+            Ok(Some(path)) => installed.push(format!("ghostty theme -> {}", path.display())),
+            Ok(None) => installed.push("ghostty: not configured here".to_string()),
+            Err(e) => installed.push(format!("ghostty theme: {e:#}")),
+        }
+    }
+
+    // Cava — [color] gradient, reload via SIGUSR1.
+    if !no_apply {
+        match extras::cava_apply_palette(palette) {
+            Ok(Some(_)) => {
+                extras::reload_cava();
+                installed.push("cava gradient reloaded".to_string());
+            }
+            Ok(None) => installed.push("cava: not configured here".to_string()),
+            Err(e) => installed.push(format!("cava gradient: {e:#}")),
+        }
+    }
+
+    // Telegram — palette file, watched by the client.
+    if !no_apply {
+        match telegram::apply_palette(palette) {
+            Ok(telegram::Outcome::Written(path, follows)) => {
+                installed.push(format!(
+                    "telegram palette -> {} (follows: {})",
+                    path.display(),
+                    follows
+                ));
+            }
+            Ok(telegram::Outcome::Skipped(reason)) => {
+                installed.push(format!("telegram palette: skipped ({reason})"));
+            }
+            Err(e) => installed.push(format!("telegram palette: {e:#}")),
+        }
+    }
+
     Ok(installed)
 }
 

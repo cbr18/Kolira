@@ -235,14 +235,17 @@ kolira automation [--json] | set KEY=ask|always|never … | ask   # the user's c
     kitty re-applied.
   - **Stage 2 — background, no `MutationGuard`, no Plasma restart** (default):
     installs editor themes (VS Code / Cursor / VSCodium / Windsurf / Zed),
-    messengers (Discord, Vesktop, Vencord, BetterDiscord), terminals (Konsole,
-    Kitty, Alacritty) and shell tools (fish, starship, btop, fastfetch, tmux)
-    from the theme's cached `assets/editor-themes/` (offline, no network) or from
-    the official store with `--install-missing`. VS Code / Cursor / VSCodium
-    extensions are unpacked into the editor's `extensions/` folder; a native
-    extension folder with `"_watch": true` is created so the editor reloads the
-    theme without a window restart. Zed theme JSON files are copied to
-    `~/.config/zed/themes/`. Errors in one adapter do not stop the others.
+    messengers (Discord, Vesktop, Vencord), terminals (Konsole, Ghostty, Kitty,
+    Alacritty), and shell/media tools (Cava, Telegram, fish, starship, btop).
+    Editor themes are installed from the theme's cached
+    `assets/editor-themes/` (offline, no network) or from the official store
+    with `--install-missing`. VS Code / Cursor / VSCodium extensions are
+    unpacked into the editor's `extensions/` folder; a native extension folder
+    with `"_watch": true` is created so the editor reloads the theme without a
+    window restart. Zed theme JSON files are copied to `~/.config/zed/themes/`.
+    Palette-driven adapters (Discord, Konsole, Ghostty, Cava, Telegram) write
+    colours from the theme's base16 palette. Errors in one adapter do not stop
+    the others.
   - `--without-sync`: skips stage 2, applies only stage 1 (KDE/Qt/GTK/wallpaper).
   1. `--install-missing`: installs missing VS Code / Cursor / Zed themes from
      their official stores;
