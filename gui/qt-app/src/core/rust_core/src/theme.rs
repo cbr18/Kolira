@@ -472,6 +472,8 @@ fn asset_root(kind: &str, path: &str) -> Option<&'static str> {
 /// Refuse links in package assets or below their destination container. A
 /// user may relocate the container itself (e.g. XDG_DATA_HOME), but a theme
 /// cannot use a link below it to redirect writes to unrelated files.
+/// Symlinks whose target stays inside the theme directory itself are safe and
+/// allowed (e.g. icon themes that ship relative symlinks between icon files).
 pub(crate) fn validate_asset_restore(dir: &Path, relative: &str) -> Result<()> {
     let root = [
         "color-scheme",
@@ -497,7 +499,7 @@ pub(crate) fn validate_asset_restore(dir: &Path, relative: &str) -> Result<()> {
         if path == dir {
             break;
         }
-        reject_link(path)?;
+        reject_link(path, dir)?;
         ancestor = path.parent();
     }
     let destination = live_path(relative);
@@ -507,31 +509,43 @@ pub(crate) fn validate_asset_restore(dir: &Path, relative: &str) -> Result<()> {
         if path == container {
             break;
         }
-        reject_link(path)?;
+        reject_link(path, dir)?;
         current = path.parent();
     }
-    validate_resource_tree(&source, &destination)
+    validate_resource_tree(&source, &destination, dir)
 }
 
-fn reject_link(path: &Path) -> Result<()> {
+/// Reject a symlink unless its resolved target stays inside `dir`.
+fn reject_link(path: &Path, dir: &Path) -> Result<()> {
     match fs::symlink_metadata(path) {
-        Ok(meta) if meta.file_type().is_symlink() => Err(anyhow!(
-            "symlink in theme asset restore: {}",
-            path.display()
-        )),
+        Ok(meta) if meta.file_type().is_symlink() => {
+            // Resolve the link target and only allow it if it stays inside
+            // the theme directory.
+            match fs::canonicalize(path) {
+                Ok(target) if target.starts_with(dir) => Ok(()),
+                Ok(_) => Err(anyhow!(
+                    "symlink in theme asset restore points outside theme: {}",
+                    path.display()
+                )),
+                Err(_) => Err(anyhow!(
+                    "symlink in theme asset restore cannot be resolved: {}",
+                    path.display()
+                )),
+            }
+        }
         Ok(_) => Ok(()),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(e) => Err(e.into()),
     }
 }
 
-fn validate_resource_tree(source: &Path, destination: &Path) -> Result<()> {
-    reject_link(source)?;
-    reject_link(destination)?;
+fn validate_resource_tree(source: &Path, destination: &Path, dir: &Path) -> Result<()> {
+    reject_link(source, dir)?;
+    reject_link(destination, dir)?;
     if source.is_dir() {
         for entry in fs::read_dir(source)? {
             let entry = entry?;
-            validate_resource_tree(&entry.path(), &destination.join(entry.file_name()))?;
+            validate_resource_tree(&entry.path(), &destination.join(entry.file_name()), dir)?;
         }
     }
     Ok(())

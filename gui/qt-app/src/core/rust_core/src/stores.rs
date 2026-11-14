@@ -560,9 +560,14 @@ pub fn create_native_extension(src_dir: &Path, ext_dir: &Path, publisher: &str, 
         }
     }
     // Patch or create package.json with _watch: true.
+    // A corrupt package.json (e.g. empty or truncated) is ignored: we still
+    // create a valid package.json with _watch: true.
     let pkg_path = ext_dir.join("package.json");
     let mut pkg: serde_json::Value = if pkg_path.is_file() {
-        serde_json::from_str(&std::fs::read_to_string(&pkg_path)?)?
+        std::fs::read_to_string(&pkg_path)
+            .ok()
+            .and_then(|text| serde_json::from_str(&text).ok())
+            .unwrap_or(serde_json::json!({}))
     } else {
         serde_json::json!({})
     };
