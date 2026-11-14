@@ -227,6 +227,14 @@ Kirigami.ScrollablePage {
             }
         }
 
+        AppButton {
+            text: qsTr("System Settings")
+            icon.name: "configure"
+            enabled: !themeBundle.busy
+            onClicked: themeBundle.openSystemSettings()
+            ToolTip.visible: hovered
+            ToolTip.text: qsTr("Open KDE System Settings (all system modules)")
+        }
 
 
         Kirigami.Card {

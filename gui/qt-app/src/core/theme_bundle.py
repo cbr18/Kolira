@@ -144,6 +144,7 @@ GROUPS: tuple[BundleGroupDef, ...] = (
                 kind="int",
                 icon="blur",
                 description=QT_TRANSLATE_NOOP("ThemeBundle", "Better Blur DX strength"),
+                external_module="kcm_kwin_effects",
                 legacy_section="windows",
             ),
             BundleComponentDef(
@@ -158,6 +159,7 @@ GROUPS: tuple[BundleGroupDef, ...] = (
                 kind="float",
                 icon="preferences-desktop-animation",
                 description=QT_TRANSLATE_NOOP("ThemeBundle", "Global animation duration multiplier"),
+                external_module="kcm_animations",
                 legacy_section="windows",
             ),
         ),
@@ -177,7 +179,6 @@ GROUPS: tuple[BundleGroupDef, ...] = (
                 "kvantum_theme", QT_TRANSLATE_NOOP("ThemeBundle", "Kvantum theme"), "kvantum_theme",
                 icon="kvantum",
                 description=QT_TRANSLATE_NOOP("ThemeBundle", "SVG widget theme used by the Kvantum Qt style"),
-                external_module="kcm_style",
                 legacy_section="assets",
             ),
             BundleComponentDef(

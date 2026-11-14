@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from typing import Optional
 
 from PySide6.QtCore import Property, QObject, QUrl, Signal, Slot
@@ -362,6 +363,14 @@ class ThemeBundleController(QObject):
     def openAppThemeSettings(self, app_id: str) -> None:
         result = self._core.open_app_theme_settings(app_id)
         self.toast.emit(localize(result.message), result.success)
+
+    @Slot()
+    def openSystemSettings(self) -> None:
+        """Open the main KDE System Settings application."""
+        try:
+            subprocess.Popen(["systemsettings"])
+        except OSError as exc:
+            self.toast.emit(str(exc), False)
 
 
 __all__ = ["ThemeBundleController"]
