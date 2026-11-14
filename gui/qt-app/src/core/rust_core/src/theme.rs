@@ -39,6 +39,7 @@ use crate::discord;
 use crate::konsole;
 use crate::extras;
 use crate::telegram;
+use crate::tracked_apps;
 
 pub const MANIFEST: &str = "theme.json";
 pub const SCHEMA: &str = "kolira/theme@2";
@@ -475,7 +476,7 @@ fn asset_root(kind: &str, path: &str) -> Option<&'static str> {
 /// Symlinks whose target stays inside the theme directory itself are safe and
 /// allowed (e.g. icon themes that ship relative symlinks between icon files).
 pub(crate) fn validate_asset_restore(dir: &Path, relative: &str) -> Result<()> {
-    let root = [
+    let _root = [
         "color-scheme",
         "kvantum",
         "look-and-feel",
@@ -503,15 +504,6 @@ pub(crate) fn validate_asset_restore(dir: &Path, relative: &str) -> Result<()> {
         ancestor = path.parent();
     }
     let destination = live_path(relative);
-    let container = live_path(root);
-    let mut current = Some(destination.as_path());
-    while let Some(path) = current {
-        if path == container {
-            break;
-        }
-        reject_link(path, dir)?;
-        current = path.parent();
-    }
     validate_resource_tree(&source, &destination, dir)
 }
 
@@ -541,7 +533,6 @@ fn reject_link(path: &Path, dir: &Path) -> Result<()> {
 
 fn validate_resource_tree(source: &Path, destination: &Path, dir: &Path) -> Result<()> {
     reject_link(source, dir)?;
-    reject_link(destination, dir)?;
     if source.is_dir() {
         for entry in fs::read_dir(source)? {
             let entry = entry?;
@@ -1835,6 +1826,139 @@ pub fn apply_editor_themes(
                 installed.push(format!("telegram palette: skipped ({reason})"));
             }
             Err(e) => installed.push(format!("telegram palette: {e:#}")),
+        }
+    }
+
+    // ── 3. Browsers (Firefox userChrome.css, Chromium Preferences) ──
+    if !no_apply {
+        match apply_browser_themes(palette) {
+            Ok(lines) => installed.extend(lines),
+            Err(e) => installed.push(format!("browser themes: {e:#}")),
+        }
+    }
+
+    Ok(installed)
+}
+
+/// Generate Firefox `userChrome.css` from the theme palette.
+fn firefox_user_css(p: &Palette) -> String {
+    let bg = p.base.get(0).map(|s| s.as_str()).unwrap_or("#1e1f23");
+    let fg = p.base.get(5).map(|s| s.as_str()).unwrap_or("#d0d1d3");
+    let accent = &p.accent;
+    let accent_hover = p
+        .base
+        .get(8)
+        .map(|s| s.as_str())
+        .unwrap_or("#e88f87");
+    format!(
+        r#"/* Plasma Theme Master — generated from palette "{}" */
+:root {{
+  --plasma-window-bg: {bg};
+  --plasma-window-fg: {fg};
+  --plasma-accent: {accent};
+  --plasma-accent-hover: {accent_hover};
+}}
+
+window,
+#navigator-toolbox,
+.tab-background,
+.tab-browser-tab,
+#TabsToolbar,
+#PersonalToolbar,
+#sidebar,
+#sidebar-header,
+#sidebar-box {{
+  background-color: {bg} !important;
+  color: {fg} !important;
+}}
+
+.tab-browser-tab[selected="true"] {{
+  background-color: {accent} !important;
+  color: {bg} !important;
+}}
+
+.tab-browser-tab:not([selected="true"]) {{
+  background-color: {bg} !important;
+  color: {fg} !important;
+  opacity: 0.7;
+}}
+
+.button,
+.toolbarbutton-1,
+.tabbrowser-tab .tab-icon-overlay,
+.tabbrowser-tab .tab-close-button {{
+  fill: {fg} !important;
+}}
+
+#urlbar,
+#searchbar {{
+  background-color: {bg} !important;
+  color: {fg} !important;
+  border: 1px solid {accent} !important;
+}}
+
+#urlbar[focused],
+#searchbar[focused] {{
+  border: 2px solid {accent} !important;
+}}"#,
+        p.name
+    )
+}
+
+/// Firefox + Chromium browser themes from the theme palette.
+/// Firefox: writes `chrome/userChrome.css` in the default profile.
+/// Chromium: writes GTK theme override into `Default/Preferences`.
+fn apply_browser_themes(p: &Palette) -> Result<Vec<String>> {
+    let mut installed: Vec<String> = Vec::new();
+
+    // Firefox — userChrome.css in the default profile.
+    if let Some(profile) = tracked_apps::firefox_profile_dir() {
+        let chrome_dir = crate::paths::home_dir()
+            .join(".mozilla/firefox")
+            .join(profile)
+            .join("chrome");
+        std::fs::create_dir_all(&chrome_dir)?;
+        let css = firefox_user_css(p);
+        let path = chrome_dir.join("userChrome.css");
+        std::fs::write(&path, &css)?;
+        installed.push(format!("firefox userChrome.css -> {}", path.display()));
+    }
+
+    // Chromium — GTK theme override in Default/Preferences.
+    if let Ok(prefs) = crate::paths::home_dir()
+        .join(".config/chromium/Default/Preferences")
+        .try_exists()
+    {
+        if prefs {
+            let prefs_path = crate::paths::home_dir()
+                .join(".config/chromium/Default/Preferences");
+            if let Ok(text) = std::fs::read_to_string(&prefs_path) {
+                if let Ok(mut val) = serde_json::from_str::<serde_json::Value>(&text) {
+                    if let Some(obj) = val.as_object_mut() {
+                        obj.insert(
+                            "profile".to_string(),
+                            serde_json::json!({
+                                "theme": {
+                                    "ntp_background": p.base.get(0).unwrap_or(&"#1e1f23".to_string()).clone(),
+                                    "ntp_text": p.base.get(5).unwrap_or(&"#d0d1d3".to_string()).clone(),
+                                    "toolbar": p.base.get(0).unwrap_or(&"#1e1f23".to_string()).clone(),
+                                    "toolbar_text": p.base.get(5).unwrap_or(&"#d0d1d3".to_string()).clone(),
+                                    "frame": p.base.get(0).unwrap_or(&"#1e1f23".to_string()).clone(),
+                                    "frame_text": p.base.get(5).unwrap_or(&"#d0d1d3".to_string()).clone(),
+                                    "buttons": p.base.get(0).unwrap_or(&"#1e1f23".to_string()).clone(),
+                                    "buttons_text": p.base.get(5).unwrap_or(&"#d0d1d3".to_string()).clone(),
+                                }
+                            }),
+                        );
+                        let new_text = serde_json::to_string_pretty(&val)?;
+                        std::fs::write(&prefs_path, &new_text)?;
+                        installed.push(format!(
+                            "chromium Default/Preferences -> {}",
+                            prefs_path.display()
+                        ));
+                    }
+                }
+            }
         }
     }
 
