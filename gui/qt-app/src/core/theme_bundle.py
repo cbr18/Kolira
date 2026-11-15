@@ -488,10 +488,8 @@ class ThemeBundleCore:
     # ── external actions ─────────────────────────────────────────────────
 
     def open_system_settings(self, module: str) -> Result:
-        if not module:
-            return Result.err("System Settings module is empty")
         try:
-            subprocess.Popen(["kcmshell6", module])
+            subprocess.Popen(["kcmshell6", module] if module else ["systemsettings"])
         except OSError as exc:
             return Result.err(str(exc))
         return Result.ok("Opened System Settings")

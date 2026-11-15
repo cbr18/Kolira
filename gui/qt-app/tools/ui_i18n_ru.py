@@ -63,3 +63,23 @@ UI_NUMERUS = {
     "ApplyPreviewDialog": {"%n files will change": ("Изменится %n файл","Изменятся %n файла","Изменятся %n файлов")},
     "ThemePage": {"Active profile: %1 · %n change(s)": ("Активный профиль: %1 · %n изменение","Активный профиль: %1 · %n изменения","Активный профиль: %1 · %n изменений")},
 }
+
+UI_TRANSLATIONS.setdefault("ApplyPreviewDialog", {}).update({
+    "Skip generated app themes and editor installs": "Пропустить генерацию тем приложений и установку тем редакторов",
+    "Saved application settings still restore. Skip additional palette generation and cached editor installation.": "Сохранённые настройки приложений будут восстановлены. Пропустить дополнительную генерацию из палитры и установку кэша редакторов.",
+})
+UI_TRANSLATIONS.setdefault("ThemePage", {}).update({
+    "System Settings": "Параметры системы",
+    "Open KDE System Settings (all system modules)": "Открыть параметры системы KDE (все модули)",
+})
+UI_TRANSLATIONS.setdefault("PalettePage", {}).update({
+    "Save as theme…": "Сохранить как тему…",
+    "Apply the current palette to KDE first, then save the applied look as a reusable theme": "Сначала примените текущую палитру к KDE, затем сохраните оформление как тему",
+    "Save theme from palette": "Сохранить тему из палитры",
+    "The current palette and applied look will be saved as a v2 theme bundle. You can apply it again later with <i>kolira apply</i> or from the Theme page.": "Текущая палитра и применённое оформление будут сохранены как тема v2. Её можно будет применить командой <i>kolira apply</i> или со страницы темы.",
+    "Theme name": "Название темы",
+    "Use letters, digits, dots, dashes or underscores; the first character must not be a dot.": "Используйте латинские буквы, цифры, точки, дефисы и подчёркивания; первый символ — буква или цифра.",
+    "Description (optional)": "Описание (необязательно)",
+})
+
+UI_TRANSLATIONS.setdefault("PaletteController", {})["Theme saved"] = "Тема сохранена"

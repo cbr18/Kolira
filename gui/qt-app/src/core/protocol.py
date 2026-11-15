@@ -95,7 +95,7 @@ class ProfileCore(ABC):
     @abstractmethod
     def apply(self, profile: str, components: Optional[list[str]] = None,
               keep_wallpaper: bool = False, install_missing: bool = False,
-              skip_dependencies: bool = False, preview_token: Optional[str] = None) -> Result:
+              skip_dependencies: bool = False, preview_token: Optional[str] = None, without_sync: bool = False) -> Result:
         """
         Применить тему.
         Theme package (theme.json): everything it defines; ``components`` must
@@ -133,7 +133,7 @@ class ProfileCore(ABC):
         """Interrupted applies that require explicit recovery."""
         return []
 
-    def preview(self, profile: str, keep_wallpaper: bool = False, *, use_settings: bool = True) -> Result:
+    def preview(self, profile: str, keep_wallpaper: bool = False, *, use_settings: bool = True, without_sync: bool = False) -> Result:
         return Result.err("Preview is not supported")
 
     def save_before_apply(self, name: str) -> Result:

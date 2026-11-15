@@ -34,13 +34,6 @@ use crate::profile::copy_tree;
 use crate::stores;
 use crate::wallpaper::{plasma_wallpaper_from, APPLETSRC_REL};
 
-// Stage 2 adapters (no MutationGuard, no Plasma restart).
-use crate::discord;
-use crate::konsole;
-use crate::extras;
-use crate::telegram;
-use crate::tracked_apps;
-
 pub const MANIFEST: &str = "theme.json";
 pub const SCHEMA: &str = "kolira/theme@2";
 pub const EDITOR_THEMES_DIR: &str = "assets/editor-themes";
@@ -115,11 +108,13 @@ pub struct Package {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub gsettings_gtk_theme: Option<String>,
     /// Editor themes bundled with or referenced by this theme: VS Code,
-    /// Cursor, VSCodium, Windsurf, Zed. Downloaded on first save and cached
-    /// under `assets/editor-themes/`; installed from the local cache during
-    /// apply (offline) or from the official store if the cache is missing.
+    /// Cursor, VSCodium, Windsurf, Zed. Saved from installed extensions or
+    /// explicitly downloaded with --install-missing. Normal apply is offline.
     #[serde(default)]
     pub editor_themes: Vec<crate::types::EditorTheme>,
+    /// Explicit palette-generated follow-ups; absence preserves snapshot-only behavior.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub app_targets: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -167,8 +162,7 @@ pub struct ApplyReport {
     /// App settings not touched because the app has no config here.
     pub skipped: Vec<String>,
     pub installed: Vec<String>,
-    /// Editor / messenger / terminal themes applied by the background sync
-    /// stage (stage 2). Empty for plain `apply` without `--with-apps`.
+    /// App theme paths planned by the follow-up stage. Empty with --without-sync.
     pub synced: Vec<String>,
     pub missing: Vec<Missing>,
     pub errors: Vec<String>,
@@ -425,6 +419,49 @@ pub fn validate_assets(package: &Package) -> Result<()> {
             return Err(anyhow!("invalid asset path: {}", asset.path));
         }
     }
+    if let Some(palette) = &package.palette {
+        palette.validate()?;
+    }
+    for target in &package.app_targets {
+        anyhow::ensure!(
+            ["discord", "konsole", "ghostty", "cava", "telegram", "firefox"]
+                .contains(&target.as_str()),
+            "unknown app palette target: {target}"
+        );
+        anyhow::ensure!(
+            package.palette.is_some(),
+            "app palette targets require a palette"
+        );
+    }
+    for editor in &package.editor_themes {
+        anyhow::ensure!(
+            ["vscode", "vscodium", "cursor", "windsurf", "zed"].contains(&editor.editor.as_str()),
+            "unknown editor {}",
+            editor.editor
+        );
+        anyhow::ensure!(
+            if editor.editor == "zed" {
+                !editor.id.is_empty()
+                    && editor
+                        .id
+                        .bytes()
+                        .all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'_')
+            } else {
+                stores::valid_vsx_id(&editor.id)
+            },
+            "invalid editor theme id {}",
+            editor.id
+        );
+        if !editor.local_path.is_empty() {
+            anyhow::ensure!(
+                normal_relative(&editor.local_path)
+                    && Path::new(&editor.local_path).starts_with(EDITOR_THEMES_DIR)
+                    && Path::new(&editor.local_path) != Path::new(EDITOR_THEMES_DIR),
+                "invalid editor theme cache path: {}",
+                editor.local_path
+            );
+        }
+    }
     if let Some(path) = &package.wallpaper {
         if !normal_relative(path) || !path.starts_with("wallpaper/") {
             return Err(anyhow!("invalid wallpaper path: {path}"));
@@ -456,7 +493,6 @@ fn asset_root(kind: &str, path: &str) -> Option<&'static str> {
         "konsole-scheme" => (".local/share/konsole", ".colorscheme"),
         "icons" => (".local/share/icons", ""),
         "wallpaper" => ("wallpaper", ""),
-        "editor-theme" => (EDITOR_THEMES_DIR, ""),
         _ => return None,
     };
     let tail = Path::new(path).strip_prefix(root).ok()?;
@@ -476,7 +512,7 @@ fn asset_root(kind: &str, path: &str) -> Option<&'static str> {
 /// Symlinks whose target stays inside the theme directory itself are safe and
 /// allowed (e.g. icon themes that ship relative symlinks between icon files).
 pub(crate) fn validate_asset_restore(dir: &Path, relative: &str) -> Result<()> {
-    let _root = [
+    let root = [
         "color-scheme",
         "kvantum",
         "look-and-feel",
@@ -486,7 +522,6 @@ pub(crate) fn validate_asset_restore(dir: &Path, relative: &str) -> Result<()> {
         "zed",
         "konsole-scheme",
         "icons",
-        "editor-theme",
     ]
     .into_iter()
     .find_map(|kind| asset_root(kind, relative))
@@ -504,7 +539,14 @@ pub(crate) fn validate_asset_restore(dir: &Path, relative: &str) -> Result<()> {
         ancestor = path.parent();
     }
     let destination = live_path(relative);
-    validate_resource_tree(&source, &destination, dir)
+    let container = live_path(root);
+    crate::app_sync::validate_destination(&destination, &container)?;
+    let boundary = if source.is_dir() {
+        source.clone()
+    } else {
+        source.parent().context("asset parent")?.to_path_buf()
+    };
+    validate_resource_tree(&source, &destination, &boundary, &container)
 }
 
 /// Reject a symlink unless its resolved target stays inside `dir`.
@@ -514,7 +556,12 @@ fn reject_link(path: &Path, dir: &Path) -> Result<()> {
             // Resolve the link target and only allow it if it stays inside
             // the theme directory.
             match fs::canonicalize(path) {
-                Ok(target) if target.starts_with(dir) => Ok(()),
+                Ok(target)
+                    if !fs::read_link(path)?.is_absolute()
+                        && target.starts_with(fs::canonicalize(dir)?) =>
+                {
+                    Ok(())
+                }
                 Ok(_) => Err(anyhow!(
                     "symlink in theme asset restore points outside theme: {}",
                     path.display()
@@ -531,12 +578,24 @@ fn reject_link(path: &Path, dir: &Path) -> Result<()> {
     }
 }
 
-fn validate_resource_tree(source: &Path, destination: &Path, dir: &Path) -> Result<()> {
-    reject_link(source, dir)?;
-    if source.is_dir() {
+fn validate_resource_tree(
+    source: &Path,
+    destination: &Path,
+    boundary: &Path,
+    container: &Path,
+) -> Result<()> {
+    reject_link(source, boundary)?;
+    crate::app_sync::validate_destination(destination, container)?;
+    // Never recurse through a directory symlink: internal cycles are legal links.
+    if source.is_dir() && !source.is_symlink() {
         for entry in fs::read_dir(source)? {
             let entry = entry?;
-            validate_resource_tree(&entry.path(), &destination.join(entry.file_name()), dir)?;
+            validate_resource_tree(
+                &entry.path(),
+                &destination.join(entry.file_name()),
+                boundary,
+                container,
+            )?;
         }
     }
     Ok(())
@@ -997,6 +1056,9 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
     ] {
         if let Some(theme) = values.get(id).map(field::value_str) {
             if let Some(ext) = vscode_theme_extension(app, &theme) {
+                if !stores::valid_vsx_id(&ext) {
+                    continue;
+                }
                 let url = match store {
                     "vscode-marketplace" => stores::vscode_marketplace_download_url(&ext),
                     "open-vsx" => stores::open_vsx_download_url(&ext),
@@ -1008,39 +1070,13 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
                 let mut cached = false;
                 if let Some(ext_dir) = find_installed_extension(app, &ext) {
                     let _ = std::fs::remove_dir_all(&cache_dir);
-                    if let Err(e) = copy_dir_recursive(&ext_dir, &cache_dir) {
+                    if let Err(e) = copy_tree(&ext_dir, &cache_dir) {
                         eprintln!("warning: cache {app} {ext}: {e:#}");
                     } else {
                         cached = true;
                     }
                 }
-                // Fall back to downloading from the store if network is available.
-                if !cached && !url.is_empty() && crate::net::network_enabled() {
-                    match stores::download_vsix(&url, &cache_dir) {
-                        Ok(vsix_path) => {
-                            match stores::extract_vsix(&vsix_path, &cache_dir) {
-                                Ok(ext_root) => {
-                                    let _ = std::fs::remove_file(&vsix_path);
-                                    if ext_root != cache_dir {
-                                        let _ = std::fs::remove_dir_all(&cache_dir);
-                                        let _ = copy_dir_recursive(&ext_root, &cache_dir);
-                                    }
-                                    cached = true;
-                                }
-                                Err(e) => {
-                                    eprintln!("warning: extract {app} {ext}: {e:#}");
-                                }
-                            }
-                        }
-                        Err(e) => eprintln!("warning: download {app} {ext}: {e:#}"),
-                    }
-                }
                 if cached {
-                    let publisher = ext.split('.').next().unwrap_or(ext.as_str());
-                    let name = ext.split('.').nth(1).unwrap_or(ext.as_str());
-                    if let Err(e) = stores::create_native_extension(&cache_dir, &cache_dir, publisher, name) {
-                        eprintln!("warning: native extension {app} {ext}: {e:#}");
-                    }
                     package.editor_themes.push(crate::types::EditorTheme {
                         editor: app.into(),
                         store: store.into(),
@@ -1207,6 +1243,16 @@ pub fn save(name: &str, options: &SaveOptions) -> Result<Package> {
     }
     let mut package = build(name, &target, &options)?;
     if let Some(prev) = previous {
+        package.app_targets = prev.app_targets.clone();
+        for editor in &prev.editor_themes {
+            if !package
+                .editor_themes
+                .iter()
+                .any(|e| e.editor == editor.editor && e.id == editor.id)
+            {
+                package.editor_themes.push(editor.clone());
+            }
+        }
         carry_licences(&prev, &mut package);
         keep_known_titles(&prev.dependencies, &mut package.dependencies);
     }
@@ -1221,6 +1267,51 @@ pub fn save(name: &str, options: &SaveOptions) -> Result<Package> {
         crate::undo::live_gtk_theme().filter(|live| ini.as_deref() != Some(live.as_str()));
     write_manifest(&target, &package)?;
     Ok(package)
+}
+
+/// Save only the palette actually applied to KDE. GUI state can become stale
+/// after an external theme switch, so validate again under the mutation lock.
+pub(crate) fn save_palette_theme(
+    name: &str,
+    description: &str,
+    expected: Palette,
+) -> Result<Package> {
+    let _lock = crate::operation::MutationGuard::acquire()?;
+    validate_profile_name(name)?;
+    expected.validate()?;
+    let current = palette::load(&palette::live_palette_path())?;
+    anyhow::ensure!(
+        serde_json::to_value(&current)? == serde_json::to_value(&expected)?,
+        "Palette changed; apply it to KDE again before saving"
+    );
+    let live = fs::read_to_string(live_path(".config/kdeglobals"))?;
+    let scheme = palette::kde_color_scheme(&expected);
+    anyhow::ensure!(
+        field::ini_get(&live, "General", "ColorScheme").as_deref()
+            == Some(palette::kde_scheme_id(&expected).as_str()),
+        "Apply the current palette to KDE before saving it as a theme"
+    );
+    for section in crate::appearance::parse_ini(&scheme)
+        .into_iter()
+        .filter(|s| s.group().starts_with("Colors:"))
+    {
+        for line in &section.lines {
+            if let Some((key, value)) = line.split_once('=') {
+                anyhow::ensure!(
+                    field::ini_get(&live, section.group(), key).as_deref() == Some(value),
+                    "Live KDE colors differ from the palette; apply it again before saving"
+                );
+            }
+        }
+    }
+    anyhow::ensure!(!profile_dir(name)?.exists(), "Theme already exists: {name}");
+    save(
+        name,
+        &SaveOptions {
+            description: Some(description.into()),
+            include_wallpaper: true,
+        },
+    )
 }
 
 /// A theme without a wallpaper names none: not the author's path, not a plugin.
@@ -1484,7 +1575,14 @@ pub fn apply(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
 fn apply_inner(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
     validate_profile_name(name)?;
     let dir = profile_dir(name)?;
-    let package = load(&dir)?;
+    let mut package = load(&dir)?;
+    if options.sync_apps
+        && options.install_missing
+        && !options.skip_dependencies
+        && std::env::var("KTM_THEME_NO_APPLY").as_deref() != Ok("1")
+    {
+        prepare_editor_caches(&dir, &mut package)?;
+    }
     for asset in package
         .assets
         .iter()
@@ -1606,11 +1704,15 @@ fn apply_inner(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
             m.field, m.name
         ));
     }
-    let backup = crate::profile::apply_profile_keeping(
+    if options.sync_apps {
+        report.synced = crate::app_sync::targets(&dir, &package)?;
+    }
+    let backup = crate::profile::apply_profile_staged(
         name,
         &extras,
         package.wallpaper.is_none() || options.keep_wallpaper,
         &keep_fields,
+        options.sync_apps.then_some(&package),
     )?;
     // Telegram: nothing to run — once the user chose the palette file in
     // Telegram, it watches the file and re-applies it after the restore.
@@ -1663,18 +1765,6 @@ fn apply_inner(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
             crate::profile::apply_wallpaper_live(&path);
         }
     }
-    // Stage 2: editor / messenger / terminal themes (no MutationGuard, no
-    // Plasma restart). Skipped when sync_apps is false (--without-sync).
-    if options.sync_apps {
-        match apply_editor_themes(name, &package, options.install_missing) {
-            Ok(synced) => {
-                report.synced = synced;
-            }
-            Err(e) => {
-                report.errors.push(format!("stage 2 sync: {e:#}"));
-            }
-        }
-    }
     crate::operation::note_report(serde_json::to_value(&report)?)?;
     if !report.errors.is_empty() {
         anyhow::bail!("Apply follow-up failed: {}", report.errors.join("; "));
@@ -1682,287 +1772,54 @@ fn apply_inner(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
     Ok(report)
 }
 
-/// Stage 2 (background sync): install editor themes, messengers, terminals
-/// and shell tools carried by theme `name`.
-///
-/// Runs outside `MutationGuard` — no Plasma restart, no desktop blocking.
-/// Each adapter is independent: an error in one does not stop the others.
-/// Returns human-readable lines for the apply report.
-pub fn apply_editor_themes(
-    name: &str,
-    package: &Package,
-    install_missing: bool,
-) -> Result<Vec<String>> {
-    let dir = profile_dir(name)?;
-    let mut installed: Vec<String> = Vec::new();
-    let no_apply = std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1");
-
-    // ── 1. Editor themes (VS Code / Cursor / VSCodium / Windsurf / Zed) ──
-    for ed in &package.editor_themes {
-        if !ed.enabled {
+/// Explicit preparation only: no network during save, preview or confirmed apply.
+fn prepare_editor_caches(dir: &Path, package: &mut Package) -> Result<()> {
+    let mut changed = false;
+    for editor in package
+        .editor_themes
+        .iter_mut()
+        .filter(|e| e.enabled && e.editor != "zed")
+    {
+        if !editor.local_path.is_empty() && dir.join(&editor.local_path).is_dir() {
             continue;
         }
-        let cache_dir = dir.join(&ed.local_path);
-        let result = if cache_dir.is_dir() {
-            // Offline install from the theme's own cache.
-            stores::install_from_cache(&ed.editor, &cache_dir)
-        } else if !ed.url.is_empty() && !no_apply && crate::net::network_enabled() {
-            // Cache absent: download once now, then install.
-            match stores::download_vsix(&ed.url, &cache_dir) {
-                Ok(vsix_path) => {
-                    match stores::extract_vsix(&vsix_path, &cache_dir) {
-                        Ok(ext_root) => {
-                            let _ = std::fs::remove_file(&vsix_path);
-                            stores::install_from_cache(&ed.editor, &ext_root)
-                        }
-                        Err(e) => Err(anyhow!(
-                            "extract {} {}: {e:#}",
-                            ed.editor, ed.id
-                        )),
-                    }
-                }
-                Err(e) => Err(anyhow!("download {} {}: {e:#}", ed.editor, ed.id)),
-            }
-        } else if install_missing && !no_apply {
-            // Fall back to the store CLI.
-            match stores::install(&ed.editor, &ed.id) {
-                Ok(r) => {
-                    installed.push(format!(
-                        "{} {} ({} themes)",
-                        ed.editor,
-                        ed.id,
-                        r.themes.len()
-                    ));
-                    continue;
-                }
-                Err(e) => {
-                    installed.push(format!(
-                        "editor theme {} {}: {e:#}",
-                        ed.editor, ed.id
-                    ));
-                    continue;
-                }
-            }
-        } else {
-            Err(anyhow!(
-                "editor theme cache missing for {} {}",
-                ed.editor, ed.id
-            ))
-        };
-
-        match result {
-            Ok(paths) => {
-                for p in paths {
-                    installed.push(format!("editor theme {} -> {}", ed.editor, p));
-                }
-            }
-            Err(e) => {
-                installed.push(format!(
-                    "editor theme {} {}: {e:#}",
-                    ed.editor, ed.id
-                ));
-            }
+        if !stores::editor_installed(&editor.editor)
+            && !stores::extension_root(&editor.editor)?.is_dir()
+        {
+            continue;
         }
-    }
-
-    // ── 2. Palette-driven adapters (need the theme's base16 palette) ──
-    let Some(palette) = &package.palette else {
-        return Ok(installed);
-    };
-    let opacity = 1.0;
-
-    // Discord / Vencord / Vesktop — CSS theme + transparency toggle.
-    if !no_apply {
-        match discord::apply_palette(palette, opacity) {
-            Ok(written) => {
-                for p in written {
-                    installed.push(format!("discord theme -> {}", p.display()));
-                }
-            }
-            Err(e) => installed.push(format!("discord theme: {e:#}")),
+        anyhow::ensure!(!editor.url.is_empty(), "no download URL for {}", editor.id);
+        let staging = tempfile::tempdir_in(dir)?;
+        let archive = stores::download_vsix(&editor.url, &staging.path().join("download"))?;
+        let root = stores::extract_vsix(&archive, &staging.path().join("extracted"))?;
+        // Validate the extension before publishing the cache.
+        let mut plan = crate::change_plan::Plan::default();
+        stores::plan_from_cache(
+            &editor.editor,
+            &editor.id,
+            &root,
+            editor.native_watch,
+            &mut plan,
+        )?;
+        let rel = stores::editor_cache_subdir(&editor.editor, &editor.id);
+        let target = dir.join(&rel);
+        for path in target.ancestors().take_while(|p| *p != dir) {
+            anyhow::ensure!(!path.is_symlink(), "symlink in editor cache path");
         }
+        fs::create_dir_all(target.parent().context("cache parent")?)?;
+        anyhow::ensure!(
+            !target.exists(),
+            "incomplete editor cache already exists: {}",
+            target.display()
+        );
+        fs::rename(root, &target)?;
+        editor.local_path = rel.to_string_lossy().into();
+        changed = true;
     }
-
-    // Konsole — colourscheme + select in default profile.
-    if !no_apply {
-        match konsole::apply_palette(palette) {
-            Ok(path) => installed.push(format!("konsole scheme -> {}", path.display())),
-            Err(e) => installed.push(format!("konsole scheme: {e:#}")),
-        }
+    if changed {
+        write_manifest(dir, package)?;
     }
-
-    // Ghostty — colours in ghostty/kolira, host config gains include line.
-    if !no_apply {
-        match extras::ghostty_apply_palette(palette) {
-            Ok(Some(path)) => installed.push(format!("ghostty theme -> {}", path.display())),
-            Ok(None) => installed.push("ghostty: not configured here".to_string()),
-            Err(e) => installed.push(format!("ghostty theme: {e:#}")),
-        }
-    }
-
-    // Cava — [color] gradient, reload via SIGUSR1.
-    if !no_apply {
-        match extras::cava_apply_palette(palette) {
-            Ok(Some(_)) => {
-                extras::reload_cava();
-                installed.push("cava gradient reloaded".to_string());
-            }
-            Ok(None) => installed.push("cava: not configured here".to_string()),
-            Err(e) => installed.push(format!("cava gradient: {e:#}")),
-        }
-    }
-
-    // Telegram — palette file, watched by the client.
-    if !no_apply {
-        match telegram::apply_palette(palette) {
-            Ok(telegram::Outcome::Written(path, follows)) => {
-                installed.push(format!(
-                    "telegram palette -> {} (follows: {})",
-                    path.display(),
-                    follows
-                ));
-            }
-            Ok(telegram::Outcome::Skipped(reason)) => {
-                installed.push(format!("telegram palette: skipped ({reason})"));
-            }
-            Err(e) => installed.push(format!("telegram palette: {e:#}")),
-        }
-    }
-
-    // ── 3. Browsers (Firefox userChrome.css, Chromium Preferences) ──
-    if !no_apply {
-        match apply_browser_themes(palette) {
-            Ok(lines) => installed.extend(lines),
-            Err(e) => installed.push(format!("browser themes: {e:#}")),
-        }
-    }
-
-    Ok(installed)
-}
-
-/// Generate Firefox `userChrome.css` from the theme palette.
-fn firefox_user_css(p: &Palette) -> String {
-    let bg = p.base.get(0).map(|s| s.as_str()).unwrap_or("#1e1f23");
-    let fg = p.base.get(5).map(|s| s.as_str()).unwrap_or("#d0d1d3");
-    let accent = &p.accent;
-    let accent_hover = p
-        .base
-        .get(8)
-        .map(|s| s.as_str())
-        .unwrap_or("#e88f87");
-    format!(
-        r#"/* Plasma Theme Master — generated from palette "{}" */
-:root {{
-  --plasma-window-bg: {bg};
-  --plasma-window-fg: {fg};
-  --plasma-accent: {accent};
-  --plasma-accent-hover: {accent_hover};
-}}
-
-window,
-#navigator-toolbox,
-.tab-background,
-.tab-browser-tab,
-#TabsToolbar,
-#PersonalToolbar,
-#sidebar,
-#sidebar-header,
-#sidebar-box {{
-  background-color: {bg} !important;
-  color: {fg} !important;
-}}
-
-.tab-browser-tab[selected="true"] {{
-  background-color: {accent} !important;
-  color: {bg} !important;
-}}
-
-.tab-browser-tab:not([selected="true"]) {{
-  background-color: {bg} !important;
-  color: {fg} !important;
-  opacity: 0.7;
-}}
-
-.button,
-.toolbarbutton-1,
-.tabbrowser-tab .tab-icon-overlay,
-.tabbrowser-tab .tab-close-button {{
-  fill: {fg} !important;
-}}
-
-#urlbar,
-#searchbar {{
-  background-color: {bg} !important;
-  color: {fg} !important;
-  border: 1px solid {accent} !important;
-}}
-
-#urlbar[focused],
-#searchbar[focused] {{
-  border: 2px solid {accent} !important;
-}}"#,
-        p.name
-    )
-}
-
-/// Firefox + Chromium browser themes from the theme palette.
-/// Firefox: writes `chrome/userChrome.css` in the default profile.
-/// Chromium: writes GTK theme override into `Default/Preferences`.
-fn apply_browser_themes(p: &Palette) -> Result<Vec<String>> {
-    let mut installed: Vec<String> = Vec::new();
-
-    // Firefox — userChrome.css in the default profile.
-    if let Some(profile) = tracked_apps::firefox_profile_dir() {
-        let chrome_dir = crate::paths::home_dir()
-            .join(".mozilla/firefox")
-            .join(profile)
-            .join("chrome");
-        std::fs::create_dir_all(&chrome_dir)?;
-        let css = firefox_user_css(p);
-        let path = chrome_dir.join("userChrome.css");
-        std::fs::write(&path, &css)?;
-        installed.push(format!("firefox userChrome.css -> {}", path.display()));
-    }
-
-    // Chromium — GTK theme override in Default/Preferences.
-    if let Ok(prefs) = crate::paths::home_dir()
-        .join(".config/chromium/Default/Preferences")
-        .try_exists()
-    {
-        if prefs {
-            let prefs_path = crate::paths::home_dir()
-                .join(".config/chromium/Default/Preferences");
-            if let Ok(text) = std::fs::read_to_string(&prefs_path) {
-                if let Ok(mut val) = serde_json::from_str::<serde_json::Value>(&text) {
-                    if let Some(obj) = val.as_object_mut() {
-                        obj.insert(
-                            "profile".to_string(),
-                            serde_json::json!({
-                                "theme": {
-                                    "ntp_background": p.base.get(0).unwrap_or(&"#1e1f23".to_string()).clone(),
-                                    "ntp_text": p.base.get(5).unwrap_or(&"#d0d1d3".to_string()).clone(),
-                                    "toolbar": p.base.get(0).unwrap_or(&"#1e1f23".to_string()).clone(),
-                                    "toolbar_text": p.base.get(5).unwrap_or(&"#d0d1d3".to_string()).clone(),
-                                    "frame": p.base.get(0).unwrap_or(&"#1e1f23".to_string()).clone(),
-                                    "frame_text": p.base.get(5).unwrap_or(&"#d0d1d3".to_string()).clone(),
-                                    "buttons": p.base.get(0).unwrap_or(&"#1e1f23".to_string()).clone(),
-                                    "buttons_text": p.base.get(5).unwrap_or(&"#d0d1d3".to_string()).clone(),
-                                }
-                            }),
-                        );
-                        let new_text = serde_json::to_string_pretty(&val)?;
-                        std::fs::write(&prefs_path, &new_text)?;
-                        installed.push(format!(
-                            "chromium Default/Preferences -> {}",
-                            prefs_path.display()
-                        ));
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(installed)
+    Ok(())
 }
 
 /// What applying `name` would miss (no changes made).
@@ -2042,7 +1899,9 @@ fn find_installed_extension(app: &str, ext: &str) -> Option<PathBuf> {
     };
     let (publisher, name) = ext.split_once('.')?;
     for root in roots {
-        let Ok(entries) = fs::read_dir(&root) else { continue };
+        let Ok(entries) = fs::read_dir(&root) else {
+            continue;
+        };
         for entry in entries.flatten() {
             let path = entry.path();
             if !path.is_dir() {
@@ -2057,9 +1916,9 @@ fn find_installed_extension(app: &str, ext: &str) -> Option<PathBuf> {
             if pkg.is_file() {
                 if let Ok(text) = fs::read_to_string(&pkg) {
                     if let Ok(pkg) = serde_json::from_str::<serde_json::Value>(&text) {
-                        let p = pkg.get("publisher")?.as_str()?;
-                        let n = pkg.get("name")?.as_str()?;
-                        if p == publisher && n == name {
+                        if pkg.get("publisher").and_then(Value::as_str) == Some(publisher)
+                            && pkg.get("name").and_then(Value::as_str) == Some(name)
+                        {
                             return Some(path);
                         }
                     }
@@ -2068,22 +1927,6 @@ fn find_installed_extension(app: &str, ext: &str) -> Option<PathBuf> {
         }
     }
     None
-}
-
-/// Recursively copy `src` directory into `dst`.
-fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
-    std::fs::create_dir_all(dst)?;
-    for entry in std::fs::read_dir(src)? {
-        let entry = entry?;
-        let src_path = entry.path();
-        let dst_path = dst.join(entry.file_name());
-        if src_path.is_dir() {
-            copy_dir_recursive(&src_path, &dst_path)?;
-        } else {
-            std::fs::copy(&src_path, &dst_path)?;
-        }
-    }
-    Ok(())
 }
 
 #[cfg(test)]

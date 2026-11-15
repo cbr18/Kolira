@@ -134,7 +134,26 @@ AppDialog {
                     text: qsTr("Keep the current wallpaper")
                     checked: dialog.report.keep_wallpaper || false
                     enabled: !profileController.busy
-                    onToggled: profileController.previewApply(dialog.report.name, checked)
+                    onToggled: profileController.previewApply(dialog.report.name, checked, dialog.report.without_sync || false)
+                }
+
+                CheckBox {
+                    id: skipAppThemes
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: qsTr("Skip generated app themes and editor installs")
+                    checked: dialog.report.without_sync || false
+                    enabled: !profileController.busy
+                    onToggled: profileController.previewApply(dialog.report.name, dialog.report.keep_wallpaper || false, checked)
+                    contentItem: Label {
+                        text: skipAppThemes.text
+                        leftPadding: skipAppThemes.indicator.width + skipAppThemes.spacing
+                        wrapMode: Text.WordWrap
+                        verticalAlignment: Text.AlignVCenter
+                        color: ThemeColors.fgColor(dialog.glassMode)
+                    }
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Saved application settings still restore. Skip additional palette generation and cached editor installation.")
                 }
 
             }

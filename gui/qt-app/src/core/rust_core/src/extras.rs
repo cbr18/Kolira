@@ -256,6 +256,10 @@ fn replace_block(existing: &str, block: &str, begin: &str, end: &str) -> String 
     }
 }
 
+pub(crate) fn ghostty_palette_text(current: &str, p: &Palette) -> String {
+    replace_block(current, &ghostty_colors(p), GHOSTTY_BEGIN, GHOSTTY_END)
+}
+
 pub fn ghostty_apply_palette(p: &Palette) -> Result<Option<PathBuf>> {
     let host = home_dir().join(GHOSTTY_HOST);
     if !host.is_file() {
@@ -287,10 +291,17 @@ pub fn cava_apply_palette(p: &Palette) -> Result<Option<PathBuf>> {
     if !path.is_file() {
         return Ok(None);
     }
+    let text = cava_palette_text(&fs::read_to_string(&path)?, p);
+    fs::write(&path, text)?;
+    reload_cava();
+    Ok(Some(path))
+}
+
+pub(crate) fn cava_palette_text(existing: &str, p: &Palette) -> String {
     let r = kde_roles(p);
     let a = ansi16(p);
     let stops = [a[4], r.accent, a[5], a[1]];
-    let mut text = fs::read_to_string(&path)?;
+    let mut text = existing.to_string();
     text = set_ini_text(&text, "color", "gradient", "1");
     text = set_ini_text(&text, "color", "gradient_count", &stops.len().to_string());
     for (i, c) in stops.iter().enumerate() {
@@ -307,9 +318,7 @@ pub fn cava_apply_palette(p: &Palette) -> Result<Option<PathBuf>> {
         "foreground",
         &format!("'{}'", r.accent.hex()),
     );
-    fs::write(&path, text)?;
-    reload_cava();
-    Ok(Some(path))
+    text
 }
 
 pub const GTK4_CSS: &str = ".config/gtk-4.0/kolira.css";

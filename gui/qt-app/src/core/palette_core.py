@@ -89,6 +89,14 @@ class PaletteCore:
             args.append(f"--kvantum-base={kvantum_base}")
         return _run(args, timeout=180)
 
+    def save_theme(self, name: str, description: str, palette: dict) -> Result:
+        from .cli_core import core_request
+        try:
+            return Result.ok(data=core_request("palette.save_theme", name=name,
+                description=description, palette=palette))
+        except (ValueError, RuntimeError) as exc:
+            return Result.err(str(exc))
+
     def current_wallpaper(self) -> str:
         result = _run(["wallpaper", "current"], timeout=10)
         return result.message if result.success else ""

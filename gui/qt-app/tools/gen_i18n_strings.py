@@ -3,7 +3,7 @@
     python3 tools/gen_i18n_strings.py          # write src/core/i18n_strings.py
     python3 tools/gen_i18n_strings.py --fill   # put tools/i18n_ru.py into i18n/py_ru.ts
 
-Run by scripts/update-translations.sh (before pylupdate6 and after it).
+Run by gui/qt-app/tools/update_translations.py (before pylupdate6 and after it).
 """
 from __future__ import annotations
 

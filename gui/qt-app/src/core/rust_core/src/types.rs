@@ -39,10 +39,9 @@ pub struct ProfileInfo {
 
 /// A reference to an editor theme carried inside a theme package.
 ///
-/// The theme either downloads the `.vsix` / extension archive on first save
-/// and caches it under `assets/editor-themes/`, or the author bundles it
-/// directly in the repo/archive. Applying installs it from the local cache
-/// (offline) or from the official store if the cache is missing.
+/// Save caches an installed extension under `assets/editor-themes/`; authors
+/// may also bundle it directly. Normal apply uses only the cache. Missing
+/// archives require explicit --install-missing preparation.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub struct EditorTheme {
@@ -53,8 +52,10 @@ pub struct EditorTheme {
     /// Extension id (`publisher.name`) or Zed extension id.
     pub id: String,
     /// Version hint (may be empty).
+    #[serde(default)]
     pub version: String,
     /// Download URL (for `url`/`vscode-marketplace`/`open-vsx`/`zed` stores).
+    #[serde(default)]
     pub url: String,
     /// Path inside the theme package: `assets/editor-themes/<editor>/<id>/`.
     /// Empty when the theme only references a store id (download on demand).

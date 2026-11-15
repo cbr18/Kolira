@@ -147,7 +147,7 @@ shellcheck scripts/*.sh tests/test-scripts.sh
 find gui/qt-app/qml -name '*.qml' -print0 | xargs -0 qmllint
 
 # Translations (QML + Python → merged kolira_ru.qm)
-bash scripts/update-translations.sh
+python3 gui/qt-app/tools/update_translations.py
 ```
 
 `ruff` / `mypy` configs exist but are **not** enforced by CI; do not churn the

@@ -2163,10 +2163,20 @@ def test_i18n_pipeline_wired() -> None:
     # Пайплайн обновления: lupdate (QML) и pylupdate6 (Python) пишут в
     # РАЗНЫЕ .ts (ни один экстрактор не сохраняет контексты другого),
     # lrelease сливает оба в один .qm.
-    script = (PROJECT_ROOT.parent.parent / "scripts" / "update-translations.sh").read_text()
-    assert '"$LUPDATE" qml -ts "$QML_TS"' in script
-    assert '"$PYLUPDATE6" src --ts "$PY_TS"' in script
-    assert '"$LRELEASE" "$QML_TS" "$PY_TS" -qm "$QM_FILE"' in script
+    import importlib.util
+    import subprocess
+    spec = importlib.util.spec_from_file_location("update_translations", PROJECT_ROOT / "tools/update_translations.py")
+    pipeline = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pipeline)
+    from unittest.mock import patch
+    with patch.object(subprocess, "run") as run:
+        pipeline.main()
+    calls = [call.args[0] for call in run.call_args_list]
+    assert calls[0][1:] == ["qml", "-ts", str(PROJECT_ROOT / "i18n/qml_ru.ts")]
+    assert calls[2][1:] == ["src", "--ts", str(PROJECT_ROOT / "i18n/py_ru.ts")]
+    assert calls[-1][1:] == [str(PROJECT_ROOT / "i18n/qml_ru.ts"), str(PROJECT_ROOT / "i18n/py_ru.ts"), "-qm", str(qm)]
+    assert all(call.kwargs["check"] for call in run.call_args_list)
+
 
 
 def test_open_file_logs_every_launch() -> None:
@@ -2328,8 +2338,8 @@ def test_settings_available_components_uses_no_core_detection() -> None:
 # 29. PySide6 @Slot() arity must match the Python signature
 # ─────────────────────────────────────────────────────────────────────────────
 def test_slots_declare_every_python_argument() -> None:
-    """A @Slot() with fewer argument types than the Python signature makes Qt
-    silently drop the extra arguments at call time.
+    """A Qt slot must accept every required Python argument; overloads may omit
+    arguments with defaults.
 
     That is what broke ``diffProfiles``: declared ``@Slot(str, result=str)`` but
     implemented as ``(profile_a, profile_b)``, so every call from QML raised
@@ -2364,7 +2374,8 @@ def test_slots_declare_every_python_argument() -> None:
                 if p.kind in (p.POSITIONAL_OR_KEYWORD, p.POSITIONAL_ONLY)
                 and p.name != "self"
             ]
-            if declared != len(python_args):
+            required = sum(p.default is inspect.Parameter.empty for p in python_args)
+            if not required <= declared <= len(python_args):
                 problems.append(
                     f"{klass.__name__}.{name}: Qt slot declares {declared} "
                     f"argument(s) but Python takes {len(python_args)}"

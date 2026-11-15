@@ -130,3 +130,22 @@ def test_mcp_palette_and_store_tools(home: Path) -> None:
     assert call("palette_import", source="gallery:../etc")[0] is True
     # Offline (KTM_OFFLINE=1): the store reports the disabled network as a tool error.
     assert call("app_store_search", appId="btop", query="x")[0] is True
+
+
+def test_save_theme_requires_successful_kde_apply_of_unchanged_palette(home: Path) -> None:
+    from PySide6.QtCore import QCoreApplication
+    from controllers.palette import PaletteController
+    QCoreApplication.instance() or QCoreApplication([])
+    ctrl = PaletteController()
+    ctrl.importGallery("nord")
+    _settle()
+    assert not ctrl.canSaveTheme
+    ctrl.apply(["kitty"])
+    _settle()
+    assert not ctrl.canSaveTheme
+    ctrl.apply(["kde"])
+    _settle()
+    assert ctrl.canSaveTheme
+    ctrl.setSlot("base08", "#112233")
+    _settle()
+    assert not ctrl.canSaveTheme

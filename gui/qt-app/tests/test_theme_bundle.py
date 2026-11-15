@@ -937,3 +937,26 @@ def test_mcp_preview_is_readonly_and_rejects_stale_confirmation(cli_bundle_home)
     assert result["isError"] is True, result
     assert "PREVIEW_STALE" in result["content"][0]["text"]
     assert "ChangedAfterReview" in live_path(".config/kdeglobals").read_text()
+
+
+def test_bundle_controller_apply_and_settings_slots(cli_bundle_home, qtbot, monkeypatch):
+    from controllers.theme_bundle import ThemeBundleController
+    import controllers.theme_bundle as module
+    # The real bundle core signature catches mismatched GUI arguments.
+    monkeypatch.setattr(module, "ThemeBundleCore", lambda **kwargs: cli_bundle_home["core"])
+    ctrl = ThemeBundleController()
+    ctrl.setComponent("translucency", 73)
+    messages = []
+    ctrl.toast.connect(lambda text, ok: messages.append((text, ok)))
+    ctrl.applyChanges()
+    qtbot.waitUntil(lambda: not ctrl.busy, timeout=10000)
+    assert messages and messages[-1][1], messages
+    launches = []
+    monkeypatch.setattr("core.theme_bundle.subprocess.Popen", lambda args: launches.append(args))
+    ctrl.openSystemSettings()
+    ctrl.openSystemSettings("kcm_colors")
+    assert launches == [["systemsettings"], ["kcmshell6", "kcm_colors"]]
+    meta = ctrl.metaObject()
+    assert meta.indexOfMethod("saveProfile(QString,QString)") >= 0
+    assert meta.indexOfMethod("openSystemSettings(QString)") >= 0
+    assert meta.indexOfMethod("openSystemSettings()") >= 0

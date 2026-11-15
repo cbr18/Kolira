@@ -98,6 +98,16 @@ pub fn component_selection(value: &Value) -> Result<Option<Vec<String>>> {
 
 pub fn request(method: &str, args: &Value) -> Result<Value> {
     match method {
+        "palette.save_theme" => {
+            let palette =
+                serde_json::from_value(args["palette"].clone()).context("Expected palette")?;
+            let package = crate::theme::save_palette_theme(
+                str_arg(args, "name")?,
+                args["description"].as_str().unwrap_or(""),
+                palette,
+            )?;
+            Ok(serde_json::json!({"name":package.name}))
+        }
         "agent.capabilities" => Ok(crate::agent::capabilities()),
         "agent.schema" => Ok(crate::agent::schema()),
         "agent.prepare" => crate::agent::prepare(args),

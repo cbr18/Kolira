@@ -174,10 +174,10 @@ class CliProfileCore(ProfileCore):
         data = core_request("profile.info", _binary=self.bin, name=name)
         return ProfileInfo(**{**data, "is_active": is_active, "components": tuple(data["components"])})
 
-    def preview(self, profile: str, keep_wallpaper: bool = False, *, use_settings: bool = True) -> Result:
+    def preview(self, profile: str, keep_wallpaper: bool = False, *, use_settings: bool = True, without_sync: bool = False) -> Result:
         try:
             report = core_request("profile.preview", _binary=self.bin,
-                name=profile, keep_wallpaper=keep_wallpaper, use_settings=use_settings)
+                name=profile, keep_wallpaper=keep_wallpaper, use_settings=use_settings, without_sync=without_sync)
             from PySide6.QtCore import QCoreApplication
             for action in report.get("actions", []):
                 for key in ("title", "reason", "warning"):

@@ -235,117 +235,127 @@
         <translation>Сохранить текущие обои</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="157"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="144"/>
+        <source>Skip generated app themes and editor installs</source>
+        <translation>Пропустить генерацию тем приложений и установку тем редакторов</translation>
+    </message>
+    <message>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="156"/>
+        <source>Saved application settings still restore. Skip additional palette generation and cached editor installation.</source>
+        <translation>Сохранённые настройки приложений будут восстановлены. Пропустить дополнительную генерацию из палитры и установку кэша редакторов.</translation>
+    </message>
+    <message>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="176"/>
         <source>Show changes for %1</source>
         <translation>Показать изменения %1</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="171"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="190"/>
         <source>Delete</source>
         <translation>Удалить</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="171"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="190"/>
         <source>Create</source>
         <translation>Создать</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="171"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="190"/>
         <source>Modify</source>
         <translation>Изменить</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="181"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="200"/>
         <source>Includes resetting settings from the previous theme</source>
         <translation>Включает сброс настроек предыдущей темы</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="188"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="207"/>
         <source>Permissions: %1 → %2</source>
         <translation>Права: %1 → %2</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="204"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="223"/>
         <source>Link target: %1 → %2</source>
         <translation>Назначение ссылки: %1 → %2</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="204"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="223"/>
         <source>File content is unchanged.</source>
         <translation>Содержимое файла не меняется.</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="204"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="223"/>
         <source>Binary or large file: %1 → %2 bytes</source>
         <translation>Двоичный или большой файл: %1 → %2 байт</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="212"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="231"/>
         <source>Preview shortened; the confirmation covers the complete file.</source>
         <translation>Просмотр сокращён; подтверждение относится ко всему файлу.</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="229"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="248"/>
         <source>Unavailable components keep their current appearance where supported:</source>
         <translation>Недоступные компоненты по возможности сохраняют текущее оформление:</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="245"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="264"/>
         <source>Missing dependencies: %1</source>
         <translation>Недостающих зависимостей: %1</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="254"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="273"/>
         <source>Dependencies…</source>
         <translation>Зависимости…</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="269"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="288"/>
         <source>Follow-up actions:</source>
         <translation>Действия после применения:</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="281"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="300"/>
         <source>Desktop settings:</source>
         <translation>Настройки рабочего стола:</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="283"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="302"/>
         <source>GTK theme</source>
         <translation>Тема GTK</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="284"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="303"/>
         <source>Colour preference</source>
         <translation>Светлое или тёмное оформление</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="285"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="304"/>
         <source>Icon theme</source>
         <translation>Тема значков</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="286"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="305"/>
         <source>Cursor theme</source>
         <translation>Тема курсора</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="288"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="307"/>
         <source>Unknown</source>
         <translation>Неизвестно</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="304"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="323"/>
         <source>Name for the current appearance</source>
         <translation>Имя для текущего оформления</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="309"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="328"/>
         <source>Save current first</source>
         <translation>Сначала сохранить текущее</translation>
     </message>
     <message>
-        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="321"/>
+        <location filename="../qml/Components/ApplyPreviewDialog.qml" line="340"/>
         <source>Current appearance saved as %1</source>
         <translation>Текущее оформление сохранено как %1</translation>
     </message>
@@ -1599,47 +1609,82 @@
         <translation>Применить палитру</translation>
     </message>
     <message>
+        <location filename="../qml/pages/PalettePage.qml" line="388"/>
+        <source>Save as theme…</source>
+        <translation>Сохранить как тему…</translation>
+    </message>
+    <message>
         <location filename="../qml/pages/PalettePage.qml" line="393"/>
+        <source>Apply the current palette to KDE first, then save the applied look as a reusable theme</source>
+        <translation>Сначала примените текущую палитру к KDE, затем сохраните оформление как тему</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/PalettePage.qml" line="401"/>
+        <source>Save theme from palette</source>
+        <translation>Сохранить тему из палитры</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/PalettePage.qml" line="411"/>
+        <source>The current palette and applied look will be saved as a v2 theme bundle. You can apply it again later with &lt;i&gt;kolira apply&lt;/i&gt; or from the Theme page.</source>
+        <translation>Текущая палитра и применённое оформление будут сохранены как тема v2. Её можно будет применить командой &lt;i&gt;kolira apply&lt;/i&gt; или со страницы темы.</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/PalettePage.qml" line="417"/>
+        <source>Theme name</source>
+        <translation>Название темы</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/PalettePage.qml" line="425"/>
+        <source>Use letters, digits, dots, dashes or underscores; the first character must not be a dot.</source>
+        <translation>Используйте латинские буквы, цифры, точки, дефисы и подчёркивания; первый символ — буква или цифра.</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/PalettePage.qml" line="430"/>
+        <source>Description (optional)</source>
+        <translation>Описание (необязательно)</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/PalettePage.qml" line="453"/>
         <source>Palette gallery</source>
         <translation>Галерея палитр</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="410"/>
+        <location filename="../qml/pages/PalettePage.qml" line="470"/>
         <source>Search, e.g. gruvbox</source>
         <translation>Поиск, например gruvbox</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="415"/>
+        <location filename="../qml/pages/PalettePage.qml" line="475"/>
         <source>Online catalogue</source>
         <translation>Онлайн-каталог</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="418"/>
+        <location filename="../qml/pages/PalettePage.qml" line="478"/>
         <source>~360 schemes from tinted-theming; needs network (can be disabled in settings)</source>
         <translation>~360 схем tinted-theming; нужна сеть (можно отключить в настройках)</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="440"/>
+        <location filename="../qml/pages/PalettePage.qml" line="500"/>
         <source>light</source>
         <translation>светлая</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="441"/>
+        <location filename="../qml/pages/PalettePage.qml" line="501"/>
         <source>dark</source>
         <translation>тёмная</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="445"/>
+        <location filename="../qml/pages/PalettePage.qml" line="505"/>
         <source>built-in</source>
         <translation>встроенная</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="446"/>
+        <location filename="../qml/pages/PalettePage.qml" line="506"/>
         <source>downloaded</source>
         <translation>скачана</translation>
     </message>
     <message>
-        <location filename="../qml/pages/PalettePage.qml" line="446"/>
+        <location filename="../qml/pages/PalettePage.qml" line="506"/>
         <source>online</source>
         <translation>онлайн</translation>
     </message>
@@ -2567,22 +2612,32 @@
         <translation>Обновить</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="258"/>
+        <location filename="../qml/pages/ThemePage.qml" line="231"/>
+        <source>System Settings</source>
+        <translation>Параметры системы</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="236"/>
+        <source>Open KDE System Settings (all system modules)</source>
+        <translation>Открыть параметры системы KDE (все модули)</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ThemePage.qml" line="266"/>
         <source>Active</source>
         <translation>Активен</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="259"/>
+        <location filename="../qml/pages/ThemePage.qml" line="267"/>
         <source>Read-only</source>
         <translation>Только чтение</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="267"/>
+        <location filename="../qml/pages/ThemePage.qml" line="275"/>
         <source>Apply profile</source>
         <translation>Применить профиль</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/pages/ThemePage.qml" line="279"/>
+        <location filename="../qml/pages/ThemePage.qml" line="287"/>
         <source>Active profile: %1 · %n change(s)</source>
         <translation><numerusform>Активный профиль: %1 · %n изменение</numerusform><numerusform>Активный профиль: %1 · %n изменения</numerusform><numerusform>Активный профиль: %1 · %n изменений</numerusform></translation>
     </message>
@@ -2591,78 +2646,78 @@
         <translation type="vanished">Активный профиль: %1 · изменений: %2</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="280"/>
+        <location filename="../qml/pages/ThemePage.qml" line="288"/>
         <source>This profile is a saved theme bundle. Apply it to make it active.</source>
         <translation>Этот профиль — сохранённый комплект темы. Примените его, чтобы сделать активным.</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="302"/>
+        <location filename="../qml/pages/ThemePage.qml" line="310"/>
         <source>Create custom theme…</source>
         <translation>Создать тему…</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="313"/>
+        <location filename="../qml/pages/ThemePage.qml" line="321"/>
         <source>Apply changes</source>
         <translation>Применить изменения</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="332"/>
+        <location filename="../qml/pages/ThemePage.qml" line="340"/>
         <source>Revert</source>
         <translation>Вернуть</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="420"/>
+        <location filename="../qml/pages/ThemePage.qml" line="428"/>
         <source>Open</source>
         <translation>Открыть</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="433"/>
-        <location filename="../qml/pages/ThemePage.qml" line="477"/>
+        <location filename="../qml/pages/ThemePage.qml" line="441"/>
+        <location filename="../qml/pages/ThemePage.qml" line="485"/>
         <source>Palette</source>
         <translation>Палитра</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="434"/>
+        <location filename="../qml/pages/ThemePage.qml" line="442"/>
         <source>One base16 palette for the colour scheme, terminals and Kvantum</source>
         <translation>Одна палитра base16 для цветовой схемы, терминалов и Kvantum</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="503"/>
+        <location filename="../qml/pages/ThemePage.qml" line="511"/>
         <source>%1 · %2</source>
         <translation>%1 · %2</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="504"/>
+        <location filename="../qml/pages/ThemePage.qml" line="512"/>
         <source>No palette yet — gallery or wallpaper</source>
         <translation>Палитры пока нет — галерея или обои</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="511"/>
+        <location filename="../qml/pages/ThemePage.qml" line="519"/>
         <source>Open palette</source>
         <translation>Открыть палитру</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="523"/>
+        <location filename="../qml/pages/ThemePage.qml" line="531"/>
         <source>Application themes</source>
         <translation>Темы приложений</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="524"/>
+        <location filename="../qml/pages/ThemePage.qml" line="532"/>
         <source>Choose themes for supported applications</source>
         <translation>Выбрать темы для поддерживаемых приложений</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="567"/>
+        <location filename="../qml/pages/ThemePage.qml" line="575"/>
         <source>Applications</source>
         <translation>Приложения</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="577"/>
+        <location filename="../qml/pages/ThemePage.qml" line="585"/>
         <source>%1 supported · %2 installed</source>
         <translation>Поддерживается: %1 · установлено: %2</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="585"/>
+        <location filename="../qml/pages/ThemePage.qml" line="593"/>
         <source>Choose app themes</source>
         <translation>Выбрать темы приложений</translation>
     </message>
@@ -2705,7 +2760,7 @@
         <translation type="vanished">Изменений в сессии: %1</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="290"/>
+        <location filename="../qml/pages/ThemePage.qml" line="298"/>
         <source>Save as profile…</source>
         <translation>Сохранить как профиль…</translation>
     </message>
@@ -2714,7 +2769,7 @@
         <translation type="vanished">Применить</translation>
     </message>
     <message>
-        <location filename="../qml/pages/ThemePage.qml" line="323"/>
+        <location filename="../qml/pages/ThemePage.qml" line="331"/>
         <source>Undo</source>
         <translation>Отменить</translation>
     </message>

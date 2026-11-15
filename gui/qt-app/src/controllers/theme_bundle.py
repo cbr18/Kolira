@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import subprocess
 from typing import Optional
 
 from PySide6.QtCore import Property, QObject, QUrl, Signal, Slot
@@ -32,7 +31,6 @@ class ThemeBundleController(QObject):
     busyChanged = Signal()
     storeChanged = Signal()
     toast = Signal(str, bool)
-    withoutSyncChanged = Signal()
 
     def __init__(self, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
@@ -50,7 +48,6 @@ class ThemeBundleController(QObject):
         self._store_items: list = []
         self._store_app = ""
         self._store_busy = False
-        self._without_sync = False
         self.refresh()
 
     # ── properties ───────────────────────────────────────────────────────
@@ -85,16 +82,6 @@ class ThemeBundleController(QObject):
     @Property(bool, notify=scopeChanged)
     def readOnly(self) -> bool:
         return self._scope != "live"
-
-    @Property(bool, notify=withoutSyncChanged)
-    def withoutSync(self) -> bool:
-        return self._without_sync
-
-    @Slot(bool)
-    def setWithoutSync(self, value: bool) -> None:
-        if self._without_sync != value:
-            self._without_sync = value
-            self.withoutSyncChanged.emit()
 
     @Property(int, notify=groupsChanged)
     def sessionChanges(self) -> int:
@@ -211,6 +198,7 @@ class ThemeBundleController(QObject):
         self.refresh()
 
     @Slot(str)
+    @Slot(str, str)
     def saveProfile(self, name: str, description: str = "") -> None:
         try:
             name = validate_profile_name(name)
@@ -277,7 +265,7 @@ class ThemeBundleController(QObject):
             return
 
         def work() -> tuple[bool, str]:
-            result = self._core.apply(without_sync=self._without_sync)
+            result = self._core.apply()
             return result.success, result.message
 
         def done(success: bool, message: str) -> None:
@@ -343,8 +331,9 @@ class ThemeBundleController(QObject):
 
     # ── external actions ─────────────────────────────────────────────────
 
+    @Slot()
     @Slot(str)
-    def openSystemSettings(self, module: str) -> None:
+    def openSystemSettings(self, module: str = "") -> None:
         result = self._core.open_system_settings(module)
         if not result.success:
             self.toast.emit(localize(result.message), False)
@@ -364,13 +353,6 @@ class ThemeBundleController(QObject):
         result = self._core.open_app_theme_settings(app_id)
         self.toast.emit(localize(result.message), result.success)
 
-    @Slot()
-    def openSystemSettings(self) -> None:
-        """Open the main KDE System Settings application."""
-        try:
-            subprocess.Popen(["systemsettings"])
-        except OSError as exc:
-            self.toast.emit(str(exc), False)
 
 
 __all__ = ["ThemeBundleController"]

@@ -163,6 +163,11 @@ fn build_impl(args: &Value, include_text_diff: bool) -> Result<Value> {
         old_layout.as_deref(),
         &mut plan,
     )?;
+    if args["without_sync"] != true {
+        if let Some(package) = &package {
+            crate::app_sync::plan_apps(&source, package, &mut plan)?;
+        }
+    }
     let mut journal_rels = rels.clone();
     journal_rels.push(".config/konsolerc".into());
     crate::undo::plan_record_prefs(&mut journal, &journal_rels, &mut plan)?;
@@ -284,10 +289,10 @@ fn build_impl(args: &Value, include_text_diff: bool) -> Result<Value> {
             file
         })
         .collect();
-    let canonical = json!({"name":name,"components":selection,"keep_wallpaper":args["keep_wallpaper"].as_bool().unwrap_or(false),"inputs":plan.inputs,"changes":fingerprints,"runtime_state":runtime_state,"runtime_changes":runtime_changes,"missing":missing,"dependencies":dependencies,"actions":actions,"kept":kept});
+    let canonical = json!({"name":name,"components":selection,"keep_wallpaper":args["keep_wallpaper"].as_bool().unwrap_or(false),"without_sync":args["without_sync"].as_bool().unwrap_or(false),"inputs":plan.inputs,"changes":fingerprints,"runtime_state":runtime_state,"runtime_changes":runtime_changes,"missing":missing,"dependencies":dependencies,"actions":actions,"kept":kept});
     let token = hash(&serde_json::to_vec(&canonical)?);
     Ok(
-        json!({"name":name,"token":token,"source_digest":source_digest,"keep_wallpaper":args["keep_wallpaper"].as_bool().unwrap_or(false),"components":selection,"files":files,"file_count":files.len(),"missing":missing,"dependencies":dependencies,"actions":actions,"kept_fields":kept,"runtime_changes":runtime_changes,"restart_plasma":true,"preserves_personal_settings":true,"custom_components":custom_components}),
+        json!({"name":name,"token":token,"source_digest":source_digest,"keep_wallpaper":args["keep_wallpaper"].as_bool().unwrap_or(false),"without_sync":args["without_sync"].as_bool().unwrap_or(false),"components":selection,"files":files,"file_count":files.len(),"missing":missing,"dependencies":dependencies,"actions":actions,"kept_fields":kept,"runtime_changes":runtime_changes,"restart_plasma":true,"preserves_personal_settings":true,"custom_components":custom_components}),
     )
 }
 

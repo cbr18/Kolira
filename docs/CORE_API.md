@@ -42,6 +42,7 @@ printf '%s' '{"id":"window_bg"}' | kolira core field.read
 | `inspector.state/stage/config/component/apply/undo/revert/reset/create_profile/close` | Сессия редактирования и составные операции |
 | `app.*` | Метаданные, доступность, текущая/установленные темы, применение и запуск приложений |
 | `resource.clone`, `bundle.components/metadata/validate` | Производные KDE/Kvantum-ресурсы и метаданные темы |
+| `palette.save_theme` | `name`, `description?`, `palette`: сохранить новый снимок после сверки палитры и живых KDE-цветов под общей блокировкой; ответ `{name}`, отказ без записи при несовпадении/существующем имени |
 | `wallpaper.directory/list/current/set` | Каталог, общий порядок и прямое применение обоев |
 | `desktop.load_blur/recover`, `report.export` | Ограниченные внешние вызовы и атомарная запись отчёта Inspector |
 
@@ -92,6 +93,10 @@ Inspector использует ту же блокировку, сохраняя 
 
 `profile.preview` returns a read-only file plan and token;
 `profile.save_before_apply` saves current appearance under a new, unused name.
+`profile.preview.without_sync` (default false) excludes generated app follow-ups
+and cached editor installation, but keeps saved app settings in the snapshot.
+It is returned in the report and participates in the token; pass the same value
+to `profile.apply`. Both stages share the recovery transaction.
 `profile.apply.preview_token` binds confirmation to the reviewed state and
 forbids implicit dependency installation. Stale state returns `PREVIEW_STALE`.
 [Parameters, response fields and limits](APPLY_PREVIEW.md).

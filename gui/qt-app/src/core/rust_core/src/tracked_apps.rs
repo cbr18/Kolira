@@ -636,21 +636,6 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             docs_url: "https://www.userchrome.org/".to_string(),
         },
         TrackedAppDef {
-            id: "chromium".to_string(),
-            name: "Chromium".to_string(),
-            category: "Browser".to_string(),
-            config_paths: vec![
-                ".config/chromium/Default/Preferences".to_string(),
-                ".config/chromium/Default/secure preferences".to_string(),
-            ],
-            detect_command: Some("chromium|chromium-browser".to_string()),
-            flatpak_id: None,
-            supports_live_reload: false,
-            description: "Chromium browser theme via Preferences JSON".to_string(),
-            icon: "chromium".to_string(),
-            docs_url: "https://www.chromium.org/".to_string(),
-        },
-        TrackedAppDef {
             id: "obsidian".to_string(),
             name: "Obsidian".to_string(),
             category: "Notes".to_string(),

@@ -185,19 +185,33 @@ and its backup remain available.
 | `wallpaper` | `wallpaper/<file>`, or `null` → applying keeps the current wallpaper |
 | `assets[]` | `{kind, name, path, origin: generated\|user, redistributable}` — local assets, `path` inside the theme |
 | `sources` | field id → `{store, id, url}`: editor-theme extensions (`vscode-marketplace`, `open-vsx`, `zed`) |
-| `editor_themes[]` | `{editor, store, id, version, url, local_path, native_watch}` — editor themes bundled with or referenced by this theme, cached under `assets/editor-themes/<editor>/<id>/` and installed from the local cache during apply (offline) or from the official store if the cache is missing |
+| `app_targets[]` | Explicit generated palette targets: `discord`, `konsole`, `ghostty`, `cava`, `telegram`, `firefox`; requires `palette`. Defaults to empty, preserving snapshot-only themes. |
+| `editor_themes[]` | `{editor, store, id, version, url, local_path, native_watch}` — editor themes bundled with or referenced by this theme, cached under `assets/editor-themes/<editor>/<id>/`; normal apply is offline, explicit `--install-missing` can prepare a missing cache |
 | `dependencies[]` | `{kind, name, source, id, title, url, exact}` — everything the theme needs that does not travel inside it (see *Dependencies*) |
 | `appearance_only` | the stored files hold only the look |
 
 System resources (Breeze, `/usr/share/Kvantum/*`, icon themes, Zed and VS Code
 built-ins, …) are referenced by name, not copied. Editor themes from the VS Code
 Marketplace / Open VSX / Zed extensions are referenced through `sources`.
-Editor theme binaries (`.vsix` for VS Code / Cursor / VSCodium, extension
-archives for Zed) are downloaded on first save and cached inside the theme at
-`assets/editor-themes/<editor>/<store-id>/`, so a later apply works offline.
-Authors may also place their own extension files directly in
-`assets/editor-themes/` in the theme repository and reference them with
-`local_path` set and `store: "local"`.
+`kolira save` copies the active installed VS Code/Cursor extension into
+`assets/editor-themes/<editor>/<id>/` without network access. A store reference
+without a cache can be prepared explicitly with `apply --install-missing`;
+normal/confirmed apply never downloads it. With `--without-dependencies`, this
+preparation is disabled. Missing enabled caches fail before live writes when the
+editor is configured here; editors absent on this machine are skipped.
+
+Authors may bundle an unpacked extension directory containing `package.json`
+and theme files, or Zed JSON files, and reference it with `store: "local"` and
+`local_path`. Paths must stay under `assets/editor-themes/`; links in editor
+caches are rejected. Supported editor IDs are `vscode`, `cursor`, `vscodium`,
+`windsurf`, and `zed`. Automatic capture currently discovers VS Code and Cursor;
+other editors need explicit metadata. `version` and `url` are optional hints,
+`enabled` defaults to true. A standalone `.vsix` path and `save --vscode-theme`
+are not CLI interfaces.
+
+Private export/import includes these caches. `export --public` omits editor
+binaries because their redistribution rights are not recorded; URL references
+remain, while local-only entries are disabled in that public export.
 
 ## CLI
 
@@ -233,25 +247,32 @@ kolira automation [--json] | set KEY=ask|always|never … | ask   # the user's c
     KWin, Qt, GTK, wallpaper from the theme snapshot. Pre-apply backup, plasmashell
     stopped and restarted, colour scheme / accent / widget style / KWin effects /
     kitty re-applied.
-  - **Stage 2 — background, no `MutationGuard`, no Plasma restart** (default):
-    installs editor themes (VS Code / Cursor / VSCodium / Windsurf / Zed),
-    messengers (Discord, Vesktop, Vencord), terminals (Konsole, Ghostty, Kitty,
-    Alacritty), and shell/media tools (Cava, Telegram, fish, starship, btop).
-    Editor themes are installed from the theme's cached
-    `assets/editor-themes/` (offline, no network) or from the official store
-    with `--install-missing`. VS Code / Cursor / VSCodium extensions are
-    unpacked into the editor's `extensions/` folder; a native extension folder
-    with `"_watch": true` is created so the editor reloads the theme without a
-    window restart. Zed theme JSON files are copied to `~/.config/zed/themes/`.
-    Palette-driven adapters (Discord, Konsole, Ghostty, Cava, Telegram) write
-    colours from the theme's base16 palette. Errors in one adapter do not stop
-    the others.
-  - `--without-sync`: skips stage 2, applies only stage 1 (KDE/Qt/GTK/wallpaper).
+  - **Stage 2 — follow-up under the same `MutationGuard`, no second Plasma
+    restart**: cached editor installation and palette-generated Discord/Vesktop/
+    Vencord, Konsole, Ghostty, Cava, Telegram and Firefox resources. Both stages
+    share preview, backup, rollback and the next-theme journal. The command waits
+    for completion; the GUI executes it on a worker thread.
+    Editors receive a complete `<publisher.name>-kolira` extension directory;
+    existing installed extensions are kept. Only theme contributions are enabled,
+    with `"_watch": true` when requested; executable extension entry points and
+    unrelated contributions are removed from the installed manifest. Reload
+    behavior still depends on the editor/version. VSCodium uses `.vscode-oss`.
+    Zed JSON files go to `$XDG_CONFIG_HOME/zed/themes/`.
+    Palette follow-ups run only for the explicit `app_targets[]` list (empty
+    by default). Merely carrying a palette does not opt all installed apps in.
+    Explicit app resources carried in the snapshot take priority over generation. Telegram uses only its cached default palette in this stage.
+    Firefox gets an imported `chrome/kolira.css`; existing custom CSS and privacy
+    preferences are preserved, and `user.js` enables stylesheet support. A browser
+    restart may be needed. Chromium Preferences is not tracked or rewritten;
+    Chromium theme support is deferred until a supported contract is implemented.
+  - `--without-sync`: skips generated follow-ups and cached editor installation.
+    Saved application configs still restore with the snapshot. The same option
+    is in the GUI Apply preview; changing it recalculates and invalidates the token.
   1. `--install-missing`: installs missing VS Code / Cursor / Zed themes from
      their official stores;
   2. `--keep-wallpaper`: leaves the current wallpaper even when the theme
      carries one;
-  3. `--without-dependencies`: skips the dependency check and installs;
+  3. `--without-dependencies`: suppresses dependency installation and editor-cache downloads;
   4. `--preview-token=HASH`: confirmed preview token (GUI/MCP);
   5. `--json`: prints `{applied, skipped, installed, synced, missing, errors,
      backup}` (used by the GUI and MCP).

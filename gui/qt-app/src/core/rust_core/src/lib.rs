@@ -7,6 +7,7 @@
 //! second (library) core — the application has a single core now.
 
 pub mod actions;
+pub(crate) mod app_sync;
 pub mod appearance;
 pub mod automation;
 pub mod config_parser;

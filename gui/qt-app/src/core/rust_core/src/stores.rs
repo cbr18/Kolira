@@ -72,7 +72,7 @@ fn valid_zed_id(id: &str) -> bool {
 }
 
 /// `publisher.extension` (VS Code extension id).
-fn valid_vsx_id(id: &str) -> bool {
+pub(crate) fn valid_vsx_id(id: &str) -> bool {
     let Some((publisher, name)) = id.split_once('.') else {
         return false;
     };
@@ -469,7 +469,9 @@ pub(crate) fn uninstall(app: &str, id: &str) -> Result<()> {
 /// Directory name for cached editor themes inside a theme package:
 /// `assets/editor-themes/<editor>/<store-id>/`.
 pub fn editor_cache_subdir(editor: &str, store_id: &str) -> PathBuf {
-    PathBuf::from(crate::theme::EDITOR_THEMES_DIR).join(editor).join(store_id)
+    PathBuf::from(crate::theme::EDITOR_THEMES_DIR)
+        .join(editor)
+        .join(store_id)
 }
 
 /// Download a VS Code / Open VSX extension (.vsix) to `dst_dir`, returning
@@ -477,184 +479,219 @@ pub fn editor_cache_subdir(editor: &str, store_id: &str) -> PathBuf {
 /// endpoint (`https://open-vsx.org/api/{namespace}/{name}/latest`) or a
 /// direct VS Code Marketplace vspackage URL.
 pub fn download_vsix(url: &str, dst_dir: &Path) -> Result<PathBuf> {
-    let bytes = http_get_bytes(url, crate::stores::MAX_ARCHIVE)?;
-    std::fs::create_dir_all(dst_dir)?;
-    let file_name = url
-        .rsplit('/')
-        .next()
-        .filter(|n| !n.is_empty())
-        .unwrap_or("extension.vsix");
-    let file_name = if file_name.ends_with(".vsix") || file_name.ends_with(".vspackage") {
-        file_name.to_string()
+    // Open VSX's latest endpoint is metadata, not a VSIX archive.
+    let url = if url.starts_with("https://open-vsx.org/api/") && url.ends_with("/latest") {
+        let metadata: serde_json::Value = serde_json::from_str(&http_get(url, MAX_INDEX)?)?;
+        metadata["files"]["download"]
+            .as_str()
+            .filter(|url| url.starts_with("https://"))
+            .context("Open VSX response has no HTTPS download URL")?
+            .to_string()
     } else {
-        format!("{file_name}.vsix")
+        url.to_string()
     };
-    let dst = dst_dir.join(&file_name);
-    std::fs::write(&dst, &bytes)?;
+    anyhow::ensure!(
+        url.starts_with("https://"),
+        "editor theme URL must use HTTPS"
+    );
+    let bytes = http_get_bytes(&url, MAX_ARCHIVE)?;
+    std::fs::create_dir_all(dst_dir)?;
+    let dst = dst_dir.join("extension.vsix");
+    crate::gui_api::write_bytes(&dst, &bytes, None)?;
     Ok(dst)
 }
 
-/// Extract a `.vsix` (ZIP) archive into `dst_dir`, preserving the extension
-/// folder structure. Returns the path to the extracted extension root
-/// (the folder containing `package.json`).
+/// Extract into a fresh staging directory; preserve nested names and cap the
+/// uncompressed size as well as the download. Existing paths/links are refused.
 pub fn extract_vsix(archive: &Path, dst_dir: &Path) -> Result<PathBuf> {
-    let file = std::fs::File::open(archive).context(format!("open {archive:?}"))?;
-    let mut zip = ZipArchive::new(file).context("not a valid .vsix ZIP archive")?;
-    let mut extension_root: Option<PathBuf> = None;
+    let mut zip = ZipArchive::new(std::fs::File::open(archive)?)?;
+    let mut total = 0u64;
+    anyhow::ensure!(zip.len() <= 10000, "too many VSIX entries");
+    std::fs::create_dir_all(dst_dir)?;
+    anyhow::ensure!(
+        std::fs::read_dir(dst_dir)?.next().is_none(),
+        "VSIX extraction needs an empty directory"
+    );
     for i in 0..zip.len() {
         let mut entry = zip.by_index(i)?;
-        let entry_path = entry.enclosed_name().ok_or_else(|| {
-            anyhow!("invalid path in .vsix: {}", entry.name())
-        })?;
-        // Strip a leading `extension/` or `package/` wrapper if present.
-        let rel = entry_path
-            .components()
-            .filter_map(|c| match c {
-                std::path::Component::Normal(n) => {
-                    if n == std::ffi::OsStr::new("extension") || n == std::ffi::OsStr::new("package") {
-                        None
-                    } else {
-                        Some(n.to_os_string())
-                    }
-                }
-                c => Some(c.as_os_str().to_os_string()),
-            })
-            .collect::<std::path::PathBuf>();
-        if rel.as_os_str().is_empty() {
-            continue;
-        }
+        let rel = entry.enclosed_name().context("invalid path in VSIX")?;
+        anyhow::ensure!(
+            !entry.unix_mode().is_some_and(|m| m & 0o170000 == 0o120000),
+            "symlink in VSIX"
+        );
+        total = total
+            .checked_add(entry.size())
+            .context("VSIX size overflow")?;
+        anyhow::ensure!(total <= MAX_ARCHIVE, "uncompressed VSIX exceeds size limit");
         let target = dst_dir.join(&rel);
+        for ancestor in target.ancestors().take_while(|p| *p != dst_dir) {
+            anyhow::ensure!(!ancestor.is_symlink(), "symlink in VSIX destination");
+        }
         if entry.is_dir() {
             std::fs::create_dir_all(&target)?;
         } else {
-            if let Some(parent) = target.parent() {
-                std::fs::create_dir_all(parent)?;
-            }
-            let mut out = std::fs::File::create(&target)?;
-            std::io::copy(&mut entry, &mut out)?;
-            if extension_root.is_none()
-                && (entry.name() == "package.json" || entry.name().ends_with("/package.json"))
-            {
-                extension_root = Some(target.parent().unwrap().to_path_buf());
-            }
+            std::fs::create_dir_all(target.parent().context("VSIX parent")?)?;
+            let mut out = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&target)?;
+            let copied = std::io::copy(&mut (&mut entry).take(MAX_ARCHIVE + 1), &mut out)?;
+            anyhow::ensure!(copied <= MAX_ARCHIVE, "VSIX file exceeds size limit");
         }
     }
-    let root = extension_root.unwrap_or_else(|| dst_dir.to_path_buf());
-    Ok(root)
+    [
+        dst_dir.join("extension"),
+        dst_dir.join("package"),
+        dst_dir.to_path_buf(),
+    ]
+    .into_iter()
+    .find(|p| p.join("package.json").is_file())
+    .context("VSIX has no extension package.json")
 }
 
-/// Create a native VS Code-style extension folder at `ext_dir` with
-/// `"_watch": true` in `package.json`, copying theme files from `src_dir`.
-/// Returns the extension folder path.
-pub fn create_native_extension(src_dir: &Path, ext_dir: &Path, publisher: &str, name: &str) -> Result<PathBuf> {
-    std::fs::create_dir_all(ext_dir)?;
-    // Copy all files from src_dir into ext_dir.
-    for entry in std::fs::read_dir(src_dir)? {
-        let entry = entry?;
-        let src = entry.path();
-        let dst = ext_dir.join(entry.file_name());
-        if src.is_dir() {
-            copy_dir(&src, &dst)?;
-        } else {
-            std::fs::copy(&src, &dst)?;
-        }
+/// Patch metadata without copying a file onto itself (which truncates it).
+pub fn create_native_extension(
+    src_dir: &Path,
+    ext_dir: &Path,
+    publisher: &str,
+    name: &str,
+) -> Result<PathBuf> {
+    let mut plan = crate::change_plan::Plan::default();
+    if src_dir != ext_dir {
+        plan.copy(src_dir, ext_dir, "editor_theme")?;
     }
-    // Patch or create package.json with _watch: true.
-    // A corrupt package.json (e.g. empty or truncated) is ignored: we still
-    // create a valid package.json with _watch: true.
-    let pkg_path = ext_dir.join("package.json");
-    let mut pkg: serde_json::Value = if pkg_path.is_file() {
-        std::fs::read_to_string(&pkg_path)
-            .ok()
-            .and_then(|text| serde_json::from_str(&text).ok())
-            .unwrap_or(serde_json::json!({}))
-    } else {
-        serde_json::json!({})
-    };
-    pkg.as_object_mut().context("package.json is not an object")?
-        .insert("_watch".to_string(), serde_json::json!(true));
-    pkg.as_object_mut().context("package.json is not an object")?
-        .insert("publisher".to_string(), serde_json::json!(publisher));
-    pkg.as_object_mut().context("package.json is not an object")?
-        .insert("name".to_string(), serde_json::json!(name));
-    let json = serde_json::to_string_pretty(&pkg)?;
-    std::fs::write(&pkg_path, json)?;
+    let path = ext_dir.join("package.json");
+    let text = plan.text(&path)?.unwrap_or_default();
+    let mut pkg: serde_json::Value = serde_json::from_str(&text).unwrap_or(serde_json::json!({}));
+    let obj = pkg
+        .as_object_mut()
+        .context("package.json is not an object")?;
+    obj.insert("_watch".into(), true.into());
+    obj.insert("publisher".into(), publisher.into());
+    obj.insert("name".into(), name.into());
+    plan.write_text(&path, serde_json::to_string_pretty(&pkg)?, "editor_theme")?;
+    plan.commit()?;
     Ok(ext_dir.to_path_buf())
 }
 
-/// Recursively copy a directory.
-fn copy_dir(src: &Path, dst: &Path) -> Result<()> {
-    std::fs::create_dir_all(dst)?;
-    for entry in std::fs::read_dir(src)? {
-        let entry = entry?;
-        let src_path = entry.path();
-        let dst_path = dst.join(entry.file_name());
-        if src_path.is_dir() {
-            copy_dir(&src_path, &dst_path)?;
-        } else {
-            std::fs::copy(&src_path, &dst_path)?;
-        }
+pub(crate) fn extension_root(editor: &str) -> Result<PathBuf> {
+    let home = crate::paths::home_dir();
+    Ok(home.join(match editor {
+        "vscode" => ".vscode/extensions",
+        "vscodium" => ".vscode-oss/extensions",
+        "cursor" => ".cursor/extensions",
+        "windsurf" => ".windsurf/extensions",
+        other => anyhow::bail!("no extension directory for {other:?}"),
+    }))
+}
+
+/// Plan a complete extension in its own namespace, never delete an installed
+/// extension or copy its internal folders directly into extensions/.
+fn strict_destination(path: &Path, container: &Path) -> Result<()> {
+    for current in path.ancestors().take_while(|p| *p != container) {
+        anyhow::ensure!(
+            !current.is_symlink(),
+            "symlink in editor destination: {}",
+            current.display()
+        );
     }
     Ok(())
 }
 
-/// Install an editor theme from a local cache directory (no network).
-/// For VS Code / Cursor / VSCodium: copies the extension folder into the
-/// editor's `extensions/` directory. For Zed: copies theme JSON files into
-/// `~/.config/zed/themes/`.
-pub fn install_from_cache(editor: &str, cache_dir: &Path) -> Result<Vec<String>> {
-    match editor {
-        "vscode" | "vscodium" | "cursor" | "windsurf" => {
-            let home = crate::paths::home_dir();
-            let ext_root = match editor {
-                "cursor" => home.join(".cursor/extensions"),
-                "windsurf" => home.join(".windsurf/extensions"),
-                _ => home.join(".vscode/extensions"),
-            };
-            std::fs::create_dir_all(&ext_root)?;
-            let mut installed = Vec::new();
-            for entry in std::fs::read_dir(cache_dir)? {
-                let entry = entry?;
-                let src = entry.path();
-                if src.is_dir() {
-                    let dst = ext_root.join(src.file_name().unwrap());
-                    if dst.exists() {
-                        std::fs::remove_dir_all(&dst)?;
-                    }
-                    copy_dir(&src, &dst)?;
-                    installed.push(dst.display().to_string());
-                }
+pub(crate) fn plan_from_cache(
+    editor: &str,
+    id: &str,
+    cache: &Path,
+    watch: bool,
+    plan: &mut crate::change_plan::Plan,
+) -> Result<Vec<String>> {
+    if editor == "zed" {
+        let out = crate::paths::config_home().join("zed/themes");
+        let mut files = Vec::new();
+        let input = if cache.join("themes").is_dir() {
+            cache.join("themes")
+        } else {
+            cache.to_path_buf()
+        };
+        for entry in std::fs::read_dir(input)? {
+            let entry = entry?;
+            if entry.path().extension().is_some_and(|e| e == "json") {
+                let target = out.join(entry.file_name());
+                strict_destination(&target, &out)?;
+                plan.copy(&entry.path(), &target, "editor_theme")?;
+                files.push(target.display().to_string());
             }
-            Ok(installed)
         }
-        "zed" => {
-            let out = crate::paths::config_home().join("zed").join("themes");
-            std::fs::create_dir_all(&out)?;
-            let mut themes = Vec::new();
-            for entry in std::fs::read_dir(cache_dir)? {
-                let entry = entry?;
-                let src = entry.path();
-                if src.is_file() && src.extension().is_some_and(|e| e == "json") {
-                    let dst = out.join(src.file_name().unwrap());
-                    std::fs::copy(&src, &dst)?;
-                    let text = std::fs::read_to_string(&src)?;
-                    let v: serde_json::Value = serde_json::from_str(&text)?;
-                    if let Some(names) = v.get("themes").and_then(|t| t.as_array()) {
-                        for n in names {
-                            if let Some(name) = n.get("name").and_then(|x| x.as_str()) {
-                                themes.push(name.to_string());
-                            }
-                        }
-                    }
-                }
-            }
-            Ok(themes)
-        }
-        other => Err(anyhow!("no cache install for editor {other:?}")),
+        anyhow::ensure!(!files.is_empty(), "Zed cache has no theme JSON files");
+        return Ok(files);
     }
+    anyhow::ensure!(valid_vsx_id(id), "invalid extension id");
+    let root = extension_root(editor)?;
+    let target = root.join(format!("{id}-kolira"));
+    strict_destination(&target, &root)?;
+    let mut pkg: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(cache.join("package.json"))?)?;
+    let obj = pkg
+        .as_object_mut()
+        .context("extension manifest must be an object")?;
+    let (publisher, name) = id.split_once('.').context("extension id")?;
+    anyhow::ensure!(
+        obj.get("publisher").and_then(|x| x.as_str()) == Some(publisher)
+            && obj.get("name").and_then(|x| x.as_str()) == Some(name),
+        "extension manifest id mismatch"
+    );
+    anyhow::ensure!(
+        obj.get("contributes")
+            .and_then(|c| c.get("themes"))
+            .and_then(|t| t.as_array())
+            .is_some_and(|t| !t.is_empty()),
+        "extension has no theme contributions"
+    );
+    // Theme packages cannot activate an extension host or replace editor
+    // behaviour. Only theme contributions are installed from bundled archives.
+    let themes = obj["contributes"]["themes"].clone();
+    for theme in themes.as_array().context("theme contributions")? {
+        let path = theme["path"].as_str().context("theme path")?;
+        anyhow::ensure!(
+            !path.contains('\\')
+                && !Path::new(path).is_absolute()
+                && Path::new(path).components().all(|c| matches!(
+                    c,
+                    std::path::Component::Normal(_) | std::path::Component::CurDir
+                )),
+            "theme contribution escapes extension"
+        );
+    }
+    obj.remove("main");
+    obj.remove("browser");
+    obj.remove("activationEvents");
+    obj.remove("extensionDependencies");
+    obj.remove("extensionPack");
+    obj.insert("contributes".into(), serde_json::json!({"themes":themes}));
+    if watch {
+        obj.insert("_watch".into(), true.into());
+    }
+    fn check_targets(src: &Path, dst: &Path, container: &Path) -> Result<()> {
+        strict_destination(dst, container)?;
+        if src.is_dir() {
+            for entry in std::fs::read_dir(src)? {
+                let entry = entry?;
+                check_targets(&entry.path(), &dst.join(entry.file_name()), container)?;
+            }
+        }
+        Ok(())
+    }
+    check_targets(cache, &target, &root)?;
+    plan.copy(cache, &target, "editor_theme")?;
+    plan.write_text(
+        &target.join("package.json"),
+        serde_json::to_string_pretty(&pkg)?,
+        "editor_theme",
+    )?;
+    Ok(vec![target.display().to_string()])
 }
 
-/// The Open VSX download endpoint for an extension `publisher.name`.
+/// The Open VSX metadata endpoint for an extension `publisher.name`.
 pub fn open_vsx_download_url(id: &str) -> String {
     let Some((ns, name)) = id.split_once('.') else {
         return String::new();

@@ -387,10 +387,10 @@ Kirigami.ScrollablePage {
                     Layout.alignment: Qt.AlignRight
                     text: qsTr("Save as theme…")
                     icon.name: "document-save-as"
-                    enabled: !paletteController.busy && paletteController.hasPalette
+                    enabled: !paletteController.busy && !themeBundle.busy && paletteController.canSaveTheme
                     onClicked: saveThemeDialog.open()
                     ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Save the current palette and applied look as a reusable theme")
+                    ToolTip.text: qsTr("Apply the current palette to KDE first, then save the applied look as a reusable theme")
                 }
             }
         }
@@ -432,13 +432,15 @@ Kirigami.ScrollablePage {
         }
 
         onAccepted: {
+            if (!paletteController.canSaveTheme || paletteController.busy || themeBundle.busy)
+                return
             const name = themeNameField.text.trim()
             if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(name)) {
                 themeNameError.visible = true
                 saveThemeDialog.open()
                 return
             }
-            themeBundle.saveProfile(name, themeDescriptionField.text.trim())
+            paletteController.saveTheme(name, themeDescriptionField.text.trim())
             themeNameField.text = ""
             themeDescriptionField.text = ""
             themeNameError.visible = false

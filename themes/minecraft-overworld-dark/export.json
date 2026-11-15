@@ -65,9 +65,9 @@
     ".local/share/plasma/look-and-feel/minecraft-overworld-dark/contents/defaults": "97756e5575d707efa664d2f5bf85b71c66e81365f6d498837b75452158843006",
     ".local/share/plasma/look-and-feel/minecraft-overworld-dark/metadata.json": "982562d5e0f12f08b643dd080703ca04ba319104a69a7898f3663b77ba81284a",
     "LICENSE": "98d2b54c865c62b527d70f373ed5f316a02a5fc566e2de27a5473cf30db28682",
-    "manifest.json": "2926aa37c3cc7ea256539fb55fc898de9f232b9812f498e62f18435a3113a557",
+    "manifest.json": "b7e6e1a458b4bcc783f4d72ebcf502e2155ee0cd47455ada5ed5c813b7654028",
     "manifest.txt": "77dd813bda773af32494caf7360d6c5952d47ce4a28873698305f6f1eb5d93e0",
-    "theme.json": "ed634d3431d24db66afdb2f44a88f9b363818db82e88168098581e6fda9d1fd5",
+    "theme.json": "c94f3af1f302fbbdac2abd4f3b9e252ab581adc440ddab7d6b274009de55d7a9",
     "wallpaper/minecraft-overworld-night.png": "af851dc3ec0268b7f7cd3eb70a0ad869eee692b3044facff63527448e9a9fe6a"
   }
 }

@@ -421,7 +421,8 @@ class ProfileController(QObject):
         return self._preview_running
 
     @Slot(str, bool)
-    def previewApply(self, profile: str, keep_wallpaper: bool = False) -> None:
+    @Slot(str, bool, bool)
+    def previewApply(self, profile: str, keep_wallpaper: bool = False, without_sync: bool = False) -> None:
         if self._busy:
             self.operationFinished.emit(False, self.tr("Another operation is still running"))
             return
@@ -433,22 +434,23 @@ class ProfileController(QObject):
         if self._preview_data.get("name") != profile:
             self._preview_saved = ""
         self._preview_serial += 1
-        self._preview_data = {"name": profile, "keep_wallpaper": keep_wallpaper}
+        self._preview_data = {"name": profile, "keep_wallpaper": keep_wallpaper, "without_sync": without_sync}
         self.previewChanged.emit()
         self.previewRequested.emit()
-        request = (profile, keep_wallpaper, self._preview_serial)
+        request = (profile, keep_wallpaper, without_sync, self._preview_serial)
         if self._preview_running:
             self._preview_queued = request
         else:
             self._launch_preview(request)
 
     def _launch_preview(self, request) -> None:
-        profile, keep, serial = request
+        profile, keep, without_sync, serial = request
         payload = {}
         self._preview_running = True
         self.previewBusyChanged.emit()
         def work():
-            result = self._core.preview(profile, keep)
+            result = (self._core.preview(profile, keep, without_sync=True) if without_sync
+                      else self._core.preview(profile, keep))
             payload["report"] = result.data or {}
             return result.success, result.message
         def done(ok, message):
@@ -463,7 +465,7 @@ class ProfileController(QObject):
                 return
             self._preview_data = ({**payload["report"], "saved_as": self._preview_saved,
                                    "stale": self._preview_data.get("stale", False)}
-                                  if ok else {"name": profile, "keep_wallpaper": keep, "error": message})
+                                  if ok else {"name": profile, "keep_wallpaper": keep, "without_sync": without_sync, "error": message})
             self.previewChanged.emit()
         _run_async(self, work, done)
 
@@ -488,7 +490,7 @@ class ProfileController(QObject):
             self._on_operation_finished(ok, message or self.tr("Current appearance saved"))
             if ok:
                 self._preview_saved = name
-            self.previewApply(report["name"], report.get("keep_wallpaper", False))
+            self.previewApply(report["name"], report.get("keep_wallpaper", False), report.get("without_sync", False))
         self._set_busy(True)
         self._operation = "save"
         self.operationStarted.emit("save")
@@ -503,7 +505,7 @@ class ProfileController(QObject):
         def work():
             result = self._core.apply(report["name"], components=report.get("components"),
                 keep_wallpaper=report.get("keep_wallpaper", False), skip_dependencies=True,
-                preview_token=token)
+                preview_token=token, **({"without_sync": True} if report.get("without_sync") else {}))
             payload["stale"] = not result.success and "PREVIEW_STALE" in result.message
             if result.success:
                 self._pending_actions = (report["name"], list((result.data or {}).get("actions") or []))
@@ -512,7 +514,7 @@ class ProfileController(QObject):
             if payload.get("stale"):
                 self._set_busy(False)
                 self.operationFinished.emit(False, self.tr("Theme or live settings changed. Review the updated changes."))
-                self.previewApply(report["name"], report.get("keep_wallpaper", False))
+                self.previewApply(report["name"], report.get("keep_wallpaper", False), report.get("without_sync", False))
                 self._preview_data["stale"] = True
                 self.previewChanged.emit()
             else:

@@ -161,6 +161,14 @@ A virtual environment is created inside the installed app only when the system
 Python cannot `import PySide6` (e.g. `pyside6` is not installed from the
 distro); with a system PySide6 the copy stays ~650 KB.
 
+### Applying app themes
+
+`kolira apply NAME` restores the snapshot, then installs cached editor themes
+and generates missing app resources from its palette. Both stages share preview,
+backup and recovery. `--without-sync` skips these follow-ups; saved app settings
+still restore. The GUI exposes this option in Apply preview. See
+[theme application](docs/THEMES.md) for supported apps and cache preparation.
+
 ### Apply protection
 
 Изменения через GUI и CLI выполняются по очереди. Если подготовка не удалась,

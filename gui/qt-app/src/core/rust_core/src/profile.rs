@@ -1597,6 +1597,16 @@ pub fn apply_profile_keeping(
     keep_wallpaper: bool,
     keep_fields: &[String],
 ) -> Result<PathBuf> {
+    apply_profile_staged(profile, extras, keep_wallpaper, keep_fields, None)
+}
+
+pub(crate) fn apply_profile_staged(
+    profile: &str,
+    extras: &[String],
+    keep_wallpaper: bool,
+    keep_fields: &[String],
+    apps: Option<&crate::theme::Package>,
+) -> Result<PathBuf> {
     validate_profile_name(profile)?;
     let dir = safe_profile_dir(profile)?;
     for relative in extras {
@@ -1612,7 +1622,9 @@ pub fn apply_profile_keeping(
             rel_paths.push(e.clone());
         }
     }
-    apply_with_paths_keeping(profile, &rel_paths, keep_wallpaper, keep_fields)
+    crate::operation::run(profile, || {
+        apply_with_paths_keeping_inner(profile, &rel_paths, keep_wallpaper, keep_fields, apps)
+    })
 }
 
 /// Warn about unknown components, keep the known ones (bash CLI behaviour).
@@ -1686,7 +1698,7 @@ fn apply_with_paths_keeping(
     keep_fields: &[String],
 ) -> Result<PathBuf> {
     crate::operation::run(profile, || {
-        apply_with_paths_keeping_inner(profile, rel_paths, keep_wallpaper, keep_fields)
+        apply_with_paths_keeping_inner(profile, rel_paths, keep_wallpaper, keep_fields, None)
     })
 }
 fn apply_with_paths_keeping_inner(
@@ -1694,6 +1706,7 @@ fn apply_with_paths_keeping_inner(
     rel_paths: &[String],
     keep_wallpaper: bool,
     keep_fields: &[String],
+    apps: Option<&crate::theme::Package>,
 ) -> Result<PathBuf> {
     crate::paths::log_step(&format!("apply {profile}: start"));
     let dir = safe_profile_dir(profile)?;
@@ -1761,6 +1774,15 @@ fn apply_with_paths_keeping_inner(
             roots.push(PathBuf::from(original.trim()));
         }
     }
+    let mut app_paths = Vec::new();
+    if let Some(package) = apps {
+        let mut plan = crate::change_plan::Plan::default();
+        crate::app_sync::plan_apps(&prepared, package, &mut plan)?;
+        app_paths.extend(plan.after.keys().cloned());
+        // A restored konsolerc can select a different default profile.
+        roots.push(crate::paths::data_home().join("konsole"));
+        roots.extend(app_paths.iter().cloned());
+    }
     crate::preview::verify_before_write(&prepared)?;
     crate::operation::prepare(&backup, roots)?;
     let dir = prepared;
@@ -1780,6 +1802,24 @@ fn apply_with_paths_keeping_inner(
     if let Ok(walls) = wallpaper_dir().strip_prefix(crate::paths::home_dir()) {
         journal_rels.push(walls.to_string_lossy().to_string());
     }
+    if apps.is_some() {
+        journal_rels.push(".local/share/konsole".into());
+    }
+    journal_rels.extend(app_paths.iter().filter_map(|path| {
+        path.strip_prefix(crate::paths::config_home())
+            .ok()
+            .map(|p| format!(".config/{}", p.display()))
+            .or_else(|| {
+                path.strip_prefix(crate::paths::data_home())
+                    .ok()
+                    .map(|p| format!(".local/share/{}", p.display()))
+            })
+            .or_else(|| {
+                path.strip_prefix(crate::paths::home_dir())
+                    .ok()
+                    .map(|p| p.to_string_lossy().to_string())
+            })
+    }));
     let kept = live_values(keep_fields);
     crate::paths::log_step("undoing the previous theme");
     let journal = crate::undo::revert()?;
@@ -1837,6 +1877,14 @@ fn apply_with_paths_keeping_inner(
                 }
             }
             run_custom_reload_hooks(rel_paths);
+            if let Some(package) = apps {
+                let mut plan = crate::change_plan::Plan::default();
+                crate::app_sync::plan_apps(&dir, package, &mut plan)?;
+                plan.commit()?;
+                if plan.after.contains_key(&live_path(crate::extras::CAVA)) {
+                    crate::extras::reload_cava();
+                }
+            }
             crate::undo::record(journal, &before).with_context(|| "apply journal")?;
             crate::paths::log_step(&format!("apply {profile}: done"));
             Ok(backup)

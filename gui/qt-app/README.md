@@ -577,7 +577,7 @@ Russian includes known runtime statuses, scheduling/history, proper plurals,
 locale-aware dates/numbers/sizes, component names and palette source tags.
 Translate templates before substitution; user values and unknown external
 errors remain verbatim. Translation additions are in tools/ui_i18n_ru.py;
-update TS/QM using scripts/update-translations.sh as usual.
+update TS/QM using gui/qt-app/tools/update_translations.py as usual.
 
 Source-only visual/interaction harness (isolated HOME/XDG, no theme application
 or network):
@@ -602,3 +602,13 @@ matching systemd's ownership rather than the core helper's process group. Servic
 status excludes zombie processes. The core's timeout and child cleanup stay active.
 
 CLI/GUI command names and legacy compatibility: [renaming contract](../../docs/RENAMING.md).
+
+### App follow-ups and palette saving
+
+The Apply preview includes “Skip generated app themes and editor installs”.
+Its value is bound to the reviewed Rust plan and confirmation token; snapshot
+app settings still restore. Both stages share the appearance lock and recovery
+copy, and run in a GUI worker. Saved app resources take priority over generated
+palette themes. General System Settings and individual KCM buttons are both
+available. Palette saving requires applying the current palette to KDE first;
+Rust verifies live colors again before saving. See `../../docs/THEMES.md`.

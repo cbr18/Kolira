@@ -51,9 +51,9 @@ kolira apply Paper --keep-wallpaper --preview-token=TOKEN
 Обычный CLI Apply без токена сохраняет прежний сценарий без интерактивного просмотра.
 
 JSON API v1: `profile.preview` принимает `name`, `keep_wallpaper`, `components`,
-`use_settings`; возвращает `token`, `source_digest`, `files`, `file_count`,
+`use_settings`, `without_sync` (по умолчанию false); возвращает `token`, `source_digest`, `files`, `file_count`,
 `missing`, `dependencies`, `actions`, `runtime_changes`, `kept_fields`,
-`custom_components`, `keep_wallpaper`, `components`. У файлов есть операция,
+`custom_components`, `keep_wallpaper`, `without_sync`, `components`. У файлов есть операция,
 причины, diff/признак сокращения, SHA-256/размеры, права и цели ссылок.
 `profile.apply` принимает `preview_token`; `profile.save_before_apply` — новое
 имя `name`. MCP: `preview_profile`, затем `apply_profile` с обязательным непустым
@@ -83,3 +83,8 @@ JSONC, отсутствие зависимостей, сохранение об�
 Полоса занимает канал вне строк, доступны последний файл и все опции даже
 в низком окне. Счётчик файлов использует русские множественные формы. Контракт
 просмотра/отмены/подтверждения не изменён.
+
+План включает файлы обоих этапов, включая редакторский кэш и явно выбранные
+`app_targets[]`. `without_sync` входит в подтверждение: смена галочки требует
+нового diff/token. Флаг исключает дополнительные генераторы/установку кэша,
+но сохранённые настройки приложений продолжают восстанавливаться со снимком.

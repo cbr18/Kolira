@@ -704,45 +704,50 @@
 </context><context>
     <name>PaletteController</name>
     <message>
-        <location filename="../src/controllers/palette.py" line="84" />
+        <location filename="../src/controllers/palette.py" line="89" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>
     <message>
-        <location filename="../src/controllers/palette.py" line="96" />
+        <location filename="../src/controllers/palette.py" line="101" />
         <source>Palette updated</source>
         <translation>Палитра обновлена</translation>
+    </message>
+    <message>
+        <location filename="../src/controllers/palette.py" line="173" />
+        <source>Theme saved</source>
+        <translation>Тема сохранена</translation>
     </message>
 </context><context>
     <name>ProfileController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="294" />
+        <location filename="../src/controllers/__init__.py" line="329" />
         <source>Interrupted apply %1. Backup: %2. You can continue or restore it with: kolira operations recover %1</source>
         <translation>Прерванное применение %1. Резервная копия: %2. Можно продолжить работу или восстановить командой: kolira operations recover %1</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="385" />
-        <location filename="../src/controllers/__init__.py" line="318" />
+        <location filename="../src/controllers/__init__.py" line="427" />
+        <location filename="../src/controllers/__init__.py" line="359" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="447" />
+        <location filename="../src/controllers/__init__.py" line="490" />
         <source>Current appearance saved</source>
         <translation>Текущее оформление сохранено</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="473" />
+        <location filename="../src/controllers/__init__.py" line="516" />
         <source>Theme or live settings changed. Review the updated changes.</source>
         <translation>Тема или текущие настройки изменились. Проверьте обновлённые изменения.</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="710" />
+        <location filename="../src/controllers/__init__.py" line="753" />
         <source>System packages: see the terminal</source>
         <translation>Системные пакеты: смотрите терминал</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="723" />
+        <location filename="../src/controllers/__init__.py" line="766" />
         <source>Stopped: the theme was not applied</source>
         <translation>Остановлено: тема не применена</translation>
     </message>
@@ -927,102 +932,102 @@
         <translation>Сила размытия Better Blur DX</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="150" />
+        <location filename="../src/core/theme_bundle.py" line="151" />
         <source>Inactive window opacity</source>
         <translation>Непрозрачность неактивных окон</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="153" />
+        <location filename="../src/core/theme_bundle.py" line="154" />
         <source>Opacity of inactive windows</source>
         <translation>Непрозрачность неактивных окон</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="157" />
+        <location filename="../src/core/theme_bundle.py" line="158" />
         <source>Animation speed</source>
         <translation>Скорость анимации</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="160" />
+        <location filename="../src/core/theme_bundle.py" line="161" />
         <source>Global animation duration multiplier</source>
         <translation>Общий множитель длительности анимаций</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="166" />
+        <location filename="../src/core/theme_bundle.py" line="168" />
         <source>Qt &amp; Kvantum</source>
         <translation>Qt и Kvantum</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="167" />
+        <location filename="../src/core/theme_bundle.py" line="169" />
         <source>Qt widget style and Kvantum theme</source>
         <translation>Стиль виджетов Qt и тема Kvantum</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="170" />
+        <location filename="../src/core/theme_bundle.py" line="172" />
         <source>Qt widget style</source>
         <translation>Стиль виджетов Qt</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="172" />
+        <location filename="../src/core/theme_bundle.py" line="174" />
         <source>Qt application widget style</source>
         <translation>Стиль виджетов Qt-приложений</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="177" />
+        <location filename="../src/core/theme_bundle.py" line="179" />
         <source>Kvantum theme</source>
         <translation>Тема Kvantum</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="179" />
+        <location filename="../src/core/theme_bundle.py" line="181" />
         <source>SVG widget theme used by the Kvantum Qt style</source>
         <translation>SVG-тема виджетов для стиля Qt Kvantum</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="184" />
+        <location filename="../src/core/theme_bundle.py" line="185" />
         <source>Kvantum translucent windows</source>
         <translation>Прозрачные окна Kvantum</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="187" />
+        <location filename="../src/core/theme_bundle.py" line="188" />
         <source>Let Kvantum paint translucent windows</source>
         <translation>Разрешить Kvantum рисовать полупрозрачные окна</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="193" />
+        <location filename="../src/core/theme_bundle.py" line="194" />
         <source>GTK</source>
         <translation>GTK</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="194" />
+        <location filename="../src/core/theme_bundle.py" line="195" />
         <source>GTK 2, GTK 3 and GTK 4 application themes</source>
         <translation>Темы приложений GTK 2, GTK 3 и GTK 4</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="197" />
+        <location filename="../src/core/theme_bundle.py" line="198" />
         <source>GTK theme</source>
         <translation>Тема GTK</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="199" />
+        <location filename="../src/core/theme_bundle.py" line="200" />
         <source>Theme used by GTK applications</source>
         <translation>Тема GTK-приложений</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="203" />
+        <location filename="../src/core/theme_bundle.py" line="204" />
         <source>Prefer dark GTK variant</source>
         <translation>Предпочитать тёмный вариант GTK</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="206" />
+        <location filename="../src/core/theme_bundle.py" line="207" />
         <source>Ask GTK applications to use their dark variant</source>
         <translation>Просить GTK-приложения использовать тёмный вариант</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="292" />
+        <location filename="../src/core/theme_bundle.py" line="293" />
         <source>Custom: %1</source>
         <translation>Своя: %1</translation>
     </message>
     <message>
-        <location filename="../src/core/theme_bundle.py" line="298" />
+        <location filename="../src/core/theme_bundle.py" line="299" />
         <source>Selected theme is not installed</source>
         <translation>Выбранная тема не установлена</translation>
     </message>
@@ -1037,12 +1042,12 @@
 </context><context>
     <name>ThemeBundleController</name>
     <message>
-        <location filename="../src/controllers/theme_bundle.py" line="307" />
-        <location filename="../src/controllers/theme_bundle.py" line="289" />
-        <location filename="../src/controllers/theme_bundle.py" line="263" />
-        <location filename="../src/controllers/theme_bundle.py" line="254" />
-        <location filename="../src/controllers/theme_bundle.py" line="231" />
-        <location filename="../src/controllers/theme_bundle.py" line="208" />
+        <location filename="../src/controllers/theme_bundle.py" line="308" />
+        <location filename="../src/controllers/theme_bundle.py" line="290" />
+        <location filename="../src/controllers/theme_bundle.py" line="264" />
+        <location filename="../src/controllers/theme_bundle.py" line="255" />
+        <location filename="../src/controllers/theme_bundle.py" line="232" />
+        <location filename="../src/controllers/theme_bundle.py" line="209" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>
@@ -1994,24 +1999,24 @@
 </context><context>
     <name>TrackedAppsController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="956" />
+        <location filename="../src/controllers/__init__.py" line="999" />
         <source>Installed</source>
         <translation>Установлено</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="957" />
+        <location filename="../src/controllers/__init__.py" line="1000" />
         <source>Not installed</source>
         <translation>Не установлено</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="958" />
+        <location filename="../src/controllers/__init__.py" line="1001" />
         <source>Partial</source>
         <translation>Частично</translation>
     </message>
 </context><context>
     <name>WallpaperController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="861" />
+        <location filename="../src/controllers/__init__.py" line="904" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>

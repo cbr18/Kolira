@@ -327,16 +327,6 @@ Kirigami.ScrollablePage {
                         onClicked: themeBundle.applyChanges()
                     }
 
-                    CheckBox {
-                        id: withoutSyncCheckbox
-                        text: qsTr("Skip app themes (KDE/Qt/GTK/wallpaper only)")
-                        enabled: page.selectedScope === "live" && !themeBundle.busy
-                        checked: themeBundle.withoutSync
-                        onCheckedChanged: themeBundle.setWithoutSync(checked)
-                        ToolTip.visible: hovered
-                        ToolTip.text: qsTr("Apply only stage 1 (KDE/Qt/GTK/wallpaper). Skip editor themes, messengers and terminals (stage 2).")
-                    }
-
                     AppButton {
                         text: qsTr("Undo")
                         icon.name: "edit-undo"

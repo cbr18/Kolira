@@ -2555,7 +2555,17 @@ HANG_MOCK="$TMP_ROOT/hang-mock"
 mkdir -p "$HANG/.config/Kvantum/Present" "$HANG/.config" "$HANG_MOCK"
 printf '#!/usr/bin/env bash\necho "$*" >>"%s/calls"\nsleep 300\n' "$HANG_MOCK" >"$HANG_MOCK/kvantummanager"
 chmod +x "$HANG_MOCK/kvantummanager"
-printf '#!/usr/bin/env bash\necho "$*" >>"%s/calls"\nexit 0\n' "$HANG_MOCK" >"$HANG_MOCK/systemctl"
+cat >"$HANG_MOCK/systemctl" <<'SYSTEMCTL_MOCK'
+#!/usr/bin/env bash
+mock_dir="${0%/*}"
+echo "$*" >>"$mock_dir/calls"
+case "$*" in
+  *"stop plasma-plasmashell.service"*) touch "$mock_dir/stopped" ;;
+  *"start plasma-plasmashell.service"*) rm -f "$mock_dir/stopped" ;;
+  *"is-active --quiet plasma-plasmashell.service"*) [ ! -e "$mock_dir/stopped" ]; exit $? ;;
+esac
+exit 0
+SYSTEMCTL_MOCK
 chmod +x "$HANG_MOCK/systemctl"
 printf '[KDE]\nwidgetStyle=kvantum\n' >"$HANG/.config/kdeglobals"
 printf '[General]\ntheme=Absent\n' >"$HANG/.config/Kvantum/kvantum.kvconfig"

@@ -32,6 +32,7 @@ class PaletteController(QObject):
     def __init__(self, parent: Optional[QObject] = None, core: Optional[PaletteCore] = None) -> None:
         super().__init__(parent)
         self._core = core or PaletteCore()
+        self._applied_palette: dict = {}
         self._palette: dict = {}
         self._gallery: list = []
         self._busy = False
@@ -49,6 +50,10 @@ class PaletteController(QObject):
     @Property(bool, notify=paletteChanged)
     def hasPalette(self) -> bool:
         return bool(self._palette)
+
+    @Property(bool, notify=paletteChanged)
+    def canSaveTheme(self) -> bool:
+        return bool(self._palette) and self._palette == self._applied_palette
 
     @Property(str, notify=paletteChanged)
     def wallpaperPath(self) -> str:
@@ -78,7 +83,7 @@ class PaletteController(QObject):
             self._busy = value
             self.busyChanged.emit()
 
-    def _mutate(self, work: Callable[[], Result], *, quiet: bool = False, reload_look: bool = False) -> None:
+    def _mutate(self, work: Callable[[], Result], *, quiet: bool = False, reload_look: bool = False, applied_to_kde: bool = False, success_message: str = "") -> None:
         """Run a palette-changing CLI call off the GUI thread, then reload."""
         if self._busy:
             self.toast.emit(self.tr("Another operation is still running"), False)
@@ -93,8 +98,11 @@ class PaletteController(QObject):
             if success and reload_look:
                 _reload_app_look()
             if not success or not quiet:
-                self.toast.emit(self.tr("Palette updated") if success else localize(message), success)
+                self.toast.emit((success_message or self.tr("Palette updated")) if success else localize(message), success)
             self.refresh()
+            if success and applied_to_kde:
+                self._applied_palette = dict(self._palette)
+                self.paletteChanged.emit()
 
         self._set_busy(True)
         _run(self, job, done)
@@ -157,4 +165,9 @@ class PaletteController(QObject):
 
     @Slot(list, str)
     def apply(self, targets: list, kvantum_base: str = "") -> None:
-        self._mutate(lambda: self._core.apply([str(t) for t in targets], kvantum_base), reload_look=True)
+        self._mutate(lambda: self._core.apply([str(t) for t in targets], kvantum_base), reload_look=True, applied_to_kde="kde" in targets)
+
+    @Slot(str, str)
+    def saveTheme(self, name: str, description: str) -> None:
+        palette = dict(self._palette)
+        self._mutate(lambda: self._core.save_theme(name, description, palette), success_message=self.tr("Theme saved"))

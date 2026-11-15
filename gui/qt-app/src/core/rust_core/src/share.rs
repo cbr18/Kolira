@@ -233,6 +233,15 @@ fn theme_files_for(dir: &Path, include_wallpaper: bool, public: bool) -> Result<
             .filter(|a| a.kind != "wallpaper")
             .map(|a| a.path.clone()),
     );
+    if !public {
+        roots.extend(
+            package
+                .editor_themes
+                .iter()
+                .filter(|e| !e.local_path.is_empty())
+                .map(|e| e.local_path.clone()),
+        );
+    }
     // The exporting machine may use another default profile (or lack Konsole).
     // Keep the snapshot's appearance profile so the receiver can map it to its own.
     let profile = crate::profile::theme_file(dir, ".local/share/konsole/Theme Profile.profile");
@@ -340,6 +349,14 @@ fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(
     json["assets"] = serde_json::to_value(&package.assets)?;
     json["dependencies"] = serde_json::to_value(&package.dependencies)?;
     if options.public {
+        if let Some(editors) = json["editor_themes"].as_array_mut() {
+            for editor in editors {
+                editor["local_path"] = "".into();
+                if editor["url"].as_str().is_none_or(str::is_empty) {
+                    editor["enabled"] = false.into();
+                }
+            }
+        }
         let held = withheld(&package);
         let mut deps: Vec<crate::deps::Dependency> = package.dependencies.clone();
         for a in &held {
