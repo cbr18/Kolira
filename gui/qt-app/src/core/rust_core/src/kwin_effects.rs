@@ -10,7 +10,9 @@
 //!   effect explicitly (`pin_states`);
 //! * **apply** loads/unloads each installed effect as the theme says; an
 //!   effect the theme does not know (it was saved before the effect was
-//!   installed) is switched off (`sync`).
+//!   installed) is switched off by the pure configuration plan. When the
+//!   whole kwinrc is omitted, journal restoration and native defaults apply;
+//!   runtime `sync` only reloads the resulting effective state.
 //!
 //! Built into KWin (blur, contrast, wobbly windows…) are not handled here:
 //! they keep KWin's own defaulting. Installed effects are found as compiled
@@ -205,17 +207,20 @@ pub fn wanted(theme_kwinrc: &str, effects: &[Effect]) -> Vec<(String, bool)> {
         .collect()
 }
 
-/// Apply the theme's effect states: write them into the live kwinrc (so an
-/// effect enabled by default stays off after the next login too), then
-/// load/unload and reconfigure them in the running KWin.
+/// Reload the effective configuration without writing flags. Missing flags use
+/// the installed effect's own default after the journal restores its baseline.
+/// Persistent theme flags were already covered by plan_sync and the preview.
 pub fn sync(theme_kwinrc: &Path) {
     let theme = fs::read_to_string(theme_kwinrc).unwrap_or_default();
-    let effects = installed();
-    let states = wanted(&theme, &effects);
-    let mut plan = crate::change_plan::Plan::default();
-    if let Err(error) = plan_sync(theme_kwinrc, &mut plan).and_then(|_| plan.commit()) {
-        crate::operation::note_hook_error(format!("KWin configuration: {error:#}"));
-    }
+    let states: Vec<_> = installed()
+        .into_iter()
+        .map(|effect| {
+            let on = crate::field::ini_get(&theme, "Plugins", &format!("{}Enabled", effect.id))
+                .map(|value| value == "true")
+                .unwrap_or_else(|| enabled_by_default(&effect));
+            (effect.id, on)
+        })
+        .collect();
     for (id, on) in &states {
         qdbus(&[
             "org.kde.KWin",
@@ -231,7 +236,9 @@ pub fn sync(theme_kwinrc: &Path) {
 
 /// File changes from effect activation, shared with the pre-apply report.
 pub(crate) fn plan_sync(source: &Path, plan: &mut crate::change_plan::Plan) -> anyhow::Result<()> {
-    let theme = plan.text(source)?.unwrap_or_default();
+    let Some(theme) = plan.text(source)? else {
+        return Ok(());
+    };
     let live = crate::paths::config_home().join("kwinrc");
     if let Some(mut text) = plan.text(&live)? {
         let before = text.clone();

@@ -1046,20 +1046,22 @@ fn reapply_color_scheme(source: &Path) {
     } else {
         ("false", "true")
     };
-    for value in [flipped, flag] {
-        run_external(
-            "kwriteconfig6",
-            &[
-                "--notify",
-                "--file",
-                "kdeglobals",
-                "--group",
-                "General",
-                "--key",
-                "accentColorFromWallpaper",
-                value,
-            ],
-        );
+    if ini_group_key(&kdeglobals, "General", "accentColorFromWallpaper").is_some() {
+        for value in [flipped, flag] {
+            run_external(
+                "kwriteconfig6",
+                &[
+                    "--notify",
+                    "--file",
+                    "kdeglobals",
+                    "--group",
+                    "General",
+                    "--key",
+                    "accentColorFromWallpaper",
+                    value,
+                ],
+            );
+        }
     }
 
     // Scheme first, accent in a separate call: given `--accent-color`,
@@ -1135,8 +1137,8 @@ fn reapply_widget_style(source: &Path) {
 }
 
 fn apply_live_hooks(source: &Path) {
-    // Read from the profile, never via `kreadconfig6` on the live config: that
-    // used to pass the profile path as an extra positional argument, making
+    // Read the frozen effective config (snapshot plus restored baseline), never
+    // via `kreadconfig6`: an older call passed the source as an extra argument, making
     // kreadconfig6 print --help into kdeglobals as the LookAndFeelPackage name.
     let look_and_feel = ini_group_key(
         &source.join(".config/kdeglobals"),
@@ -1195,7 +1197,7 @@ fn apply_live_hooks(source: &Path) {
             &["org.kde.KWin", "/Effects", "reconfigureEffect", effect],
         );
     }
-    // Third-party effects: every installed one, off when the theme predates it.
+    // Reload the effective states restored/planned above, with native defaults.
     crate::kwin_effects::sync(&source.join(".config/kwinrc"));
 
     apply_kitty_live(source);
@@ -1436,8 +1438,8 @@ pub(crate) fn plan_restore(
             }
             policy => {
                 if !src.exists() {
-                    // Not in this theme: nothing of another theme stays.
-                    plan_reset(rel, &dst, &policy, plan)?;
+                    // The journal already reversed the previous theme. An
+                    // omitted config must not erase the restored user baseline.
                     continue;
                 }
                 if crate::tracked_apps::app_absent_without_parent(
@@ -1494,9 +1496,6 @@ pub(crate) fn plan_restore(
             }
         }
     }
-    if !source.join(".local/share/konsole").is_dir() {
-        crate::konsole::plan_reset_generated(plan)?;
-    }
     plan.put(
         &active_file(),
         crate::change_plan::Entry::File {
@@ -1505,49 +1504,6 @@ pub(crate) fn plan_restore(
         },
         "active_profile",
     )?;
-    Ok(())
-}
-
-/// What a theme does not specify goes back to the program's default. Mixed
-/// files lose their look keys (other keys stay the user's); of the files that
-/// are all look, only the ones we generate (`kolira*`) are removed: any
-/// other is the user's own. The prompt file stays, a shell config points at it.
-fn plan_reset(
-    rel: &str,
-    dst: &Path,
-    policy: &appearance::Policy,
-    plan: &mut crate::change_plan::Plan,
-) -> Result<()> {
-    use appearance::Policy as P;
-    match policy {
-        P::Whole => {
-            let ours = |p: &Path| {
-                p.file_name()
-                    .is_some_and(|n| n.to_string_lossy().starts_with("kolira"))
-            };
-            if rel == crate::extras::OMP_THEME {
-                return Ok(());
-            }
-            if dst.is_dir() {
-                for path in plan.children(dst)? {
-                    if plan.is_file(&path)? && ours(&path) {
-                        plan.remove(&path, "reset")?;
-                    }
-                }
-            } else if plan.is_file(dst)? && ours(dst) {
-                plan.remove(dst, "reset")?;
-            }
-        }
-        P::Ini(_) | P::Kv(_) | P::Jsonc(_) | P::Prefs(_) | P::Lines(_) | P::KwinRc => {
-            if let Some(live) = plan.text(dst)? {
-                let reset = appearance::applied(rel, "", Some(&live))?;
-                if reset != live && !reset.trim().is_empty() {
-                    plan.write_text(dst, reset, "reset")?;
-                }
-            }
-        }
-        _ => {}
-    }
     Ok(())
 }
 
@@ -1775,14 +1731,19 @@ fn apply_with_paths_keeping_inner(
         }
     }
     let mut app_paths = Vec::new();
+    if !keep_wallpaper {
+        let mut wallpaper_plan = crate::change_plan::Plan::default();
+        plan_wallpaper(&prepared, &mut wallpaper_plan)?;
+        app_paths.extend(wallpaper_plan.after.keys().cloned());
+    }
     if let Some(package) = apps {
         let mut plan = crate::change_plan::Plan::default();
         crate::app_sync::plan_apps(&prepared, package, &mut plan)?;
         app_paths.extend(plan.after.keys().cloned());
         // A restored konsolerc can select a different default profile.
         roots.push(crate::paths::data_home().join("konsole"));
-        roots.extend(app_paths.iter().cloned());
     }
+    roots.extend(app_paths.iter().cloned());
     crate::preview::verify_before_write(&prepared)?;
     crate::operation::prepare(&backup, roots)?;
     let dir = prepared;
@@ -1793,7 +1754,7 @@ fn apply_with_paths_keeping_inner(
     // Desktop icons are not part of the look: keep where they are now. Read
     // after plasmashell stopped — it writes its latest icon state on quit.
     let appletsrc = live_path(APPLETSRC_REL);
-    let live_appletsrc = fs::read_to_string(&appletsrc).ok();
+    let mut live_appletsrc = fs::read_to_string(&appletsrc).ok();
     // What the previous theme left goes first, so this theme starts from the
     // state before any theme (undo.rs). The journal covers the wallpaper folder
     // too: a wallpaper a theme restored there goes with the theme.
@@ -1805,7 +1766,7 @@ fn apply_with_paths_keeping_inner(
     if apps.is_some() {
         journal_rels.push(".local/share/konsole".into());
     }
-    journal_rels.extend(app_paths.iter().filter_map(|path| {
+    journal_rels.extend(app_paths.iter().map(|path| {
         path.strip_prefix(crate::paths::config_home())
             .ok()
             .map(|p| format!(".config/{}", p.display()))
@@ -1819,11 +1780,23 @@ fn apply_with_paths_keeping_inner(
                     .ok()
                     .map(|p| p.to_string_lossy().to_string())
             })
+            .unwrap_or_else(|| path.to_string_lossy().to_string())
     }));
     let kept = live_values(keep_fields);
     crate::paths::log_step("undoing the previous theme");
-    let journal = crate::undo::revert()?;
-    let before = crate::undo::baseline(&journal_rels);
+    let kept_wallpapers: Vec<PathBuf> = if keep_wallpaper {
+        plasma_wallpaper_from(&appletsrc)
+            .map(PathBuf::from)
+            .into_iter()
+            .collect()
+    } else {
+        Vec::new()
+    };
+    let journal = crate::undo::revert_preserving(&kept_wallpapers)?;
+    if !keep_wallpaper {
+        live_appletsrc = fs::read_to_string(&appletsrc).ok();
+    }
+    let before = crate::undo::baseline(&journal_rels)?;
     crate::paths::log_step("restoring files");
     match restore_from_profile(profile, &dir, rel_paths) {
         Ok(()) => {
@@ -1847,7 +1820,7 @@ fn apply_with_paths_keeping_inner(
                 &mut post,
             )?;
             post.commit()?;
-            if rel_paths.iter().any(|p| p == GTK3_SETTINGS) {
+            if theme_file(&dir, GTK3_SETTINGS).is_file() {
                 // From the live file: it holds what was really applied, a theme
                 // this machine lacks is not in it.
                 let ini = live_path(GTK3_SETTINGS);
@@ -1866,7 +1839,16 @@ fn apply_with_paths_keeping_inner(
                 );
             }
             crate::paths::log_step("live hooks");
-            apply_live_hooks(&dir);
+            let effective = backup.join("effective-hooks");
+            for relative in [".config/kdeglobals", ".config/kwinrc", KVANTUM_CONFIG_REL] {
+                let path = live_path(relative);
+                if path.is_file() {
+                    let target = effective.join(relative);
+                    fs::create_dir_all(target.parent().context("hook config parent")?)?;
+                    fs::copy(path, target)?;
+                }
+            }
+            apply_live_hooks(&effective);
             if !plasma_shell_active() {
                 anyhow::bail!("plasmashell did not restart");
             }
@@ -2522,11 +2504,12 @@ pub(crate) fn plan_post_restore(
     let appletsrc = live_path(APPLETSRC_REL);
     if let (Some(live), Some(restored)) = (old_layout, plan.text(&appletsrc)?) {
         let text = keep_desktop_icons(&restored, live);
-        let text = if keep_wallpaper {
-            crate::layout::keep_live_wallpaper(&text, live)
-        } else {
-            text
-        };
+        let text =
+            if keep_wallpaper || crate::theme::load(source).is_ok_and(|p| p.wallpaper.is_none()) {
+                crate::layout::keep_live_wallpaper(&text, live)
+            } else {
+                text
+            };
         plan.write_text(&appletsrc, text, "layout_preserved")?;
     }
     let wallpaper = if tracks_desktop_layout(rels) && !keep_wallpaper {

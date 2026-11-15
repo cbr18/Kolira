@@ -60,8 +60,8 @@ pub fn config_paths() -> Vec<String> {
     out
 }
 
-/// A theme without Konsole: the profile we created is removed and Konsole goes
-/// back to its built-in default. A profile of the user's stays.
+/// Explicit reset of our generated fallback profile. Normal theme switching
+/// restores the original profile/default via the shared apply journal.
 pub fn reset_generated() -> Result<()> {
     let mut plan = crate::change_plan::Plan::default();
     plan_reset_generated(&mut plan)?;

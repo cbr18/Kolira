@@ -2329,7 +2329,7 @@ else
   fail "Neovim touched: $(find "$NV/.config/nvim" -type f)"
 fi
 
-# --- What a theme does not specify goes back to the program's default ----------------
+# --- Missing configs preserve the user's original state, including kolira* names ------
 US="$TMP_ROOT/unspecified"
 mkdir -p "$US/.config/vesktop/settings" "$US/.config/vesktop/themes" "$US/.config/ghostty" "$US/.config/gtk-3.0" "$US/.local/share/konsole"
 printf '{\n  "minimizeToTray": true,\n  "enabledThemes": ["kolira.theme.css"],\n  "transparent": true\n}\n' >"$US/.config/vesktop/settings/settings.json"
@@ -2340,29 +2340,34 @@ printf 'window { }\n' >"$US/.config/gtk-3.0/kolira.css"
 printf '[Appearance]\nColorScheme=Light\n\n[General]\nName=Theme Profile\nParent=FALLBACK/\n' >"$US/.local/share/konsole/Theme Profile.profile"
 printf '[Desktop Entry]\nDefaultProfile=Theme Profile.profile\n\n[Other]\nkeep=1\n' >"$US/.config/konsolerc"
 us() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$US" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
+cp -a "$US" "$TMP_ROOT/unspecified-before"
 us import "$SCRIPT_DIR/themes/dracula" --apply >/dev/null 2>&1
 VS="$US/.config/vesktop/settings/settings.json"
-if ! grep -q "enabledThemes\|transparent" "$VS" && grep -q "minimizeToTray" "$VS" && python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$VS" &&
-  [ ! -e "$US/.config/vesktop/themes/kolira.theme.css" ] && [ -f "$US/.config/vesktop/themes/my-own.theme.css" ]; then
-  ok "a theme without Vesktop turns ours off and keeps the user's settings and files"
+if cmp -s "$TMP_ROOT/unspecified-before/.config/vesktop/settings/settings.json" "$VS" &&
+  cmp -s "$TMP_ROOT/unspecified-before/.config/vesktop/themes/kolira.theme.css" "$US/.config/vesktop/themes/kolira.theme.css" &&
+  [ -f "$US/.config/vesktop/themes/my-own.theme.css" ]; then
+  ok "a theme without Vesktop preserves the existing user's appearance and settings"
 else
-  fail "Vesktop after a theme without it: $(cat "$VS"); $(ls "$US/.config/vesktop/themes")"
+  fail "Vesktop baseline changed: $(cat "$VS")"
 fi
-if [ ! -e "$US/.config/ghostty/kolira" ] && [ ! -e "$US/.config/gtk-3.0/kolira.css" ]; then
-  ok "generated files a theme does not carry are removed"
+if cmp -s "$TMP_ROOT/unspecified-before/.config/ghostty/kolira" "$US/.config/ghostty/kolira" &&
+  cmp -s "$TMP_ROOT/unspecified-before/.config/gtk-3.0/kolira.css" "$US/.config/gtk-3.0/kolira.css"; then
+  ok "a kolira-prefixed filename alone never authorizes deleting a preexisting file"
 else
-  fail "generated files stayed: $(ls "$US/.config/ghostty" "$US/.config/gtk-3.0")"
+  fail "preexisting kolira-prefixed files changed"
 fi
-if [ ! -e "$US/.local/share/konsole/Theme Profile.profile" ] && ! grep -q DefaultProfile "$US/.config/konsolerc" && grep -q "keep=1" "$US/.config/konsolerc"; then
-  ok "a theme without Konsole removes the profile we made; Konsole is back to its default"
+if cmp -s "$TMP_ROOT/unspecified-before/.local/share/konsole/Theme Profile.profile" "$US/.local/share/konsole/Theme Profile.profile" &&
+  cmp -s "$TMP_ROOT/unspecified-before/.config/konsolerc" "$US/.config/konsolerc"; then
+  ok "a theme without Konsole preserves the preexisting default profile"
 else
-  fail "Konsole after a theme without it: $(cat "$US/.config/konsolerc")"
+  fail "Konsole baseline changed: $(cat "$US/.config/konsolerc")"
 fi
 printf '[Desktop Entry]\nDefaultProfile=Mine.profile\n' >"$US/.config/konsolerc"
 printf '[Appearance]\nColorScheme=Dark\n\n[General]\nCommand=/bin/fish\nName=Mine\n' >"$US/.local/share/konsole/Mine.profile"
+cp -a "$US/.local/share/konsole/Mine.profile" "$TMP_ROOT/own-konsole-before.profile"
 us apply dracula >/dev/null 2>&1
-if grep -q "DefaultProfile=Mine.profile" "$US/.config/konsolerc" && grep -q "Command=/bin/fish" "$US/.local/share/konsole/Mine.profile" && ! grep -q "ColorScheme" "$US/.local/share/konsole/Mine.profile"; then
-  ok "the user's own Konsole profile stays, without the look the theme does not specify"
+if grep -q "DefaultProfile=Mine.profile" "$US/.config/konsolerc" && grep -q "Command=/bin/fish" "$US/.local/share/konsole/Mine.profile" && cmp -s "$TMP_ROOT/own-konsole-before.profile" "$US/.local/share/konsole/Mine.profile"; then
+  ok "a later personal Konsole profile keeps its original appearance and behaviour"
 else
   fail "own Konsole profile: $(cat "$US/.local/share/konsole/Mine.profile")"
 fi

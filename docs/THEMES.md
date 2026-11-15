@@ -68,13 +68,12 @@ and a failed one costs only itself; the terminal for system packages is waited f
 Every external tool has a limit (`KTM_COMMAND_TIMEOUT`, 60 s) and each step goes to
 `<theme root>/apply.log` at once, so after a freeze its last line names the step.
 
-**What a theme does not specify goes back to the program's default.** A theme
-without Vesktop files turns our Vesktop theme off (`enabledThemes` gone, our CSS
-removed), a theme without Konsole removes the profile we created, and so on: a
-mixed file loses its look keys, a generated `kolira*` file is removed. Only
-what we generate is removed, a program's other files are the user's. A running
-program that reads its look at start gets the usual offer to restart. Telegram
-keeps the applied palette in its own settings, so it stays until chosen there.
+**A config file absent from a theme preserves the restored user baseline.**
+Before applying the next theme, the journal reverses changes made by the previous
+one. An omitted config is then left alone: a theme without Vesktop/Konsole files
+returns their original appearance, rather than deleting theme keys or forcing
+application defaults. First applying a theme without a config leaves that config
+unchanged. A `kolira*` filename alone is not proof that the file belongs to Apply.
 
 Mixed files are **merged** on apply: the theme's allowed keys are written,
 allowed keys the theme lacks are removed (e.g. a fixed accent the theme does
@@ -103,18 +102,29 @@ it as the theme `my-original-look` (`install-kolira.sh
 says what it contains, so each apply first undoes what the previous one left, from
 a journal in `<theme root>/apply-journal/` (local state, never in a theme):
 
-- files that did not exist before the theme are removed, except the shared
-  `oh-my-posh/kolira.omp.json`: existing shell init lines still point to it when
-  the next theme does not supply a prompt;
-- whole files it replaced get their earlier content back;
-- `kwinrc` effect settings and `kwinrulesrc` rules it wrote go back to what they
-  were (a theme's rule does not stay in the user's rules);
-- GSettings `gtk-theme` / `color-scheme` / `font-name` go back to their earlier value; legacy journal entries for `monospace-font-name` are ignored to preserve the current independent user preference;
+- every actual file change, including mixed configs, has before/after content
+  and permissions; exact originals are private, hashed blobs in `originals/`;
+- unchanged theme-created files are removed and replaced/deleted files regain
+  their exact originals. Pre-existing empty directories are preserved;
+- mixed INI/JSONC configs restore only values still equal to what Apply wrote.
+  Unrelated later settings, comments, nested JSON edits and user-added list items
+  remain. Host-config line hunks are reversed only when they match unambiguously;
+- generated prompt/include files are retained if a surviving, personally edited
+  host still references them. Otherwise both host and generated file return to
+  their original state;
+- GSettings returns to its earlier value only while still matching Apply's last
+  value. Legacy `monospace-font-name` entries remain ignored;
 - browser prefs: a pref set in `user.js` stays in `prefs.js`, so the earlier value
   (or, for known look prefs, the default) is written to `user.js` for the next start.
 
-Only what the theme left untouched is undone: a file or block edited since then
-stays. Applying also skips the config folder of a program this machine lacks (no
+A newly applied theme's explicit config still owns its curated appearance keys;
+within a provided file omitted appearance keys use the normal per-file merge
+policy. Omission of the *whole config* no longer requests a default/reset.
+Older journals retain their supported records; values old code never recorded
+cannot be reconstructed automatically. Pre-apply backups/history remain available
+for explicit recovery of those old operations.
+
+Applying also skips the config folder of a program this machine lacks (no
 `~/.config/Cursor`, no `~/obsidian`), writes Zen files to the receiver's default
 profile, keeps the receiver's launcher unchanged, and a save records the GTK theme GSettings really reports when it differs
 from `settings.ini` (`gsettings_gtk_theme` in `theme.json`). External tools cannot
@@ -182,7 +192,7 @@ and its backup remain available.
 | `name`, `description`, `created`, `generator` | metadata (`description` here is authoritative) |
 | `values` | field id → value, read from the snapshot through the shared registry `gui/qt-app/src/core/theme_fields.json`: what the GUI's profile view shows and what `check` verifies. Informational: apply restores the files. |
 | `palette` | base16 palette + accent (see `docs/PALETTE.md`) when the colour scheme is generated from it, else `null` |
-| `wallpaper` | `wallpaper/<file>`, or `null` → applying keeps the current wallpaper |
+| `wallpaper` | `wallpaper/<file>`, or `null` → restore the previous theme's changes and leave the baseline wallpaper; explicit `--keep-wallpaper` preserves the current one |
 | `assets[]` | `{kind, name, path, origin: generated\|user, redistributable}` — local assets, `path` inside the theme |
 | `sources` | field id → `{store, id, url}`: editor-theme extensions (`vscode-marketplace`, `open-vsx`, `zed`) |
 | `app_targets[]` | Explicit generated palette targets: `discord`, `konsole`, `ghostty`, `cava`, `telegram`, `firefox`; requires `palette`. Defaults to empty, preserving snapshot-only themes. |
@@ -455,8 +465,10 @@ a theme records the state of every installed third-party effect explicitly
 (compiled plugins in `/usr/lib/qt6/plugins/kwin/effects/plugins`, the user's
 scripted effects in `~/.local/share/kwin/effects`; KWin's and Plasma's own
 effects are left to KWin), and applying a theme loads/unloads each installed
-third-party effect as the theme says — an effect the theme does not mention
-(saved before it was installed) is switched off and written as off.
+third-party effect as the theme says. If a supplied kwinrc omits an effect it
+controls, that effect is switched off. If the entire kwinrc is absent, the journal
+restores the original state; runtime reload uses the effective config and native
+effect defaults without writing additional flags.
 (`rust_core/src/kwin_effects.rs`)
 
 ## Export and import

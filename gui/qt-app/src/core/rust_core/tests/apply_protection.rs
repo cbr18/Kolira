@@ -525,7 +525,7 @@ fn legacy_monospace_journal_does_not_overwrite_personal_font() {
 }
 
 #[test]
-fn switching_to_theme_without_prompt_keeps_shell_config_target() {
+fn switching_to_theme_without_prompt_restores_original_shell_target() {
     let h = Home::new();
     h.write(
         ".config/fish/config.fish",
@@ -553,11 +553,127 @@ fn switching_to_theme_without_prompt_keeps_shell_config_target() {
         "{}",
         String::from_utf8_lossy(&next.stderr)
     );
+    assert!(!h.path(".config/oh-my-posh/kolira.omp.json").exists());
     assert_eq!(
-        fs::read_to_string(h.path(".config/oh-my-posh/kolira.omp.json")).unwrap(),
-        prompt
+        fs::read_to_string(h.path(".config/fish/config.fish")).unwrap(),
+        "oh-my-posh init fish --config original.json | source\n"
     );
-    assert!(fs::read_to_string(h.path(".config/fish/config.fish"))
+}
+
+#[test]
+fn manually_kept_prompt_reference_never_loses_its_target() {
+    let h = Home::new();
+    h.write(
+        ".config/fish/config.fish",
+        "oh-my-posh init fish --config original.json | source\n",
+    );
+    h.executable("oh-my-posh", "#!/bin/sh\nexit 0\n");
+    h.write(
+        ".config/kolira/themes/probe/.config/oh-my-posh/kolira.omp.json",
+        r#"{"version":3,"blocks":[]}"#,
+    );
+    let first = h.apply();
+    assert!(
+        first.status.success(),
+        "{}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    let host = h.path(".config/fish/config.fish");
+    let modified = fs::read_to_string(&host)
         .unwrap()
-        .contains("kolira.omp.json"));
+        .replace(" | source", " --debug | source");
+    fs::write(&host, &modified).unwrap();
+    h.write(
+        ".config/kolira/themes/plain/theme.json",
+        r#"{"schema":"kolira/theme@2","name":"plain"}"#,
+    );
+    let next = h.run(&["apply", "plain", "--without-dependencies", "--json"]);
+    assert!(
+        next.status.success(),
+        "{}",
+        String::from_utf8_lossy(&next.stderr)
+    );
+    assert_eq!(fs::read_to_string(host).unwrap(), modified);
+    assert!(h.path(".config/oh-my-posh/kolira.omp.json").exists());
+}
+
+#[test]
+fn missing_gtk_config_restores_runtime_baseline_and_preserves_later_runtime_edits() {
+    for manual in [false, true] {
+        let h = Home::new();
+        for tool in [
+            "systemctl",
+            "kwriteconfig6",
+            "plasma-apply-colorscheme",
+            "kbuildsycoca6",
+            "qdbus6",
+            "dbus-send",
+        ] {
+            h.executable(tool, "#!/bin/sh\nexit 0\n");
+        }
+        h.executable("gsettings",r#"#!/usr/bin/python3
+import json,os,sys
+path=os.path.join(os.environ['HOME'],'gsettings-state.json')
+try:
+    with open(path) as f: state=json.load(f)
+except FileNotFoundError: state={'gtk-theme':'OriginalRuntimeGTK','color-scheme':'prefer-dark','font-name':'Original Font 12'}
+key=sys.argv[3]
+if sys.argv[1]=='get': print(repr(state.get(key,'')))
+elif sys.argv[1]=='set':
+    state[key]=sys.argv[4].strip("'")
+    with open(path,'w') as f: json.dump(state,f)
+"#);
+        h.write(
+            ".config/gtk-3.0/settings.ini",
+            "[Settings]\ngtk-theme-name=OriginalFileGTK\n",
+        );
+        h.write(
+            ".config/kolira/themes/probe/.config/gtk-3.0/settings.ini",
+            "[Settings]\ngtk-theme-name=OtherGTK\ngtk-application-prefer-dark-theme=false\n",
+        );
+        let applied = h
+            .command(&["apply", "probe", "--without-dependencies"])
+            .env("KTM_THEME_NO_APPLY", "0")
+            .output()
+            .unwrap();
+        assert!(
+            applied.status.success(),
+            "{}",
+            String::from_utf8_lossy(&applied.stderr)
+        );
+        if manual {
+            let mut state: Value =
+                serde_json::from_slice(&fs::read(h.path("gsettings-state.json")).unwrap()).unwrap();
+            state["gtk-theme"] = "ManualRuntimeGTK".into();
+            h.write("gsettings-state.json", &state.to_string());
+        }
+        h.write(
+            ".config/kolira/themes/plain/theme.json",
+            r#"{"schema":"kolira/theme@2","name":"plain"}"#,
+        );
+        let back = h
+            .command(&["apply", "plain", "--without-dependencies"])
+            .env("KTM_THEME_NO_APPLY", "0")
+            .output()
+            .unwrap();
+        assert!(
+            back.status.success(),
+            "{}",
+            String::from_utf8_lossy(&back.stderr)
+        );
+        let state: Value =
+            serde_json::from_slice(&fs::read(h.path("gsettings-state.json")).unwrap()).unwrap();
+        assert_eq!(
+            state["gtk-theme"],
+            if manual {
+                "ManualRuntimeGTK"
+            } else {
+                "OriginalRuntimeGTK"
+            }
+        );
+        assert_eq!(
+            fs::read_to_string(h.path(".config/gtk-3.0/settings.ini")).unwrap(),
+            "[Settings]\ngtk-theme-name=OriginalFileGTK\n"
+        );
+    }
 }

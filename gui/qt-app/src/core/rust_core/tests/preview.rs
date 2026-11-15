@@ -374,3 +374,197 @@ fn keep_wallpaper_and_saved_copy_use_the_same_plan() {
         }
     }
 }
+
+#[test]
+fn returning_to_theme_without_configs_restores_user_baseline() {
+    let h = Home::new();
+    h.theme("empty", true);
+    let originals = [
+        (".config/Code/User/settings.json", "{\n // personal comment\n \"workbench.colorTheme\": \"My theme\",\n \"editor.fontSize\": 17\n}\n"),
+        (".config/gtk-3.0/settings.ini", "[Settings]\ngtk-theme-name=MyGTK\ngtk-font-name=MyFont 12\n"),
+        (".config/cava/config", "[color]\ngradient=0\nforeground='#123456'\n[general]\nframerate=60\n"),
+        (".config/kitty/kolira.conf", "background #112233\n"),
+        (".config/kitty/kitty.conf", "font_size 14\ninclude kolira.conf\n"),
+    ];
+    for (rel, text) in originals {
+        h.write(rel, text);
+    }
+    let initial = h.preview("empty", false);
+    h.apply_reviewed(&initial);
+    for (rel, text) in originals {
+        assert_eq!(
+            fs::read_to_string(h.path(rel)).unwrap(),
+            text,
+            "initial empty theme altered {rel}"
+        );
+    }
+    for (rel, text) in [
+        (
+            ".config/Code/User/settings.json",
+            "{\"workbench.colorTheme\":\"Other\"}",
+        ),
+        (
+            ".config/gtk-3.0/settings.ini",
+            "[Settings]\ngtk-theme-name=OtherGTK\ngtk-font-name=OtherFont 10\n",
+        ),
+        (
+            ".config/cava/config",
+            "[color]\ngradient=1\nforeground='#abcdef'\n",
+        ),
+        (".config/kitty/kolira.conf", "background #abcdef\n"),
+    ] {
+        h.write(&format!(".config/kolira/themes/next/{rel}"), text);
+    }
+    h.apply_reviewed(&h.preview("next", false));
+    for _ in 0..2 {
+        let back = h.preview("empty", false);
+        h.apply_reviewed(&back);
+        h.assert_files(&back);
+        for (rel, text) in originals {
+            assert_eq!(
+                fs::read_to_string(h.path(rel)).unwrap(),
+                text,
+                "round trip altered {rel}"
+            );
+        }
+        h.apply_reviewed(&h.preview("next", false));
+    }
+}
+
+#[test]
+fn returning_to_missing_config_preserves_later_personal_edits() {
+    let h = Home::new();
+    h.theme("empty", true);
+    h.write(".config/Code/User/settings.json", "{\n // keep me\n \"workbench.colorTheme\":\"Original\",\n \"workbench.iconTheme\":\"OriginalIcons\",\n \"editor.fontSize\":12\n}\n");
+    h.write(
+        ".config/gtk-3.0/settings.ini",
+        "[Settings]\ngtk-theme-name=OriginalGTK\ngtk-font-name=OriginalFont 12\n[Other]\nkeep=1\n",
+    );
+    h.write(
+        ".config/kolira/themes/next/.config/Code/User/settings.json",
+        "{\"workbench.colorTheme\":\"Other\",\"workbench.iconTheme\":\"OtherIcons\"}",
+    );
+    h.write(
+        ".config/kolira/themes/next/.config/gtk-3.0/settings.ini",
+        "[Settings]\ngtk-theme-name=OtherGTK\ngtk-font-name=OtherFont 10\n",
+    );
+    h.apply_reviewed(&h.preview("next", false));
+    let path = h.path(".config/Code/User/settings.json");
+    let edited = fs::read_to_string(&path)
+        .unwrap()
+        .replace("\"OtherIcons\"", "\"MyNewIcons\"")
+        .replace("12", "19");
+    fs::write(&path, edited).unwrap();
+    let gtk = h.path(".config/gtk-3.0/settings.ini");
+    fs::write(
+        &gtk,
+        kolira_core::field::set_ini_text(
+            &fs::read_to_string(&gtk).unwrap(),
+            "Settings",
+            "gtk-font-name",
+            "NewPersonalFont 18",
+        ),
+    )
+    .unwrap();
+    let back = h.preview("empty", false);
+    h.apply_reviewed(&back);
+    h.assert_files(&back);
+    let restored = fs::read_to_string(path).unwrap();
+    assert!(restored.contains("keep me"));
+    let value: Value = serde_json::from_str(&restored.replace("// keep me", "")).unwrap();
+    assert_eq!(value["workbench.colorTheme"], "Original");
+    assert_eq!(value["workbench.iconTheme"], "MyNewIcons");
+    assert_eq!(value["editor.fontSize"], 19);
+    let restored = fs::read_to_string(gtk).unwrap();
+    assert!(
+        restored.contains("gtk-theme-name=OriginalGTK"),
+        "{restored}"
+    );
+    assert!(restored.contains("NewPersonalFont 18"), "{restored}");
+    assert!(restored.contains("keep=1"));
+}
+
+#[test]
+fn missing_wallpaper_returns_to_baseline_and_explicit_keep_preserves_its_file() {
+    for keep in [false, true] {
+        let h = Home::new();
+        h.theme("empty", true);
+        let apple = kolira_core::wallpaper::APPLETSRC_REL;
+        let a = h.path("Pictures/A.jpg");
+        let b = h.path("Pictures/B.jpg");
+        h.write("Pictures/A.jpg", "A bytes");
+        let layout = |path: &std::path::Path| {
+            format!("[Containments][1]\nplugin=org.kde.plasma.folder\nwallpaperplugin=org.kde.image\n\n[Containments][1][Wallpaper][org.kde.image][General]\nImage={}\n",path.display())
+        };
+        h.write(apple, &layout(&a));
+        h.write(&format!(".config/kolira/themes/next/{apple}"), &layout(&b));
+        h.write(".config/kolira/themes/next/wallpaper/B.jpg", "B bytes");
+        h.write(
+            ".config/kolira/themes/next/wallpaper/source",
+            b.to_str().unwrap(),
+        );
+        h.write(
+            ".config/kolira/themes/next/theme.json",
+            &json!({"schema":"kolira/theme@2","name":"next","wallpaper":"wallpaper/B.jpg"})
+                .to_string(),
+        );
+        h.apply_reviewed(&h.preview("next", false));
+        assert!(b.is_file());
+        let back = h.preview("empty", keep);
+        h.apply_reviewed(&back);
+        h.assert_files(&back);
+        let actual = kolira_core::wallpaper::plasma_wallpaper_from(&h.path(apple)).unwrap();
+        assert_eq!(PathBuf::from(actual), if keep { b.clone() } else { a });
+        if keep {
+            assert_eq!(fs::read_to_string(b).unwrap(), "B bytes");
+        } else {
+            assert!(!b.exists());
+        }
+    }
+}
+
+#[test]
+fn returning_theme_keeps_preexisting_empty_directory_and_user_permissions() {
+    let h = Home::new();
+    h.theme("empty", true);
+    let folder = h.path(".config/kitty");
+    fs::create_dir_all(&folder).unwrap();
+    fs::set_permissions(&folder, fs::Permissions::from_mode(0o750)).unwrap();
+    h.write(
+        ".config/kolira/themes/next/.config/kitty/kolira.conf",
+        "background #123456\n",
+    );
+    h.apply_reviewed(&h.preview("next", false));
+    h.apply_reviewed(&h.preview("empty", false));
+    assert!(folder.is_dir());
+    assert_eq!(
+        fs::metadata(folder).unwrap().permissions().mode() & 0o777,
+        0o750
+    );
+    assert!(!h.path(".config/kitty/kolira.conf").exists());
+}
+
+#[test]
+fn directory_alias_cannot_redirect_theme_writes_into_another_resource() {
+    let h = Home::new();
+    h.write(
+        ".local/share/icons/Personal/index.theme",
+        "original user icons\n",
+    );
+    symlink("Personal", h.path(".local/share/icons/Incoming")).unwrap();
+    h.write(
+        ".config/kolira/themes/next/.local/share/icons/Incoming/index.theme",
+        "theme icon package\n",
+    );
+    h.write(".config/kolira/themes/next/theme.json",&json!({"schema":"kolira/theme@2","name":"next","assets":[{"kind":"icons","name":"Incoming","path":".local/share/icons/Incoming"}]}).to_string());
+    let preview = h.rpc_raw("profile.preview", json!({"name":"next"}));
+    assert_eq!(preview["ok"], false, "{preview}");
+    let apply = h.run(&["apply", "next", "--without-dependencies"]);
+    assert!(!apply.status.success());
+    assert_eq!(
+        fs::read_to_string(h.path(".local/share/icons/Personal/index.theme")).unwrap(),
+        "original user icons\n"
+    );
+    assert!(h.path(".local/share/icons/Incoming").is_symlink());
+    assert!(!h.path(".config/kolira/backups").exists());
+}

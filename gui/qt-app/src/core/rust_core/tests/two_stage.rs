@@ -422,3 +422,65 @@ fn palette_without_app_targets_does_not_opt_in_installed_apps() {
         .path(".local/share/konsole/Theme Profile.profile")
         .exists());
 }
+
+#[test]
+fn generated_app_themes_round_trip_through_a_theme_without_their_configs() {
+    let h = Home::new();
+    let palette = h.palette();
+    h.manifest(
+        json!({"palette":palette,"app_targets":["firefox","discord","konsole","ghostty","cava"]}),
+    );
+    h.write(
+        ".config/kolira/themes/plain/theme.json",
+        r#"{"schema":"kolira/theme@2","name":"plain"}"#,
+    );
+    h.write(
+        ".mozilla/firefox/profiles.ini",
+        "[Profile0]\nPath=probe.default\nDefault=1\n",
+    );
+    let originals=[
+        (".config/vesktop/settings/settings.json","{\n \"enabledThemes\":[\"personal.css\"],\n \"transparent\":true,\"personal\":42\n}\n"),
+        (".config/vesktop/themes/personal.css","/* user theme */\n"),
+        (".config/konsolerc","[Desktop Entry]\nDefaultProfile=Mine.profile\n"),
+        (".local/share/konsole/Mine.profile","[General]\nName=Mine\nCommand=/bin/fish\n[Appearance]\nColorScheme=MyColors\nFont=Hack,12\n"),
+        (".config/ghostty/config","font-size = 13\nbackground = #123456\n"),
+        (".config/cava/config","[color]\ngradient=0\nforeground='#123456'\n[general]\nframerate=60\n"),
+        (".mozilla/firefox/probe.default/chrome/userChrome.css","/* original user CSS */\n#sidebar { width: 23em; }\n"),
+        (".mozilla/firefox/probe.default/user.js","// privacy\nuser_pref(\"privacy.donottrackheader.enabled\", true);\n"),
+    ];
+    for (path, text) in originals {
+        h.write(path, text);
+    }
+    for _ in 0..3 {
+        h.applied(false);
+        assert!(h.path(".config/vesktop/themes/kolira.theme.css").exists());
+        assert!(h.path(".config/ghostty/kolira").exists());
+        let preview = h.rpc("profile.preview", json!({"name":"plain"}));
+        assert_eq!(preview["ok"], true, "{preview}");
+        let applied = h.rpc(
+            "profile.apply",
+            json!({"name":"plain","preview_token":preview["data"]["token"]}),
+        );
+        assert_eq!(applied["ok"], true, "{applied}");
+        for (path, text) in originals {
+            if path.ends_with("/user.js") {
+                let current = fs::read_to_string(h.path(path)).unwrap();
+                assert!(current.contains(text)); // browser reset prefs may await its restart
+                assert!(!current.contains("stylesheets\", true"));
+            } else {
+                assert_eq!(fs::read_to_string(h.path(path)).unwrap(), text, "{path}");
+            }
+        }
+        for generated in [
+            ".config/vesktop/themes/kolira.theme.css",
+            ".config/ghostty/kolira",
+            ".local/share/konsole/KoliraNord.colorscheme",
+            ".mozilla/firefox/probe.default/chrome/kolira.css",
+        ] {
+            assert!(
+                !h.path(generated).exists(),
+                "left generated file {generated}"
+            );
+        }
+    }
+}

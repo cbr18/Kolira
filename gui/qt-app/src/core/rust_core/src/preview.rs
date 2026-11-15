@@ -149,11 +149,21 @@ fn build_impl(args: &Value, include_text_diff: bool) -> Result<Value> {
             .collect();
         missing = json!(absent);
     }
-    let keep_wallpaper = args["keep_wallpaper"].as_bool().unwrap_or(false)
-        || package.as_ref().is_some_and(|p| p.wallpaper.is_none());
-    let old_layout = plan.text(&paths::live_path(crate::wallpaper::APPLETSRC_REL))?;
+    let keep_wallpaper = args["keep_wallpaper"].as_bool().unwrap_or(false);
+    let mut old_layout = plan.text(&paths::live_path(crate::wallpaper::APPLETSRC_REL))?;
     let kept_values = profile::live_values(&kept);
-    let mut journal = crate::undo::plan_revert(&mut plan)?;
+    let kept_wallpapers: Vec<PathBuf> = if keep_wallpaper {
+        crate::wallpaper::plasma_wallpaper_from(&paths::live_path(crate::wallpaper::APPLETSRC_REL))
+            .map(PathBuf::from)
+            .into_iter()
+            .collect()
+    } else {
+        Vec::new()
+    };
+    let mut journal = crate::undo::plan_revert_preserving(&mut plan, &kept_wallpapers)?;
+    if !keep_wallpaper {
+        old_layout = plan.text(&paths::live_path(crate::wallpaper::APPLETSRC_REL))?;
+    }
     profile::plan_restore(name, &source, &rels, &mut plan)?;
     profile::plan_post_restore(
         &source,
@@ -206,7 +216,7 @@ fn build_impl(args: &Value, include_text_diff: bool) -> Result<Value> {
     let mut runtime_state = std::collections::BTreeMap::new();
     if !field::no_apply() {
         let mut wanted = journal.gsettings.clone();
-        if rels.iter().any(|rel| rel == ".config/gtk-3.0/settings.ini") {
+        if profile::theme_file(&source, ".config/gtk-3.0/settings.ini").is_file() {
             let text = plan
                 .text(&paths::live_path(".config/gtk-3.0/settings.ini"))?
                 .unwrap_or_default();

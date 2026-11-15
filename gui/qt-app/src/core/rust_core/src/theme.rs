@@ -87,7 +87,7 @@ pub struct Package {
     #[serde(default)]
     pub palette: Option<Palette>,
     /// Package path of the wallpaper file (`wallpaper/<file>`); none → applying
-    /// leaves the wallpaper alone.
+    /// keeps the wallpaper restored from the previous apply journal.
     #[serde(default)]
     pub wallpaper: Option<String>,
     #[serde(default)]
@@ -540,6 +540,17 @@ pub(crate) fn validate_asset_restore(dir: &Path, relative: &str) -> Result<()> {
     }
     let destination = live_path(relative);
     let container = live_path(root);
+    for parent in destination
+        .ancestors()
+        .skip(1)
+        .take_while(|p| *p != container)
+    {
+        anyhow::ensure!(
+            !(parent.is_symlink() && parent.is_dir()),
+            "symlink directory in asset destination: {}",
+            parent.display()
+        );
+    }
     crate::app_sync::validate_destination(&destination, &container)?;
     let boundary = if source.is_dir() {
         source.clone()
@@ -584,6 +595,11 @@ fn validate_resource_tree(
     boundary: &Path,
     container: &Path,
 ) -> Result<()> {
+    anyhow::ensure!(
+        !(destination.is_symlink() && destination.is_dir() && !source.is_symlink()),
+        "symlink directory in asset destination: {}",
+        destination.display()
+    );
     reject_link(source, boundary)?;
     crate::app_sync::validate_destination(destination, container)?;
     // Never recurse through a directory symlink: internal cycles are legal links.
@@ -1557,8 +1573,8 @@ fn store_app(field_id: &str, store: &str) -> Option<&'static str> {
 /// stopped, every file put back, colour scheme / widget style / KWin effects /
 /// kitty re-applied, plasmashell restarted) plus the package extras: assets
 /// outside the tracked files, store installs, the missing-parts report and the
-/// wallpaper rule (no wallpaper in the theme, or `keep_wallpaper` → the
-/// current wallpaper stays).
+/// wallpaper rule (an omitted wallpaper uses the restored baseline; explicit
+/// `keep_wallpaper` preserves the currently displayed image and its file).
 /// Fields whose value must exist on this machine to be used.
 pub(crate) const KEPT_WHEN_MISSING: &[&str] = &[
     "icon_theme",
@@ -1680,7 +1696,8 @@ fn apply_inner(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
         .map(|a| a.path.clone())
         .collect();
 
-    let keep = (package.wallpaper.is_none() || options.keep_wallpaper)
+    let keep = options
+        .keep_wallpaper
         .then(|| plasma_wallpaper_from(&live_path(APPLETSRC_REL)))
         .flatten()
         .map(PathBuf::from)
@@ -1710,7 +1727,7 @@ fn apply_inner(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
     let backup = crate::profile::apply_profile_staged(
         name,
         &extras,
-        package.wallpaper.is_none() || options.keep_wallpaper,
+        options.keep_wallpaper,
         &keep_fields,
         options.sync_apps.then_some(&package),
     )?;

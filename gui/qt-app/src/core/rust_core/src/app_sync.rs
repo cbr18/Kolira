@@ -54,6 +54,13 @@ fn write(plan: &mut Plan, path: &Path, text: String) -> Result<()> {
         .into_iter()
         .find(|root| path.starts_with(root))
         .context("app path outside HOME/XDG")?;
+    for parent in path.ancestors().skip(1).take_while(|p| *p != root) {
+        anyhow::ensure!(
+            !(parent.is_symlink() && parent.is_dir()),
+            "symlink directory in app destination: {}",
+            parent.display()
+        );
+    }
     validate_destination(path, &root)?;
     plan.write_text(path, text, "app_theme")
 }

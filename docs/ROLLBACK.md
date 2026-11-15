@@ -53,6 +53,19 @@ The first install saves your look as the theme `my-original-look`
 journal (`apply-journal/`, see `docs/THEMES.md`) first removes what the current
 theme left. Backups are for when something went wrong.
 
+### Missing configs when switching back
+
+Applying your saved theme first reverses changes owned by the previous theme.
+A config missing from your snapshot is left at that restored baseline, without
+forcing defaults. Unchanged files restore exact original bytes/permissions;
+mixed configs preserve later personal values. A generated file is retained if a
+surviving personal host still refers to it. Explicit `--keep-wallpaper` keeps
+both the currently displayed image and its file.
+
+New journals record every changed file, including INI/JSONC and app follow-ups.
+Older journals cannot reconstruct values that old code never recorded: use the
+retained full pre-apply backup/history for explicit recovery in that case.
+
 ### To restore a pre-apply backup:
 
 ```bash

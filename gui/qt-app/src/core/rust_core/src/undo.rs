@@ -6,8 +6,8 @@
 //! records what it did on top of the pre-theme state, and the next apply first
 //! undoes exactly that. The chain A → B → C → A ends where A began.
 //!
-//! Only what the theme left untouched is undone: a file or block the user has
-//! changed since (its content is no longer what the theme wrote) stays theirs.
+//! Changes are reversed against exact before/after states. Mixed configs restore
+//! only values still matching what Apply wrote; later user edits are retained.
 //!
 //! Lives in `<theme root>/apply-journal/`: `journal.json` + `originals/`. It is
 //! local state, never part of a theme or an export.
@@ -19,11 +19,9 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::appearance::{self, Policy};
-use crate::paths::{home_dir, live_path, theme_root};
-
-/// Files larger than this are not kept as originals (no config is).
-const MAX_ORIGINAL: u64 = 16 << 20;
+use crate::appearance;
+use crate::change_plan::{Entry, Plan};
+use crate::paths::{live_path, theme_root};
 
 /// Firefox/Zen defaults of the look prefs themes set. A pref in `user.js` stays
 /// in `prefs.js` after the line is gone; with no earlier value to go back to,
@@ -61,9 +59,68 @@ pub struct Journal {
     /// theme (`None`: it was not set). Kept until `prefs.js` is back.
     #[serde(default)]
     prefs: BTreeMap<String, BTreeMap<String, Option<String>>>,
+    /// Every actual filesystem mutation, including mixed configs and removals.
+    #[serde(default)]
+    changes: BTreeMap<String, Change>,
     /// GSettings values before any theme.
     #[serde(default)]
     pub(crate) gsettings: BTreeMap<String, String>,
+    #[serde(default)]
+    gsettings_after: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Change {
+    before: Saved,
+    after: Saved,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum Saved {
+    Missing,
+    File { blob: String, mode: u32 },
+    Directory { mode: u32 },
+    Symlink { target: PathBuf },
+}
+impl Saved {
+    fn store(entry: &Entry) -> Result<Self> {
+        Ok(match entry {
+            Entry::Missing => Self::Missing,
+            Entry::Directory { mode } => Self::Directory { mode: *mode },
+            Entry::Symlink { target } => Self::Symlink {
+                target: target.clone(),
+            },
+            Entry::File { bytes, mode } => {
+                let blob = sha(bytes);
+                let folder = dir().join("originals");
+                fs::create_dir_all(&folder)?;
+                fs::set_permissions(&folder, std::os::unix::fs::PermissionsExt::from_mode(0o700))?;
+                crate::gui_api::write_bytes(&folder.join(&blob), bytes, Some(0o600))?;
+                Self::File { blob, mode: *mode }
+            }
+        })
+    }
+    fn read(&self, plan: &mut Plan) -> Result<Entry> {
+        Ok(match self {
+            Self::Missing => Entry::Missing,
+            Self::Directory { mode } => Entry::Directory { mode: *mode },
+            Self::Symlink { target } => Entry::Symlink {
+                target: target.clone(),
+            },
+            Self::File { blob, mode } => {
+                anyhow::ensure!(
+                    blob.len() == 64 && blob.bytes().all(|b| b.is_ascii_hexdigit()),
+                    "Invalid journal blob"
+                );
+                let bytes = plan
+                    .read(&dir().join("originals").join(blob))?
+                    .context("Missing apply journal original")?;
+                anyhow::ensure!(sha(&bytes) == *blob, "Corrupt apply journal original");
+                Entry::File { bytes, mode: *mode }
+            }
+        })
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,48 +153,40 @@ pub fn load() -> Journal {
 fn save(journal: &Journal) -> Result<()> {
     let d = dir();
     fs::create_dir_all(&d)?;
-    let tmp = d.join("journal.json.tmp");
-    fs::write(&tmp, serde_json::to_vec_pretty(journal)?)?;
-    fs::rename(&tmp, d.join("journal.json")).context("cannot write the apply journal")
+    fs::set_permissions(&d, std::os::unix::fs::PermissionsExt::from_mode(0o700))?;
+    crate::gui_api::write_bytes(
+        &d.join("journal.json"),
+        &serde_json::to_vec_pretty(journal)?,
+        Some(0o600),
+    )
 }
 
-/// Every regular file under the tracked `rels`, as `$HOME`-relative paths.
-fn files_under(rels: &[String]) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut stack: Vec<String> = rels.to_vec();
-    while let Some(rel) = stack.pop() {
+/// Capture actual entries, without following symlinks or discarding mixed
+/// config bytes. Errors abort Apply while its recovery copy is still intact.
+fn entries(rels: &[String]) -> Result<BTreeMap<String, Entry>> {
+    fn walk(rel: String, out: &mut BTreeMap<String, Entry>) -> Result<()> {
         if appearance::is_preserved(&rel) {
-            continue;
+            return Ok(());
         }
         let path = live_path(&rel);
-        let Ok(meta) = fs::symlink_metadata(&path) else {
-            continue;
-        };
-        if meta.is_dir() {
-            if let Ok(entries) = fs::read_dir(&path) {
-                for e in entries.flatten() {
-                    stack.push(format!("{rel}/{}", e.file_name().to_string_lossy()));
-                }
+        let entry = crate::change_plan::entry(&path)?;
+        let directory = matches!(entry, Entry::Directory { .. });
+        out.insert(rel.clone(), entry);
+        if directory {
+            for item in fs::read_dir(path)? {
+                walk(
+                    format!("{rel}/{}", item?.file_name().to_string_lossy()),
+                    out,
+                )?;
             }
-        } else if meta.is_file() {
-            out.push(rel);
         }
+        Ok(())
     }
-    out.sort();
-    out.dedup();
-    out
-}
-
-fn is_journal_block_file(rel: &str) -> bool {
-    matches!(rel, ".config/kwinrc" | ".config/kwinrulesrc")
-}
-
-fn is_tracked_block(file: &str, group: &str) -> bool {
-    if file == ".config/kwinrc" {
-        group.starts_with("Effect-") || group == "Round-Corners"
-    } else {
-        group != "General"
+    let mut out = BTreeMap::new();
+    for rel in rels {
+        walk(rel.clone(), &mut out)?;
     }
+    Ok(out)
 }
 
 fn blocks_of(text: &str) -> BTreeMap<String, Vec<String>> {
@@ -219,23 +268,6 @@ fn prefs_js_for(user_js: &str) -> Option<String> {
         .map(|d| format!("{d}/prefs.js"))
 }
 
-fn remove_empty_parents(path: &Path) {
-    let home = home_dir();
-    let keep = [
-        home.clone(),
-        home.join(".config"),
-        home.join(".local"),
-        home.join(".local/share"),
-    ];
-    let mut cur = path.parent();
-    while let Some(d) = cur {
-        if keep.iter().any(|k| k == d) || !d.starts_with(&home) || fs::remove_dir(d).is_err() {
-            return;
-        }
-        cur = d.parent();
-    }
-}
-
 pub(crate) fn gsettings_get(key: &str) -> Option<String> {
     if crate::field::no_apply() || cfg!(test) {
         return None;
@@ -272,14 +304,13 @@ pub fn live_color_scheme() -> Option<String> {
 /// new theme is restored. Prefs stay journalled: `prefs.js` only changes when
 /// the browser next runs.
 pub fn revert() -> Result<Journal> {
+    revert_preserving(&[])
+}
+
+pub(crate) fn revert_preserving(preserved: &[PathBuf]) -> Result<Journal> {
     let mut plan = crate::change_plan::Plan::default();
-    let journal = plan_revert(&mut plan)?;
+    let journal = plan_revert_preserving(&mut plan, preserved)?;
     plan.commit()?;
-    for (path, entry) in &plan.after {
-        if matches!(entry, crate::change_plan::Entry::Missing) {
-            remove_empty_parents(path);
-        }
-    }
     let _ = fs::remove_dir_all(dir().join("originals"));
     for (key, value) in &journal.gsettings {
         // Older Apply versions journalled this independent user preference.
@@ -294,11 +325,146 @@ pub fn revert() -> Result<Journal> {
     Ok(journal)
 }
 
-pub(crate) fn plan_revert(plan: &mut crate::change_plan::Plan) -> Result<Journal> {
+pub(crate) fn plan_revert_preserving(plan: &mut Plan, preserved: &[PathBuf]) -> Result<Journal> {
+    let mut dependencies = Vec::new();
+    for (hosts, include) in [
+        (
+            crate::extras::SHELL_HOSTS.to_vec(),
+            crate::extras::OMP_THEME,
+        ),
+        (vec![appearance::KITTY_HOST], appearance::KITTY_THEME),
+        (
+            vec![appearance::ALACRITTY_HOST],
+            appearance::ALACRITTY_THEME,
+        ),
+        (
+            vec![crate::extras::GHOSTTY_HOST],
+            crate::extras::GHOSTTY_THEME,
+        ),
+    ] {
+        dependencies.push((hosts, include, plan.get(&live_path(include))?));
+    }
+    let kept = preserved
+        .iter()
+        .map(|path| Ok((path.clone(), plan.get(path)?)))
+        .collect::<Result<Vec<_>>>()?;
+    let journal = plan_revert_inner(plan)?;
+    for (hosts, include, original) in dependencies {
+        let path = live_path(include);
+        if matches!(plan.get(&path)?, Entry::Missing) && !matches!(original, Entry::Missing) {
+            let name = Path::new(include)
+                .file_name()
+                .context("include name")?
+                .to_string_lossy();
+            let mut referenced = false;
+            for host in hosts {
+                if plan
+                    .text(&live_path(host))?
+                    .is_some_and(|text| text.contains(name.as_ref()))
+                {
+                    referenced = true;
+                    break;
+                }
+            }
+            if referenced {
+                plan.ensure_parent(&path)?;
+                plan.put(&path, original, "kept_referenced_include")?;
+            }
+        }
+    }
+    for (path, value) in kept {
+        if !matches!(value, Entry::Missing) {
+            plan.ensure_parent(&path)?;
+            plan.put(&path, value, "keep_wallpaper")?;
+        }
+    }
+    Ok(journal)
+}
+
+fn plan_revert_inner(plan: &mut Plan) -> Result<Journal> {
     let mut j: Journal = plan
         .text(&dir().join("journal.json"))?
-        .and_then(|text| serde_json::from_str(&text).ok())
+        .map(|text| serde_json::from_str(&text).context("Invalid apply journal"))
+        .transpose()?
         .unwrap_or_default();
+    let mut changes: Vec<_> = std::mem::take(&mut j.changes).into_iter().collect();
+    changes.sort_by_key(|(rel, _)| std::cmp::Reverse(Path::new(rel).components().count()));
+    for (rel, change) in changes {
+        anyhow::ensure!(
+            Path::new(&rel).components().all(|c| matches!(
+                c,
+                std::path::Component::Normal(_) | std::path::Component::RootDir
+            )),
+            "Invalid journal path"
+        );
+        if appearance::is_preserved(&rel) {
+            continue;
+        }
+        let path = live_path(&rel);
+        let current = plan.get(&path)?;
+        let before = change.before.read(plan)?;
+        let after = change.after.read(plan)?;
+        let restore = if current == after {
+            Some(before)
+        } else if let (
+            Entry::File { bytes: now, mode },
+            Entry::File {
+                bytes: written,
+                mode: written_mode,
+            },
+        ) = (&current, &after)
+        {
+            let original = match &before {
+                Entry::File { bytes, .. } => bytes.as_slice(),
+                Entry::Missing => &[],
+                _ => continue,
+            };
+            if now == written {
+                if matches!(before, Entry::Missing) {
+                    continue;
+                }
+                let mut value = before;
+                if let Entry::File { mode: old_mode, .. } = &mut value {
+                    *old_mode = *mode;
+                }
+                Some(value)
+            } else if let (Ok(original), Ok(written), Ok(now)) = (
+                std::str::from_utf8(original),
+                std::str::from_utf8(written),
+                std::str::from_utf8(now),
+            ) {
+                let text = crate::appearance::restore_changed(&rel, original, written, now)?;
+                let restored_mode = match &before {
+                    Entry::File { mode: old_mode, .. } if mode == written_mode => *old_mode,
+                    _ => *mode,
+                };
+                Some(Entry::File {
+                    bytes: text.into_bytes(),
+                    mode: restored_mode,
+                })
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        if let Some(value) = restore {
+            if matches!(value, Entry::Missing) && matches!(current, Entry::Directory { .. }) {
+                let mut empty = true;
+                for child in plan.children(&path)? {
+                    if !matches!(plan.get(&child)?, Entry::Missing) {
+                        empty = false;
+                        break;
+                    }
+                }
+                if !empty {
+                    continue;
+                }
+            }
+            plan.ensure_parent(&path)?;
+            plan.put(&path, value, "previous_theme")?;
+        }
+    }
     for (rel, hash) in std::mem::take(&mut j.created) {
         // Shell init lines keep pointing to this shared prompt file when the
         // next theme has no prompt. Keep it, matching profile::plan_reset.
@@ -337,81 +503,84 @@ pub(crate) fn plan_revert(plan: &mut crate::change_plan::Plan) -> Result<Journal
             )?;
         }
     }
+    j.gsettings.retain(|key, _| {
+        j.gsettings_after
+            .get(key)
+            .is_none_or(|written| gsettings_get(key).as_ref() == Some(written))
+    });
+    j.gsettings_after.clear();
     Ok(j)
 }
 
-/// State before the theme is restored.
+/// State after reversing the previous theme, before applying the new one.
 pub struct Baseline {
     rels: Vec<String>,
-    files: BTreeMap<String, Option<Vec<u8>>>,
+    files: BTreeMap<String, Entry>,
 }
 
-/// Note the current files of the tracked `rels`.
-pub fn baseline(rels: &[String]) -> Baseline {
-    let mut files = BTreeMap::new();
-    for rel in files_under(rels) {
-        let path = live_path(&rel);
-        let keep = (matches!(appearance::policy(&rel), Policy::Whole)
-            || is_journal_block_file(&rel))
-            && fs::metadata(&path).is_ok_and(|m| m.len() <= MAX_ORIGINAL);
-        files.insert(rel, keep.then(|| fs::read(&path).ok()).flatten());
+pub fn baseline(rels: &[String]) -> Result<Baseline> {
+    let mut roots = rels.to_vec();
+    let boundaries = [
+        crate::paths::home_dir(),
+        crate::paths::config_home(),
+        crate::paths::data_home(),
+    ];
+    for relative in rels {
+        let path = live_path(relative);
+        let mut parent = path.parent();
+        while let Some(path) = parent {
+            if boundaries.iter().any(|boundary| path == boundary) || path == Path::new("/") {
+                break;
+            }
+            if !matches!(crate::change_plan::entry(path)?, Entry::Missing) {
+                break;
+            }
+            let relative = if let Ok(p) = path.strip_prefix(crate::paths::config_home()) {
+                format!(".config/{}", p.display())
+            } else if let Ok(p) = path.strip_prefix(crate::paths::data_home()) {
+                format!(".local/share/{}", p.display())
+            } else if let Ok(p) = path.strip_prefix(crate::paths::home_dir()) {
+                p.to_string_lossy().to_string()
+            } else {
+                path.to_string_lossy().to_string()
+            };
+            if !roots.contains(&relative) {
+                roots.push(relative);
+            }
+            parent = path.parent();
+        }
     }
-    Baseline {
-        rels: rels.to_vec(),
-        files,
-    }
+    Ok(Baseline {
+        files: entries(&roots)?,
+        rels: roots,
+    })
 }
 
-/// Record what the apply did relative to `before`, and write the prefs that a
-/// theme no longer sets back into the browser's `user.js`.
+/// Record every actual change, not just whole-file appearance resources. Blobs
+/// preserve the exact originals and the values we wrote for three-way recovery.
 pub fn record(mut j: Journal, before: &Baseline) -> Result<()> {
-    // GSettings originals were noted on disk during the apply.
     j.gsettings = load().gsettings;
-    let originals = dir().join("originals");
-    let now = files_under(&before.rels);
-    for rel in &now {
-        let Ok(bytes) = fs::read(live_path(rel)) else {
-            continue;
-        };
-        match before.files.get(rel) {
-            None => {
-                j.created.insert(rel.clone(), sha(&bytes));
-            }
-            Some(Some(old))
-                if old != &bytes && matches!(appearance::policy(rel), Policy::Whole) =>
-            {
-                let name = sha(rel.as_bytes());
-                fs::create_dir_all(&originals)?;
-                fs::write(originals.join(&name), old)?;
-                j.replaced.insert(rel.clone(), (sha(&bytes), name));
-            }
-            _ => {}
-        }
-    }
-    for file in [".config/kwinrc", ".config/kwinrulesrc"] {
-        let Ok(text) = fs::read_to_string(live_path(file)) else {
-            continue;
-        };
-        let old = before
-            .files
-            .get(file)
-            .cloned()
-            .flatten()
-            .map(|b| String::from_utf8_lossy(&b).to_string())
-            .unwrap_or_default();
-        let (old, new) = (blocks_of(&old), blocks_of(&text));
-        for (group, written) in new.iter().filter(|(g, _)| is_tracked_block(file, g)) {
-            if old.get(group) != Some(written) {
-                j.blocks.push(Block {
-                    file: file.into(),
-                    group: group.clone(),
-                    original: old.get(group).cloned(),
-                    written: written.clone(),
-                });
-            }
-        }
-    }
     record_prefs(&mut j, &before.rels)?;
+    let now = entries(&before.rels)?;
+    let paths: std::collections::BTreeSet<_> = before.files.keys().chain(now.keys()).collect();
+    for rel in paths {
+        let old = before.files.get(rel).unwrap_or(&Entry::Missing);
+        let written = now.get(rel).unwrap_or(&Entry::Missing);
+        if old != written {
+            j.changes.insert(
+                rel.clone(),
+                Change {
+                    before: Saved::store(old)?,
+                    after: Saved::store(written)?,
+                },
+            );
+        }
+    }
+    j.gsettings_after = j
+        .gsettings
+        .keys()
+        .filter_map(|key| gsettings_get(key).map(|value| (key.clone(), value)))
+        .collect();
     save(&j)
 }
 
@@ -510,6 +679,7 @@ pub(crate) fn affected_paths() -> Vec<String> {
         .chain(journal.replaced.keys())
         .cloned()
         .collect();
+    paths.extend(journal.changes.keys().cloned());
     paths.extend(journal.blocks.into_iter().map(|b| b.file));
     paths.extend(journal.prefs.keys().filter_map(|p| {
         p.strip_suffix("prefs.js")

@@ -161,6 +161,15 @@ A virtual environment is created inside the installed app only when the system
 Python cannot `import PySide6` (e.g. `pyside6` is not installed from the
 distro); with a system PySide6 the copy stays ~650 KB.
 
+### Returning to your own theme
+
+When switching back, configs absent from your theme return to their state before
+the other theme was applied. Mixed INI/JSONC settings restore appearance values
+without discarding later personal edits. Files created only by the other theme
+are removed unless a surviving user config still references them. The same
+journal covers generated app resources and wallpapers. See
+[theme restoration](docs/THEMES.md) and [recovery](docs/ROLLBACK.md).
+
 ### Applying app themes
 
 `kolira apply NAME` restores the snapshot, then installs cached editor themes
@@ -263,8 +272,9 @@ nothing). One wallpaper is applied to all screens (`plasma-apply-wallpaperimage`
 the theme (`wallpaper/<file>` + `source`) unless `--no-wallpaper` is given.
 `kolira apply` — CLI, `theme-menu`, GUI, MCP alike — sets the theme's
 wallpaper (putting the file back if it is gone; existing files are never
-overwritten). A theme without a wallpaper leaves the current wallpaper on
-screen, and `--keep-wallpaper` keeps it even when the theme has one. See
+overwritten). A theme without a wallpaper returns to the wallpaper restored
+from the previous apply journal. Explicit `--keep-wallpaper` preserves the current
+image and its file even when undoing the previous theme. See
 `docs/THEMES.md`.
 
 Environment overrides (also used by the GUI and the tests): `WALLPAPER_DIR`,

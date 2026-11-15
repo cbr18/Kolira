@@ -612,3 +612,11 @@ copy, and run in a GUI worker. Saved app resources take priority over generated
 palette themes. General System Settings and individual KCM buttons are both
 available. Palette saving requires applying the current palette to KDE first;
 Rust verifies live colors again before saving. See `../../docs/THEMES.md`.
+
+### Returning to a theme with omitted configs
+
+The shared Rust journal records before/after data for mixed configs and generated
+app resources. When a subsequent theme omits a config, the restored baseline is
+kept. Later user values remain; generated files disappear only if still owned by
+the previous Apply and no surviving personal host references them. The preview
+shows this same restoration plan. `--keep-wallpaper` preserves the image file too.

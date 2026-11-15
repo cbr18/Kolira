@@ -991,6 +991,256 @@ pub fn jsonc_merge(theme: &str, live: &str, keys: &[&str]) -> String {
     text
 }
 
+/// Reverse only values still equal to what Apply wrote. An unrelated user edit
+/// must not prevent restoring the old appearance, nor be overwritten itself.
+pub(crate) fn restore_changed(
+    rel: &str,
+    before: &str,
+    after: &str,
+    current: &str,
+) -> Result<String> {
+    if current == after {
+        return Ok(before.into());
+    }
+    if before == after {
+        return Ok(current.into());
+    }
+    Ok(match policy(rel) {
+        Policy::Jsonc(_) => restore_json(before, after, current),
+        Policy::Ini(_)
+        | Policy::KwinRc
+        | Policy::KwinRules
+        | Policy::Appletsrc
+        | Policy::PanelViews => restore_ini(before, after, current),
+        Policy::Whole => current.to_string(),
+        _ => inverse_lines(before, after, current),
+    })
+}
+
+fn json_values(text: &str) -> std::collections::BTreeMap<String, String> {
+    members(text)
+        .into_iter()
+        .map(|m| (m.key, text[m.value.0..m.value.1].to_string()))
+        .collect()
+}
+fn json_equal(a: &str, b: &str) -> bool {
+    match (
+        serde_json::from_str::<serde_json::Value>(a),
+        serde_json::from_str::<serde_json::Value>(b),
+    ) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => a.trim() == b.trim(),
+    }
+}
+fn restore_json(before: &str, after: &str, current: &str) -> String {
+    let (old, written, live) = (
+        json_values(before),
+        json_values(after),
+        json_values(current),
+    );
+    let keys: std::collections::BTreeSet<_> = old.keys().chain(written.keys()).collect();
+    let mut text = current.to_string();
+    for key in keys {
+        let (a, b, c) = (old.get(key), written.get(key), live.get(key));
+        if a.zip(b).is_some_and(|(a, b)| json_equal(a, b)) || a.is_none() && b.is_none() {
+            continue;
+        }
+        let value = if c.zip(b).is_some_and(|(c, b)| json_equal(c, b)) || c.is_none() && b.is_none()
+        {
+            Some(a.cloned())
+        } else if let (Some(b), Some(c)) = (b, c) {
+            if b.trim_start().starts_with('{') && c.trim_start().starts_with('{') {
+                Some(Some(restore_json(
+                    a.map(String::as_str).unwrap_or("{}"),
+                    b,
+                    c,
+                )))
+            } else if let (
+                Ok(serde_json::Value::Array(written)),
+                Ok(serde_json::Value::Array(mut current)),
+            ) = (
+                serde_json::from_str::<serde_json::Value>(b),
+                serde_json::from_str::<serde_json::Value>(c),
+            ) {
+                let old = a
+                    .and_then(|a| serde_json::from_str::<serde_json::Value>(a).ok())
+                    .and_then(|v| v.as_array().cloned())
+                    .unwrap_or_default();
+                current.retain(|value| old.contains(value) || !written.contains(value));
+                for (index, value) in old.iter().enumerate() {
+                    if !written.contains(value) && !current.contains(value) {
+                        current.insert(index.min(current.len()), value.clone());
+                    }
+                }
+                Some(Some(serde_json::to_string(&current).unwrap()))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        if let Some(value) = value {
+            let snippet = match value {
+                Some(value) => format!("{{{}:{value}}}", serde_json::to_string(key).unwrap()),
+                None => "{}".into(),
+            };
+            text = jsonc_merge(&snippet, &text, &[key.as_str()]);
+        }
+    }
+    text
+}
+
+fn ini_values(text: &str) -> std::collections::BTreeMap<(String, String), String> {
+    let mut values = std::collections::BTreeMap::new();
+    for section in parse_ini(text) {
+        for line in &section.lines {
+            if let Some(key) = base_key(line) {
+                values.insert((section.group().into(), key.into()), line.clone());
+            }
+        }
+    }
+    values
+}
+fn ini_line_value(line: &str) -> &str {
+    line.split_once('=').map(|(_, v)| v.trim()).unwrap_or(line)
+}
+fn restore_ini(before: &str, after: &str, current: &str) -> String {
+    let (old, written, live) = (ini_values(before), ini_values(after), ini_values(current));
+    let keys: std::collections::BTreeSet<_> = old.keys().chain(written.keys()).collect();
+    let mut sections = parse_ini(current);
+    for key in keys {
+        let (a, b, c) = (old.get(key), written.get(key), live.get(key));
+        if c.zip(b).is_some_and(|(current, written)| {
+            current.split_once('=').map(|(k, _)| k.trim())
+                != written.split_once('=').map(|(k, _)| k.trim())
+        }) {
+            continue;
+        }
+        let mut original = a.cloned();
+        let unchanged = a.map(|s| s.trim()) == b.map(|s| s.trim());
+        if unchanged {
+            continue;
+        }
+        if c.map(|s| ini_line_value(s)) != b.map(|s| ini_line_value(s)) {
+            if let (Some(a), Some(b), Some(c)) = (a, b, c) {
+                if FONT_KEYS.contains(&key.1.as_str())
+                    && keep_live_size(&key.1, ini_line_value(b), Some(ini_line_value(c)))
+                        == ini_line_value(c)
+                {
+                    original = Some(format!(
+                        "{}={}",
+                        a.split_once('=').unwrap().0,
+                        keep_live_size(&key.1, ini_line_value(a), Some(ini_line_value(c)))
+                    ));
+                } else {
+                    continue;
+                }
+            } else {
+                continue;
+            }
+        }
+        let a = original.as_ref();
+        if let Some(section) = sections.iter_mut().rev().find(|s| s.group() == key.0) {
+            let position = section
+                .lines
+                .iter()
+                .position(|line| base_key(line) == Some(key.1.as_str()));
+            section
+                .lines
+                .retain(|line| base_key(line) != Some(key.1.as_str()));
+            if let Some(line) = a {
+                section.lines.insert(
+                    position
+                        .unwrap_or(section.lines.len())
+                        .min(section.lines.len()),
+                    line.clone(),
+                );
+            }
+        } else if let Some(line) = a {
+            sections.push(Section {
+                header: (!key.0.is_empty()).then(|| format!("[{}]", key.0)),
+                lines: vec![line.clone()],
+            });
+        }
+    }
+    let original_groups: std::collections::BTreeSet<_> = parse_ini(before)
+        .into_iter()
+        .map(|s| s.group().to_string())
+        .collect();
+    sections.retain(|s| {
+        s.header.is_none()
+            || original_groups.contains(s.group())
+            || s.lines.iter().any(|l| !l.trim().is_empty())
+    });
+    render_ini(&sections)
+}
+
+/// Invert exact line hunks in host configs without reverting unrelated edits.
+/// Ambiguous/edited hunks are left alone. Bound the LCS work for unusually large
+/// manually edited files; unchanged files always restore byte for byte above.
+fn inverse_lines(before: &str, after: &str, current: &str) -> String {
+    let a: Vec<_> = before.split_inclusive('\n').collect();
+    let b: Vec<_> = after.split_inclusive('\n').collect();
+    if (a.len() + 1).saturating_mul(b.len() + 1) > 4_000_000 {
+        return current.into();
+    }
+    let stride = b.len() + 1;
+    let mut lcs = vec![0u32; (a.len() + 1) * stride];
+    for i in (0..a.len()).rev() {
+        for j in (0..b.len()).rev() {
+            lcs[i * stride + j] = if a[i] == b[j] {
+                1 + lcs[(i + 1) * stride + j + 1]
+            } else {
+                lcs[(i + 1) * stride + j].max(lcs[i * stride + j + 1])
+            };
+        }
+    }
+    let mut hunks = Vec::new();
+    let (mut i, mut j) = (0, 0);
+    while i < a.len() || j < b.len() {
+        if i < a.len() && j < b.len() && a[i] == b[j] {
+            i += 1;
+            j += 1;
+            continue;
+        }
+        let (start_i, start_j) = (i, j);
+        while i < a.len() || j < b.len() {
+            if i < a.len() && j < b.len() && a[i] == b[j] {
+                break;
+            }
+            if i < a.len() && (j == b.len() || lcs[(i + 1) * stride + j] >= lcs[i * stride + j + 1])
+            {
+                i += 1;
+            } else {
+                j += 1;
+            }
+        }
+        hunks.push((start_i, i, start_j, j));
+    }
+    let mut live: Vec<&str> = current.split_inclusive('\n').collect();
+    for (ai, az, bi, bz) in hunks.into_iter().rev() {
+        let matches: Vec<usize> = (0..=live.len())
+            .filter(|&position| {
+                if bi != bz {
+                    return live.get(position..position + (bz - bi)) == Some(&b[bi..bz]);
+                }
+                let left = bi == 0 && position == 0
+                    || bi > 0 && position > 0 && live[position - 1] == b[bi - 1];
+                let right = bz == b.len() && position == live.len()
+                    || bz < b.len() && live.get(position) == Some(&b[bz]);
+                left && right
+            })
+            .collect();
+        if matches.len() == 1 {
+            live.splice(
+                matches[0]..matches[0] + (bz - bi),
+                a[ai..az].iter().copied(),
+            );
+        }
+    }
+    live.concat()
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // kitty: appearance in kitty/kolira.conf, included by kitty.conf
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1577,5 +1827,47 @@ mod tests {
         );
         assert!(!h.contains("opacity") && !h.contains("#000000"));
         assert_eq!(alacritty_host(&h).unwrap(), h, "idempotent");
+    }
+}
+
+#[cfg(test)]
+mod reversible_tests {
+    use super::*;
+    #[test]
+    fn inverse_json_preserves_nested_edits_comments_and_user_added_themes() {
+        let before = r##"{"workbench.colorCustomizations":{"a":"#111","b":"#222"},"enabledThemes":["own"],"editor.fontSize":12}"##;
+        let after = r##"{"workbench.colorCustomizations":{"a":"#aaa","b":"#bbb"},"enabledThemes":["own","kolira"],"editor.fontSize":12}"##;
+        let current = r##"{
+ // new personal note
+ "workbench.colorCustomizations":{"a":"#aaa","b":"#ccc"},
+ "enabledThemes":["own","kolira","new-personal"],"editor.fontSize":19
+}"##;
+        let restored =
+            restore_changed(".config/Code/User/settings.json", before, after, current).unwrap();
+        assert!(restored.contains("// new personal note"));
+        let value: serde_json::Value =
+            serde_json::from_str(&restored.replace("// new personal note", "")).unwrap();
+        assert_eq!(value["workbench.colorCustomizations"]["a"], "#111");
+        assert_eq!(value["workbench.colorCustomizations"]["b"], "#ccc");
+        assert_eq!(
+            value["enabledThemes"],
+            serde_json::json!(["own", "new-personal"])
+        );
+        assert_eq!(value["editor.fontSize"], 19);
+    }
+    #[test]
+    fn restore_font_family_preserves_later_user_size() {
+        let restored = restore_changed(
+            ".config/gtk-3.0/settings.ini",
+            "[Settings]\ngtk-font-name=Original, 12\n",
+            "[Settings]\ngtk-font-name=Other, 12\n",
+            "[Settings]\ngtk-font-name=Other, 18\n[User]\nkeep=yes\n",
+        )
+        .unwrap();
+        assert!(
+            restored.contains("gtk-font-name=Original, 18"),
+            "{restored}"
+        );
+        assert!(restored.contains("keep=yes"));
     }
 }
