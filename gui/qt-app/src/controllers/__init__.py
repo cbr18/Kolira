@@ -295,15 +295,8 @@ class ProfileController(QObject):
                         profiles = core.list_profiles()
                         active = core.get_active_profile()
             components = next((list(p.components) for p in profiles if p.name == active), [])
-            pending = []
-            history_error = ""
-            if hasattr(core, "pending_operations"):
-                try:
-                    pending = core.pending_operations()
-                except (RuntimeError, ValueError) as exc:
-                    history_error = str(exc)
             payload.update(profiles=profiles, active=active, components=components,
-                           stale=stale, pending=pending, history_error=history_error)
+                           stale=stale)
             return True, ""
 
         def done(ok, message):
@@ -321,18 +314,9 @@ class ProfileController(QObject):
                 self._refresh_summaries()
                 self.activeProfileChanged.emit()
                 self.componentsForProfileChanged.emit(self._components_for_active)
-                for record in payload["pending"]:
-                    seen = getattr(self, "_reported_interrupted", set())
-                    if record["id"] not in seen:
-                        seen.add(record["id"])
-                        self._reported_interrupted = seen
-                        self.operationFinished.emit(False, self.tr("Interrupted apply %1. Backup: %2. You can continue or restore it with: kolira operations recover %1")
-                            .replace("%1", record["id"]).replace("%2", str(record.get("backup") or "")))
                 if payload["stale"]:
                     self.operationFinished.emit(False,
                         f"Active profile “{payload['stale']}” is missing; the marker was reset")
-                if payload["history_error"]:
-                    self.operationFinished.emit(False, localize(payload["history_error"]))
             else:
                 self.operationFinished.emit(False, localize(message))
             self.refreshBusyChanged.emit()

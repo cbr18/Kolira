@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 
 
-def test_interrupted_apply_is_reported_once_without_changing_active_profile(qtbot, monkeypatch):
+def test_old_interrupted_apply_does_not_raise_errors_on_refresh_or_restart(qtbot, monkeypatch):
     from controllers import ProfileController
     from core.protocol import CoreFactory, ProfileInfo
     class Core:
@@ -17,15 +17,17 @@ def test_interrupted_apply_is_reported_once_without_changing_active_profile(qtbo
         def pending_operations(self):
             return [{'id': 'apply-interrupted', 'backup': '/private/backup'}]
     monkeypatch.setattr(CoreFactory, '_profile_core', Core())
-    ctrl = ProfileController()
-    messages = []
-    ctrl.operationFinished.connect(lambda ok, msg: messages.append((ok, msg)))
-    ctrl.refresh()
-    ctrl.refresh()
-    qtbot.waitUntil(lambda: not ctrl.refreshing and not ctrl._summary_running, timeout=5000)
-    assert ctrl.activeProfile == 'glass'
-    assert len(messages) == 1 and messages[0][0] is False
-    assert 'apply-interrupted' in messages[0][1] and '/private/backup' in messages[0][1]
+    # A fresh controller models reopening the app with the same old operation.
+    for _ in range(2):
+        ctrl = ProfileController()
+        messages = []
+        ctrl.operationFinished.connect(lambda ok, msg: messages.append((ok, msg)))
+        for _ in range(2):
+            with qtbot.waitSignal(ctrl.refreshFinished, timeout=5000):
+                ctrl.refresh()
+            qtbot.waitUntil(lambda: not ctrl._summary_running, timeout=5000)
+        assert ctrl.activeProfile == 'glass'
+        assert messages == []
 
 
 def test_apply_failure_preserves_operation_and_recovery_diagnostics(monkeypatch):

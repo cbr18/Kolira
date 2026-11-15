@@ -521,7 +521,8 @@ MIT — see LICENSE in parent directory.
 Profile application shares a process lock with CLI, Inspector writes, app themes,
 palettes and wallpapers. A failed profile application restores its captured files;
 errors include an operation id, backup and recovery diagnostics. The profile page
-reports interrupted operations once; CLI `kolira operations recover ID`
+keeps interrupted operations in Theme History without startup/refresh error popups;
+CLI `kolira operations recover ID`
 provides explicit recovery with conflict detection. Inspector keeps staged failures
 for retry. See [coverage and limits](../../docs/APPLY_PROTECTION.md).
 
