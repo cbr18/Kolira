@@ -81,7 +81,7 @@ def test_import_tracked_apps() -> None:
     """Tracked apps registry must import and contain every definition."""
     from core.tracked_apps import TRACKED_APPS, detect_all_apps
 
-    assert len(TRACKED_APPS) == 51, f"Expected 51 tracked apps, got {len(TRACKED_APPS)}"
+    assert len(TRACKED_APPS) == 49, f"Expected 49 tracked apps, got {len(TRACKED_APPS)}"
     assert "fastfetch" not in {app.id for app in TRACKED_APPS}
     detect_all_apps()  # must not raise
 

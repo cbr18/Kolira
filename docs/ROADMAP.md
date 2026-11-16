@@ -26,8 +26,8 @@
   реализованы в пределах контрактов; это не обещание полного live reload:
   [контракт](APPLICATIONS.md), [проверки и границы](../tasks/2026_11_15_first-ten-apps.md).
   Обязательны preview и возврат исходных настроек при отсутствии конфига.
-  Native BrowserThemeColor пока отложен: Chromium теряет GTK/Qt baseline при
-  снятии политики; [протокол проверки](../tasks/2026_11_16_chromium-policy-sync.md).
+  Native BrowserThemeColor отменён: Chromium убран из очереди покрытия;
+  [исследование](../docs/CHROMIUM_RESEARCH.md).
 
 - Выполнен [аудит текущей кодовой базы](audits/2026_11_08_codebase-audit.md).
   [Исправлены F01–F11](audits/2026_11_08_audit-fixes.md): границы записи ресурсов,
@@ -195,7 +195,7 @@
   [результаты](../tasks/2026_11_16_palette-consistency.md).
 
 - Третья партия: Micro, lsd/Glow, Chromium/Chrome, GIMP 3, Heroic, Prism,
-  Vim, mpv/Cliamp, VSCodium; 51 registry entries, 33 targets во всех 8 пакетах.
+  Vim, mpv/Cliamp, VSCodium; 49 registry entries, 33 targets во всех 8 пакетах.
   LibreOffice исключён, замена следующим новым приложением пока не добавлялась.
   Явные KDE-схемы BreezeLight/BreezeDark и wallpaper accent Glass/Material You
   сохраняются при maintenance refresh. [Контракты](APPLICATIONS.md),

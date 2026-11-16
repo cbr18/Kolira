@@ -253,9 +253,8 @@ GTK/KDE, редакторов, терминалов, shell/TUI и AI selectors, 
 ## Третья партия: нативные цвета без личных данных
 
 Все восемь комплектных тем содержат сгенерированные из `theme.json.palette`
-ресурсы и нативные ключи выбора. Новые `app_targets`: `micro`, `lsd`, `glow`,
-`chromium`, `google-chrome`, `gimp`, `heroic`, `prismlauncher`, `vim`, `mpv`,
-`cliamp`, `vscodium`. LibreOffice исключён пользователем: стандартное оформление,
+ресурсы и нативные ключи выбора. Новые `app_targets`: `micro`, `lsd`, `glow`, `gimp`, `heroic`,
+`prismlauncher`, `vim`, `mpv`, `cliamp`, `vscodium`. LibreOffice исключён пользователем: стандартное оформление,
 `.config/libreoffice/` не отслеживается и защищён от применения старых снимков.
 
 | Приложение | Файлы снимка и границы |
@@ -263,7 +262,6 @@ GTK/KDE, редакторов, терминалов, shell/TUI и AI selectors, 
 | Micro | `.config/micro/settings.json`: только `colorscheme`; `colorschemes/kolira.micro`: только `color-link`. Плагины и bindings не устанавливаются. |
 | lsd | `.config/lsd/config.yaml`: только `color.theme`; `themes/kolira.yaml`: нативная таблица цветов. `LS_COLORS`, classic, icons и sorting остаются личными. |
 | Glow | `.config/glow/glow.yml`: только `style`; `kolira.json`: Glamour. Снимок хранит переносимое `kolira`, Apply разрешает его в XDG-путь получателя. Внешние личные style paths не переносятся. |
-| Chromium / Chrome | `.config/{chromium,google-chrome}/kolira-theme/manifest.json`: нативная тема с frame accent; без JS, permissions, изменения текста/иконок, Preferences, Secure Preferences или `/etc` policies. |
 | GIMP 3 | `.config/GIMP/3.0/gimprc`: только `theme` и `theme-color-scheme`; `themes/Kolira/gimp.css`: импорт установленного Default dark/light и цветовые определения. Layout, инструменты и плагины не переносятся. Требуется штатный `/usr/share/gimp/3.0/themes/Default`. |
 | Heroic | `.config/heroic/config.json`: управляемый блок цветовых переменных внутри `defaultSettings.customCSS`. Личный CSS, игры, аккаунты, `store/config.json` и другие настройки не захватываются; поздние правки вне блока сохраняются. |
 | Prism | `.local/share/PrismLauncher/prismlauncher.cfg`: только `[General] ApplicationTheme`; `themes/kolira/theme.json`: Qt palette на штатном Fusion, без QSS. Instances, аккаунты, Java и настройки Minecraft не меняются. |
@@ -271,18 +269,6 @@ GTK/KDE, редакторов, терминалов, shell/TUI и AI selectors, 
 | mpv | `.config/mpv/mpv.conf`: только root `osd-color`, `osd-border-color`, `osd-shadow-color`. Цвета `#rrggbb` записываются в кавычках: иначе mpv воспринимает их как комментарий. Секции `[profile]`, video/audio, scripts и fonts остаются личными. |
 | Cliamp | `.config/cliamp/config.toml`: только `theme`; `themes/kolira.toml`: нативные RGB-цвета. Playlist/provider/player параметры сохраняются. |
 | VSCodium | `.config/VSCodium/User/settings.json`: позиционная JSONC-политика только цветов, builtin Modern + palette overrides; кэш использует общий адаптер редакторов. |
-
-Chromium/Chrome **требуют ручной загрузки или reload темы через Extensions**.
-Возврат файлов не сбрасывает закэшированный выбор браузера: при возврате к теме
-без ресурса нужен штатный сброс в Appearance. Это ограничение видно в действиях
-Apply/preview; автоматического изменения browser Preferences нет. Day/night
-остаётся штатным системным/пользовательским выбором Chromium.
-
-Native policy `BrowserThemeColor` исследован в изолированном Chromium. Акцент
-меняется без перезапуска, но снятие политики теряет выбранную GTK/Qt-тему. Поэтому
-этот способ **не подключён к Apply**: системные policies не пишутся, root-helper
-не устанавливается. Chromium/Chrome остаются в P4 до безопасного автоматического
-возврата; [результаты и воспроизводимая проверка](../tasks/2026_11_16_chromium-policy-sync.md).
 
 Открытые GIMP/Heroic/Prism, редакторы, проигрыватели и TUI не завершаются:
 перечитать тему или открыть новую сессию нужно штатным способом. Для Vim требуется

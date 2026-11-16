@@ -154,28 +154,6 @@ pub(crate) fn for_changes(dir: &Path, changes: &[std::path::PathBuf]) -> Vec<Act
             });
         }
     }
-    for (id, title, rel) in [
-        (
-            "chromium",
-            "Chromium",
-            ".config/chromium/kolira-theme/manifest.json",
-        ),
-        (
-            "google-chrome",
-            "Google Chrome",
-            ".config/google-chrome/kolira-theme/manifest.json",
-        ),
-    ] {
-        let file = crate::paths::live_path(rel);
-        if changes.contains(&file) {
-            out.push(Action {
-                id:format!("{id}_native_theme"), kind:"manual".into(),
-                title:format!("{title}: load/reload or reset the native theme in the browser"),
-                reason:if file.exists() { format!("Load or reload {} through Extensions; browser Preferences and policies are not edited",file.parent().unwrap().display()) } else { "The palette resource was removed. Reset the cached theme in browser Appearance settings".into() },
-                warning:"The browser caches themes; restoring resource files does not reset its native theme selection".into(),
-            });
-        }
-    }
     for (id, title, marker) in [
         ("micro", "Micro", ".config/micro"),
         ("glow", "Glow", ".config/glow"),

@@ -17,13 +17,11 @@ import time
 
 REPO = Path(__file__).resolve().parents[2]
 CLI = REPO / "gui/qt-app/src/core/rust_core/target/debug/kolira"
-TARGETS = ["micro", "lsd", "glow", "chromium", "google-chrome", "gimp", "heroic",
+TARGETS = ["micro", "lsd", "glow", "gimp", "heroic",
            "prismlauncher", "vim", "mpv", "cliamp", "vscodium"]
 FILES = [".config/micro/settings.json", ".config/micro/colorschemes/kolira.micro",
          ".config/lsd/config.yaml", ".config/lsd/themes/kolira.yaml",
          ".config/glow/glow.yml", ".config/glow/kolira.json",
-         ".config/chromium/kolira-theme/manifest.json",
-         ".config/google-chrome/kolira-theme/manifest.json",
          ".config/GIMP/3.0/gimprc", ".config/GIMP/3.0/themes/Kolira/gimp.css",
          ".config/heroic/config.json", ".local/share/PrismLauncher/prismlauncher.cfg",
          ".local/share/PrismLauncher/themes/kolira/theme.json", ".vim/kolira-palette.json",

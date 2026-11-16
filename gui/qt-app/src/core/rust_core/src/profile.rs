@@ -2469,8 +2469,6 @@ fn validate_restore(source: &Path, rel_paths: &[String]) -> Result<()> {
                 ".vim/",
                 ".config/mpv/",
                 ".config/cliamp/",
-                ".config/chromium/kolira-theme/",
-                ".config/google-chrome/kolira-theme/",
                 ".config/VSCodium/",
                 ".config/oh-my-posh/",
                 ".config/wofi/",

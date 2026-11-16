@@ -110,8 +110,6 @@ fn all_third_batch_hosts_return_exactly_three_cycles() {
     for (path, text) in originals {
         h.write(path, text);
     }
-    fs::create_dir_all(h.path(".config/chromium")).unwrap();
-    fs::create_dir_all(h.path(".config/google-chrome")).unwrap();
     h.palette(json!(kolira_core::third_apps::TARGETS));
     for _ in 0..3 {
         h.apply("next");
@@ -147,8 +145,6 @@ fn all_third_batch_hosts_return_exactly_three_cycles() {
             ".config/glow/kolira.json",
             ".config/cliamp/themes/kolira.toml",
             ".config/micro/colorschemes/kolira.micro",
-            ".config/chromium/kolira-theme/manifest.json",
-            ".config/google-chrome/kolira-theme/manifest.json",
             ".config/lsd/themes/kolira.yaml",
             ".config/GIMP/3.0/themes/Kolira/gimp.css",
             ".local/share/PrismLauncher/themes/kolira/theme.json",
@@ -236,10 +232,6 @@ fn heroic_snapshot_contains_only_own_colours() {
 #[test]
 fn malformed_or_executable_resources_fail_in_preview() {
     for (path, payload) in [
-        (
-            ".config/chromium/kolira-theme/manifest.json",
-            r##"{"manifest_version":3,"name":"bad","version":"1","permissions":["tabs"],"background":{"service_worker":"steal.js"},"theme":{"colors":{"frame":[1,2,3]}}}"##,
-        ),
         (
             ".local/share/PrismLauncher/themes/kolira/theme.json",
             r##"{"name":"bad","widgets":"Fusion","qssFile":"other.qss","colors":{"Window":"#112233"}}"##,

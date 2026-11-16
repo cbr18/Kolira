@@ -209,11 +209,6 @@ fn app_followups_are_previewed_preserve_personal_settings_and_recover() {
         ".config/vesktop/settings/settings.json",
         "{\"transparent\":true,\"personal\":42}",
     );
-    h.write(
-        ".config/chromium/Default/Preferences",
-        "{\"profile\":{\"name\":\"Personal\",\"password_manager_enabled\":false}}",
-    );
-    let prefs = fs::read(h.path(".config/chromium/Default/Preferences")).unwrap();
     let css = h.path(".mozilla/firefox/probe.default/chrome/userChrome.css");
     fs::set_permissions(&css, fs::Permissions::from_mode(0o640)).unwrap();
     let preview = h.rpc("profile.preview", json!({"name":"next"}));
@@ -239,10 +234,6 @@ fn app_followups_are_previewed_preserve_personal_settings_and_recover() {
     assert_eq!(
         fs::metadata(&css).unwrap().permissions().mode() & 0o777,
         0o640
-    );
-    assert_eq!(
-        fs::read(h.path(".config/chromium/Default/Preferences")).unwrap(),
-        prefs
     );
     let settings: Value = serde_json::from_slice(
         &fs::read(h.path(".config/vesktop/settings/settings.json")).unwrap(),

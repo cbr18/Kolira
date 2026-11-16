@@ -54,14 +54,12 @@ timestamp=2026-11-05T11:16:33+10:00
 .config/btop/btop.conf
 .config/btop/themes/kolira.theme
 .config/cava/config
-.config/chromium/kolira-theme/manifest.json
 .config/cliamp/config.toml
 .config/cliamp/themes/kolira.toml
 .config/fish/fish_variables
 .config/fzf/kolira.opts
 .config/glow/glow.yml
 .config/glow/kolira.json
-.config/google-chrome/kolira-theme/manifest.json
 .config/heroic/config.json
 .config/lazygit/config.yml
 .config/lsd/config.yaml

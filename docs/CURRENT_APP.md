@@ -467,7 +467,7 @@ marketplace extensions: встроенная база и цветовые overri
 
 P0 application rows 11–20 are implemented: fish/Pure/OMP, btop/Cava, Yazi/bat,
 Wofi, fzf, lazygit, Zellij, OpenCode V2, Claude Code and Codex. The tracked registry
-contains 51 applications. Native paths, colour-only policies, startup/reload and
+contains 49 applications. Native paths, colour-only policies, startup/reload and
 custom-path limits are documented in [APPLICATIONS.md](APPLICATIONS.md).
 
 

@@ -169,9 +169,8 @@ Unknown diagnostics remain available through their original message.
 
 ### Application palette follow-ups (third batch)
 
-`app_targets` also accepts micro, lsd, glow, chromium, google-chrome, gimp,
-heroic, prismlauncher, vim, mpv, cliamp and vscodium. Registry count: 53.
+`app_targets` also accepts micro, lsd, glow, gimp, heroic,
+prismlauncher, vim, mpv, cliamp and vscodium. Registry count: 51.
 These use the existing profile preview/apply operation and before/after recovery;
-`palette apply` retains its own target list. Chromium selection/reset remains
-manual and is returned in actions. LibreOffice is excluded, not a target.
+`palette apply` retains its own target list. LibreOffice is excluded, not a target.
 [Native paths and limits](APPLICATIONS.md).

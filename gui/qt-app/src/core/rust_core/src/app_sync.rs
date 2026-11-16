@@ -31,8 +31,6 @@ pub(crate) const TARGETS: &[&str] = &[
     "micro",
     "lsd",
     "glow",
-    "chromium",
-    "google-chrome",
     "gimp",
     "heroic",
     "prismlauncher",

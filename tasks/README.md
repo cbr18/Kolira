@@ -9,7 +9,6 @@
 
 | Задача | Что осталось |
 |---|---|
-| [Chromium: автоматический акцент](2026_11_16_chromium-policy-sync.md) | DEFERRED / P4: native BrowserThemeColor проверен; снятие политики сбрасывает GTK/Qt baseline. Найден механизм chrome.send() через CDP (документировано в docs/CHROMIUM_RESEARCH.md), но решение пока не принято к реализации. |
 | [Расширение покрытия приложений](2026_11_15_app-coverage-expansion.md) | IN PROGRESS: три партии P0 уже реализованы. Далее follows обновлённым приоритетам: Starship, tmux, Foot, WezTerm. |
 | [Реальный цикл зависимостей из AUR](2026_11_08_aur-dependency-cycle.md) | Код поддерживает AUR (источник "aur", команда `yay -S {id}`, проверка наличия helper). Требует реального тестирования в изолированном Arch Linux контейнере. |
 
@@ -40,6 +39,10 @@ ID операций и бэкапы защиты применения; AUR и с
   Telegram/Kotatogram удалены из генерации, GUI/CLI, действий и ресурсов всех восьми тем.
   Личные конфиги и данные клиентов сохраняются. Проверка: 275 Rust / 345 Python/Qt /
   260 shell PASS; clippy, shellcheck, cargo fmt, Python syntax PASS; переводы 918 finished.
+
+- [Chromium / Chrome: автоматический акцент](2026_11_16_chromium-policy-sync.md) — CANCELLED 2026-11-16:
+  задача отменена пользователем. Chromium/Chrome убраны из очереди покрытия приложений.
+  Исследование chrome.send() механизма осталось в docs/CHROMIUM_RESEARCH.md.
 
 - [Третья партия приложений](2026_11_16_third-ten-apps.md) — DONE 2026-11-16:
   Micro, lsd/Glow, Chromium/Chrome (ручной выбор), GIMP 3, Heroic, Prism, Vim,

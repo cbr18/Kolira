@@ -13,8 +13,6 @@ pub const TARGETS: &[&str] = &[
     "micro",
     "lsd",
     "glow",
-    "chromium",
-    "google-chrome",
     "gimp",
     "heroic",
     "prismlauncher",
@@ -67,8 +65,6 @@ pub fn paths_for(id: &str) -> Vec<String> {
         ],
         "lsd" => &[".config/lsd/config.yaml", ".config/lsd/themes/kolira.yaml"],
         "glow" => &[".config/glow/glow.yml", ".config/glow/kolira.json"],
-        "chromium" => &[".config/chromium/kolira-theme/manifest.json"],
-        "google-chrome" => &[".config/google-chrome/kolira-theme/manifest.json"],
         "gimp" => &[
             ".config/GIMP/3.0/gimprc",
             ".config/GIMP/3.0/themes/Kolira/gimp.css",
@@ -136,11 +132,6 @@ pub fn lsd(p: &Palette) -> String {
 pub fn glow(p: &Palette) -> String {
     let r = kde_roles(p);
     json!({"document":{"color":r.text.hex(),"block_prefix":"\n","block_suffix":"\n","margin":2},"heading":{"color":p.accent,"bold":true,"block_suffix":"\n"},"h1":{"color":p.accent,"bold":true},"h2":{"prefix":"## "},"h3":{"prefix":"### "},"block_quote":{"indent":1,"indent_token":"│ ","color":r.text_inactive.hex()},"list":{"level_indent":2},"link":{"color":r.link.hex(),"underline":true},"link_text":{"color":r.link.hex(),"bold":true},"emph":{"italic":true},"strong":{"bold":true},"code":{"color":p.base[11],"background_color":r.button.hex()},"code_block":{"color":r.text.hex(),"background_color":r.window_alt.hex()},"horizontal_rule":{"color":r.text_inactive.hex(),"format":"--------"},"table":{"center_separator":"┼","column_separator":"│","row_separator":"─"}}).to_string()+"\n"
-}
-pub fn chromium(p: &Palette) -> String {
-    let rgb = |c: crate::palette::Rgb| json!([c.0, c.1, c.2]);
-    let r = kde_roles(p);
-    json!({"manifest_version":3,"name":"Kolira palette accent","version":"1.0.0","description":"Palette frame accent only. Load/reload or reset through the browser Appearance/Extensions UI.","theme":{"colors":{"frame":rgb(r.accent),"frame_inactive":rgb(r.accent.mix(r.window,0.4))}}}).to_string()+"\n"
 }
 pub fn gimp(p: &Palette) -> String {
     let r = kde_roles(p);
@@ -414,11 +405,6 @@ pub fn bundle_resources(p: &Palette) -> BTreeMap<String, String> {
         (".config/lsd/themes/kolira.yaml", lsd(p)),
         (".config/glow/glow.yml", "style: \"kolira\"\n".into()),
         (".config/glow/kolira.json", glow(p)),
-        (".config/chromium/kolira-theme/manifest.json", chromium(p)),
-        (
-            ".config/google-chrome/kolira-theme/manifest.json",
-            chromium(p),
-        ),
         (
             ".config/GIMP/3.0/gimprc",
             format!("(theme \"Kolira\")\n(theme-color-scheme {mode})\n"),
@@ -458,8 +444,6 @@ pub fn is_asset(rel: &str) -> bool {
             | ".config/micro/colorschemes/kolira.micro"
             | ".config/lsd/themes/kolira.yaml"
             | ".config/glow/kolira.json"
-            | ".config/chromium/kolira-theme/manifest.json"
-            | ".config/google-chrome/kolira-theme/manifest.json"
             | ".config/GIMP/3.0/themes/Kolira/gimp.css"
             | ".local/share/PrismLauncher/themes/kolira/theme.json"
             | ".config/cliamp/themes/kolira.toml"
@@ -692,8 +676,6 @@ pub fn plan(source: &Path, package: &crate::theme::Package, plan: &mut Plan) -> 
             "micro" => ("micro", ".config/micro"),
             "lsd" => ("lsd", ".config/lsd"),
             "glow" => ("glow", ".config/glow"),
-            "chromium" => ("chromium", ".config/chromium"),
-            "google-chrome" => ("google-chrome", ".config/google-chrome"),
             "gimp" => ("gimp", ".config/GIMP/3.0"),
             "heroic" => ("heroic", ".config/heroic"),
             "prismlauncher" => ("prismlauncher", ".local/share/PrismLauncher"),
