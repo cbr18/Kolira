@@ -626,9 +626,13 @@ the previous Apply and no surviving personal host references them. The preview
 shows this same restoration plan. `--keep-wallpaper` preserves the image file too.
 
 
-The Rust tracked application registry contains 51 entries, including Pure, fzf,
+The Rust tracked application registry contains 53 entries, including Pure, fzf,
 lazygit, Zellij, OpenCode V2, Claude Code and Codex. Paths and activation limits
 are documented in [APPLICATIONS.md](../../docs/APPLICATIONS.md).
 
 Third-batch native colour contracts and manual Chromium reset limits are documented
 in [APPLICATIONS.md](../../docs/APPLICATIONS.md). LibreOffice is excluded.
+
+Starship, tmux, Foot and WezTerm use the same Rust palette/apply/return core.
+Native tmux changes do not restart sessions; Foot/WezTerm may need a restart.
+[Contracts, version limits and native verification](../../docs/APPLICATIONS.md#starship-tmux-foot-wezterm).

@@ -746,7 +746,10 @@ mod tests {
         // Idempotent: applying again doesn't duplicate
         ghostty_apply_palette(&p).unwrap();
         let host_text2 = fs::read_to_string(&host_path).unwrap();
-        let include_count = host_text2.lines().filter(|l| l.trim() == GHOSTTY_INCLUDE).count();
+        let include_count = host_text2
+            .lines()
+            .filter(|l| l.trim() == GHOSTTY_INCLUDE)
+            .count();
         assert_eq!(include_count, 1);
 
         env::remove_var("XDG_CONFIG_HOME");
@@ -758,10 +761,22 @@ mod tests {
             author: String::new(),
             variant: crate::palette::Variant::Dark,
             base: vec![
-                "#000000".into(), "#ff0000".into(), "#00ff00".into(), "#ffff00".into(),
-                "#0000ff".into(), "#ff00ff".into(), "#00ffff".into(), "#ffffff".into(),
-                "#808080".into(), "#ff8080".into(), "#80ff80".into(), "#ffff80".into(),
-                "#8080ff".into(), "#ff80ff".into(), "#80ffff".into(), "#c0c0c0".into(),
+                "#000000".into(),
+                "#ff0000".into(),
+                "#00ff00".into(),
+                "#ffff00".into(),
+                "#0000ff".into(),
+                "#ff00ff".into(),
+                "#00ffff".into(),
+                "#ffffff".into(),
+                "#808080".into(),
+                "#ff8080".into(),
+                "#80ff80".into(),
+                "#ffff80".into(),
+                "#8080ff".into(),
+                "#ff80ff".into(),
+                "#80ffff".into(),
+                "#c0c0c0".into(),
             ],
             accent: "#ff0000".into(),
             source: "test".into(),

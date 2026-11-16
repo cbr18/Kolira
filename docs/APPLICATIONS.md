@@ -188,7 +188,7 @@ kolira.css останавливает подготовку. Live-конфиги 
 дополнительно принимает `fish`, `pure`, `oh-my-posh`, `btop`, `yazi`, `bat`,
 `wofi`, `fzf`, `lazygit`, `zellij`, `opencode`, `claude-code`, `codex`.
 Cava сохраняет прежний target `cava`. Эти цели не расширяют отдельный CLI
-`palette apply`. После второй партии в реестре было 41 приложение; текущий реестр содержит 51.
+`palette apply`. После второй партии в реестре было 41 приложение; текущий реестр содержит 53.
 
 | Приложение | Управляемая часть; личные настройки сохраняются |
 |---|---|
@@ -297,3 +297,62 @@ Heroic дополнительно проверяется настоящим Elec
 color-scheme. Игры/аккаунты и Google Chrome не проверялись. Cliamp дополнительно рендерится
 в PTY с проверкой фактического ANSI accent; без воспроизведения, ALSA null и
 одноразовые IPC roots исключают подключение к личному проигрывателю.
+
+## Starship, tmux, Foot, WezTerm
+
+Цели `starship`, `tmux`, `foot`, `wezterm` входят в `theme.json.app_targets[]`.
+Все восемь комплектных тем содержат ресурсы из своей base16/accent-палитры.
+В реестре 53 приложения, в комплектных пакетах по 35 targets. Наличие файла
+в снимке имеет приоритет над генерацией из палитры; приложения не устанавливаются
+и prompt не включается при Apply.
+
+| Приложение | Что меняется | Когда видно |
+|---|---|---|
+| Starship | `$XDG_CONFIG_HOME/starship.toml`: root `palette`, только `[palettes.kolira]`; модули, commands, format, symbols и shell init сохраняются | Следующий prompt |
+| tmux | `.tmux.conf` либо `$XDG_CONFIG_HOME/tmux/tmux.conf`: только фиксированное подключение; `tmux/kolira.json` — RGB-данные, `kolira.conf` генерируется core | Открытые серверы обновляются без остановки сессий; новые читают подключение |
+| Foot | `$XDG_CONFIG_HOME/foot/foot.ini`: foreground/background/selection/cursor и ANSI в `colors-dark`/`colors-light`; оба варианта соответствуют выбранной теме | Новое окно/перезапуск Foot; в server mode нужно перечитать конфиг сервера перезапуском в удобный момент |
+| WezTerm | `$XDG_CONFIG_HOME/wezterm/kolira.toml`: только native RGB/ANSI. Core оборачивает существующий Lua в фиксированное подключение, сохраняя его тело | Native config reload или перезапуск; palette-only изменения не принуждают завершать окна |
+
+Starship сохраняет личные style-строки. Стандартные именованные ANSI-цвета
+переопределяются палитрой; пользовательские RGB aliases выбранной палитры
+переносятся в собственную таблицу с пересчётом через существующий OKLab mapper.
+Явные RGB-литералы внутри личных `format`/`style` не переписываются. Ничего из
+`[custom]` не импортируется из чужой темы и не исполняется для discovery.
+
+WezTerm: сначала явный стандартный `WEZTERM_CONFIG_FILE`, затем XDG-конфиг, затем
+`~/.wezterm.lua`. Произвольный `--config-file`, нестандартный env path и legacy
+`~/.config/wezterm` за пределами перенесённого XDG требуют отдельной интеграции:
+операция отказывается писать в неиспользуемый host. Lua из снимка игнорируется;
+экспорт содержит только TOML палитры. Внутри core wrapper выполняется только
+существующий личный Lua, уже предназначенный для WezTerm, при штатной загрузке
+приложением. Сам Kolira его не запускает. Shebang/BOM, ссылки на host и конфликт
+зарезервированного namespace отклоняются до записи. При снятии wrapper поздние
+правки тела Lua сохраняются; при личном изменении wrapper и исчезновении палитры
+он безопасно возвращает исходный config без попытки открыть отсутствующую схему.
+Применяются только управляемые RGB/ANSI-поля; личные indexed colours и настройки
+вкладок, включая их атрибуты, остаются в исходном config.colors.
+
+tmux: управляются только foreground/background восьми global style options:
+`status-style`, `message-style`, `message-command-style`, `pane-border-style`,
+`pane-active-border-style`, `window-status-style`, `window-status-current-style`,
+`mode-style`. Атрибуты bold/underline и локальные overrides отдельных окон/сессий
+сохраняются. Runtime-записи выполняются аргументами `set-option`, а не через
+`source-file` личного конфига. Серверы не создаются и не завершаются. Обнаружение
+охватывает собственные sockets в `${TMUX_TMPDIR:-/tmp}/tmux-UID` и socket из
+`TMUX`; дополнительные нестандартные socket paths вне этой области автоматически
+не ищутся. Явный `tmux -f`/плагины с динамическим повторным переопределением цветов
+не гарантируют такое же поведение при следующем старте сервера.
+
+Личные tmux commands не сохраняются в тему. Файл `kolira.conf` содержит только
+фиксированный whitelist команд из RGB-JSON; принесённый темой script игнорируется.
+Конфликт с существующим личным файлом этого имени останавливает Apply до записи.
+Runtime before/after учитываются в общем apply-journal и safety snapshot вместе
+с identity socket/server. Возврат меняет только цвета, всё ещё совпадающие с
+записанным after; поздние личные цвета и атрибуты сохраняются. Старый журнал
+не меняет новый сервер на переиспользованном socket path.
+
+Native минимумы: Starship 1.27, tmux 3.2, Foot 1.28, WezTerm build 20220807.
+Старые/неопределяемые версии отклоняются на preflight до правок, `NO_APPLY` не
+запускает version probes или runtime commands. Flatpak/portable и произвольные
+CLI config overrides этой партии не заявляются автоматически поддерживаемыми.
+Проверки и их границы: [задача](../tasks/2026_11_16_four-terminal-apps.md).

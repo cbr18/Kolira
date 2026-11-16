@@ -44,7 +44,8 @@ pub fn is_removed_messenger_path(rel: &str) -> bool {
 }
 
 pub fn is_preserved(rel: &str) -> bool {
-    is_removed_messenger_path(rel)
+    crate::four_apps::preserved(rel)
+        || is_removed_messenger_path(rel)
         || (std::path::Path::new(rel).starts_with(".vim") && rel != crate::third_apps::VIM_DATA)
         || rel == crate::terminal_apps::FZF_LOADER
         || std::path::Path::new(rel).starts_with(".config/libreoffice")
@@ -114,6 +115,34 @@ pub enum Policy {
     PanelViews,
 }
 
+const FOOT_KEYS: &[&str] = &[
+    "background",
+    "foreground",
+    "selection-background",
+    "selection-foreground",
+    "cursor",
+    "regular0",
+    "regular1",
+    "regular2",
+    "regular3",
+    "regular4",
+    "regular5",
+    "regular6",
+    "regular7",
+    "bright0",
+    "bright1",
+    "bright2",
+    "bright3",
+    "bright4",
+    "bright5",
+    "bright6",
+    "bright7",
+];
+const FOOT: &[Rule] = &[
+    r("colors", Keys::Only(FOOT_KEYS)),
+    r("colors-dark", Keys::Only(FOOT_KEYS)),
+    r("colors-light", Keys::Only(FOOT_KEYS)),
+];
 const PRISM: &[Rule] = &[r("General", Keys::Only(&["ApplicationTheme"]))];
 
 const KDEGLOBALS: &[Rule] = &[
@@ -251,6 +280,9 @@ const ZED: &[&str] = &[
 
 /// The policy for a tracked file (`$HOME`-relative path).
 pub fn policy(rel: &str) -> Policy {
+    if rel == crate::four_apps::FOOT {
+        return Policy::Ini(FOOT);
+    }
     if crate::native_appearance::handles(rel) {
         return Policy::Native;
     }
@@ -1043,6 +1075,9 @@ pub(crate) fn restore_changed(
     if current == after {
         return Ok(before.into());
     }
+    if crate::four_apps::is_host(rel) {
+        return crate::four_apps::restore_host(rel, before, after, current);
+    }
     if rel.ends_with("/extensions.json") && rel.contains("/extensions/") {
         let parse = |s: &str| {
             if s.trim().is_empty() {
@@ -1544,6 +1579,21 @@ pub fn for_theme(rel: &str, text: &str) -> Option<String> {
     if is_preserved(rel) {
         return None;
     }
+    if rel == crate::four_apps::STARSHIP {
+        return crate::four_apps::starship_capture(text)
+            .ok()
+            .and_then(non_empty);
+    }
+    if rel == crate::four_apps::WEZ_DATA {
+        return crate::four_apps::valid_wez(text)
+            .ok()
+            .map(|_| text.to_string());
+    }
+    if rel == crate::four_apps::TMUX_DATA {
+        return crate::tmux_runtime::parse(text)
+            .ok()
+            .map(|_| text.to_string());
+    }
     if crate::third_apps::is_asset(rel) {
         return crate::third_apps::valid_asset(rel, text).ok();
     }
@@ -1578,6 +1628,15 @@ pub fn for_theme(rel: &str, text: &str) -> Option<String> {
 
 /// The new live text of `rel` when applying `theme_text` over `live_text`.
 pub fn applied(rel: &str, theme_text: &str, live_text: Option<&str>) -> Result<String> {
+    if rel == crate::four_apps::FOOT {
+        return crate::four_apps::foot_merge(theme_text, live_text.unwrap_or(""));
+    }
+    if rel == crate::four_apps::WEZ_DATA {
+        crate::four_apps::valid_wez(theme_text)?;
+    }
+    if rel == crate::four_apps::TMUX_DATA {
+        crate::tmux_runtime::parse(theme_text)?;
+    }
     if is_preserved(rel) {
         return Ok(live_text.unwrap_or("").to_string());
     }

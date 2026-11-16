@@ -1919,6 +1919,13 @@ fn apply_with_paths_keeping_inner(
                     "bat cache --build failed or timed out"
                 );
             }
+            if !no_apply()
+                && (dir.join(crate::four_apps::TMUX_DATA).is_file()
+                    || apps.is_some_and(|p| p.app_targets.iter().any(|t| t == "tmux")))
+                && live_path(crate::four_apps::TMUX_DATA).is_file()
+            {
+                crate::tmux_runtime::apply_live()?;
+            }
             crate::undo::record(journal, &before).with_context(|| "apply journal")?;
             crate::paths::log_step(&format!("apply {profile}: done"));
             Ok(backup)

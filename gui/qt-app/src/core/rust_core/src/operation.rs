@@ -173,6 +173,10 @@ struct Node {
 }
 #[derive(Serialize, Deserialize)]
 struct Snapshot {
+    #[serde(default)]
+    tmux_before: crate::tmux_runtime::State,
+    #[serde(default)]
+    tmux_after: Option<crate::tmux_runtime::State>,
     roots: Vec<PathBuf>,
     #[serde(default)]
     gsettings: BTreeMap<String, String>,
@@ -302,6 +306,17 @@ pub fn prepare(backup: &Path, roots: Vec<PathBuf>) -> Result<()> {
     save_snapshot(
         backup,
         &Snapshot {
+            tmux_before: if roots.iter().any(|p| {
+                crate::four_apps::paths_for("tmux").iter().any(|r| {
+                    let live = paths::live_path(r);
+                    p == &live || live.starts_with(p)
+                })
+            }) {
+                crate::tmux_runtime::capture()?
+            } else {
+                crate::tmux_runtime::State::new()
+            },
+            tmux_after: None,
             roots,
             before,
             after: None,
@@ -339,6 +354,11 @@ fn read_snapshot(backup: &Path) -> Result<Snapshot> {
 fn checkpoint(backup: &Path) -> Result<()> {
     let mut snapshot = read_snapshot(backup)?;
     snapshot.after = Some(collect_all(&snapshot.roots, None)?);
+    snapshot.tmux_after = Some(if snapshot.tmux_before.is_empty() {
+        crate::tmux_runtime::State::new()
+    } else {
+        crate::tmux_runtime::capture()?
+    });
     save_snapshot(backup, &snapshot)
 }
 fn remove_node(path: &Path) -> Result<()> {
@@ -352,8 +372,22 @@ fn remove_node(path: &Path) -> Result<()> {
     }
     Ok(())
 }
-fn restore_desktop(backup: &Path) -> Result<()> {
+fn restore_desktop(backup: &Path, force: bool) -> Result<()> {
     let snapshot = read_snapshot(backup)?;
+    let expected = if snapshot.tmux_before.is_empty() {
+        crate::tmux_runtime::State::new()
+    } else if force {
+        crate::tmux_runtime::capture()?
+    } else {
+        snapshot
+            .tmux_after
+            .clone()
+            .unwrap_or_else(|| snapshot.tmux_before.clone())
+    };
+    crate::tmux_runtime::restore(&crate::tmux_runtime::changes(
+        &snapshot.tmux_before,
+        &expected,
+    ))?;
     for (key, value) in snapshot.gsettings {
         if !crate::field::no_apply() {
             let status = paths::status_bounded(std::process::Command::new("gsettings").args([
@@ -389,11 +423,20 @@ fn restore(backup: &Path, force: bool, pause: bool) -> Vec<String> {
             .filter(|p| snapshot.before.get(*p) != current.get(*p))
             .cloned()
             .collect();
-        let conflicts: Vec<_> = changed
+        let mut conflicts: Vec<_> = changed
             .iter()
             .filter(|p| !force && current.get(*p) != expected.get(*p))
             .map(|p| format!("Changed after interruption or checkpoint: {}", p.display()))
             .collect();
+        if !force {
+            conflicts.extend(crate::tmux_runtime::conflicts(
+                &snapshot.tmux_before,
+                snapshot
+                    .tmux_after
+                    .as_ref()
+                    .unwrap_or(&snapshot.tmux_before),
+            )?);
+        }
         // Check every conflict before restoring anything, including removals.
         if !conflicts.is_empty() {
             return Ok(conflicts);
@@ -573,7 +616,7 @@ pub fn run<T>(profile: &str, work: impl FnOnce() -> Result<T>) -> Result<T> {
                 save(&record)?;
                 record.recovery_errors = restore(backup, false, true);
                 if record.recovery_errors.is_empty() {
-                    if let Err(e) = restore_desktop(backup) {
+                    if let Err(e) = restore_desktop(backup, false) {
                         record
                             .recovery_errors
                             .push(format!("Desktop recovery: {e:#}"));
@@ -721,7 +764,7 @@ pub fn restore_completed(id: &str, confirmed: bool) -> Result<serde_json::Value>
         if !errors.is_empty() {
             bail!("Restoration failed: {}", errors.join("; "));
         }
-        restore_desktop(backup)?;
+        restore_desktop(backup, true)?;
         let errors = restore(backup, true, false);
         if !errors.is_empty() {
             bail!("Restoration verification: {}", errors.join("; "));
@@ -751,7 +794,7 @@ pub fn recover(id: &str, force: bool) -> Result<Record> {
     save(&record)?;
     record.recovery_errors = restore(backup, force, true);
     if record.recovery_errors.is_empty() {
-        if let Err(e) = restore_desktop(backup) {
+        if let Err(e) = restore_desktop(backup, force) {
             record
                 .recovery_errors
                 .push(format!("Desktop recovery: {e:#}"));
@@ -795,4 +838,19 @@ pub(crate) fn changed_paths() -> Result<Vec<PathBuf>> {
         .into_iter()
         .filter(|path| snapshot.before.get(path) != current.get(path))
         .collect())
+}
+
+/// Include servers that appeared after initial preparation before touching them.
+pub(crate) fn note_tmux_before(state: &crate::tmux_runtime::State) -> Result<()> {
+    let backup = CURRENT
+        .with(|c| c.borrow().as_ref().and_then(|r| r.backup.clone()))
+        .context("tmux writes require a prepared appearance operation")?;
+    let mut snapshot = read_snapshot(&backup)?;
+    for (key, value) in state {
+        snapshot
+            .tmux_before
+            .entry(key.clone())
+            .or_insert_with(|| value.clone());
+    }
+    save_snapshot(&backup, &snapshot)
 }

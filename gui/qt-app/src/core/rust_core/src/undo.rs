@@ -70,6 +70,8 @@ pub struct Journal {
     pub(crate) gsettings: BTreeMap<String, String>,
     #[serde(default)]
     gsettings_after: BTreeMap<String, String>,
+    #[serde(default)]
+    tmux_changes: Vec<crate::tmux_runtime::Change>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -314,8 +316,10 @@ pub fn revert() -> Result<Journal> {
 
 pub(crate) fn revert_preserving(preserved: &[PathBuf]) -> Result<Journal> {
     let mut plan = crate::change_plan::Plan::default();
-    let journal = plan_revert_preserving(&mut plan, preserved)?;
+    let mut journal = plan_revert_preserving(&mut plan, preserved)?;
     plan.commit()?;
+    crate::tmux_runtime::restore(&journal.tmux_changes)?;
+    journal.tmux_changes.clear();
     let _ = fs::remove_dir_all(dir().join("originals"));
     for (key, value) in &journal.gsettings {
         // Older Apply versions journalled this independent user preference.
@@ -340,6 +344,10 @@ pub(crate) fn plan_revert_preserving(plan: &mut Plan, preserved: &[PathBuf]) -> 
         (
             vec![crate::terminal_apps::WOFI_HOST],
             crate::terminal_apps::WOFI_COLORS,
+        ),
+        (
+            crate::four_apps::TMUX_HOSTS.to_vec(),
+            crate::four_apps::TMUX_SCRIPT,
         ),
         (vec![appearance::KITTY_HOST], appearance::KITTY_THEME),
         (
@@ -576,6 +584,7 @@ pub fn baseline(rels: &[String]) -> Result<Baseline> {
 /// Record every actual change, not just whole-file appearance resources. Blobs
 /// preserve the exact originals and the values we wrote for three-way recovery.
 pub fn record(mut j: Journal, before: &Baseline) -> Result<()> {
+    j.tmux_changes = load().tmux_changes;
     j.gsettings = load().gsettings;
     record_prefs(&mut j, &before.rels)?;
     let now = entries(&before.rels)?;
@@ -706,6 +715,12 @@ pub(crate) fn affected_paths() -> Vec<String> {
             .map(|root| format!("{root}user.js"))
     }));
     paths
+}
+
+pub(crate) fn note_tmux(changes: Vec<crate::tmux_runtime::Change>) -> Result<()> {
+    let mut j = load();
+    j.tmux_changes = changes;
+    save(&j)
 }
 
 #[cfg(test)]

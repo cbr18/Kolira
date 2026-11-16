@@ -1,0 +1,2 @@
+colors = { background = "#141618", foreground = "#fcfcfc", cursor_bg = "#3daee9", cursor_fg = "#141618", cursor_border = "#3daee9", selection_bg = "#3daee9", selection_fg = "#141618", ansi = ["#393b3c", "#da4453", "#27ae60", "#f8a458", "#1d99f3", "#9b59b6", "#22a4aa", "#fcfcfc"], brights = ["#a1a9b1", "#da4453", "#27ae60", "#f8a458", "#1d99f3", "#9b59b6", "#22a4aa", "#fcfcfc"] }
+metadata = { name = "Kolira" }

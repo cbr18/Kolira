@@ -5,6 +5,10 @@ use anyhow::{Context, Result};
 use std::{fs, path::Path};
 
 pub(crate) const TARGETS: &[&str] = &[
+    "starship",
+    "tmux",
+    "foot",
+    "wezterm",
     "discord",
     "konsole",
     "ghostty",
@@ -201,6 +205,7 @@ pub(crate) fn plan_apps(source: &Path, package: &Package, plan: &mut Plan) -> Re
             }
         }
     }
+    crate::four_apps::plan(source, package, plan)?;
     crate::third_apps::plan(source, package, plan)?;
     crate::terminal_apps::plan(source, package, plan)?;
     crate::neovim::plan(

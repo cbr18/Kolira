@@ -305,3 +305,9 @@ JSONC/INI hosts; unsupported ambiguous structures fail during preflight.
 Поддержка Telegram/Kotatogram удалена: обычный возврат по apply-journal
 пропускает прежние записи этих клиентов. Их текущие данные не сбрасываются
 и не удаляются; исторические резервные копии сохранены.
+
+tmux global foreground/background now have a private before/after record alongside
+file changes. Return preserves late colours and style attributes. Transaction
+snapshots include socket/server identity; a replacement server is not modified by
+an older journal. Default interrupted recovery refuses colour conflicts; explicit
+forced/completed recovery uses the recorded baseline for matching server identities.

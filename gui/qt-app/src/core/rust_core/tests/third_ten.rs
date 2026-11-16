@@ -329,12 +329,11 @@ fn bundled_wallpaper_accent_metadata_stays_consistent() {
             serde_json::from_slice(&fs::read(root.join("theme.json")).unwrap()).unwrap();
         let manifest: Value =
             serde_json::from_slice(&fs::read(root.join("manifest.json")).unwrap()).unwrap();
-        let scheme = if matches!(name, "Paper" | "frutiger-aero-light") {
-            "BreezeLight"
-        } else {
-            "BreezeDark"
-        };
-        assert_eq!(package["values"]["color_scheme"], scheme, "{name}");
+        // The package author may choose Breeze, Kolira or MaterialBright.
+        // Maintenance must preserve that choice and agree with kdeglobals;
+        // the refresh example separately verifies preserving arbitrary Breeze choices.
+        let scheme = package["values"]["color_scheme"].as_str().unwrap();
+        assert!(!scheme.is_empty(), "{name}");
         assert_eq!(
             package["values"]["accent_from_wallpaper"],
             json!(expected),

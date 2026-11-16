@@ -7,6 +7,11 @@
 
 ## Текущие задачи
 
+- [Starship, tmux, Foot, WezTerm](../tasks/2026_11_16_four-terminal-apps.md),
+  IN PROGRESS: четыре palette-интеграции, восемь тем и безопасный native tmux
+  runtime; 287 Rust / 345 Qt / 260 shell PASS. Завершается native-проверка
+  WezTerm с исправленным fixture; установленная копия не обновлялась.
+
 - [Удаление ручной интеграции Telegram/Kotatogram](../tasks/2026_11_16_remove-telegram.md):
   генерация, адаптеры и ресурсы убраны; данные клиентов сохраняются. Обычный
   перезапуск после Apply допустим и сам по себе не понижает приоритет приложения.

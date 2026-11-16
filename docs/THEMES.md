@@ -690,3 +690,15 @@ GIMP 3, Heroic, Prism, Vim, mpv/Cliamp, VSCodium. Полные пути и пр�
 Vimscript из пакета не исполняется и не устанавливается; только core-owned
 loader и JSON. Chromium требует ручного выбора/сброса кэшированной темы.
 LibreOffice исключён, в том числе из старых снимков; его конфиги сохраняются.
+
+### Prompt/terminal palette resources
+
+`app_targets[]` also accepts `starship`, `tmux`, `foot`, `wezterm`. Resources are
+respectively `.config/starship.toml` (palette table/selector only),
+`.config/tmux/kolira.json` (validated RGB styles), `.config/foot/foot.ini`
+(colours only), `.config/wezterm/kolira.toml` (native colour data). Host Lua,
+`.tmux.conf`/`tmux.conf` commands and generated tmux script are never imported or
+exported from snapshots: the core creates local glue. Conflicting personal glue
+aborts preparation. Runtime tmux colours share the transaction and return journal;
+terminal fonts, startup commands and prompt modules stay personal.
+[Detailed contracts and supported versions](APPLICATIONS.md#starship-tmux-foot-wezterm).

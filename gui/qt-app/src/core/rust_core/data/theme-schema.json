@@ -86,6 +86,10 @@
       "uniqueItems": true,
       "items": {
         "enum": [
+          "starship",
+          "tmux",
+          "foot",
+          "wezterm",
           "discord",
           "konsole",
           "ghostty",

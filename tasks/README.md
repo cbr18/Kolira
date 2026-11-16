@@ -9,7 +9,8 @@
 
 | Задача | Что осталось |
 |---|---|
-| [Расширение покрытия приложений](2026_11_15_app-coverage-expansion.md) | IN PROGRESS: три партии P0 уже реализованы. Далее follows обновлённым приоритетам: Starship, tmux, Foot, WezTerm. |
+| [Starship, tmux, Foot, WezTerm](2026_11_16_four-terminal-apps.md) | IN PROGRESS: код и восемь тем готовы; 287 Rust / 345 Qt / 260 shell PASS. Завершается усиленная native-проверка WezTerm; live deploy не выполнялся. |
+| [Расширение покрытия приложений](2026_11_15_app-coverage-expansion.md) | IN PROGRESS: три партии P0 и код Starship/tmux/Foot/WezTerm реализованы. После завершения текущей проверки — Rofi, Fuzzel, Walker. |
 | [Реальный цикл зависимостей из AUR](2026_11_08_aur-dependency-cycle.md) | Код поддерживает AUR (источник "aur", команда `yay -S {id}`, проверка наличия helper). Требует реального тестирования в изолированном Arch Linux контейнере. |
 
 Блокирующие дефекты F01/F02 аудита и защита применения реализованы.

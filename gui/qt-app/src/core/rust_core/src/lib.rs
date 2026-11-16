@@ -73,3 +73,6 @@ pub mod terminal_apps;
 
 pub mod structured_appearance;
 pub mod third_apps;
+
+pub mod four_apps;
+pub mod tmux_runtime;

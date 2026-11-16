@@ -281,3 +281,8 @@ Chromium/Chrome: ресурс требует ручной загрузки/reloa
 Выбранная KDE-схема сохраняется при maintenance refresh. По решению пользователя
 в восьми комплектных темах остаются BreezeLight/BreezeDark; генератор не подменяет
 их схемой Kolira. Прикладные ресурсы продолжают брать цвета из сохранённой палитры.
+
+All eight bundles also carry palette data for Starship, tmux, Foot and WezTerm
+(35 explicit app targets per bundle). WezTerm Lua and tmux commands/glue are not
+packaged; only the core generates the local connections. Existing KDE scheme and
+wallpaper-accent choices survive maintenance refresh.

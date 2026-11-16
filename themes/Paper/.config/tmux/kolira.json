@@ -1,0 +1,10 @@
+{
+  "message-command-style": "fg=#2f2a24,bg=#f6f0e6",
+  "message-style": "fg=#2f2a24,bg=#f6f0e6",
+  "mode-style": "fg=#fffbf4,bg=#586d47",
+  "pane-active-border-style": "fg=#586d47",
+  "pane-border-style": "fg=#5c564e",
+  "status-style": "fg=#2f2a24,bg=#f6f0e6",
+  "window-status-current-style": "fg=#fffbf4,bg=#586d47",
+  "window-status-style": "fg=#2f2a24,bg=#f6f0e6"
+}

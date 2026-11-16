@@ -234,9 +234,13 @@
     "vim",
     "mpv",
     "cliamp",
-    "vscodium"
+    "vscodium",
+    "starship",
+    "tmux",
+    "foot",
+    "wezterm"
   ],
   "editor_themes": [],
-  "app_coverage_revision": 3,
+  "app_coverage_revision": 4,
   "app_coverage_omp_palette": "67f8b3499aba4bef53272bacb6ea0745c7c07908cd61bbbf0e3c52fc8091c8b5"
 }

@@ -189,3 +189,10 @@ a rebuild failure rolls back files and cache. Returning to a theme without bat
 settings restores its original cache, including themes without source files.
 Native TOML/YAML/KDL appearance hosts follow the same late-edit protection as
 JSONC/INI hosts; unsupported ambiguous structures fail during preflight.
+
+Native tmux colour writes run under the same appearance mutation lock and prepared
+operation as file edits. The intended before/after is journalled before the first
+write, followed by the actual native state. Safety snapshots capture affected
+servers and checkpoint their state for rollback. Only existing sockets owned by
+the user are contacted, with server identity rechecked before each write; clients
+and sessions are never restarted. NO_APPLY disables these external operations.

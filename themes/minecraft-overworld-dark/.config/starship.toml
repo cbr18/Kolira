@@ -1,0 +1,4 @@
+palette = "kolira"
+
+[palettes]
+kolira = { black = "#404040", bright-black = "#999999", red = "#f06f65", bright-red = "#f06f65", green = "#70b237", bright-green = "#70b237", yellow = "#e7c77d", bright-yellow = "#e7c77d", blue = "#55d6d0", bright-blue = "#55d6d0", purple = "#a98558", bright-purple = "#a98558", cyan = "#63c484", bright-cyan = "#63c484", white = "#cccccc", bright-white = "#cccccc", base00 = "#252525", base01 = "#383838", base02 = "#404040", base03 = "#999999", base04 = "#a2a2a2", base05 = "#cccccc", base06 = "#bdbdbd", base07 = "#cccccc", base08 = "#f06f65", base09 = "#f6c453", base0A = "#e7c77d", base0B = "#70b237", base0C = "#63c484", base0D = "#55d6d0", base0E = "#a98558", base0F = "#f39a5c", accent = "#70b237" } 

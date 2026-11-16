@@ -60,6 +60,7 @@ timestamp=2026-11-05T19:04:59+10:00
 .config/cliamp/config.toml
 .config/cliamp/themes/kolira.toml
 .config/fish/fish_variables
+.config/foot/foot.ini
 .config/fzf/kolira.opts
 .config/glow/glow.yml
 .config/glow/kolira.json
@@ -71,6 +72,9 @@ timestamp=2026-11-05T19:04:59+10:00
 .config/micro/settings.json
 .config/mpv/mpv.conf
 .config/opencode/cli.json
+.config/starship.toml
+.config/tmux/kolira.json
+.config/wezterm/kolira.toml
 .config/wofi/kolira.css
 .config/yazi/theme.toml
 .config/zellij/config.kdl

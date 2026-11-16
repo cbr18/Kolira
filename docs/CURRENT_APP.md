@@ -467,7 +467,7 @@ marketplace extensions: встроенная база и цветовые overri
 
 P0 application rows 11–20 are implemented: fish/Pure/OMP, btop/Cava, Yazi/bat,
 Wofi, fzf, lazygit, Zellij, OpenCode V2, Claude Code and Codex. The tracked registry
-contains 49 applications. Native paths, colour-only policies, startup/reload and
+contains 53 applications. Native paths, colour-only policies, startup/reload and
 custom-path limits are documented in [APPLICATIONS.md](APPLICATIONS.md).
 
 
@@ -480,3 +480,7 @@ Native browser accent/day-night проверяются на всех восьм�
 Heroic, Prism, Vim, mpv/Cliamp и VSCodium. Все восемь пакетов содержат ресурсы
 из палитры. LibreOffice исключён: стандартная тема и личные настройки сохраняются.
 Пути и ограничения: [APPLICATIONS.md](APPLICATIONS.md).
+
+Starship/tmux/Foot/WezTerm: [контракты и версии](APPLICATIONS.md#starship-tmux-foot-wezterm).
+WezTerm Lua и tmux startup commands остаются локальными; пакеты содержат только
+цветовые данные. tmux native values входят в общий журнал и safety recovery.

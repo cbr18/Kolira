@@ -5,7 +5,10 @@ use std::collections::BTreeMap;
 use toml_edit::{DocumentMut, Item};
 
 pub fn handles(rel: &str) -> bool {
-    if crate::structured_appearance::handles(rel) || rel == ".config/cliamp/config.toml" {
+    if rel == crate::four_apps::STARSHIP
+        || crate::structured_appearance::handles(rel)
+        || rel == ".config/cliamp/config.toml"
+    {
         return true;
     }
     matches!(
@@ -50,7 +53,12 @@ const YAZI: &[&[&str]] = &[
     &["notify", "title_info"],
 ];
 fn keys(rel: &str) -> Vec<Vec<String>> {
-    if rel == ".config/cliamp/config.toml" {
+    if rel == crate::four_apps::STARSHIP {
+        vec![
+            vec!["palette".into()],
+            vec!["palettes".into(), "kolira".into()],
+        ]
+    } else if rel == ".config/cliamp/config.toml" {
         vec![vec!["theme".into()]]
     } else if rel == ".codex/config.toml" {
         vec![vec!["tui".into(), "theme".into()]]
@@ -91,6 +99,13 @@ fn set(doc: &mut DocumentMut, path: &[String], value: Option<Item>) {
     }
 }
 fn toml(rel: &str, theme: &str, live: &str) -> Result<String> {
+    let enriched;
+    let theme = if rel == crate::four_apps::STARSHIP {
+        enriched = crate::four_apps::starship_source(theme, live)?;
+        enriched.as_str()
+    } else {
+        theme
+    };
     let source: DocumentMut = theme.parse().context("Invalid appearance TOML")?;
     let mut out: DocumentMut = live
         .parse()
@@ -109,7 +124,22 @@ fn toml(rel: &str, theme: &str, live: &str) -> Result<String> {
                     break;
                 }
             }
-            if rel == ".codex/config.toml" || rel == ".config/cliamp/config.toml" {
+            if rel == crate::four_apps::STARSHIP {
+                if key == ["palette"] {
+                    anyhow::ensure!(
+                        value.as_str() == Some("kolira"),
+                        "Invalid Starship palette selector"
+                    );
+                } else {
+                    for (_, v) in value
+                        .as_table_like()
+                        .context("Invalid Starship palette table")?
+                        .iter()
+                    {
+                        crate::palette::Rgb::parse(v.as_str().context("Invalid Starship RGB")?)?;
+                    }
+                }
+            } else if rel == ".codex/config.toml" || rel == ".config/cliamp/config.toml" {
                 anyhow::ensure!(value.as_str().is_some(), "Codex theme must be a string");
             } else {
                 let style = value
