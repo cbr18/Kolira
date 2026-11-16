@@ -5,7 +5,7 @@
 ## Проверка
 
 - Все 8 тем пройдены: в каждом `.config/kdeglobals` ровно один ключ `accentColorFromWallpaper`, дублей `AccentColorFromWallpaper` нет нигде.
-- `glass` и `material-you`: `accentColorFromWallpaper=true` + `theme.json values.accent_from_wallpaper: true` + `manifest.json accent_from_wallpaper: true` — акцент с обоев включен. Цветовая схема `BreezeDark` (как было до uncommitted шума).
+- `glass` и `material-you`: `accentColorFromWallpaper=true` + `theme.json values.accent_from_wallpaper: true` + `manifest.json accent_from_wallpaper: true` — акцент с обоев включен. Цветовая схема `materialbright` (была `KoliraGlass`/`KoliraMaterialYou`, потом `BreezeDark`). Файл `.local/share/color-schemes/materialbright.colors` добавлен в обе темы.
 - `Paper`, `dracula`, `everforest`, `frutiger-aero-light`, `frutiger-aero`, `minecraft-overworld-dark`: кастомные `Kolira<Theme>.colors` возвращены (как было до uncommitted шума), `accentColorFromWallpaper=false` везде — акцент с обоев выключен.
 - Все `theme.json` — валидный JSON.
 - `CHANGELOG.md` обновлён (раздел Unreleased).
@@ -28,6 +28,10 @@
 4. `themes/material-you/.config/kdeglobals`: то же
 5. `themes/{Paper,dracula,everforest,frutiger-aero-light,frutiger-aero,minecraft-overworld-dark}/.config/kdeglobals`: удалены дубли `AccentColorFromWallpaper=false`, оставлен только `accentColorFromWallpaper=false`
 6. `CHANGELOG.md` обновлён (раздел Unreleased)
+7. Цветовая схема `glass` и `material-you` заменена на `materialbright`:
+   - `.local/share/color-schemes/materialbright.colors` добавлен в обе темы (из пользовательской схемы `BreathDark1.colors`)
+   - `theme.json`: `color_scheme` = `materialbright`, asset `color-scheme` с `name: materialbright`, `path: .local/share/color-schemes/materialbright.colors`
+   - `kdeglobals`: `ColorScheme=materialbright`
 
 ## Связано
 

@@ -133,7 +133,7 @@ ForegroundPositive=39,174,96
 ForegroundVisited=155,89,182
 
 [General]
-ColorScheme=BreezeDark
+ColorScheme=materialbright
 ColorSchemeHash=c1d1b81cc2dd3ac740c8354590ed0f73e55aa034
 LastUsedCustomAccentColor=184,117,220
 AccentColor=61,174,233

@@ -23,6 +23,11 @@
   `frutiger-aero-light`, `minecraft-overworld-dark`, `Paper`) остаются на `false`.
 - Maintenance refresh сохраняет пользовательские BreezeLight/BreezeDark и акцент
   от обоев Glass/Material You, убирает конфликтующие варианты регистра ключа.
+- Цветовая схема `glass` и `material-you` заменена на `materialbright` (были
+  `KoliraGlass`/`KoliraMaterialYou`, потом `BreezeDark`). Файл
+  `.local/share/color-schemes/materialbright.colors` добавлен в обе темы из
+  пользовательской схемы `BreathDark1.colors` (акцент `0,137,123`, sélection
+  `141,74,114`, фон окна `26,17,25`).
 - Добавлены цвета из палитры и безопасный возврат для Micro, lsd/Glow,
   GIMP 3, Heroic, Prism, Vim, mpv/Cliamp и VSCodium; все восемь комплектных
   тем обновлены. Chromium/Chrome получают только нативный frame accent с
