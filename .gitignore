@@ -27,3 +27,9 @@ venv/
 
 # Shell history
 .bash_history
+
+# Temporary / scratch files
+tmp/
+
+# Ruff cache
+.ruff_cache/
