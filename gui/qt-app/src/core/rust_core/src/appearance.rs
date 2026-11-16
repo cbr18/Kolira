@@ -60,7 +60,7 @@ pub const KITTY_THEME: &str = ".config/kitty/kolira.conf";
 pub const KITTY_INCLUDE: &str = "include kolira.conf";
 pub const ALACRITTY_HOST: &str = ".config/alacritty/alacritty.toml";
 pub const ALACRITTY_THEME: &str = ".config/alacritty/kolira.toml";
-pub const ALACRITTY_IMPORT: &str = "~/.config/alacritty/kolira.toml";
+pub const ALACRITTY_IMPORT: &str = "kolira.toml";
 
 /// Which keys of an INI group are appearance.
 #[derive(Debug, Clone, Copy)]

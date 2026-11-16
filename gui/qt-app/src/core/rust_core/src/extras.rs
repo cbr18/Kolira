@@ -278,12 +278,12 @@ pub fn ghostty_palette_text(current: &str, p: &Palette) -> String {
 }
 
 pub fn ghostty_apply_palette(p: &Palette) -> Result<Option<PathBuf>> {
-    let host = home_dir().join(GHOSTTY_HOST);
+    let host = crate::paths::live_path(GHOSTTY_HOST);
     if !host.is_file() {
         return Ok(None);
     }
     let text = fs::read_to_string(&host)?;
-    let theme = home_dir().join(GHOSTTY_THEME);
+    let theme = crate::paths::live_path(GHOSTTY_THEME);
     let mut current = fs::read_to_string(&theme).unwrap_or_default();
     if current.is_empty() {
         current = ghostty_split(&text).0; // one-time move of the look
@@ -715,6 +715,57 @@ mod tests {
         let h = ghostty_host(host);
         assert!(h.trim_end().ends_with(GHOSTTY_INCLUDE) && !h.contains("background"));
         assert_eq!(ghostty_host(&h), h);
+    }
+
+    #[test]
+    fn ghostty_apply_palette_roundtrip_in_tmp_home() {
+        use std::env;
+        use std::fs;
+
+        let tmp = tempfile::tempdir().unwrap();
+        env::set_var("XDG_CONFIG_HOME", tmp.path());
+
+        let host_content = "font-size = 13\nbackground = #000000\nbackground-opacity = 0.8\nkeybind = ctrl+a=new_tab\n";
+        let host_path = tmp.path().join("ghostty/config");
+        fs::create_dir_all(host_path.parent().unwrap()).unwrap();
+        fs::write(&host_path, host_content).unwrap();
+
+        let p = test_palette();
+        let theme_path = ghostty_apply_palette(&p).unwrap().unwrap();
+
+        // Theme file was written with palette colors
+        let theme_text = fs::read_to_string(&theme_path).unwrap();
+        assert!(theme_text.contains("BEGIN kolira palette"));
+        assert!(theme_text.contains("END kolira palette"));
+
+        // Host config no longer contains look keys, has include instead
+        let host_text = fs::read_to_string(&host_path).unwrap();
+        assert!(!host_text.contains("background = #000000"));
+        assert!(host_text.contains("config-file = ?kolira"));
+
+        // Idempotent: applying again doesn't duplicate
+        ghostty_apply_palette(&p).unwrap();
+        let host_text2 = fs::read_to_string(&host_path).unwrap();
+        let include_count = host_text2.lines().filter(|l| l.trim() == GHOSTTY_INCLUDE).count();
+        assert_eq!(include_count, 1);
+
+        env::remove_var("XDG_CONFIG_HOME");
+    }
+
+    fn test_palette() -> crate::palette::Palette {
+        crate::palette::Palette {
+            name: "test".into(),
+            author: String::new(),
+            variant: crate::palette::Variant::Dark,
+            base: vec![
+                "#000000".into(), "#ff0000".into(), "#00ff00".into(), "#ffff00".into(),
+                "#0000ff".into(), "#ff00ff".into(), "#00ffff".into(), "#ffffff".into(),
+                "#808080".into(), "#ff8080".into(), "#80ff80".into(), "#ffff80".into(),
+                "#8080ff".into(), "#ff80ff".into(), "#80ffff".into(), "#c0c0c0".into(),
+            ],
+            accent: "#ff0000".into(),
+            source: "test".into(),
+        }
     }
 
     #[test]
