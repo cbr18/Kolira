@@ -80,11 +80,14 @@
     ".mozilla/firefox/kolira.default/user.js": "4ccaf0dbcbe843c364219bb3222ed6dad94913e602dcb536fad268b46befa612",
     ".vim/kolira-palette.json": "3648ec19d7f025d9dfddfe4a7d8d2bbf3fde481b4dcef377073ea1ef138098bb",
     ".zen/kolira.default/user.js": "b848639140bed719caf2db8accf8785ad38a01ea7a879b5415a57d57273ab040",
-    "manifest.json": "9267ea6629071d76ff49bd4829b0971667b17cd67d9f44dc5c4385dcab6483d7",
-    "manifest.txt": "cf49b044b8c9d18dd5ad08aa29bbec702c8e36807b09c0273fbb4774cd7ce362",
+    "manifest.json": "b07844295682743f52147eeb4552b91c7f2dbd69536db4592c0252e40f0cb597",
+    "manifest.txt": "2f9ed0d1d839d89c584fc162c253d31685775997876af16f84430935b94da44b",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
     "theme.json": "b780b1e1f7ba3a39c7059299561050a4177a83e8400f1c1a146dc810be75fdc7",
     "wallpaper/glass-saturn-mono.jpg": "e80c120a94025dc4a4a28a08d3b4e90c58b66f291850d07953ca8e05df0ef30f",
-    "wallpaper/source": "93a5954a983f672acf6551c460a5c5889bc225e3230250c9b38e0303b92207dc"
+    "wallpaper/source": "93a5954a983f672acf6551c460a5c5889bc225e3230250c9b38e0303b92207dc",
+    ".config/rofi/themes/kolira.rasi": "c7b654de8e313b405488547d2d91194f2f92da211bd92220d90ce2ed7a730c2a",
+    ".config/fuzzel/fuzzel.ini": "afbffcea330ce65055926e4bc53c4e734ccc3f9f48ee623cb540b269101f4b27",
+    ".config/walker/style.css": "935d0d16cf725287ba6c850c6329d13df1df74a327ba47f7a2d011484efe5e9e"
   }
 }

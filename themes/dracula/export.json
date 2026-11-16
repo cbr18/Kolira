@@ -79,11 +79,14 @@
     ".mozilla/firefox/kolira.default/user.js": "8eeaa779447f7819ed0f225592bfbabcaeae6aca138c5c0df2f96dcbecd8fdee",
     ".vim/kolira-palette.json": "a624e6cdceaa568bdb0f92dae80243dcc00febd0758a36adb04685817db0f676",
     ".zen/kolira.default/user.js": "e652ed00fe5bec27b3c7047e61f325adc9e52b17140f55c0589c2f196c0504f7",
-    "manifest.json": "78c7b3082f3f4cd0c737120c76666d85bf7fa7568ade086355dec40629da8d1e",
-    "manifest.txt": "374a36be916ac061a80bc1e24b17a3546983601bd1c80f4c022c29269d2d4cd4",
+    "manifest.json": "7d5519c1fc7e51b7aed7122492b85c9ec465a6131918d3e9a5f572f16c58c5b5",
+    "manifest.txt": "346f96b9656e46971318936ad1892f6edd4ba4a8bbfd3d0635cbef0e1f230768",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
     "theme.json": "1663667c7d0d4f82ac51b44d13f12792e54428ecb40c83b4e5d15165377953fe",
     "wallpaper/dracula-kde.png": "ea3b30412f97bc24c74707930253135d4b2ac247c43d4887ca00062cc5272d22",
-    "wallpaper/source": "47645aa7576ec3ce19752e66897b341efadf2ca961ba333cf85e1a6e417f2803"
+    "wallpaper/source": "47645aa7576ec3ce19752e66897b341efadf2ca961ba333cf85e1a6e417f2803",
+    ".config/rofi/themes/kolira.rasi": "bf892975070c423b64bcd6e431a2fb38506f0610642f0c802ae8ec91bf7241d0",
+    ".config/fuzzel/fuzzel.ini": "327d1b1e358913236a752a667c9afcbc4bf3c5162400dd5f37e8bf21ae976351",
+    ".config/walker/style.css": "b4c3f5a289f43180e69e24e4a2a01cc8378f04ff2b7d4603796329a26f66b247"
   }
 }

@@ -79,11 +79,14 @@
     ".mozilla/firefox/kolira.default/user.js": "7de4a4a4233c91e856b65c5b3c1594bddff2cb035d54f5bae8ba5b7364bc2c20",
     ".vim/kolira-palette.json": "e2ad7baa0401d37c86cf8531d6b49ad2037f942161784676bd6215c668a08083",
     ".zen/kolira.default/user.js": "19de1b91d0e3b5be0003a5a5ad3191c33ac593120c45207d82fdf3ffc9b7236d",
-    "manifest.json": "db951af6ee0d0723577ec10fedcba7455ea92b5a74a3543da99a4ca993adca31",
-    "manifest.txt": "47fd48f879257c9c78c84d8f85eaa392aac94a9b271383577c53c1cbbce2bc87",
+    "manifest.json": "aa6a78414738b435a806882ed879cbeb936c895690974e1f87399bb5dbee092e",
+    "manifest.txt": "be0a2861d5a1160901b21db81ca48479583c60499bb4890ea766595877917b2d",
     "obsidian/vault/.obsidian/appearance.json": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
-    "theme.json": "c7f04999e9730877235e93910eb9be50fb45ccfdbb855ec8255f97d935bf0404",
+    "theme.json": "fbc3cfbe8e35a84f48d3d1f7dec3ab9d0f7a849f20f1c1cdbdd21ac3d912b5e7",
     "wallpaper/dracula-kde.png": "ea3b30412f97bc24c74707930253135d4b2ac247c43d4887ca00062cc5272d22",
-    "wallpaper/source": "47645aa7576ec3ce19752e66897b341efadf2ca961ba333cf85e1a6e417f2803"
+    "wallpaper/source": "47645aa7576ec3ce19752e66897b341efadf2ca961ba333cf85e1a6e417f2803",
+    ".config/rofi/themes/kolira.rasi": "7c9e33e00b4f80b1267eac2ecfaf39a8dcb07a4bcce33d486bd44c79020245f3",
+    ".config/fuzzel/fuzzel.ini": "20adf065883f07e400576aa4e47c89cedd0d50e9b03c243ab7fabbc7be09c276",
+    ".config/walker/style.css": "b22f256fca7f55055504db78e3a07ec237a651cb6bd3cc357044d4f9d1f2f155"
   }
 }

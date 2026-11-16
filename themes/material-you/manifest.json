@@ -250,7 +250,29 @@
         ".config/zellij/themes/kolira.kdl",
         ".local/share/PrismLauncher/prismlauncher.cfg",
         ".local/share/PrismLauncher/themes/kolira/theme.json",
-        ".vim/kolira-palette.json"
+        ".vim/kolira-palette.json",
+        ".config/rofi/themes/kolira.rasi",
+        ".config/fuzzel/fuzzel.ini",
+        ".config/walker/style.css"
+      ]
+    },
+    {
+      "id": "rofi",
+      "paths": [
+        ".config/rofi/config.rasi",
+        ".config/rofi/themes/kolira.rasi"
+      ]
+    },
+    {
+      "id": "fuzzel",
+      "paths": [
+        ".config/fuzzel/fuzzel.ini"
+      ]
+    },
+    {
+      "id": "walker",
+      "paths": [
+        ".config/walker/style.css"
       ]
     }
   ]

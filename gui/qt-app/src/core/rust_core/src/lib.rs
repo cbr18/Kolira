@@ -76,3 +76,4 @@ pub mod third_apps;
 
 pub mod four_apps;
 pub mod tmux_runtime;
+pub mod launcher_apps;

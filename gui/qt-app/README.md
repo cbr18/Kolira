@@ -626,8 +626,8 @@ the previous Apply and no surviving personal host references them. The preview
 shows this same restoration plan. `--keep-wallpaper` preserves the image file too.
 
 
-The Rust tracked application registry contains 53 entries, including Pure, fzf,
-lazygit, Zellij, OpenCode V2, Claude Code and Codex. Paths and activation limits
+The Rust tracked application registry contains 56 entries, including Pure, fzf,
+lazygit, Zellij, OpenCode V2, Claude Code, Codex, Rofi, Fuzzel and Walker. Paths and activation limits
 are documented in [APPLICATIONS.md](../../docs/APPLICATIONS.md).
 
 Third-batch native colour contracts and manual Chromium reset limits are documented

@@ -917,6 +917,36 @@ pub fn apply(p: &Palette, targets: &[String], options: &ApplyOptions) -> Result<
         }
     }
 
+    if wants("rofi") {
+        match crate::launcher_apps::apply_rofi(p)? {
+            Some(path) => report.push(format!(
+                "rofi: {} (managed colour block; @theme in config.rasi)",
+                path.display()
+            )),
+            None => report.push("rofi: skipped, no ~/.config/rofi".to_string()),
+        }
+    }
+
+    if wants("fuzzel") {
+        match crate::launcher_apps::apply_fuzzel(p)? {
+            Some(path) => report.push(format!(
+                "fuzzel: {} (managed colour block in fuzzel.ini)",
+                path.display()
+            )),
+            None => report.push("fuzzel: skipped, no ~/.config/fuzzel/fuzzel.ini".to_string()),
+        }
+    }
+
+    if wants("walker") {
+        match crate::launcher_apps::apply_walker(p)? {
+            Some(path) => report.push(format!(
+                "walker: {} (managed CSS colour block)",
+                path.display()
+            )),
+            None => report.push("walker: skipped, no ~/.config/walker/style.css".to_string()),
+        }
+    }
+
     if wants("gtk") {
         let opacity = options.gtk_opacity.unwrap_or(1.0);
         let path = crate::extras::gtk_apply_palette(p, opacity)?;

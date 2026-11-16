@@ -1,7 +1,7 @@
 {
   "schema": "kolira/theme@2",
   "name": "material-you",
-  "description": "Материал You с палитрой из обоев (акцент из обоев)",
+  "description": "\u041c\u0430\u0442\u0435\u0440\u0438\u0430\u043b You \u0441 \u043f\u0430\u043b\u0438\u0442\u0440\u043e\u0439 \u0438\u0437 \u043e\u0431\u043e\u0435\u0432 (\u0430\u043a\u0446\u0435\u043d\u0442 \u0438\u0437 \u043e\u0431\u043e\u0435\u0432)",
   "created": "2026-11-14T13:49:44+10:00",
   "generator": "kolira 0.7.0",
   "values": {
@@ -206,7 +206,7 @@
       "name": "Vesktop",
       "source": "aur",
       "id": "vesktop-bin",
-      "title": "Vesktop (Discord with Vencord) — or install Vencord into Discord: https://vencord.dev/download/",
+      "title": "Vesktop (Discord with Vencord) \u2014 or install Vencord into Discord: https://vencord.dev/download/",
       "url": "https://vencord.dev/download/",
       "exact": true,
       "optional": true

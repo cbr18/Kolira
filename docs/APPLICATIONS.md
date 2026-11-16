@@ -206,6 +206,14 @@ Cava сохраняет прежний target `cava`. Эти цели не ра�
 | Claude Code | `.claude/settings.json`: только `theme`, ANSI dark/light; существующий `*-daltonized` сохраняется при смене day/night. |
 | Codex | `.codex/themes/kolira.tmTheme`, только `[tui].theme` в `config.toml`: подсветка синтаксиса, не цвета всего TUI. |
 
+## Лаунчеры (P1 № 8–10)
+
+| Приложение | Управляемая часть; личные настройки сохраняются |
+|---|---|
+| Rofi | `.config/rofi/themes/kolira.rasi`: управляемый блок цветов; `config.rasi` получает `@theme` ссылку. Персональные привязки, режимы и история сохраняются. |
+| Fuzzel | `.config/fuzzel/fuzzel.ini`: управляемый `[color]` блок через позиционный патч. Остальные sekции сохраняются. |
+| Walker | `.config/walker/style.css`: управляемый CSS блок цветов. Персональные темы и привязки сохраняются. |
+
 Пути под `.config` разрешаются через XDG; `.codex` и `.claude` учитывают
 `CODEX_HOME` и `CLAUDE_CONFIG_DIR`. Переносимый снимок хранит канонические пути,
 а не каталоги автора. Авторизация, API keys, модели, permissions, hooks, история
