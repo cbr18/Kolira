@@ -9,8 +9,9 @@
 
 | Задача | Что осталось |
 |---|---|
-| [Chromium: автоматический акцент](2026_11_16_chromium-policy-sync.md) | DEFERRED / P4: native BrowserThemeColor проверен; снятие политики сбрасывает GTK/Qt baseline. Небезопасный прототип не подключён к Apply; нужен способ автоматического возврата без правки Preferences. |
-| [Расширение покрытия приложений](2026_11_15_app-coverage-expansion.md) | IN PROGRESS: аудит путей, [план](../plans/2026_11_15_app-coverage-expansion.md) и [приоритеты](../docs/APP_COVERAGE_PRIORITIES.md) готовы. Сначала автоматические сценарии установленных приложений; ручные и неподтверждённые live-сценарии вынесены в P4 в конец списка; затем остальные Linux/ricing-сценарии. GitHub stars — дополнительный сигнал. Файловые адаптеры P0 № 1–7, 9–24, 26–29 и VSCodium добавлены; live-ограничения — в P4; LibreOffice исключён. [Третья партия и ограничения](2026_11_16_third-ten-apps.md). Далее аудит существующих Alacritty/Ghostty, затем Starship. |
+| [Аудит терминалов Alacritty/Ghostty](2026_11_16_alacritty-ghostty-audit.md) | OPEN: проверить файловые адаптеры на пробелы, возврат без конфига, сохранение личных правок, повторный Apply, перенос в другой HOME. |
+| [Chromium: автоматический акцент](2026_11_16_chromium-policy-sync.md) | DEFERRED / P4: native BrowserThemeColor проверен; снятие политики сбрасывает GTK/Qt baseline. Найден механизм chrome.send() через CDP (документировано в docs/CHROMIUM_RESEARCH.md), но решение пока не принято к реализации. |
+| [Расширение покрытия приложений](2026_11_15_app-coverage-expansion.md) | IN PROGRESS: три партии P0 уже реализованы. Далее follows обновлённым приоритетам: аудит Alacritty/Ghostty (эта задача), затем Starship, tmux, Foot, WezTerm. |
 | [Реальный цикл зависимостей из AUR](2026_11_08_aur-dependency-cycle.md) | Код поддерживает AUR (источник "aur", команда `yay -S {id}`, проверка наличия helper). Требует реального тестирования в изолированном Arch Linux контейнере. |
 
 Блокирующие дефекты F01/F02 аудита и защита применения реализованы.
