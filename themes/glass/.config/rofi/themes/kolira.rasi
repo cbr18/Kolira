@@ -1,0 +1,14 @@
+/* BEGIN kolira colours */
+*{
+    background: #202326;
+    foreground: #fcfcfc;
+    background-color: #202326;
+    color: #fcfcfc;
+    border: 1px solid #393b3c;
+    border-radius: 4px;
+    padding: 8px;
+}
+#input { background-color: #a1a9b1; color: #fcfcfc; border-color: #3daee9; }
+#entry:selected { background-color: #3daee9; color: #fcfcfc; }
+#text:selected { color: #fcfcfc; }
+/* END kolira colours */

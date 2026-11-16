@@ -78,11 +78,14 @@
     ".mozilla/firefox/kolira.default/user.js": "fbd22568805e3f855f81638a70f08a7db86fa6894356c857e42516c496300afa",
     ".vim/kolira-palette.json": "5a895d2a77acdaa82a1c2618682bdbd349a09950d6df7511b549fa9f7ef116e9",
     ".zen/kolira.default/user.js": "526a84d55c2e4e56e82043d726e5714782f873a190a56d3c0607596e1360140b",
-    "manifest.json": "30530b37ada095df3b64cc3b6b366db22a3c96719715e0271e2e0af53d4a1475",
-    "manifest.txt": "b072efb36f2899b8478c9eada9b5adbed2a4a1b3210650f073c5f597afde5219",
+    "manifest.json": "9ebc1aba83d15c3eb0c2050c26c2620ef5711faf732c07058b6807c60043a399",
+    "manifest.txt": "35a06282d006d3ac7d179cb49fc7ab56bfd941899bbb31deec8885a2b125740e",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-    "theme.json": "12992f8361847567385ce35943cb763ea779caa616a39f9ec3f00ad175a83529",
+    "theme.json": "d6d720ed7502b78a4ac33f9b6f0bbd76c40c627eaeaaa98e957c51ecaa893278",
     "wallpaper/frutiger-aero-bubble.jpg": "3c3a5d0326bd889443cdbe00ba67472440d719f2283cc45b60fb6c95570b1d79",
-    "wallpaper/source": "1c9fff0c108759b859903530aaa29e3a5c0b564a5f2d97bdab9d8fc0187b2a50"
+    "wallpaper/source": "1c9fff0c108759b859903530aaa29e3a5c0b564a5f2d97bdab9d8fc0187b2a50",
+    ".config/rofi/themes/kolira.rasi": "c4067bed820eb1355786ab534164083c31512c3513cc18dda685b31763024fb7",
+    ".config/fuzzel/fuzzel.ini": "d06cff9e920fcfa33a72ef5c8395c4c0acdb9be5851760788f078db61089a394",
+    ".config/walker/style.css": "7314a17eb2762c0b7cf62c7fc65a8b4749acc559f21112757807d83489bb4a9a"
   }
 }

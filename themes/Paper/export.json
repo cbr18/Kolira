@@ -77,11 +77,14 @@
     ".mozilla/firefox/kolira.default/user.js": "8965e40f3f792f37ae5d3a224e4dcc79993fd4b5f44589cab3e3e222db980fe2",
     ".vim/kolira-palette.json": "29357a11037bf72e32d7be8b84ae793b3f3c39b1873c7c476439629eb67c319a",
     ".zen/kolira.default/user.js": "86ead8d69aa3e6e71a7c7050bf494a02394e861d0b6b17214731e6d6abd63322",
-    "manifest.json": "2ce6ee4515e9c76409357964db47b3bbee704e093eac810bbc0d4723bf475e28",
-    "manifest.txt": "efd11a13f24a080050f55fd71e9ca748e64edae9be2c3f8c064ac4f784fe4e0f",
+    "manifest.json": "65608a5cb1f95e0a6aaddbf7ee7ea96fd1b2ee6ae8d44f5a21b1d82dd906dcab",
+    "manifest.txt": "57c2536f1d19eda64cad2c482e275a3b250ae69e43f7ea00af6bcb574dc09001",
     "obsidian/vault/.obsidian/appearance.json": "4eeaef8673657dc645e1cb3f5149b41ac895bc2bbc7c34db82f8441d1aa18867",
-    "theme.json": "1b74f6dbf924ddd82dd5400daad730180900ccadab04bf512342b66366299312",
+    "theme.json": "184ff2a3effcabf16e8ddb087ce9eb4c3755ed04a0e4243fe5665614cc8601e9",
     "wallpaper/paper-falat-sviciaz.jpg": "43945d0609075068ee770a3e2fac9375c958388045dfeb50942fa697fe256b6f",
-    "wallpaper/source": "96496d5669804c8c3b73bd46935d27db6e9f258e38603ef0002b3e0c609a73a7"
+    "wallpaper/source": "96496d5669804c8c3b73bd46935d27db6e9f258e38603ef0002b3e0c609a73a7",
+    ".config/rofi/themes/kolira.rasi": "f81b04b1acb308be98f0c261bfef3600d320055153d180f7073804f12a1cfc6a",
+    ".config/fuzzel/fuzzel.ini": "992a1409ab1706ced22a980a69472dfc77180ea2ca2309ef0d38390813bb9926",
+    ".config/walker/style.css": "43bedbab67172ff7e115fdd50aaa6c7187b45888ec4d19d988910fec45ab0dda"
   }
 }

@@ -42,6 +42,9 @@ pub(crate) const TARGETS: &[&str] = &[
     "mpv",
     "cliamp",
     "vscodium",
+    "rofi",
+    "fuzzel",
+    "walker",
 ];
 
 /// Reject redirected writes below the user's resource container. Relative links
@@ -208,6 +211,7 @@ pub(crate) fn plan_apps(source: &Path, package: &Package, plan: &mut Plan) -> Re
     crate::four_apps::plan(source, package, plan)?;
     crate::third_apps::plan(source, package, plan)?;
     crate::terminal_apps::plan(source, package, plan)?;
+    crate::launcher_apps::plan(source, package, plan)?;
     crate::neovim::plan(
         source,
         package.palette.as_ref(),

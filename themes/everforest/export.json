@@ -79,11 +79,14 @@
     ".mozilla/firefox/kolira.default/user.js": "0ea4681525e190ecf3a879eef3e3086e07c8ce9adf5acc170c270c5cfc91fde3",
     ".vim/kolira-palette.json": "63cdaf8eaea748472566613339af1988c47e211e4a8e8488da2856211d8d2fed",
     ".zen/kolira.default/user.js": "8e314801998640f817e209cb0777f02555d981512ecd762e2df6e2e76a5ba076",
-    "manifest.json": "8377408271de386d668014a33fc69765123f97e8c7bde7e2e15e11883b99aae2",
-    "manifest.txt": "1d9d24d5c01258c6ad394d538cc68b28487c436197890a5113503da116216df7",
+    "manifest.json": "eab43163a4cfb45c0905e9d4043a0b21909ddc6eee8f52e9ca312dab6c37bf89",
+    "manifest.txt": "852c7aa2f45fd3ad903dc6ea4bab643323607584476378f475f6994ec0501fdf",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
     "theme.json": "a7a785f90ff7d366f309f639ef46bff568ff13b60aef0828663aca8357f445b7",
     "wallpaper/everforest-misty-pines.jpg": "eaa504fb6526ae9d04e7a647944ecb9ea2ca867a3241064b66467fda288e4958",
-    "wallpaper/source": "90437a63f17675e4ed75072ee076622b2c650787a8f4336b3f9d4057f7445a5a"
+    "wallpaper/source": "90437a63f17675e4ed75072ee076622b2c650787a8f4336b3f9d4057f7445a5a",
+    ".config/rofi/themes/kolira.rasi": "613292b62034225cad5245ae6fe18cf84b8b1fc50f92431c24e4c626307911ad",
+    ".config/fuzzel/fuzzel.ini": "c6ad1ec7f5414e908afd34c349624ea09efba09a46f2b382a742ebe205a878e2",
+    ".config/walker/style.css": "8a537b8a10749884bc93c72c7db64d8df9661bde4be41e3634603be143bf0058"
   }
 }

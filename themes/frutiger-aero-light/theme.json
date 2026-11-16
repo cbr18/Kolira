@@ -122,7 +122,7 @@
       "kind": "discord-client",
       "name": "Vesktop",
       "source": "aur",
-      "title": "Vesktop (Discord with Vencord) — or install Vencord into Discord: https://vencord.dev/download/",
+      "title": "Vesktop (Discord with Vencord) \u2014 or install Vencord into Discord: https://vencord.dev/download/",
       "url": "https://vencord.dev/download/"
     },
     {
@@ -144,7 +144,7 @@
       "url": "https://store.kde.org/p/1407084"
     }
   ],
-  "description": "Frutiger Aero Light — Windows 7 as it shipped: white windows with black text, Aero glass title bars with black glowing titles (Se7en Aero Light), light Kvantum, GTK 3 and libadwaita glass, Windows 7 GTK, Seven icons, Aero cursors, CC0 Frutiger Aero wallpaper",
+  "description": "Frutiger Aero Light \u2014 Windows 7 as it shipped: white windows with black text, Aero glass title bars with black glowing titles (Se7en Aero Light), light Kvantum, GTK 3 and libadwaita glass, Windows 7 GTK, Seven icons, Aero cursors, CC0 Frutiger Aero wallpaper",
   "generator": "kolira 0.5.0",
   "name": "frutiger-aero-light",
   "palette": {

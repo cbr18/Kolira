@@ -104,9 +104,12 @@
     ".vim/kolira-palette.json": "d567b4fa1497b0a12b672af3c299cd10604ced0ce190f42399f8a3b47b055c26",
     ".zen/kolira.default/user.js": "1e6f1626f87f73fcee7c307df9c5ff1e1610605e7a64e05b7a369bf7d836c913",
     "LICENSE": "98d2b54c865c62b527d70f373ed5f316a02a5fc566e2de27a5473cf30db28682",
-    "manifest.json": "0e5b2fad60e21077a93a81266fda7d867dd2f3c65c561dd4424ad802d3b71519",
-    "manifest.txt": "9107cd302e1b1ccfebfd760d7f27eb5e3fade6d5ca991150987773e541bc0cb0",
+    "manifest.json": "04a4d1f5dabd3072212f4f84abf4be82d3d03cc6cad892b2474b0ef0ab0fc53f",
+    "manifest.txt": "3f1f4f44c6c30d36076d847803580c5f3be947a90517fd78538a1a450c111094",
     "theme.json": "a2265424fee62a135c461f7c848394441bb8c6015a447f10d91dddacb056eb08",
-    "wallpaper/minecraft-overworld-night.png": "af851dc3ec0268b7f7cd3eb70a0ad869eee692b3044facff63527448e9a9fe6a"
+    "wallpaper/minecraft-overworld-night.png": "af851dc3ec0268b7f7cd3eb70a0ad869eee692b3044facff63527448e9a9fe6a",
+    ".config/rofi/themes/kolira.rasi": "4997ef9e0cbab272152f1b8ba0f93c94aab53a758caed0dbbcceb1034eff05e4",
+    ".config/fuzzel/fuzzel.ini": "06efd7851a4b1dc7740f59245da0385e1597cc3d64977a9ef0223f1b05a2a5a7",
+    ".config/walker/style.css": "0b08141a3f0ba5ec89664e083849450e6edf022762f50c7c0f0f6b88ea3b5e18"
   }
 }
