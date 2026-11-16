@@ -172,7 +172,7 @@
     "btop_rounded": false,
     "btop_theme": "kolira",
     "button_bg": "246,240,230",
-    "color_scheme": "BreezeLight",
+    "color_scheme": "KoliraPaper",
     "contrast": 4,
     "contrast_enabled": false,
     "cursor_ide_theme": "Default Light Modern",

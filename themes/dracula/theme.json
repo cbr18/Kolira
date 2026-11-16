@@ -161,7 +161,7 @@
     "btop_rounded": true,
     "btop_theme": "kolira",
     "button_bg": "33,34,44",
-    "color_scheme": "BreezeDark",
+    "color_scheme": "KoliraDracula",
     "contrast": 4,
     "contrast_enabled": true,
     "cursor_ide_theme": "Default Dark Modern",

@@ -28,6 +28,10 @@
   `.local/share/color-schemes/materialbright.colors` добавлен в обе темы из
   пользовательской схемы `BreathDark1.colors` (акцент `0,137,123`, sélection
   `141,74,114`, фон окна `26,17,25`).
+- Убраны дублирующие ключи `AccentColorFromWallpaper=false` из `kdeglobals`
+  остальных шести тем (`Paper`, `dracula`, `everforest`, `frutiger-aero`,
+  `frutiger-aero-light`, `minecraft-overworld-dark`); оставлен только
+  читаемый Rust `accentColorFromWallpaper=false`.
 - Добавлены цвета из палитры и безопасный возврат для Micro, lsd/Glow,
   GIMP 3, Heroic, Prism, Vim, mpv/Cliamp и VSCodium; все восемь комплектных
   тем обновлены. Chromium/Chrome получают только нативный frame accent с
