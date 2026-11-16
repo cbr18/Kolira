@@ -1,0 +1,25 @@
+{
+  "name": "everforest",
+  "author": "Kolira contributors (from this theme's KDE colours)",
+  "variant": "dark",
+  "base": [
+    "#232a2e",
+    "#2d353b",
+    "#3f4342",
+    "#859289",
+    "#a79f8b",
+    "#d3c6aa",
+    "#c2b89f",
+    "#d3c6aa",
+    "#e67e80",
+    "#dbbc7f",
+    "#d8c08e",
+    "#a7c080",
+    "#93be9a",
+    "#7fbbb3",
+    "#d699b6",
+    "#e19d80"
+  ],
+  "accent": "#a7c080",
+  "source": "theme:everforest"
+}

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://zed.dev/schema/themes/v0.2.0.json",
+  "name": "Kolira dracula",
+  "author": "Kolira contributors",
+  "themes": [
+    {
+      "name": "Kolira dracula",
+      "appearance": "dark",
+      "style": {
+        "background": "#282a36",
+        "surface.background": "#21222c",
+        "elevated_surface.background": "#21222c",
+        "text": "#f8f8f2",
+        "text.muted": "#6272a4",
+        "text.accent": "#bd93f9",
+        "border": "#44475a",
+        "border.focused": "#bd93f9",
+        "editor.background": "#282a36",
+        "editor.foreground": "#f8f8f2",
+        "editor.gutter.background": "#282a36",
+        "editor.line_number": "#6272a4",
+        "editor.active_line_number": "#f8f8f2",
+        "editor.active_line.background": "#21222c",
+        "tab.active_background": "#282a36",
+        "tab.inactive_background": "#21222c",
+        "toolbar.background": "#21222c",
+        "status_bar.background": "#21222c",
+        "terminal.background": "#282a36",
+        "terminal.foreground": "#f8f8f2",
+        "players": [
+          {
+            "cursor": "#bd93f9",
+            "background": "#bd93f9",
+            "selection": "#bd93f950"
+          }
+        ],
+        "syntax": {
+          "comment": {
+            "color": "#6272a4"
+          },
+          "string": {
+            "color": "#50fa7b"
+          },
+          "keyword": {
+            "color": "#ff79c6"
+          },
+          "number": {
+            "color": "#ffb86c"
+          },
+          "function": {
+            "color": "#bd93f9"
+          },
+          "type": {
+            "color": "#f1fa8c"
+          }
+        }
+      }
+    }
+  ]
+}

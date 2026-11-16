@@ -159,7 +159,7 @@ class ProfileController(QObject):
     # Before applying: profile, what it lacks, keep the wallpaper.
     dependenciesBeforeApply = Signal(str, list, bool)
     dependencyProgress = Signal(str)
-    actionsOffered = Signal(str, list)  # profile, follow-up actions (restart apps, Telegram…)
+    actionsOffered = Signal(str, list)  # profile, follow-up actions (restart apps or native appearance controls)
 
     def __init__(self, parent: Optional[QObject] = None):
         super().__init__(parent)

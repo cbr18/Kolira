@@ -152,6 +152,22 @@ pub(crate) fn kvantum_file(theme: &str, base: &Base) -> Option<PathBuf> {
 }
 
 pub(crate) fn file_for(f: &FieldDef, base: &Base) -> Option<PathBuf> {
+    if f.id == "obsidian_theme" {
+        return match base {
+            Base::Live => crate::obsidian::selected()
+                .first()
+                .map(|v| v.join(".obsidian/appearance.json")),
+            Base::Snapshot(root) => Some(
+                root.join(crate::obsidian::SNAPSHOT)
+                    .join("0/appearance.json"),
+            ),
+        };
+    }
+    if f.source == "userjs" && matches!(base, Base::Live) {
+        return crate::tracked_apps::browser_profiles(true)
+            .first()
+            .map(|p| live_path(&format!("{p}/user.js")));
+    }
     if f.source == "kvantum" {
         let theme = read_raw(field("kvantum_theme")?, base)?;
         return kvantum_file(value_str(&theme).as_str(), base);
@@ -278,7 +294,10 @@ pub fn kv_set(text: &str, key: &str, value: &str) -> String {
 
 /// Byte spans of every scalar in a JSON/JSONC document, keyed by path
 /// (array items by index). Comments and trailing commas are tolerated.
-pub fn json_positions(text: &str) -> std::collections::HashMap<Vec<String>, (usize, usize)> {
+fn json_positions_inner(
+    text: &str,
+    containers: bool,
+) -> std::collections::HashMap<Vec<String>, (usize, usize)> {
     let b = text.as_bytes();
     let n = b.len();
     let mut out = std::collections::HashMap::new();
@@ -319,12 +338,13 @@ pub fn json_positions(text: &str) -> std::collections::HashMap<Vec<String>, (usi
         }
         b.len()
     }
-    fn value(
+    fn value_inner(
         text: &str,
         b: &[u8],
         i: usize,
         path: Vec<String>,
         out: &mut std::collections::HashMap<Vec<String>, (usize, usize)>,
+        containers: bool,
     ) -> usize {
         let n = b.len();
         let mut i = skip_ws(b, i);
@@ -354,7 +374,7 @@ pub fn json_positions(text: &str) -> std::collections::HashMap<Vec<String>, (usi
                     }
                     let mut child = path.clone();
                     child.push(key);
-                    i = skip_ws(b, value(text, b, i, child, out));
+                    i = skip_ws(b, value(text, b, i, child, out, containers));
                     if i < n && b[i] == b',' {
                         i += 1;
                     } else if i < n && b[i] == b'}' {
@@ -378,7 +398,7 @@ pub fn json_positions(text: &str) -> std::collections::HashMap<Vec<String>, (usi
                     let mut child = path.clone();
                     child.push(item.to_string());
                     item += 1;
-                    i = skip_ws(b, value(text, b, i, child, out));
+                    i = skip_ws(b, value(text, b, i, child, out, containers));
                     if i < n && b[i] == b',' {
                         i += 1;
                     } else if i < n && b[i] == b']' {
@@ -403,10 +423,31 @@ pub fn json_positions(text: &str) -> std::collections::HashMap<Vec<String>, (usi
             }
         }
     }
+    fn value(
+        text: &str,
+        bytes: &[u8],
+        offset: usize,
+        path: Vec<String>,
+        out: &mut std::collections::HashMap<Vec<String>, (usize, usize)>,
+        containers: bool,
+    ) -> usize {
+        let start = skip_ws(bytes, offset);
+        let container = matches!(bytes.get(start), Some(b'{' | b'['));
+        let end = value_inner(text, bytes, start, path.clone(), out, containers);
+        if containers && container && !path.is_empty() {
+            out.insert(path, (start, end));
+        }
+        end
+    }
     let start = skip_ws(b, 0);
-    value(text, b, start, Vec::new(), &mut out);
+    value(text, b, start, Vec::new(), &mut out, containers);
     let _ = n;
     out
+}
+
+/// Scalar-only positions keep the Inspector's leaf-field contract unchanged.
+pub fn json_positions(text: &str) -> std::collections::HashMap<Vec<String>, (usize, usize)> {
+    json_positions_inner(text, false)
 }
 
 pub fn json_get(text: &str, path: &[String]) -> Option<Value> {
@@ -420,8 +461,24 @@ pub fn json_get(text: &str, path: &[String]) -> Option<Value> {
 
 pub fn json_set(text: &str, path: &[String], value: &Value) -> Result<String> {
     let literal = serde_json::to_string(value)?;
-    if let Some((s, e)) = json_positions(text).get(path).copied() {
+    if let Some((s, e)) = json_positions_inner(text, true).get(path).copied() {
         return Ok(format!("{}{}{}", &text[..s], literal, &text[e..]));
+    }
+    // Insert an absent leaf inside its existing object by value position.
+    // Reserialising its parent would discard personal formatting and comments.
+    if path.len() > 1 {
+        if let Some((s, e)) = json_positions_inner(text, true)
+            .get(&path[..path.len() - 1])
+            .copied()
+        {
+            let parent = &text[s..e];
+            anyhow::ensure!(
+                parent.trim_start().starts_with('{'),
+                "JSON parent must be an object"
+            );
+            let patched = json_set(parent, &path[path.len() - 1..], value)?;
+            return Ok(format!("{}{}{}", &text[..s], patched, &text[e..]));
+        }
     }
     if path.len() == 1 {
         if let Some(close) = text.rfind('}') {
@@ -1123,6 +1180,32 @@ pub(crate) fn plan_value(
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn jsonc_container_replacement_is_idempotent_and_keeps_surrounding_text() {
+        let text = "{ // personal\n  \"workbench.colorCustomizations\": {\"old\": true,},\n  \"enabledCssSnippets\": [\"mine\",],\n  \"editor.fontSize\": 19 // keep\n}\n";
+        let path = vec!["workbench.colorCustomizations".to_string()];
+        let value = json!({"editor.background":"#202020"});
+        let changed = json_set(text, &path, &value).unwrap();
+        assert_eq!(json_set(&changed, &path, &value).unwrap(), changed);
+        assert_eq!(
+            changed.matches("\"workbench.colorCustomizations\"").count(),
+            1
+        );
+        let array = vec!["enabledCssSnippets".to_string()];
+        let changed = json_set(&changed, &array, &json!(["mine", "kolira"])).unwrap();
+        assert_eq!(
+            json_set(&changed, &array, &json!(["mine", "kolira"])).unwrap(),
+            changed
+        );
+        assert_eq!(changed.matches("\"enabledCssSnippets\"").count(), 1);
+        assert!(changed.starts_with("{ // personal\n"));
+        assert!(changed.contains("\"editor.fontSize\": 19 // keep"));
+        assert!(
+            !json_positions(&changed).contains_key(&path),
+            "Inspector still exposes scalar leaves"
+        );
+    }
     use super::*;
     use serde_json::json;
 

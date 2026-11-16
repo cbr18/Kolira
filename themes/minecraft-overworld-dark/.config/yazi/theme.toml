@@ -1,12 +1,14 @@
 [mgr]
-cwd = { fg = "#55D6D0" }
-find_keyword = { fg = "#F6C453", bold = true }
-marker_copied = { fg = "#70B237", bg = "#70B237" }
-marker_cut = { fg = "#F06F65", bg = "#F06F65" }
+cwd = { fg = "#55d6d0" }
+find_keyword = { fg = "#e7c77d", bold = true }
+marker_copied = { fg = "#70b237" }
+marker_cut = { fg = "#f06f65" }
 marker_marked = { fg = "#55D6D0", bg = "#55D6D0" }
-marker_selected = { fg = "#F6C453", bg = "#F6C453" }
+marker_selected = { fg = "#a98558" }
 border_symbol = "│"
 border_style = { fg = "#747474" }
+hovered = { fg = "#cccccc", bg = "#404040" }
+preview_hovered = { underline = true }
 
 [tabs]
 active = { fg = "#000000", bg = "#70B237", bold = true }
@@ -15,7 +17,7 @@ inactive = { fg = "#CCCCCC", bg = "#383838" }
 [status]
 sep_left = { open = "", close = "" }
 sep_right = { open = "", close = "" }
-overall = { fg = "#CCCCCC", bg = "#383838" }
+overall = { fg = "#cccccc", bg = "#383838" }
 
 [filetype]
 rules = [
@@ -29,3 +31,12 @@ rules = [
 [indicator]
 current = { fg = "#000000", bg = "#70B237" }
 preview = { underline = true }
+
+[mode]
+normal_main = { fg = "#252525", bg = "#55d6d0", bold = true }
+normal_alt = { fg = "#cccccc", bg = "#404040" }
+select_main = { fg = "#252525", bg = "#a98558" }
+
+[input]
+border = { fg = "#55d6d0" }
+value = { fg = "#cccccc" }

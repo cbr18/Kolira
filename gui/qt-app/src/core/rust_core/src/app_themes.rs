@@ -74,11 +74,7 @@ fn files(path: &Path, suffix: &str) -> Vec<PathBuf> {
     paths
 }
 pub fn vaults() -> Vec<PathBuf> {
-    ["obsidian", "Obsidian"]
-        .iter()
-        .flat_map(|root| dirs(&paths::home_dir().join(root)))
-        .filter(|p| p.join(".obsidian").is_dir())
-        .collect()
+    crate::obsidian::selected()
 }
 fn settings(a: &Value) -> Option<PathBuf> {
     if a["id"] == "obsidian" {
@@ -327,24 +323,12 @@ fn installed(a: &Value) -> Result<Value> {
                 ));
             }
         }
-        "btop" | "telegram" => {
-            let roots = if id == "btop" {
-                vec![
-                    paths::live_path(".config/btop/themes"),
-                    PathBuf::from("/usr/share/btop/themes"),
-                ]
-            } else {
-                vec![
-                    paths::live_path(".config/telegram-desktop/themes"),
-                    paths::live_path(".config/noctalia/Assets/Templates"),
-                    paths::live_path(".local/share/TelegramDesktop/tdata/theme"),
-                ]
-            };
-            let suffix = if id == "btop" {
-                ".theme"
-            } else {
-                ".tdesktop-theme"
-            };
+        "btop" => {
+            let roots = [
+                paths::live_path(".config/btop/themes"),
+                PathBuf::from("/usr/share/btop/themes"),
+            ];
+            let suffix = ".theme";
             for root in roots {
                 for path in files(&root, suffix) {
                     let name = path.file_stem().unwrap().to_string_lossy();
@@ -453,7 +437,7 @@ fn current(a: &Value) -> Result<Value> {
         }
         "vscode" | "cursor" => get(&content, &["workbench.colorTheme"]),
         "obsidian" => {
-            let v = get(&content, &["theme"]);
+            let v = get(&content, &["cssTheme"]);
             if v.is_null() || v == json!("") {
                 json!("obsidian")
             } else {
@@ -524,6 +508,10 @@ fn spawn(argv: &[String]) -> Result<()> {
     Ok(())
 }
 pub fn rpc(operation: &str, args: &Value) -> Result<Value> {
+    if operation == "vault_selection" || operation == "select_vaults" {
+        return crate::obsidian::rpc(operation, args);
+    }
+
     if operation == "all" {
         return rows();
     }
@@ -568,7 +556,7 @@ pub fn rpc(operation: &str, args: &Value) -> Result<Value> {
                         "vscode" | "cursor" => argv.push("workbench.action.selectTheme".into()),
                         "zed" => argv.push("--new".into()),
                         "obsidian" => argv.push("obsidian://appearance".into()),
-                        "discord" | "telegram" => {}
+                        "discord" => {}
                         _ => {
                             return Ok(err(
                                 "Application has no known theme settings command",
@@ -659,7 +647,11 @@ fn patch_theme(id: &str, content: &str, theme_id: &str) -> Result<String> {
             let mode = field::json_set(content, &path_parts(&["theme", "mode"]), &json!("dark"))?;
             field::json_set(&mode, &path_parts(&["theme", "dark"]), &json!(theme_id))?
         }
-        "obsidian" => field::json_set(content, &path_parts(&["theme"]), &json!(theme_id))?,
+        "obsidian" => field::json_set(
+            content,
+            &path_parts(&["cssTheme"]),
+            &json!(if theme_id == "obsidian" { "" } else { theme_id }),
+        )?,
         _ => field::json_set(
             content,
             &path_parts(&["workbench.colorTheme"]),

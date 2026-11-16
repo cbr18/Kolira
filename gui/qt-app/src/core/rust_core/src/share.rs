@@ -226,6 +226,26 @@ fn theme_files_for(dir: &Path, include_wallpaper: bool, public: bool) -> Result<
         }
     }
     let mut roots: Vec<String> = resolve_cli_paths(None)?;
+    roots.push(crate::obsidian::SNAPSHOT.into());
+    // The snapshot's default browser profile can differ from this machine's.
+    // Export only controlled colours/day-night; never borrow the current user's
+    // profile name or export an entire browser directory.
+    for root in crate::browser_appearance::ROOTS {
+        if let Ok(entries) = fs::read_dir(dir.join(root)) {
+            for entry in entries.flatten() {
+                if !entry.path().is_dir() || entry.path().is_symlink() {
+                    continue;
+                }
+                for suffix in ["user.js", "chrome/kolira-colors.css"] {
+                    roots.push(format!(
+                        "{root}/{}/{suffix}",
+                        entry.file_name().to_string_lossy()
+                    ));
+                }
+            }
+        }
+    }
+
     roots.extend(
         package
             .assets
@@ -332,7 +352,9 @@ fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(
             if key == "manifest.txt" {
                 text = text
                     .lines()
-                    .filter(|l| !l.starts_with("user="))
+                    .filter(|l| {
+                        !l.starts_with("user=") && !crate::appearance::is_removed_messenger_path(l)
+                    })
                     .collect::<Vec<_>>()
                     .join("\n")
                     + "\n";
@@ -348,6 +370,9 @@ fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(
     json["name"] = serde_json::Value::from(name);
     json["assets"] = serde_json::to_value(&package.assets)?;
     json["dependencies"] = serde_json::to_value(&package.dependencies)?;
+    if json.get("app_targets").is_some() {
+        json["app_targets"] = serde_json::to_value(&package.app_targets)?;
+    }
     if options.public {
         if let Some(editors) = json["editor_themes"].as_array_mut() {
             for editor in editors {
@@ -699,6 +724,32 @@ pub fn import(src: &Path, options: &ImportOptions) -> Result<ImportReport> {
         if crate::paths::is_agent_metadata(Path::new(key)) {
             bail!("Agent instructions/configuration are not theme content: {key}");
         }
+        if matches!(key.as_str(), ".claude/settings.json" | ".codex/config.toml") {
+            let appearance_only = (|| -> Option<bool> {
+                let text = std::str::from_utf8(bytes).ok()?;
+                if key == ".claude/settings.json" {
+                    let value: serde_json::Value = serde_json::from_str(text).ok()?;
+                    let object = value.as_object()?;
+                    Some(
+                        object.is_empty()
+                            || (object.len() == 1 && object.get("theme")?.is_string()),
+                    )
+                } else {
+                    let doc: toml_edit::DocumentMut = text.parse().ok()?;
+                    if doc.as_table().is_empty() {
+                        return Some(true);
+                    }
+                    let tui = doc.get("tui")?.as_table_like()?;
+                    Some(
+                        doc.as_table().len() == 1
+                            && tui.len() == 1
+                            && tui.get("theme")?.as_str().is_some(),
+                    )
+                }
+            })()
+            .unwrap_or(false);
+            anyhow::ensure!(appearance_only, "Agent instructions/configuration are not theme content: {key}; only the appearance field is allowed");
+        }
         match manifest.files.get(key) {
             Some(sum) if *sum == sha256_hex(bytes) => {}
             Some(_) => bail!("checksum mismatch: {key}"),
@@ -716,12 +767,13 @@ pub fn import(src: &Path, options: &ImportOptions) -> Result<ImportReport> {
         .iter()
         .find(|(k, _)| k == theme::MANIFEST)
         .ok_or_else(|| anyhow!("theme.json missing"))?;
-    let package: theme::Package =
+    let mut package: theme::Package =
         serde_json::from_slice(&theme_json.1).context("invalid theme.json")?;
     if !theme::supported_schema(&package.schema) {
         bail!("unsupported theme schema {:?}", package.schema);
     }
 
+    theme::drop_retired_targets(&mut package);
     theme::validate_assets(&package)?;
 
     let name = options.name.clone().unwrap_or_else(|| package.name.clone());

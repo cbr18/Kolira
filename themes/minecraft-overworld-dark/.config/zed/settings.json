@@ -1,9 +1,5 @@
 {
-  "theme": {
-    "mode": "dark",
-    "light": "Ayu Light",
-    "dark": "Minecraft Overworld Dark"
-  },
+  "theme": {"mode":"dark","dark":"Kolira minecraft-overworld-dark","light":"Kolira minecraft-overworld-dark"},
   "ui_font_family": "Monocraft",
   "buffer_font_family": "Monocraft"
 }

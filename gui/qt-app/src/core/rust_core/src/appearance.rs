@@ -6,7 +6,7 @@
 //! mix both, so every tracked file has a [`Policy`]:
 //!
 //! * [`Policy::Whole`] — the file is appearance only (Klassy, GTK CSS, wofi
-//!   CSS, Zen `user.js`/chrome CSS, Kvantum, colour schemes…);
+//!   CSS, Kvantum, colour schemes…);
 //! * [`Policy::Ini`] / [`Policy::Kv`] / [`Policy::Jsonc`] — only allowed
 //!   groups/keys are stored, and on apply they are *merged* into the live
 //!   file: allowed keys come from the theme (absent ones are removed), every
@@ -29,8 +29,30 @@
 use anyhow::{Context, Result};
 use toml_edit::{Array, DocumentMut, Item, Table, Value as TomlValue};
 
+/// Retired messenger integrations are outside theme ownership, including old snapshots.
+pub fn is_removed_messenger_path(rel: &str) -> bool {
+    [
+        ".config/telegram-desktop",
+        ".config/kotatogram-desktop",
+        ".local/share/TelegramDesktop",
+        ".local/share/KotatogramDesktop",
+        ".var/app/org.telegram.desktop",
+        ".var/app/io.github.kotatogram",
+    ]
+    .iter()
+    .any(|root| std::path::Path::new(rel).starts_with(root))
+}
+
 pub fn is_preserved(rel: &str) -> bool {
-    std::path::Path::new(rel).starts_with(".config/fastfetch")
+    is_removed_messenger_path(rel)
+        || (std::path::Path::new(rel).starts_with(".vim") && rel != crate::third_apps::VIM_DATA)
+        || rel == crate::terminal_apps::FZF_LOADER
+        || std::path::Path::new(rel).starts_with(".config/libreoffice")
+        || std::path::Path::new(rel).starts_with(".config/fastfetch")
+        || (crate::browser_appearance::is_profile_file(rel)
+            && rel.ends_with(".css")
+            && !rel.ends_with("/chrome/userChrome.css")
+            && !rel.ends_with("/chrome/kolira-colors.css"))
 }
 
 pub const KITTY_HOST: &str = ".config/kitty/kitty.conf";
@@ -65,6 +87,7 @@ const fn r(group: &'static str, keys: Keys) -> Rule {
 #[derive(Debug, Clone, Copy)]
 pub enum Policy {
     Whole,
+    Native,
     Ini(&'static [Rule]),
     /// `key = value` lines (btop.conf); entries are exact keys or `prefix*`.
     Kv(&'static [&'static str]),
@@ -72,6 +95,7 @@ pub enum Policy {
     Jsonc(&'static [&'static str]),
     /// `user_pref("name", value);` lines (Firefox user.js); exact or `prefix*`.
     Prefs(&'static [&'static str]),
+    BrowserHost,
     KittyHost,
     AlacrittyHost,
     /// Shell config with an `oh-my-posh init` line: never stored, only the
@@ -89,6 +113,8 @@ pub enum Policy {
     /// `plasmashellrc`: per-panel `floating` / `panelOpacity`.
     PanelViews,
 }
+
+const PRISM: &[Rule] = &[r("General", Keys::Only(&["ApplicationTheme"]))];
 
 const KDEGLOBALS: &[Rule] = &[
     r("Colors:*", Keys::All),
@@ -178,6 +204,17 @@ const BTOP: &[&str] = &[
     "rounded_corners",
     "graph_symbol*",
 ];
+// VSCodium's new integration owns colours only; a sparse generated snapshot
+// must not remove personal fonts, icons or appearance extension settings.
+const VSCODIUM_COLOURS: &[&str] = &[
+    "workbench.colorTheme",
+    "workbench.colorCustomizations",
+    "workbench.preferredDarkColorTheme",
+    "workbench.preferredLightColorTheme",
+    "window.autoDetectColorScheme",
+    "editor.tokenColorCustomizations",
+    "editor.semanticTokenColorCustomizations",
+];
 const VSCODE: &[&str] = &[
     "workbench.colorTheme",
     "workbench.iconTheme",
@@ -199,21 +236,6 @@ const VSCODE: &[&str] = &[
     "custom-ui-style.*",
     "vscode_custom_css.*",
 ];
-/// Firefox prefs that are look (user.js often also carries dozens of privacy
-/// / behaviour prefs — those stay the user's).
-const FIREFOX_PREFS: &[&str] = &[
-    "toolkit.legacyUserProfileCustomizations.stylesheets",
-    "browser.theme.*",
-    "layout.css.prefers-color-scheme.content-override",
-    "ui.systemUsesDarkTheme",
-    "browser.tabs.allow_transparent_browser",
-    "extensions.activeThemeID",
-    "svg.context-properties.content.enabled",
-    "browser.uidensity",
-    "browser.compactmode.show",
-    "widget.gtk.rounded-bottom-corners.enabled",
-    "widget.transparent-windows",
-];
 const ZED: &[&str] = &[
     "theme",
     "icon_theme",
@@ -229,8 +251,25 @@ const ZED: &[&str] = &[
 
 /// The policy for a tracked file (`$HOME`-relative path).
 pub fn policy(rel: &str) -> Policy {
-    if rel.starts_with(".mozilla/firefox/") && rel.ends_with("/user.js") {
-        return Policy::Prefs(FIREFOX_PREFS);
+    if crate::native_appearance::handles(rel) {
+        return Policy::Native;
+    }
+    if rel == ".config/opencode/cli.json" || rel == ".claude/settings.json" {
+        return Policy::Jsonc(&["theme"]);
+    }
+
+    if crate::browser_appearance::is_profile_file(rel) {
+        if rel.ends_with("/user.js") {
+            return Policy::Prefs(crate::browser_appearance::PREFS);
+        }
+        if rel.ends_with("/chrome/userChrome.css") {
+            return Policy::BrowserHost;
+        }
+    }
+    if rel.ends_with("/.obsidian/appearance.json")
+        || (rel.starts_with(crate::obsidian::SNAPSHOT) && rel.ends_with("/appearance.json"))
+    {
+        return Policy::Jsonc(&["theme", "cssTheme", "enabledCssSnippets"]);
     }
     if rel.starts_with(".local/share/konsole/") && rel.ends_with(".profile") {
         return Policy::Ini(KONSOLE_PROFILE);
@@ -258,8 +297,10 @@ pub fn policy(rel: &str) -> Policy {
         ".config/btop/btop.conf" => Policy::Kv(BTOP),
         ".config/Code/User/settings.json"
         | ".config/Code - OSS/User/settings.json"
-        | ".config/VSCodium/User/settings.json"
         | ".config/Cursor/User/settings.json" => Policy::Jsonc(VSCODE),
+        ".config/VSCodium/User/settings.json" => Policy::Jsonc(VSCODIUM_COLOURS),
+        ".config/micro/settings.json" => Policy::Jsonc(&["colorscheme"]),
+        ".local/share/PrismLauncher/prismlauncher.cfg" => Policy::Ini(PRISM),
         ".config/zed/settings.json" => Policy::Jsonc(ZED),
         KITTY_HOST => Policy::KittyHost,
         ALACRITTY_HOST => Policy::AlacrittyHost,
@@ -1002,18 +1043,67 @@ pub(crate) fn restore_changed(
     if current == after {
         return Ok(before.into());
     }
+    if rel.ends_with("/extensions.json") && rel.contains("/extensions/") {
+        let parse = |s: &str| {
+            if s.trim().is_empty() {
+                Some(Vec::<serde_json::Value>::new())
+            } else {
+                serde_json::from_str::<Vec<serde_json::Value>>(s).ok()
+            }
+        };
+        if let (Some(old), Some(written), Some(mut live)) =
+            (parse(before), parse(after), parse(current))
+        {
+            for added in written.iter().filter(|v| !old.contains(v)) {
+                live.retain(|v| v != added);
+            }
+            for removed in old.iter().filter(|v| !written.contains(v)) {
+                if !live
+                    .iter()
+                    .any(|v| v["relativeLocation"] == removed["relativeLocation"])
+                {
+                    live.push(removed.clone());
+                }
+            }
+            return Ok(serde_json::to_string_pretty(&live)?);
+        }
+        return Ok(current.into());
+    }
     if before == after {
         return Ok(current.into());
     }
     Ok(match policy(rel) {
+        Policy::Native => crate::native_appearance::restore(rel, before, after, current)?,
         Policy::Jsonc(_) => restore_json(before, after, current),
         Policy::Ini(_)
         | Policy::KwinRc
         | Policy::KwinRules
         | Policy::Appletsrc
         | Policy::PanelViews => restore_ini(before, after, current),
+        Policy::Whole if rel == crate::terminal_apps::WOFI_HOST => {
+            const IMPORT: &str = "@import url(\"kolira.css\");";
+            if !before.lines().any(|l| l.trim() == IMPORT)
+                && after.lines().any(|l| l.trim() == IMPORT)
+            {
+                current
+                    .split_inclusive('\n')
+                    .filter(|l| l.trim() != IMPORT)
+                    .collect()
+            } else {
+                current.into()
+            }
+        }
         Policy::Whole => current.to_string(),
-        _ => inverse_lines(before, after, current),
+        _ => {
+            let restored = inverse_lines(before, after, current);
+            if rel == crate::extras::FISH_VARS
+                && restored.lines().any(|l| l.starts_with("SETUVAR "))
+            {
+                crate::extras::fish_header(&restored)?
+            } else {
+                restored
+            }
+        }
     })
 }
 
@@ -1032,7 +1122,7 @@ fn json_equal(a: &str, b: &str) -> bool {
         _ => a.trim() == b.trim(),
     }
 }
-fn restore_json(before: &str, after: &str, current: &str) -> String {
+pub(crate) fn restore_json(before: &str, after: &str, current: &str) -> String {
     let (old, written, live) = (
         json_values(before),
         json_values(after),
@@ -1454,7 +1544,20 @@ pub fn for_theme(rel: &str, text: &str) -> Option<String> {
     if is_preserved(rel) {
         return None;
     }
+    if crate::third_apps::is_asset(rel) {
+        return crate::third_apps::valid_asset(rel, text).ok();
+    }
     match policy(rel) {
+        Policy::Whole if crate::browser_appearance::is_colors(rel) => {
+            crate::browser_appearance::safe_colors(text).ok()
+        }
+        Policy::Native => crate::native_appearance::capture(rel, text).ok(),
+        Policy::Whole if rel == crate::terminal_apps::WOFI_COLORS => {
+            crate::terminal_apps::valid_wofi(text).ok()
+        }
+        Policy::Whole if rel == crate::terminal_apps::FZF_DATA => {
+            crate::terminal_apps::valid_fzf(text).ok()
+        }
         Policy::Whole => Some(text.to_string()),
         Policy::KwinRc => Some(kwinrc_filter(text)),
         Policy::KwinRules => non_empty(crate::layout::kwinrules_for_theme(text)),
@@ -1465,7 +1568,11 @@ pub fn for_theme(rel: &str, text: &str) -> Option<String> {
         Policy::Jsonc(keys) => Some(jsonc_filter(text, keys)),
         Policy::Prefs(keys) => Some(prefs_filter(text, keys)),
         Policy::Lines(keep) => Some(crate::extras::lines_filter(text, keep)),
-        Policy::KittyHost | Policy::AlacrittyHost | Policy::OmpHost | Policy::GhosttyHost => None,
+        Policy::BrowserHost
+        | Policy::KittyHost
+        | Policy::AlacrittyHost
+        | Policy::OmpHost
+        | Policy::GhosttyHost => None,
     }
 }
 
@@ -1474,8 +1581,43 @@ pub fn applied(rel: &str, theme_text: &str, live_text: Option<&str>) -> Result<S
     if is_preserved(rel) {
         return Ok(live_text.unwrap_or("").to_string());
     }
+    if crate::third_apps::is_asset(rel) {
+        return crate::third_apps::valid_asset(rel, theme_text);
+    }
     let live = live_text.unwrap_or("");
+    if matches!(rel, ".claude/settings.json" | ".config/opencode/cli.json") {
+        let source: serde_json::Value =
+            serde_json::from_str(theme_text).context("Invalid native AI appearance JSON")?;
+        anyhow::ensure!(source.is_object(), "AI appearance JSON must be an object");
+        if let Some(theme) = source.get("theme") {
+            if rel == ".claude/settings.json" {
+                anyhow::ensure!(theme.is_string(), "Claude theme must be a native string");
+            } else {
+                anyhow::ensure!(
+                    theme.is_object()
+                        && theme.get("name").is_some_and(serde_json::Value::is_string),
+                    "OpenCode V2 theme must be a native object with name"
+                );
+                if let Some(mode) = theme.get("mode") {
+                    anyhow::ensure!(
+                        matches!(mode.as_str(), Some("dark" | "light" | "auto")),
+                        "Invalid OpenCode theme mode"
+                    );
+                }
+            }
+        }
+    }
     Ok(match policy(rel) {
+        Policy::Whole if crate::browser_appearance::is_colors(rel) => {
+            crate::browser_appearance::safe_colors(theme_text)?
+        }
+        Policy::Native => crate::native_appearance::merge(rel, theme_text, live)?,
+        Policy::Whole if rel == crate::terminal_apps::WOFI_COLORS => {
+            crate::terminal_apps::valid_wofi(theme_text)?
+        }
+        Policy::Whole if rel == crate::terminal_apps::FZF_DATA => {
+            crate::terminal_apps::valid_fzf(theme_text)?
+        }
         Policy::Whole => theme_text.to_string(),
         Policy::KwinRc => kwinrc_merge(theme_text, live),
         Policy::Ini(rules) => ini_merge(theme_text, live, rules),
@@ -1483,12 +1625,79 @@ pub fn applied(rel: &str, theme_text: &str, live_text: Option<&str>) -> Result<S
         Policy::Appletsrc => crate::layout::appletsrc_merge(theme_text, live),
         Policy::PanelViews => crate::layout::panel_views_merge(theme_text, live, None, None),
         Policy::Kv(keys) => kv_merge(theme_text, live, keys),
+        Policy::Jsonc(keys) if rel == ".claude/settings.json" => {
+            let current = crate::field::json_get(live, &["theme".into()]);
+            let incoming = crate::field::json_get(theme_text, &["theme".into()]);
+            let adjusted = if current
+                .and_then(|v| v.as_str().map(str::to_owned))
+                .is_some_and(|s| s.ends_with("-daltonized"))
+            {
+                if let Some(mode) = incoming
+                    .and_then(|v| v.as_str().map(str::to_owned))
+                    .and_then(|s| {
+                        if s.starts_with("dark") {
+                            Some("dark")
+                        } else if s.starts_with("light") {
+                            Some("light")
+                        } else {
+                            None
+                        }
+                    })
+                {
+                    crate::field::json_set(
+                        theme_text,
+                        &["theme".into()],
+                        &serde_json::json!(format!("{mode}-daltonized")),
+                    )?
+                } else {
+                    theme_text.into()
+                }
+            } else {
+                theme_text.into()
+            };
+            jsonc_merge(&adjusted, live, keys)
+        }
         Policy::Jsonc(keys) => jsonc_merge(theme_text, live, keys),
-        Policy::Prefs(keys) => prefs_merge(theme_text, live, keys),
+        Policy::Prefs(keys) => {
+            let filtered = theme_text
+                .lines()
+                .filter(|line| {
+                    !line.contains("toolkit.legacyUserProfileCustomizations.stylesheets")
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            let keys: Vec<_> = keys
+                .iter()
+                .copied()
+                .filter(|k| *k != "toolkit.legacyUserProfileCustomizations.stylesheets")
+                .collect();
+            let merged = prefs_merge(&filtered, live, &keys);
+            let key = if crate::browser_appearance::is_zen(rel) {
+                "zen.view.window.scheme"
+            } else {
+                "browser.theme.toolbar-theme"
+            };
+            match crate::field::userjs_get(theme_text, key).and_then(|v| v.as_u64()) {
+                Some(mode @ 0..=1) => crate::browser_appearance::mode(
+                    &merged,
+                    mode == 0,
+                    crate::browser_appearance::is_zen(rel),
+                ),
+                _ => merged,
+            }
+        }
+        Policy::BrowserHost => live.to_string(),
         Policy::KittyHost => kitty_host(live),
         Policy::OmpHost => crate::extras::omp_host(live),
         Policy::GhosttyHost => crate::extras::ghostty_host(live),
-        Policy::Lines(keep) => crate::extras::lines_merge(theme_text, live, keep),
+        Policy::Lines(keep) => {
+            let merged = crate::extras::lines_merge(theme_text, live, keep);
+            if rel == crate::extras::FISH_VARS {
+                crate::extras::fish_header(&merged)?
+            } else {
+                merged
+            }
+        }
         Policy::AlacrittyHost => alacritty_host(live)?,
     })
 }
@@ -1524,9 +1733,28 @@ pub fn include_of(host: &str) -> Option<&'static str> {
 /// when nothing of the file belongs in a theme. `has_include` tells whether
 /// the theme already carries the host's include file.
 pub fn normalize(rel: &str, text: &str, has_include: bool) -> Result<Vec<(String, String)>> {
+    if is_preserved(rel) {
+        return Ok(Vec::new());
+    }
+    if crate::third_apps::is_asset(rel) {
+        return Ok(vec![(
+            rel.into(),
+            crate::third_apps::valid_asset(rel, text)?,
+        )]);
+    }
     Ok(match policy(rel) {
+        Policy::Whole if crate::browser_appearance::is_colors(rel) => {
+            vec![(rel.into(), crate::browser_appearance::safe_colors(text)?)]
+        }
+        Policy::Native => vec![(rel.into(), crate::native_appearance::capture(rel, text)?)],
+        Policy::Whole if rel == crate::terminal_apps::WOFI_COLORS => {
+            vec![(rel.into(), crate::terminal_apps::valid_wofi(text)?)]
+        }
+        Policy::Whole if rel == crate::terminal_apps::FZF_DATA => {
+            vec![(rel.into(), crate::terminal_apps::valid_fzf(text)?)]
+        }
         Policy::Whole => vec![(rel.to_string(), text.to_string())],
-        Policy::OmpHost => Vec::new(),
+        Policy::OmpHost | Policy::BrowserHost => Vec::new(),
         Policy::GhosttyHost => {
             let (look, _) = crate::extras::ghostty_split(text);
             if look.trim().is_empty() || has_include {
@@ -1635,12 +1863,9 @@ mod tests {
         assert!(m.contains("// betterfox") && m.contains("\"privacy.resistFingerprinting\", true"));
         assert!(
             m.contains("\"browser.theme.toolbar-theme\", 0")
-                && m.contains("legacyUserProfileCustomizations")
+                && !m.contains("legacyUserProfileCustomizations")
         );
-        assert!(
-            !m.contains("old@x"),
-            "a look pref the theme lacks is removed"
-        );
+        assert!(m.contains("old@x"), "browser add-on selection is personal");
         assert!(!for_theme(rel, live).unwrap().contains("privacy"));
     }
 

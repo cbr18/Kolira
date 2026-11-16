@@ -8,117 +8,83 @@ use which;
 use crate::custom_components::merged_component_defs;
 use crate::paths::live_path;
 
-/// The default Zen profile folder inside `~/.zen`: what the browser itself
-/// says (`installs.ini`, `profiles.ini`), else the first `*Default*` folder in
-/// byte order. `None` without a profile: nothing of Zen exists to theme, and a
-/// folder must not be made up (a fixed fallback name once put another user's
-/// profile name into receivers' `~/.zen`).
-pub fn zen_profile_dir() -> Option<String> {
-    let root = crate::paths::home_dir().join(".zen");
-    default_browser_profile(&root)
-        .filter(|d| root.join(d).is_dir())
-        .or_else(|| {
-            let mut dirs: Vec<String> = std::fs::read_dir(&root)
-                .ok()?
-                .flatten()
-                .filter(|e| e.path().is_dir())
-                .map(|e| e.file_name().to_string_lossy().to_string())
-                .filter(|n| n.contains("Default"))
-                .collect();
-            dirs.sort();
-            dirs.into_iter().next()
-        })
-}
-
-/// `Default=` of `installs.ini`, else the `Default=1` profile of `profiles.ini`.
+/// Read a declared default independent of INI key order. Reject traversal,
+/// absolute paths and redirected profiles instead of borrowing another user's files.
 fn default_browser_profile(root: &Path) -> Option<String> {
-    if let Ok(text) = std::fs::read_to_string(root.join("installs.ini")) {
-        if let Some(dir) = text
-            .lines()
-            .find_map(|l| l.strip_prefix("Default=").map(|v| v.trim().to_string()))
-            .filter(|v| !v.is_empty())
-        {
-            return Some(dir);
-        }
-    }
-    let text = std::fs::read_to_string(root.join("profiles.ini")).ok()?;
-    let mut path = None;
-    for line in text.lines() {
-        if line.starts_with('[') {
-            path = None;
-        } else if let Some(p) = line.strip_prefix("Path=") {
-            path = Some(p.trim().to_string());
-        } else if line.trim() == "Default=1" && path.is_some() {
-            return path;
-        }
-    }
-    None
-}
-
-/// Relative config paths for the detected Zen profile.
-pub fn zen_config_paths() -> Vec<String> {
-    let Some(dir) = zen_profile_dir() else {
-        return Vec::new();
-    };
-    let rel = |suffix: &str| format!(".zen/{dir}/{suffix}");
-    vec![
-        rel("user.js"),
-        rel("chrome/userChrome.css"),
-        rel("chrome/userContent.css"),
-        rel("chrome/zen-themes.css"),
-    ]
-}
-
-/// The default Firefox profile folder inside `~/.mozilla/firefox`:
-/// `installs.ini` (the profile this Firefox install uses), else the
-/// `profiles.ini` entry marked `Default=1`, else the first `*.default*`.
-pub fn firefox_profile_dir() -> Option<String> {
-    let root = crate::paths::home_dir().join(".mozilla/firefox");
-    let value = |text: &str, key: &str| -> Option<String> {
-        text.lines()
-            .find_map(|l| l.strip_prefix(key).map(|v| v.trim().to_string()))
-            .filter(|v| !v.is_empty())
+    let safe = |value: &str| {
+        !value.is_empty()
+            && !value.contains('\\')
+            && Path::new(value)
+                .components()
+                .all(|c| matches!(c, std::path::Component::Normal(_)))
+            && root.join(value).is_dir()
+            && !root.join(value).is_symlink()
     };
     if let Ok(text) = std::fs::read_to_string(root.join("installs.ini")) {
-        if let Some(dir) = value(&text, "Default=") {
-            return Some(dir);
-        }
-    }
-    if let Ok(text) = std::fs::read_to_string(root.join("profiles.ini")) {
-        let mut path = None;
         for line in text.lines() {
-            if line.starts_with('[') {
-                path = None;
-            } else if let Some(p) = line.strip_prefix("Path=") {
-                path = Some(p.trim().to_string());
-            } else if line.trim() == "Default=1" {
-                if let Some(p) = path.clone() {
-                    return Some(p);
-                }
+            if let Some(value) = line.trim().strip_prefix("Default=") {
+                return safe(value).then(|| value.to_string());
             }
         }
     }
-    let mut dirs: Vec<String> = std::fs::read_dir(&root)
+    if let Ok(text) = std::fs::read_to_string(root.join("profiles.ini")) {
+        for section in crate::appearance::parse_ini(&text) {
+            let get = |key: &str| {
+                section
+                    .lines
+                    .iter()
+                    .find_map(|l| l.trim().strip_prefix(key))
+            };
+            if get("Default=") == Some("1") {
+                if get("IsRelative=") == Some("0") {
+                    return None;
+                }
+                return get("Path=").filter(|v| safe(v)).map(str::to_string);
+            }
+        }
+    }
+    let mut dirs: Vec<_> = std::fs::read_dir(root)
         .ok()?
         .flatten()
         .map(|e| e.file_name().to_string_lossy().to_string())
-        .filter(|n| n.contains(".default"))
+        .filter(|n| n.to_lowercase().contains("default") && safe(n))
         .collect();
     dirs.sort();
     dirs.into_iter().next()
 }
-
-/// Theme files of the default Firefox profile (user.js keeps only the
-/// appearance prefs — appearance.rs).
-pub fn firefox_config_paths() -> Vec<String> {
-    let Some(dir) = firefox_profile_dir().filter(|d| !d.contains("..") && !d.starts_with('/'))
-    else {
-        return Vec::new();
-    };
-    ["user.js", "chrome/userChrome.css", "chrome/userContent.css"]
+pub fn browser_profiles(zen: bool) -> Vec<String> {
+    let roots = crate::browser_appearance::ROOTS;
+    let roots = if zen { &roots[..3] } else { &roots[3..] };
+    roots
         .iter()
-        .map(|f| format!(".mozilla/firefox/{dir}/{f}"))
+        .filter_map(|root| default_browser_profile(&live_path(root)).map(|p| format!("{root}/{p}")))
         .collect()
+}
+pub fn zen_profile_dir() -> Option<String> {
+    default_browser_profile(&crate::paths::home_dir().join(".zen"))
+}
+pub fn firefox_profile_dir() -> Option<String> {
+    default_browser_profile(&crate::paths::home_dir().join(".mozilla/firefox"))
+}
+fn browser_config_paths(zen: bool) -> Vec<String> {
+    browser_profiles(zen)
+        .into_iter()
+        .flat_map(|root| {
+            [
+                "user.js",
+                "chrome/userChrome.css",
+                "chrome/kolira-colors.css",
+            ]
+            .into_iter()
+            .map(move |file| format!("{root}/{file}"))
+        })
+        .collect()
+}
+pub fn zen_config_paths() -> Vec<String> {
+    browser_config_paths(true)
+}
+pub fn firefox_config_paths() -> Vec<String> {
+    browser_config_paths(false)
 }
 
 /// Asset paths of what is *active* on this machine (2026-11-04: the registry
@@ -423,11 +389,19 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             docs_url: "https://github.com/alacritty/alacritty".to_string(),
         },
         TrackedAppDef {
+            id: "neovim".into(), name: "Neovim".into(), category: "Editors".into(),
+            config_paths: vec![crate::neovim::DATA.into()],
+            detect_command: Some("nvim".into()), flatpak_id: None, supports_live_reload: false,
+            description: "Data-only palette and fixed standalone colourscheme; reload with :colorscheme kolira".into(),
+            icon: "text-editor".into(), docs_url: "https://neovim.io".into(),
+        },
+        TrackedAppDef {
             id: "wofi".to_string(),
             name: "Wofi".to_string(),
             category: "Launchers / Menu".to_string(),
             config_paths: vec![
                 ".config/wofi/style.css".to_string(),
+                ".config/wofi/kolira.css".to_string(),
                 ".config/wofi/wallpaper.css".to_string(),
             ],
             detect_command: Some("wofi".to_string()),
@@ -493,7 +467,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             detect_command: None,
             flatpak_id: Some("app.zen_browser.zen".to_string()),
             supports_live_reload: false,
-            description: "Firefox-based browser with user.js + userChrome.css theming".to_string(),
+            description: "Colours and day/night only; personal browser UI and privacy remain unchanged".to_string(),
             icon: "web-browser".to_string(),
             docs_url: "https://zen-browser.app/".to_string(),
         },
@@ -524,20 +498,6 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             docs_url: "https://spicetify.app/docs/customization/themes".to_string(),
         },
         TrackedAppDef {
-            id: "telegram".to_string(),
-            name: "Telegram".to_string(),
-            category: "Communication".to_string(),
-            // Telegram keeps the applied theme in its encrypted settings; the
-            // theme carries the palette file and applying opens it (telegram.rs).
-            config_paths: vec![crate::telegram::PALETTE_FILE.to_string()],
-            detect_command: Some("Telegram".to_string()),
-            flatpak_id: Some("org.telegram.desktop".to_string()),
-            supports_live_reload: false,
-            description: "Telegram palette (palette → .tdesktop-palette); Telegram follows it once chosen in Settings → Chat Settings".to_string(),
-            icon: "telegram".to_string(),
-            docs_url: "https://github.com/desktop-app/lib_ui/blob/master/ui/colors.palette".to_string(),
-        },
-        TrackedAppDef {
             id: "oh-my-posh".to_string(),
             name: "oh-my-posh (prompt)".to_string(),
             category: "Shell".to_string(),
@@ -562,6 +522,25 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             icon: "utilities-terminal".to_string(),
             docs_url: "https://fishshell.com/docs/current/interactive.html#syntax-highlighting".to_string(),
         },
+        TrackedAppDef { id:"micro".into(), name:"Micro".into(),category:"Editors".into(),config_paths:crate::third_apps::paths_for("micro"),detect_command:Some("micro".into()),flatpak_id:None,supports_live_reload:false,description:"Palette colorscheme only; settings, bindings and plugins remain personal".into(),icon:"accessories-text-editor".into(),docs_url:String::new()},
+        TrackedAppDef { id:"lsd".into(), name:"lsd".into(),category:"Tools".into(),config_paths:crate::third_apps::paths_for("lsd"),detect_command:Some("lsd".into()),flatpak_id:None,supports_live_reload:false,description:"Native colour data; preserves sorting, icons, classic mode and LS_COLORS".into(),icon:"utilities-terminal".into(),docs_url:String::new()},
+        TrackedAppDef { id:"glow".into(), name:"Glow".into(),category:"Tools".into(),config_paths:crate::third_apps::paths_for("glow"),detect_command:Some("glow".into()),flatpak_id:None,supports_live_reload:false,description:"Native Glamour style and selector; Markdown files remain untouched".into(),icon:"text-markdown".into(),docs_url:String::new()},
+        TrackedAppDef { id:"chromium".into(), name:"Chromium".into(),category:"Browsers".into(),config_paths:crate::third_apps::paths_for("chromium"),detect_command:Some("chromium".into()),flatpak_id:None,supports_live_reload:false,description:"Manual native theme extension load/reload/reset; never edits browser Preferences or policies".into(),icon:"chromium".into(),docs_url:String::new()},
+        TrackedAppDef { id:"google-chrome".into(), name:"Google Chrome".into(),category:"Browsers".into(),config_paths:crate::third_apps::paths_for("google-chrome"),detect_command:Some("google-chrome".into()),flatpak_id:None,supports_live_reload:false,description:"Manual native frame-accent theme; selection and reset stay in browser UI".into(),icon:"google-chrome".into(),docs_url:String::new()},
+        TrackedAppDef { id:"gimp".into(), name:"GIMP".into(),category:"Graphics".into(),config_paths:crate::third_apps::paths_for("gimp"),detect_command:Some("gimp".into()),flatpak_id:None,supports_live_reload:false,description:"GIMP 3 native theme colours and scheme; tool presets, images and plugins remain personal".into(),icon:"gimp".into(),docs_url:String::new()},
+        TrackedAppDef { id:"heroic".into(), name:"Heroic Games Launcher".into(),category:"Games".into(),config_paths:crate::third_apps::paths_for("heroic"),detect_command:Some("heroic".into()),flatpak_id:None,supports_live_reload:false,description:"Managed colour variables in native customCSS; accounts, games and personal CSS remain intact".into(),icon:"heroic".into(),docs_url:String::new()},
+        TrackedAppDef { id:"prismlauncher".into(), name:"Prism Launcher".into(),category:"Games".into(),config_paths:crate::third_apps::paths_for("prismlauncher"),detect_command:Some("prismlauncher".into()),flatpak_id:None,supports_live_reload:false,description:"Native Qt palette and ApplicationTheme only; accounts, instances and Java settings remain personal".into(),icon:"org.prismlauncher.PrismLauncher".into(),docs_url:String::new()},
+        TrackedAppDef { id:"vim".into(), name:"Vim".into(),category:"Editors".into(),config_paths:crate::third_apps::paths_for("vim"),detect_command:Some("vim".into()),flatpak_id:None,supports_live_reload:false,description:"JSON palette plus fixed colourscheme/startup glue; never imports theme-supplied Vimscript or replaces vimrc".into(),icon:"vim".into(),docs_url:String::new()},
+        TrackedAppDef { id:"mpv".into(), name:"mpv".into(),category:"Media".into(),config_paths:crate::third_apps::paths_for("mpv"),detect_command:Some("mpv".into()),flatpak_id:None,supports_live_reload:false,description:"OSD colours only; playback, audio, video, profiles and scripts remain personal".into(),icon:"mpv".into(),docs_url:String::new()},
+        TrackedAppDef { id:"cliamp".into(), name:"Cliamp".into(),category:"Media".into(),config_paths:crate::third_apps::paths_for("cliamp"),detect_command:Some("cliamp".into()),flatpak_id:None,supports_live_reload:false,description:"Native TOML theme and selector; playback, playlists and visualizer settings stay personal".into(),icon:"multimedia-audio-player".into(),docs_url:String::new()},
+        TrackedAppDef { id:"vscodium".into(), name:"VSCodium".into(),category:"Editors".into(),config_paths:crate::third_apps::paths_for("vscodium"),detect_command:Some("codium|vscodium".into()),flatpak_id:None,supports_live_reload:false,description:"Native JSONC palette overrides and shared editor cache; fonts, extensions and behaviour stay personal".into(),icon:"vscodium".into(),docs_url:String::new()},
+        TrackedAppDef { id: "pure".into(),name: "Pure colours".into(),category:"Shell".into(),config_paths:crate::terminal_apps::paths_for("pure"), detect_command:Some("fish".into()),flatpak_id:None,supports_live_reload:false,description:"Pure colour variables only; does not enable or replace the prompt".into(),icon:"utilities-terminal".into(),docs_url:String::new()},
+        TrackedAppDef { id: "fzf".into(),name: "fzf".into(),category:"Shell".into(),config_paths:crate::terminal_apps::paths_for("fzf"), detect_command:Some("fzf".into()),flatpak_id:None,supports_live_reload:false,description:"Colour-only options with fixed fish startup glue; other shells require native setup".into(),icon:"utilities-terminal".into(),docs_url:String::new()},
+        TrackedAppDef { id: "lazygit".into(),name: "lazygit".into(),category:"Tools".into(),config_paths:crate::terminal_apps::paths_for("lazygit"), detect_command:Some("lazygit".into()),flatpak_id:None,supports_live_reload:false,description:"Only gui.theme colours; personal YAML and commands remain unchanged".into(),icon:"utilities-terminal".into(),docs_url:String::new()},
+        TrackedAppDef { id: "zellij".into(),name: "Zellij".into(),category:"Terminals".into(),config_paths:crate::terminal_apps::paths_for("zellij"), detect_command:Some("zellij".into()),flatpak_id:None,supports_live_reload:false,description:"Native theme resource and root theme selectors; keybindings and plugins stay personal".into(),icon:"utilities-terminal".into(),docs_url:String::new()},
+        TrackedAppDef { id: "opencode".into(),name: "OpenCode".into(),category:"Editors".into(),config_paths:crate::terminal_apps::paths_for("opencode"), detect_command:Some("opencode".into()),flatpak_id:None,supports_live_reload:false,description:"OpenCode V2 native system palette and day/night in cli.json only".into(),icon:"utilities-terminal".into(),docs_url:String::new()},
+        TrackedAppDef { id: "claude-code".into(),name: "Claude Code".into(),category:"Editors".into(),config_paths:crate::terminal_apps::paths_for("claude-code"), detect_command:Some("claude".into()),flatpak_id:None,supports_live_reload:false,description:"Native ANSI day/night; preserves accessibility choices, credentials and permissions".into(),icon:"utilities-terminal".into(),docs_url:String::new()},
+        TrackedAppDef { id: "codex".into(),name: "Codex".into(),category:"Editors".into(),config_paths:crate::terminal_apps::paths_for("codex"), detect_command:Some("codex".into()),flatpak_id:None,supports_live_reload:false,description:"Native tmTheme syntax highlighting only; models, approvals and tools stay personal".into(),icon:"utilities-terminal".into(),docs_url:String::new()},
         TrackedAppDef {
             id: "ghostty".to_string(),
             name: "Ghostty".to_string(),
@@ -612,11 +591,11 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
         },
         TrackedAppDef {
             id: "konsole".to_string(),
-            name: "Konsole".to_string(),
+            name: "Konsole / Yakuake".to_string(),
             category: "Terminals".to_string(),
             // The default profile's [Appearance] + its colour scheme (konsole.rs).
             config_paths: crate::konsole::config_paths(),
-            detect_command: Some("konsole".to_string()),
+            detect_command: Some("konsole|yakuake".to_string()),
             flatpak_id: Some("org.kde.konsole".to_string()),
             supports_live_reload: false,
             description: "Colour scheme (opacity, blur) and the profile's scheme/font family".to_string(),
@@ -641,7 +620,7 @@ pub fn get_tracked_apps() -> Vec<TrackedAppDef> {
             category: "Notes".to_string(),
             // The look lives in the vault's appearance.json; obsidian.json (vault
             // list) and Preferences (spellcheck, zoom) are not appearance.
-            config_paths: vec!["obsidian/vault/.obsidian/appearance.json".to_string()],
+            config_paths: crate::obsidian::config_paths(),
             detect_command: Some("obsidian".to_string()),
             flatpak_id: Some("md.obsidian.Obsidian".to_string()),
             supports_live_reload: false,

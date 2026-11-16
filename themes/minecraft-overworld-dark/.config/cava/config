@@ -1,9 +1,8 @@
 [color]
-background = '#252525'
-foreground = '#70B237'
-gradient = 1
-gradient_count = 4
-gradient_color_1 = '#70B237'
-gradient_color_2 = '#55D6D0'
-gradient_color_3 = '#F6C453'
-gradient_color_4 = '#F06F65'
+gradient=1
+gradient_count=4
+gradient_color_1='#55d6d0'
+gradient_color_2='#70b237'
+gradient_color_3='#a98558'
+gradient_color_4='#f06f65'
+foreground='#70b237'

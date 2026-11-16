@@ -284,3 +284,24 @@ Rust хранит постоянные копии затронутых файл�
 страховочная копия текущего состояния. Для **прерванной** операции сохраняется
 `operations recover ID`, который по умолчанию защищает последующие личные правки.
 Детали и срок хранения: [защита применения](APPLY_PROTECTION.md).
+
+## Дополнительные приложения
+
+Первая партия из [APPLICATIONS.md](APPLICATIONS.md) использует тот же журнал.
+Обратное слияние extensions.json удаляет именно добавленные записи, сохраняя
+расширения, установленные позже. Obsidian хранит переносимые слоты только в теме;
+backup и журнал содержат фактические локальные цели. Browser import, безопасные
+цвета и day/night возвращаются вместе; prefs.js не редактируется, для видимого
+возврата закэшированных browser prefs может потребоваться перезапуск.
+
+
+The bat binary theme cache (`$XDG_CACHE_HOME/bat`) participates in the apply
+safety copy and before/after journal. Cache rebuild runs inside the transaction;
+a rebuild failure rolls back files and cache. Returning to a theme without bat
+settings restores its original cache, including themes without source files.
+Native TOML/YAML/KDL appearance hosts follow the same late-edit protection as
+JSONC/INI hosts; unsupported ambiguous structures fail during preflight.
+
+Поддержка Telegram/Kotatogram удалена: обычный возврат по apply-journal
+пропускает прежние записи этих клиентов. Их текущие данные не сбрасываются
+и не удаляются; исторические резервные копии сохранены.

@@ -1,0 +1,23 @@
+# BEGIN kolira palette (generated)
+background = #252525
+foreground = #cccccc
+cursor-color = #cccccc
+selection-background = #70b237
+selection-foreground = #252525
+palette = 0=#404040
+palette = 1=#f06f65
+palette = 2=#70b237
+palette = 3=#e7c77d
+palette = 4=#55d6d0
+palette = 5=#a98558
+palette = 6=#63c484
+palette = 7=#cccccc
+palette = 8=#999999
+palette = 9=#f06f65
+palette = 10=#70b237
+palette = 11=#e7c77d
+palette = 12=#55d6d0
+palette = 13=#a98558
+palette = 14=#63c484
+palette = 15=#cccccc
+# END kolira palette

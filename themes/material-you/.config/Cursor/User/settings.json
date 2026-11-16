@@ -1,0 +1,5 @@
+{
+  "workbench.colorTheme": "Default Dark Modern",
+  "workbench.colorCustomizations": {"editor.background":"#1e1f23","editor.foreground":"#d0d1d3","editor.selectionBackground":"#3c3d41","editor.lineHighlightBackground":"#2a2b30","sideBar.background":"#2a2b30","sideBar.foreground":"#d0d1d3","activityBar.background":"#2a2b30","activityBar.foreground":"#d0d1d3","statusBar.background":"#2a2b30","statusBar.foreground":"#d0d1d3","titleBar.activeBackground":"#2a2b30","titleBar.activeForeground":"#d0d1d3","tab.activeBackground":"#1e1f23","tab.activeForeground":"#d0d1d3","terminal.background":"#1e1f23","terminal.foreground":"#d0d1d3","focusBorder":"#7aaeef"},
+  "editor.tokenColorCustomizations": {"textMateRules":[{"scope":["comment"],"settings":{"foreground":"#737477"}},{"scope":["string"],"settings":{"foreground":"#85bc79"}},{"scope":["keyword","storage"],"settings":{"foreground":"#d291cc"}},{"scope":["constant.numeric"],"settings":{"foreground":"#e09865"}},{"scope":["entity.name.function"],"settings":{"foreground":"#7aaeef"}}]}
+}

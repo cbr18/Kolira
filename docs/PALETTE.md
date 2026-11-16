@@ -108,25 +108,6 @@ kolira palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvantum-base
 `user.css`; в `config-xpui.ini` выставляются `current_theme`/`color_scheme`
 `Kolira`, `inject_css`/`replace_colors` `1`, затем `spicetify apply -n`.
 
-**Telegram** (цель `telegram`, по умолчанию; пропускается без Telegram или без
-сети при первом запуске): `~/.local/share/TelegramDesktop/kolira.tdesktop-palette`
-— палитра Telegram (~590 цветов). База — стандартная палитра Telegram
-(`colors.palette` из desktop-app/lib_ui, GPL-3): её качает из официального
-репозитория и кэширует (`~/.cache/kolira/telegram-colors.palette`), в
-кит она не входит. Перекраска — как у Kvantum (OKLab): нейтральные идут по шкале
-«фон → текст» палитры, синий Telegram (`#40a7e3`) становится акцентом, зелёный
-исходящих сообщений — оттенком акцента (отдельная перекраска с якорем
-`#57b84c`); ссылки между ключами сохраняются; `windowFgActive` (текст на синем:
-кнопки, открытый чат) — «текст на акценте» палитры. Фон чата не трогается.
-Применить тему извне Telegram не даёт (она в его зашифрованных настройках),
-поэтому первый раз файл выбирают в самом Telegram: *Настройки → Настройки чатов
-→ Выбрать из файла* → этот файл. Дальше Telegram следит за файлом применённой
-темы (`QFileSystemWatcher`) и сам применяет его заново при каждом изменении —
-каждое применение палитры или темы перекрашивает запущенный Telegram. Файл
-пишется на месте (тот же inode), чтобы слежение не терялось. Передавать файл в
-командной строке (`Telegram -- файл`) нельзя: Telegram предлагает переслать его
-в чат.
-
 **Ghostty** (цель `ghostty`, по умолчанию; пропускается без
 `~/.config/ghostty/config`): блок цветов (`background`, `foreground`,
 `palette = N=…`, курсор, выделение) в `~/.config/ghostty/kolira`; `config`
@@ -307,3 +288,33 @@ P1 закрыт (инструменты MCP — `docs/MCP.md`). Впереди P
 имя активной KDE-схемы и фактические цвета `kdeglobals`. Если оформление уже
 изменилось, сохранение отклоняется с предложением применить палитру заново.
 Существующая тема с таким именем не перезаписывается.
+
+## Цели профильного Apply
+
+Список `app_targets[]` пакета темы расширен для первой партии приложений:
+[контракт и ограничения](APPLICATIONS.md). Он относится к генерации при Apply
+профиля и не расширяет автоматически список целей отдельной `palette apply`.
+
+
+Bundled theme maintenance also refreshes stale GTK/Breeze definitions and
+native app selectors/resources from the package palette. For browsers the
+contract is native accent + day/night, without toolbar/icon/userChrome rules.
+Package Apply and the separate `palette apply` target list remain distinct.
+See [the consistency audit](audits/2026_11_16_palette-consistency.md).
+
+Третья партия использует ту же `Palette`: base16 и accent преобразуются в
+нативные роли каждого приложения (`third_apps.rs`), без отдельных вручную
+подобранных цветов для каждой комплектной темы. При подготовке пакетов
+`refresh_theme_apps` обновляет ресурсы; Apply генерирует недостающие ресурсы
+только для явных целей. Явный ресурс импортированной пользовательской темы
+имеет приоритет. LibreOffice в генерацию не входит. Нативные ANSI/system
+интеграции и style/library assets остаются отдельными случаями из аудита.
+
+Пересборка сохраняет `values.accent_from_wallpaper`: в Glass и Material You
+Plasma продолжает получать акцент с обоев; приложения используют сохранённую
+палитру пакета. Это разные настройки. `kdeglobals` содержит единственный
+канонический `accentColorFromWallpaper`; alias с заглавной A удаляется.
+
+Выбранная KDE-схема сохраняется при maintenance refresh. По решению пользователя
+в восьми комплектных темах остаются BreezeLight/BreezeDark; генератор не подменяет
+их схемой Kolira. Прикладные ресурсы продолжают брать цвета из сохранённой палитры.

@@ -107,7 +107,7 @@ Kirigami.ScrollablePage {
                         id: themeChooser
 
                         Layout.fillWidth: true
-                        // A list we can neither read nor apply (Telegram) is
+                        // A list we can neither read nor apply is
                         // just an empty disabled box — hide it.
                         visible: modelData.capabilities.installed_themes === true && modelData.capabilities.apply_theme === true && modelData.themes.length > 0
                         model: modelData.themes

@@ -454,7 +454,7 @@ fn copy_tracked_appearance(target: &Path, rel_paths: &[String]) -> Result<()> {
         if !src.exists() {
             continue;
         }
-        let dst = target.join(rel);
+        let dst = target.join(crate::obsidian::snapshot_rel(rel).unwrap_or_else(|| rel.clone()));
         if let Some(parent) = dst.parent() {
             fs::create_dir_all(parent)?;
         }
@@ -1205,13 +1205,19 @@ fn apply_live_hooks(source: &Path) {
 }
 
 /// Directories whose profile folder has a random per-install name.
-const PROFILE_ROOTS: &[&str] = &[".zen", ".mozilla/firefox"];
+const PROFILE_ROOTS: &[&str] = crate::browser_appearance::ROOTS;
 
 /// The theme's copy of tracked file `rel` (a path on *this* machine). A
 /// browser profile folder is named randomly per install (`gp0y8wrv.Default
 /// (release)`), so a theme made elsewhere stores the same file under its
 /// author's folder: fall back to the theme's profile folder holding it.
 pub(crate) fn theme_file(theme: &Path, rel: &str) -> PathBuf {
+    if let Some(slot) = crate::obsidian::snapshot_rel(rel) {
+        let portable = theme.join(slot);
+        if portable.exists() {
+            return portable;
+        }
+    }
     let direct = theme.join(rel);
     if direct.exists() {
         return direct;
@@ -1265,17 +1271,25 @@ pub(crate) fn theme_file(theme: &Path, rel: &str) -> PathBuf {
         let Some((_, inner)) = rest.split_once('/') else {
             continue;
         };
-        let Ok(entries) = fs::read_dir(theme.join(root)) else {
-            continue;
+        let zen = crate::browser_appearance::is_zen(rel);
+        let family = if zen {
+            &PROFILE_ROOTS[..3]
+        } else {
+            &PROFILE_ROOTS[3..]
         };
-        let mut dirs: Vec<PathBuf> = entries
-            .flatten()
-            .map(|e| e.path())
-            .filter(|p| p.join(inner).exists())
-            .collect();
-        dirs.sort();
-        if let Some(dir) = dirs.into_iter().next() {
-            return dir.join(inner);
+        for candidate in std::iter::once(root).chain(family.iter().filter(|r| *r != root)) {
+            let Ok(entries) = fs::read_dir(theme.join(candidate)) else {
+                continue;
+            };
+            let mut dirs: Vec<PathBuf> = entries
+                .flatten()
+                .map(|e| e.path())
+                .filter(|p| p.join(inner).exists())
+                .collect();
+            dirs.sort();
+            if let Some(dir) = dirs.into_iter().next() {
+                return dir.join(inner);
+            }
         }
     }
     direct
@@ -1380,6 +1394,7 @@ pub(crate) fn plan_restore(
         let src = theme_file(source, rel);
         let dst = live_path(rel);
         match appearance::policy(rel) {
+            appearance::Policy::BrowserHost => {}
             appearance::Policy::OmpHost => {
                 // Only point existing oh-my-posh lines at the theme's prompt.
                 if theme_file(source, crate::extras::OMP_THEME).is_file() && plan.is_file(&dst)? {
@@ -1451,9 +1466,14 @@ pub(crate) fn plan_restore(
                 ) {
                     continue;
                 }
-                let theme_text = (!matches!(policy, appearance::Policy::Whole) && src.is_file())
-                    .then(|| plan.text(&src).ok().flatten())
-                    .flatten();
+                let theme_text = ((!matches!(policy, appearance::Policy::Whole)
+                    || crate::browser_appearance::is_colors(rel)
+                    || crate::third_apps::is_asset(rel)
+                    || rel == crate::terminal_apps::FZF_DATA
+                    || rel == crate::terminal_apps::WOFI_COLORS)
+                    && src.is_file())
+                .then(|| plan.text(&src).ok().flatten())
+                .flatten();
                 let live_layout_file = matches!(
                     policy,
                     appearance::Policy::Appletsrc | appearance::Policy::PanelViews
@@ -1709,11 +1729,15 @@ fn apply_with_paths_keeping_inner(
         appearance::KITTY_THEME.into(),
         appearance::ALACRITTY_THEME.into(),
     ]);
+    // bat derives a binary theme cache. Keep it in the same safety copy/journal
+    // so a return restores even cached themes whose original source was removed.
+    let bat_cache = crate::paths::cache_home().join("bat");
     let mut roots: Vec<PathBuf> = footprint
         .iter()
         .filter(|p| !appearance::is_preserved(p))
         .map(|p| live_path(p))
         .collect();
+    roots.push(bat_cache.clone());
     roots.extend([
         active_file(),
         crate::paths::theme_root().join("apply-journal"),
@@ -1759,6 +1783,7 @@ fn apply_with_paths_keeping_inner(
     // state before any theme (undo.rs). The journal covers the wallpaper folder
     // too: a wallpaper a theme restored there goes with the theme.
     let mut journal_rels: Vec<String> = rel_paths.to_vec();
+    journal_rels.push(".cache/bat".into());
     journal_rels.push(".config/konsolerc".to_string()); // a theme may make its profile the default
     if let Ok(walls) = wallpaper_dir().strip_prefix(crate::paths::home_dir()) {
         journal_rels.push(walls.to_string_lossy().to_string());
@@ -1792,6 +1817,8 @@ fn apply_with_paths_keeping_inner(
     } else {
         Vec::new()
     };
+    let cava_before = fs::read(crate::paths::live_path(crate::extras::CAVA)).ok();
+    let pywalfox_before = fs::read(crate::paths::cache_home().join("wal/colors.json")).ok();
     let journal = crate::undo::revert_preserving(&kept_wallpapers)?;
     if !keep_wallpaper {
         live_appletsrc = fs::read_to_string(&appletsrc).ok();
@@ -1863,9 +1890,34 @@ fn apply_with_paths_keeping_inner(
                 let mut plan = crate::change_plan::Plan::default();
                 crate::app_sync::plan_apps(&dir, package, &mut plan)?;
                 plan.commit()?;
-                if plan.after.contains_key(&live_path(crate::extras::CAVA)) {
-                    crate::extras::reload_cava();
+                if plan
+                    .after
+                    .contains_key(&live_path(crate::appearance::KITTY_THEME))
+                {
+                    apply_kitty_live(&dir);
                 }
+            }
+            let pywalfox_after = fs::read(crate::paths::cache_home().join("wal/colors.json")).ok();
+            if pywalfox_after.is_some() && pywalfox_after != pywalfox_before {
+                run_external("pywalfox", &["update"]);
+            }
+            let cava_after = fs::read(crate::paths::live_path(crate::extras::CAVA)).ok();
+            if cava_after != cava_before {
+                crate::extras::reload_cava();
+            }
+            let bat_source = dir.join(".config/bat/themes").is_dir();
+            let bat_target = apps.is_some_and(|p| p.app_targets.iter().any(|t| t == "bat"));
+            if (bat_source || bat_target) && !no_apply() && which::which("bat").is_ok() {
+                let status = crate::paths::status_bounded(
+                    std::process::Command::new("bat")
+                        .args(["cache", "--build"])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null()),
+                );
+                anyhow::ensure!(
+                    status.is_some_and(|s| s.success()),
+                    "bat cache --build failed or timed out"
+                );
             }
             crate::undo::record(journal, &before).with_context(|| "apply journal")?;
             crate::paths::log_step(&format!("apply {profile}: done"));
@@ -2061,6 +2113,10 @@ fn save_with_paths(profile: &str, rel_paths: &[String]) -> Result<()> {
     let profiles = kolira_profiles_dir();
     fs::create_dir_all(&profiles)?;
     let tmp = unique_dir(&profiles, &format!(".save-{profile}"))?;
+    let snapshot_paths: Vec<_> = rel_paths
+        .iter()
+        .map(|rel| crate::obsidian::snapshot_rel(rel).unwrap_or_else(|| rel.clone()))
+        .collect();
     let built = split_live_hosts(rel_paths)
         .and(copy_tracked_appearance(&tmp, rel_paths))
         .and(
@@ -2072,7 +2128,7 @@ fn save_with_paths(profile: &str, rel_paths: &[String]) -> Result<()> {
         .and(capture_active_kvantum_theme(&tmp, rel_paths))
         // No metadata/kde diagnostics in a theme: they describe this machine
         // (pre-apply backups still keep them for recovery).
-        .and(write_manifest(&tmp, profile, rel_paths));
+        .and(write_manifest(&tmp, profile, &snapshot_paths));
 
     if let Err(e) = built {
         let _ = fs::remove_dir_all(&tmp);
@@ -2388,10 +2444,61 @@ fn validate_restore(source: &Path, rel_paths: &[String]) -> Result<()> {
         let src = theme_file(source, rel);
         let policy = appearance::policy(rel);
         let dst = live_path(rel);
+        let app_config = crate::browser_appearance::is_profile_file(rel)
+            || rel.contains("/.obsidian/")
+            || [
+                ".config/Cursor/",
+                ".config/zed/",
+                ".config/nvim/",
+                ".config/kitty/",
+                ".config/fish/",
+                ".config/fzf/",
+                ".config/lazygit/",
+                ".config/zellij/",
+                ".config/opencode/",
+                ".config/yazi/",
+                ".config/bat/",
+                ".config/btop/",
+                ".config/cava/",
+                ".config/micro/",
+                ".config/lsd/",
+                ".config/glow/",
+                ".config/GIMP/",
+                ".config/heroic/",
+                ".local/share/PrismLauncher/",
+                ".vim/",
+                ".config/mpv/",
+                ".config/cliamp/",
+                ".config/chromium/kolira-theme/",
+                ".config/google-chrome/kolira-theme/",
+                ".config/VSCodium/",
+                ".config/oh-my-posh/",
+                ".config/wofi/",
+                ".claude/",
+                ".codex/",
+            ]
+            .iter()
+            .any(|prefix| rel.starts_with(prefix))
+            || crate::discord::is_settings(rel);
+        if app_config && src.exists() {
+            crate::app_sync::validate_live(&dst)?;
+            for part in src.ancestors().take_while(|p| *p != source) {
+                anyhow::ensure!(
+                    !part.is_symlink(),
+                    "Symlink in application snapshot: {}",
+                    part.display()
+                );
+            }
+        }
         if src.is_file() && dst.is_dir() {
             return Err(anyhow!("Config target is a directory: {}", dst.display()));
         }
-        if !matches!(policy, appearance::Policy::Whole) && src.exists() {
+        if (!matches!(policy, appearance::Policy::Whole)
+            || crate::browser_appearance::is_colors(rel)
+            || rel == crate::terminal_apps::FZF_DATA
+            || rel == crate::terminal_apps::WOFI_COLORS)
+            && src.exists()
+        {
             if !src.is_file() {
                 return Err(anyhow!("Expected config file: {}", src.display()));
             }

@@ -112,9 +112,9 @@ fn cache_installs_complete_extension_and_roundtrips_zip() {
         .any(|v| v["path"]
             .as_str()
             .unwrap()
-            .contains("example.night-kolira/package.json")));
+            .contains("kolira-cache.example-night-kolira/package.json")));
     let report = h.applied(false);
-    let installed = h.path(".vscode-oss/extensions/example.night-kolira");
+    let installed = h.path(".vscode-oss/extensions/kolira-cache.example-night-kolira");
     let pkg: Value =
         serde_json::from_slice(&fs::read(installed.join("package.json")).unwrap()).unwrap();
     assert_eq!(pkg["_watch"], true);
@@ -188,7 +188,10 @@ fn editor_paths_and_links_cannot_escape_theme_or_destination() {
 fn app_followups_are_previewed_preserve_personal_settings_and_recover() {
     let h = Home::new();
     let palette = h.palette();
-    h.manifest(json!({"palette":palette,"app_targets":["firefox","discord","konsole","ghostty","cava","telegram"]}));
+    let accent = palette["accent"].as_str().unwrap().to_string();
+    h.manifest(
+        json!({"palette":palette,"app_targets":["firefox","discord","konsole","ghostty","cava"]}),
+    );
     let user_css = "/* personal Firefox CSS */\n#sidebar { width: 20em; }\n";
     h.write(
         ".mozilla/firefox/profiles.ini",
@@ -200,7 +203,7 @@ fn app_followups_are_previewed_preserve_personal_settings_and_recover() {
     );
     h.write(
         ".mozilla/firefox/probe.default/user.js",
-        "// privacy\nuser_pref(\"privacy.donottrackheader.enabled\", true);\n",
+        "// privacy\nuser_pref(\"privacy.donottrackheader.enabled\", true);\nuser_pref(\"toolkit.legacyUserProfileCustomizations.stylesheets\", true);\n",
     );
     h.write(
         ".config/vesktop/settings/settings.json",
@@ -219,7 +222,10 @@ fn app_followups_are_previewed_preserve_personal_settings_and_recover() {
         .as_array()
         .unwrap()
         .iter()
-        .any(|f| f["path"].as_str().unwrap().ends_with("/chrome/kolira.css")));
+        .any(|f| f["path"]
+            .as_str()
+            .unwrap()
+            .ends_with("/probe.default/user.js")));
     assert_eq!(fs::read_to_string(&css).unwrap(), user_css);
     let skipped = h.rpc(
         "profile.preview",
@@ -229,7 +235,7 @@ fn app_followups_are_previewed_preserve_personal_settings_and_recover() {
     h.applied(true);
     assert_eq!(fs::read_to_string(&css).unwrap(), user_css);
     let report = h.applied(false);
-    assert!(fs::read_to_string(&css).unwrap().contains(user_css));
+    assert_eq!(fs::read_to_string(&css).unwrap(), user_css);
     assert_eq!(
         fs::metadata(&css).unwrap().permissions().mode() & 0o777,
         0o640
@@ -246,6 +252,10 @@ fn app_followups_are_previewed_preserve_personal_settings_and_recover() {
     assert_eq!(settings["personal"], 42);
     let user = fs::read_to_string(h.path(".mozilla/firefox/probe.default/user.js")).unwrap();
     assert!(user.contains("privacy.donottrackheader.enabled\", true"));
+    assert!(user.contains(&format!("user_pref(\"ui.accentcolor\", \"{accent}\");")));
+    assert!(!h
+        .path(".mozilla/firefox/probe.default/chrome/kolira-colors.css")
+        .exists());
     assert!(user.contains("legacyUserProfileCustomizations.stylesheets\", true"));
     let restored = h.rpc(
         "operation.restore",
@@ -254,7 +264,7 @@ fn app_followups_are_previewed_preserve_personal_settings_and_recover() {
     assert_eq!(restored["ok"], true, "{restored}");
     assert_eq!(fs::read_to_string(css).unwrap(), user_css);
     assert!(!h
-        .path(".mozilla/firefox/probe.default/chrome/kolira.css")
+        .path(".mozilla/firefox/probe.default/chrome/kolira-colors.css")
         .exists());
 }
 
@@ -320,7 +330,9 @@ fn vsix_keeps_nested_package_names_and_rejects_traversal() {
 fn saved_app_resources_win_over_generated_palettes() {
     let h = Home::new();
     let palette = h.palette();
-    h.manifest(json!({"palette":palette,"app_targets":["firefox","discord","konsole","ghostty","cava","telegram"]}));
+    h.manifest(
+        json!({"palette":palette,"app_targets":["firefox","discord","konsole","ghostty","cava"]}),
+    );
     h.write(
         ".config/ghostty/config",
         "font-size = 13\nbackground = #112233\n",
@@ -404,7 +416,9 @@ fn followup_write_failure_rolls_back_desktop_and_extension_files() {
         fs::read_to_string(extensions.join("personal")).unwrap(),
         "keep this"
     );
-    assert!(!extensions.join("example.night-kolira").exists());
+    assert!(!extensions
+        .join("kolira-cache.example-night-kolira")
+        .exists());
 }
 
 #[test]
@@ -446,7 +460,7 @@ fn generated_app_themes_round_trip_through_a_theme_without_their_configs() {
         (".config/ghostty/config","font-size = 13\nbackground = #123456\n"),
         (".config/cava/config","[color]\ngradient=0\nforeground='#123456'\n[general]\nframerate=60\n"),
         (".mozilla/firefox/probe.default/chrome/userChrome.css","/* original user CSS */\n#sidebar { width: 23em; }\n"),
-        (".mozilla/firefox/probe.default/user.js","// privacy\nuser_pref(\"privacy.donottrackheader.enabled\", true);\n"),
+        (".mozilla/firefox/probe.default/user.js","// privacy\nuser_pref(\"privacy.donottrackheader.enabled\", true);\nuser_pref(\"toolkit.legacyUserProfileCustomizations.stylesheets\", true);\n"),
     ];
     for (path, text) in originals {
         h.write(path, text);
@@ -466,7 +480,10 @@ fn generated_app_themes_round_trip_through_a_theme_without_their_configs() {
             if path.ends_with("/user.js") {
                 let current = fs::read_to_string(h.path(path)).unwrap();
                 assert!(current.contains(text)); // browser reset prefs may await its restart
-                assert!(!current.contains("stylesheets\", true"));
+                assert_eq!(
+                    current.contains("stylesheets\", true"),
+                    text.contains("stylesheets\", true")
+                );
             } else {
                 assert_eq!(fs::read_to_string(h.path(path)).unwrap(), text, "{path}");
             }
@@ -475,7 +492,7 @@ fn generated_app_themes_round_trip_through_a_theme_without_their_configs() {
             ".config/vesktop/themes/kolira.theme.css",
             ".config/ghostty/kolira",
             ".local/share/konsole/KoliraNord.colorscheme",
-            ".mozilla/firefox/probe.default/chrome/kolira.css",
+            ".mozilla/firefox/probe.default/chrome/kolira-colors.css",
         ] {
             assert!(
                 !h.path(generated).exists(),

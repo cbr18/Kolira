@@ -1,0 +1,5 @@
+/* Kolira colours only */
+window { background-color: #232a2e; color: #d3c6aa; }
+#input { background-color: #2d353b; color: #d3c6aa; border-color: #a7c080; }
+#entry:selected { background-color: #3f4342; }
+#text:selected { color: #d3c6aa; }

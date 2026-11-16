@@ -10,6 +10,7 @@ pub mod actions;
 pub(crate) mod app_sync;
 pub mod appearance;
 pub mod automation;
+pub mod browser_appearance;
 pub mod config_parser;
 pub mod constructor;
 pub mod custom_components;
@@ -26,6 +27,7 @@ pub mod kvantum;
 pub mod kwin_effects;
 pub mod layout;
 pub mod lint;
+pub mod neovim;
 pub mod net;
 pub mod oklab;
 pub mod palette;
@@ -35,7 +37,6 @@ pub mod share;
 pub mod spicetify;
 pub mod status;
 pub mod stores;
-pub mod telegram;
 pub mod theme;
 pub mod tracked_apps;
 pub mod types;
@@ -56,6 +57,7 @@ pub mod inspector_session;
 pub mod inspector_view;
 pub mod resource_clone;
 
+pub mod obsidian;
 pub mod operation;
 
 pub mod change_plan;
@@ -65,3 +67,9 @@ pub mod preview;
 pub mod schedule;
 
 pub mod agent;
+
+pub mod native_appearance;
+pub mod terminal_apps;
+
+pub mod structured_appearance;
+pub mod third_apps;

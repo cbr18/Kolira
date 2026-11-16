@@ -27,6 +27,9 @@ use crate::paths::{live_path, theme_root};
 /// in `prefs.js` after the line is gone; with no earlier value to go back to,
 /// the default clears it. Others (a Zen mod's own prefs) do nothing without it.
 const PREF_DEFAULTS: &[(&str, &str)] = &[
+    ("ui.accentcolor", "\"\""),
+    ("ui.accentcolortext", "\"\""),
+    ("zen.theme.accent-color", "\"AccentColor\""),
     ("browser.tabs.allow_transparent_browser", "false"),
     ("zen.widget.linux.transparency", "false"),
     (
@@ -38,7 +41,7 @@ const PREF_DEFAULTS: &[(&str, &str)] = &[
     ("browser.theme.toolbar-theme", "2"),
     ("browser.theme.content-theme", "2"),
     ("extensions.activeThemeID", "\"default-theme@mozilla.org\""),
-    ("ui.systemUsesDarkTheme", "0"),
+    ("ui.systemUsesDarkTheme", "\"\""),
     ("browser.uidensity", "0"),
     ("browser.compactmode.show", "false"),
     ("svg.context-properties.content.enabled", "false"),
@@ -165,7 +168,9 @@ fn save(journal: &Journal) -> Result<()> {
 /// config bytes. Errors abort Apply while its recovery copy is still intact.
 fn entries(rels: &[String]) -> Result<BTreeMap<String, Entry>> {
     fn walk(rel: String, out: &mut BTreeMap<String, Entry>) -> Result<()> {
-        if appearance::is_preserved(&rel) {
+        if appearance::is_removed_messenger_path(&rel)
+            || Path::new(&rel).starts_with(".config/fastfetch")
+        {
             return Ok(());
         }
         let path = live_path(&rel);
@@ -261,7 +266,7 @@ fn prefs_of(text: &str) -> BTreeMap<String, String> {
 }
 
 fn prefs_js_for(user_js: &str) -> Option<String> {
-    let is_browser = user_js.starts_with(".zen/") || user_js.starts_with(".mozilla/firefox/");
+    let is_browser = crate::browser_appearance::is_profile_file(user_js);
     user_js
         .strip_suffix("/user.js")
         .filter(|_| is_browser)
@@ -332,6 +337,10 @@ pub(crate) fn plan_revert_preserving(plan: &mut Plan, preserved: &[PathBuf]) -> 
             crate::extras::SHELL_HOSTS.to_vec(),
             crate::extras::OMP_THEME,
         ),
+        (
+            vec![crate::terminal_apps::WOFI_HOST],
+            crate::terminal_apps::WOFI_COLORS,
+        ),
         (vec![appearance::KITTY_HOST], appearance::KITTY_THEME),
         (
             vec![appearance::ALACRITTY_HOST],
@@ -397,7 +406,9 @@ fn plan_revert_inner(plan: &mut Plan) -> Result<Journal> {
             )),
             "Invalid journal path"
         );
-        if appearance::is_preserved(&rel) {
+        if appearance::is_removed_messenger_path(&rel)
+            || Path::new(&rel).starts_with(".config/fastfetch")
+        {
             continue;
         }
         let path = live_path(&rel);
@@ -468,7 +479,10 @@ fn plan_revert_inner(plan: &mut Plan) -> Result<Journal> {
     for (rel, hash) in std::mem::take(&mut j.created) {
         // Shell init lines keep pointing to this shared prompt file when the
         // next theme has no prompt. Keep it, matching profile::plan_reset.
-        if appearance::is_preserved(&rel) || rel == crate::extras::OMP_THEME {
+        if appearance::is_removed_messenger_path(&rel)
+            || Path::new(&rel).starts_with(".config/fastfetch")
+            || rel == crate::extras::OMP_THEME
+        {
             continue;
         }
         let path = live_path(&rel);
@@ -479,7 +493,9 @@ fn plan_revert_inner(plan: &mut Plan) -> Result<Journal> {
     }
     let originals = dir().join("originals");
     for (rel, (hash, name)) in std::mem::take(&mut j.replaced) {
-        if appearance::is_preserved(&rel) {
+        if appearance::is_removed_messenger_path(&rel)
+            || Path::new(&rel).starts_with(".config/fastfetch")
+        {
             continue;
         }
         let path = live_path(&rel);
@@ -524,6 +540,7 @@ pub fn baseline(rels: &[String]) -> Result<Baseline> {
         crate::paths::home_dir(),
         crate::paths::config_home(),
         crate::paths::data_home(),
+        crate::paths::cache_home(),
     ];
     for relative in rels {
         let path = live_path(relative);
@@ -603,7 +620,10 @@ pub(crate) fn plan_record_prefs(
         let theme = plan.text(&path)?.map(|t| prefs_of(&t)).unwrap_or_default();
         let stored = prefs_of(&plan.text(&live_path(&prefs_rel))?.unwrap_or_default());
         let entry = j.prefs.entry(prefs_rel.clone()).or_default();
-        for key in theme.keys() {
+        for key in theme
+            .keys()
+            .filter(|key| crate::browser_appearance::PREFS.contains(&key.as_str()))
+        {
             entry
                 .entry(key.clone())
                 .or_insert_with(|| stored.get(key).cloned());

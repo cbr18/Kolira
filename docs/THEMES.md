@@ -1,5 +1,9 @@
 # Themes (theme packages)
 
+Telegram/Kotatogram исключены из поддержки: старые targets и пути в темах
+игнорируются, личные конфиги и данные клиентов сохраняются.
+[Изменение и проверка](../tasks/2026_11_16_remove-telegram.md).
+
 A **theme** is what the app manages. A theme is also the "snapshot" you go back
 to after a mistake: apply it again and the look returns. There is no separate
 "system snapshot" entity. Saving, applying, the themes shipped in the repository
@@ -10,7 +14,7 @@ else**: KDE colours and fonts, KWin effects and decoration, the look of window r
 the look of panels and widgets (wallpaper, Panel Colorizer,
 panel floating/opacity), GTK 3/4,
 Kvantum, terminal colours/fonts/opacity, launchers (wofi), btop,
-editor themes (Zed, VS Code, Cursor), Zen (`user.js` and chrome CSS), Obsidian,
+editor themes (Zed, VS Code, Cursor, Neovim), Zen/Firefox colours and day/night, Obsidian,
 plus user-defined components and the wallpaper. Applying someone's theme (or
 switching your own) never resets screen scaling, virtual desktops, tiling
 layouts, key bindings, editor behaviour or an SSH host — nor the panel and
@@ -40,17 +44,21 @@ takes the family from the theme and keeps the live size.
 | kitty | `kitty/kolira.conf` (font faces, colours, cursor, opacity/blur, padding, borders, tab bar) | `kitty.conf` — keeps `font_size`/`modify_font` and gains `include kolira.conf` (last line) |
 | Discord (Vencord / Vesktop) | `themes/` (CSS themes) + `settings/settings.json` `enabledThemes`/`themeLinks`/`transparent` (translucent window); Vesktop ↔ Vencord themes map to whichever client the receiver has | every other client setting; stock Discord has no themes → `discord-client` dependency |
 | Spotify (Spicetify) | `Themes/` + `config-xpui.ini` `[Setting]` `current_theme`, `color_scheme`, `inject_css`, `replace_colors`, `overwrite_assets`, `inject_theme_js`; apply runs `spicetify apply` | `spotify_path`, `prefs_path`, extensions, custom apps; Spicetify itself is a dependency (`spicetify-cli`) |
-| Telegram | `TelegramDesktop/kolira.tdesktop-palette` (palette file generated from the theme palette); Telegram keeps the applied theme in its encrypted settings: the user picks this file once (*Settings → Chat Settings → Choose from file*), then Telegram watches it and re-applies it whenever a theme or palette rewrites it | everything in `tdata` (account, chats, settings, the chat background) |
 | oh-my-posh | the prompt theme the shell's `oh-my-posh init … --config` line uses, stored as `oh-my-posh/kolira.omp.json` | `config.fish` / `.zshrc` / `.bashrc` — only the `--config` path of an existing init line is changed (never added); oh-my-posh is a dependency |
 | fish | `fish_variables` lines `SETUVAR fish_color_*` / `fish_pager_color_*` | other universal variables (`fish_user_paths`, …) |
 | Ghostty | `ghostty/kolira` (colours, palette, opacity/blur, font families, padding) | `config` — keeps the rest and gains `config-file = ?kolira` (last) |
 | cava | `[color]` (running cava reloaded with SIGUSR1) | every other section |
 | yazi | `theme.toml`, `flavors/` (whole) | `yazi.toml`, `keymap.toml` |
 | bat | `config` lines `--theme…` / `--italic-text…`, `themes/` (then `bat cache --build`) | other `config` lines |
-| Konsole | the default profile's `[Appearance]` (`ColorScheme`, font family — live size kept) + its `.colorscheme` (whole: colours, opacity, blur; travels as an asset) | the profile's command, scrolling, keys…; without a profile a `Theme Profile` (`Parent=FALLBACK/`) is created and made default |
-| Firefox (default profile from `installs.ini`/`profiles.ini`) | `chrome/userChrome.css`, `chrome/userContent.css` (whole); `user.js` only look prefs (`browser.theme.*`, `toolkit.legacyUserProfileCustomizations.stylesheets`, `extensions.activeThemeID`, …) | privacy/behaviour prefs in `user.js` |
+| Konsole / Yakuake | the default profile's `[Appearance]` (`ColorScheme`, font family — live size kept) + its `.colorscheme` (whole: colours, opacity, blur; travels as an asset) | the profile's command, scrolling, keys…; without a profile a `Theme Profile` (`Parent=FALLBACK/`) is created and made default |
+| Zen / Firefox (default profile from `installs.ini`/`profiles.ini`) | Native palette accent and day/night in `user.js`; native on-accent contrast pair; no userChrome changes or stylesheet enable | personal CSS, userContent, transparency/density/layout, privacy, addons and selected browser theme; `prefs.js` never edited |
+| Neovim | Data-only `nvim/kolira-palette.json`, fixed Kolira colorscheme + after/plugin loader | init.lua/init.vim, plugin specs, personal Lua |
+| Obsidian | Selected vaults: `theme`, `cssTheme`, `enabledCssSnippets`, own snippet, active custom theme; portable numbered snapshot slots | font sizes, notes, vault index, Preferences, plugins, unselected vaults |
 | Alacritty | `alacritty/kolira.toml` (`[colors.*]`, `[font]` faces, window opacity/blur/padding/decorations, cursor style) | `[font] size`/offsets; `alacritty.toml` gains `general.import` |
-| everything else (Klassy, Breeze, GTK CSS, wofi CSS, Zen, Obsidian appearance, Trolltech palette, Kvantum, colour schemes, L&F) | whole file (a Look & Feel package without its `contents/layouts/` scripts). `breezerc` only when the widget style or window decoration is Breeze (absent keys mean Breeze), `klassy/` only when either is Klassy | when not stored: the user's own `breezerc` / `klassy/` |
+| everything else (Klassy, Breeze, GTK CSS, wofi CSS, Trolltech palette, Kvantum, colour schemes, L&F) | whole file (a Look & Feel package without its `contents/layouts/` scripts). `breezerc` only when the widget style or window decoration is Breeze (absent keys mean Breeze), `klassy/` only when either is Klassy | when not stored: the user's own `breezerc` / `klassy/` |
+
+Browser colour files and day/night prefs survive export even when the snapshot
+profile name differs from the exporter’s current profile.
 
 Browser profile folders have a random name per install (`gp0y8wrv.Default
 (release)`): a theme made elsewhere stores its files under the author's
@@ -184,6 +192,9 @@ or a complete theme application transactional.
 timeout is included in `apply --json` `errors`; the completed file restoration
 and its backup remain available.
 
+See [APPLICATIONS.md](APPLICATIONS.md) for the app contracts (P0 1–20),
+Obsidian vault selection, browser restrictions, editor registration and runtime limits.
+
 ## `theme.json`
 
 | Key | Meaning |
@@ -195,7 +206,7 @@ and its backup remain available.
 | `wallpaper` | `wallpaper/<file>`, or `null` → restore the previous theme's changes and leave the baseline wallpaper; explicit `--keep-wallpaper` preserves the current one |
 | `assets[]` | `{kind, name, path, origin: generated\|user, redistributable}` — local assets, `path` inside the theme |
 | `sources` | field id → `{store, id, url}`: editor-theme extensions (`vscode-marketplace`, `open-vsx`, `zed`) |
-| `app_targets[]` | Explicit generated palette targets: `discord`, `konsole`, `ghostty`, `cava`, `telegram`, `firefox`; requires `palette`. Defaults to empty, preserving snapshot-only themes. |
+| `app_targets[]` | Explicit generated palette targets: `discord`, `konsole`, `ghostty`, `cava`, `firefox`, `zen`, `neovim`, `obsidian`, `pywalfox`, `kitty`; requires `palette`. Defaults to empty, preserving snapshot-only themes. |
 | `editor_themes[]` | `{editor, store, id, version, url, local_path, native_watch}` — editor themes bundled with or referenced by this theme, cached under `assets/editor-themes/<editor>/<id>/`; normal apply is offline, explicit `--install-missing` can prepare a missing cache |
 | `dependencies[]` | `{kind, name, source, id, title, url, exact}` — everything the theme needs that does not travel inside it (see *Dependencies*) |
 | `appearance_only` | the stored files hold only the look |
@@ -239,7 +250,7 @@ kolira license NAME ASSET --license=SPDX [--source=URL] [--no-redistribute]
 kolira import FILE.zip|DIR [--name=NEW] [--force] [--apply] [--json]
 kolira bundled sync THEMES_DIR      # add new ready themes, update unchanged ones
 kolira deps NAME [--refresh] [--install[=all|0,2]] [--json]
-kolira actions NAME [--json]        # what applying leaves to do (restarts, Telegram)
+kolira actions NAME [--json]        # what applying leaves to do (restarts or native appearance controls)
 kolira action ID                    # do one: vesktop, discord, zen, firefox
 kolira automation [--json] | set KEY=ask|always|never … | ask   # the user's choices
 ```
@@ -259,10 +270,11 @@ kolira automation [--json] | set KEY=ask|always|never … | ask   # the user's c
     kitty re-applied.
   - **Stage 2 — follow-up under the same `MutationGuard`, no second Plasma
     restart**: cached editor installation and palette-generated Discord/Vesktop/
-    Vencord, Konsole, Ghostty, Cava, Telegram and Firefox resources. Both stages
+    Vencord, Konsole/Yakuake, Kitty, Ghostty, Cava,
+    Neovim, Obsidian and browser colour resources. Both stages
     share preview, backup, rollback and the next-theme journal. The command waits
     for completion; the GUI executes it on a worker thread.
-    Editors receive a complete `<publisher.name>-kolira` extension directory;
+    Editors receive a complete `kolira-cache.<publisher>-<name>-kolira` extension directory;
     existing installed extensions are kept. Only theme contributions are enabled,
     with `"_watch": true` when requested; executable extension entry points and
     unrelated contributions are removed from the installed manifest. Reload
@@ -270,10 +282,10 @@ kolira automation [--json] | set KEY=ask|always|never … | ask   # the user's c
     Zed JSON files go to `$XDG_CONFIG_HOME/zed/themes/`.
     Palette follow-ups run only for the explicit `app_targets[]` list (empty
     by default). Merely carrying a palette does not opt all installed apps in.
-    Explicit app resources carried in the snapshot take priority over generation. Telegram uses only its cached default palette in this stage.
-    Firefox gets an imported `chrome/kolira.css`; existing custom CSS and privacy
-    preferences are preserved, and `user.js` enables stylesheet support. A browser
-    restart may be needed. Chromium Preferences is not tracked or rewritten;
+    Explicit app resources carried in the snapshot take priority over generation.
+    Zen/Firefox get native accent and day/night preferences, without CSS imports;
+    only colours and day/night change. Disabled personal stylesheets are not
+    silently enabled. A browser restart may be needed. Chromium Preferences is not tracked or rewritten;
     Chromium theme support is deferred until a supported contract is implemented.
   - `--without-sync`: skips generated follow-ups and cached editor installation.
     Saved application configs still restore with the snapshot. The same option
@@ -290,7 +302,7 @@ kolira automation [--json] | set KEY=ask|always|never … | ask   # the user's c
   `neutral-light`/`neutral-dark` it applies a neutral template to the live
   session — Breeze colour scheme, widget style, icons, cursor, Plasma style and
   window decoration, Breeze GTK, no blur, no translucency, opaque kitty/Alacritty,
-  no transparent Zen — and saves it under NAME. From an existing THEME it copies
+  and saves it under NAME. From an existing THEME it copies
   that theme under NAME and applies it. Either way NAME becomes the active
   theme; the user then changes the live look and saves over it. Applying makes
   the usual pre-apply backup first.
@@ -448,7 +460,6 @@ warning and its own checkbox:
 |---|---|---|
 | restart Vesktop / Discord (Vencord) | the apply changed the client's themes/settings and it is running (a newly enabled theme, the translucent window) | a voice call or screen share ends |
 | restart Zen / Firefox | the apply changed `user.js` / `userChrome.css` and the browser is running | calls and downloads stop; tabs return with session restore |
-| Telegram (manual) | the theme carries a Telegram palette Telegram does not follow yet | — (Settings → Chat Settings → Choose from file, once) |
 
 A restart asks the program to quit (SIGTERM — a normal quit, browsers save
 the session), waits up to 20 s and starts it again; a program that does not
@@ -648,3 +659,34 @@ in a live Plasma session.
 
 A package-level `LICENSE`, when present, travels with exports alongside the
 legacy manifests; asset-specific licences in `theme.json` still apply.
+
+
+### Native terminal and AI appearance hosts
+
+The second P0 batch uses TOML (Yazi styles / Codex `tui.theme`), block YAML
+(lazygit `gui.theme`) and root KDL theme selectors (Zellij). These hosts are
+patched and reversed by value; unrelated settings and later personal edits survive.
+OpenCode V2 `cli.json` and Claude `settings.json` use positional JSON patches
+of `theme` only. See [contracts and limits](APPLICATIONS.md#вторая-партия-p0--1120).
+`app_targets` also accepts fish, pure, oh-my-posh, btop, yazi, bat, wofi, fzf,
+lazygit, zellij, opencode, claude-code and codex. Bundled themes contain colour
+resources/selectors for both batches; executable shell hooks are not theme content.
+
+
+Bundled packages refresh GTK/Breeze named colours, KDE colour resources/fields,
+Alacritty/Ghostty colours and Oh My Posh colour data from `palette`, as well as
+the first two application batches. Browser `ui.accentcolor`/`ui.accentcolortext`
+and native day/night replace the former chrome CSS renderer. Named GTK alpha
+values and unrelated widget rules remain. Bundled `accent_from_wallpaper=false`
+keeps the explicit palette accent stable; wallpaper-derived palettes already
+contain their chosen accent. [Audit](audits/2026_11_16_palette-consistency.md).
+
+### Третья партия приложений
+
+Пакеты поддерживают новые palette targets и ресурсы Micro/lsd/Glow, Chromium/Chrome,
+GIMP 3, Heroic, Prism, Vim, mpv/Cliamp, VSCodium. Полные пути и правила
+частичного merge: [APPLICATIONS.md](APPLICATIONS.md). Ресурсы этой партии
+проверяются как нативные цветовые данные на preview/apply и export/import.
+Vimscript из пакета не исполняется и не устанавливается; только core-owned
+loader и JSON. Chromium требует ручного выбора/сброса кэшированной темы.
+LibreOffice исключён, в том числе из старых снимков; его конфиги сохраняются.

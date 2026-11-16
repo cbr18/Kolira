@@ -3,7 +3,7 @@
 Themes exclude fastfetch and preserve the user's Plasma application launcher,
 including its button icon/image. Simple Application Launcher is not required.
 
-Themes that come with kolira. The installer adds new ones and replaces
+Eight themes come with kolira, including `material-you`. The installer adds new ones and replaces
 ones the kit changed, unless you changed them (nothing is applied);
 `install-kolira.sh --no-themes` skips them. By hand:
 
@@ -49,8 +49,6 @@ Dark translucent glass: blur everywhere, OrchisDark Kvantum, accent from the mon
 | widget-style | kvantum | Arch package | [link](https://archlinux.org/packages/?q=kvantum) |
 | kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
 | oh-my-posh | oh-my-posh (prompts usually need a Nerd Font) | AUR | [link](https://ohmyposh.dev/docs/installation/linux) |
-| vscode | unthrottled.doki-theme | VS Code Marketplace | [link](https://marketplace.visualstudio.com/items?itemName=unthrottled.doki-theme) |
-| zed | New Darcula Darker | Zed extensions | [link](https://zed.dev/extensions?query=new-darcula) |
 | kvantum | Orchis kvantum | KDE Store (search match — confirm) | [link](https://store.kde.org/p/1458909) |
 
 ## Paper
@@ -98,8 +96,6 @@ Everforest Dark Medium: matte green palette, Breeze widgets/GTK, misty pine fore
 | decoration | org.kde.klassy | AUR | [link](https://aur.archlinux.org/packages/klassy) |
 | kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
 | oh-my-posh | oh-my-posh (prompts usually need a Nerd Font) | AUR | [link](https://ohmyposh.dev/docs/installation/linux) |
-| vscode | unthrottled.doki-theme | VS Code Marketplace | [link](https://marketplace.visualstudio.com/items?itemName=unthrottled.doki-theme) |
-| zed | Everforest Dark Medium (blur) | Zed extensions | [link](https://zed.dev/extensions?query=everforest) |
 | kvantum | Orchis kvantum | KDE Store (search match — confirm) | [link](https://store.kde.org/p/1458909) |
 
 ## dracula
@@ -125,9 +121,6 @@ Dracula palette on glass: purple accent, recoloured Kvantum, blur
 | widget-style | kvantum | Arch package | [link](https://archlinux.org/packages/?q=kvantum) |
 | kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
 | oh-my-posh | oh-my-posh (prompts usually need a Nerd Font) | AUR | [link](https://ohmyposh.dev/docs/installation/linux) |
-| vscode | unthrottled.doki-theme | VS Code Marketplace | [link](https://marketplace.visualstudio.com/items?itemName=unthrottled.doki-theme) |
-| cursor | Dracula Theme | Open VSX | [link](https://open-vsx.org/extension/dracula-theme/theme-dracula) |
-| zed | Dracula | Zed extensions | [link](https://zed.dev/extensions?query=dracula) |
 
 ## frutiger-aero
 
@@ -154,9 +147,6 @@ Frutiger Aero: Windows 7 glass titlebars (Se7en Aero), see-through Kvantum glass
 | kwin-effect | better_blur_dx | AUR | [link](https://aur.archlinux.org/packages/kwin-effects-better-blur-dx) |
 | discord-client | Vesktop (Discord with Vencord) — or install Vencord into Discord: https://vencord.dev/download/ | AUR | [link](https://vencord.dev/download/) |
 | oh-my-posh | oh-my-posh (prompts usually need a Nerd Font) | AUR | [link](https://ohmyposh.dev/docs/installation/linux) |
-| vscode | Night Owl | VS Code Marketplace | [link](https://marketplace.visualstudio.com/items?itemName=sdras.night-owl) |
-| cursor | Night Owl | Open VSX | [link](https://open-vsx.org/extension/sdras/night-owl) |
-| zed | Night Owl Dark | Zed extensions | [link](https://zed.dev/extensions?query=night-owlz) |
 | plasma-theme | Se7en Aero Plasma Style | KDE Store | [link](https://store.kde.org/p/1407084) |
 
 ## frutiger-aero-light
@@ -185,9 +175,6 @@ Frutiger Aero Light — Windows 7 as it shipped: white windows with black text, 
 | kwin-effect | kwin4_effect_shapecorners | AUR | [link](https://aur.archlinux.org/packages/kwin-effect-rounded-corners-git) |
 | discord-client | Vesktop (Discord with Vencord) — or install Vencord into Discord: https://vencord.dev/download/ | AUR | [link](https://vencord.dev/download/) |
 | oh-my-posh | oh-my-posh (prompts usually need a Nerd Font) | AUR | [link](https://ohmyposh.dev/docs/installation/linux) |
-| vscode | Night Owl Light | VS Code Marketplace | [link](https://marketplace.visualstudio.com/items?itemName=sdras.night-owl) |
-| cursor | Night Owl Light | Open VSX | [link](https://open-vsx.org/extension/sdras/night-owl) |
-| zed | Light Glass | Zed extensions | [link](https://zed.dev/extensions?query=glass-theme) |
 | plasma-theme | Se7en Aero Plasma Style | KDE Store | [link](https://store.kde.org/p/1407084) |
 
 ## Adding a theme
@@ -216,3 +203,81 @@ from an editor store for this theme. Font sizes stay the user's on apply.
 
 The bundled `export.json` covers the files with SHA-256, so the installer and
 `kolira import themes/minecraft-overworld-dark` use the same verified package.
+
+## Application coverage (all eight themes)
+
+All packages have a base16 palette, explicit `app_targets[]` and offline resources
+for the first ten application groups from [APPLICATIONS.md](../docs/APPLICATIONS.md).
+Cursor / VS Code use built-in Default Dark/Light Modern plus palette colour/token
+overrides, without extension installation. Zed gets a generated MIT theme;
+Neovim gets palette data and the fixed core loader. Existing terminal font sizes,
+key bindings and behaviour stay local. Konsole scheme opacity/blur and Kitty
+opacity stay with the saved theme.
+
+Zen and Firefox carry native accent and day/night in a portable `kolira.default`
+user.js slot, mapped to the receiver's actual default profile. They do not enable
+stylesheet support or patch userChrome, toolbar buttons, captions or icons.
+Legacy managed browser CSS is retired; old UI skins, density/opacity prefs and
+arbitrary UI CSS are excluded from packages.
+Obsidian uses locally selected vaults; first selection is described in the app
+contract. Pywalfox is intentionally an extra opt-in, requiring configured native
+host/addon and a baseline; it is not enabled by bundled themes.
+The app-resource refresh is reproducible in Rust, against repository/staging
+packages (never the live theme directory):
+
+```bash
+cargo run --manifest-path gui/qt-app/src/core/rust_core/Cargo.toml \
+  --example refresh_theme_apps -- themes
+```
+
+The example performs no downloads, preserves
+KDE/GTK assets (legacy GTK CSS/import names migrate together), updates export hashes and replaces editor colour choices with
+portable generated/built-in ones. Use it on a staging copy before reviewing changes.
+
+## material-you
+
+Dark Material You snapshot: muted graphite surfaces, wallpaper-derived blue
+accent, translucent Glass-style desktop and the Dracula wallpaper. The saved
+palette is included; the current wallpaper is not read again during Apply.
+
+Included assets: `KoliraMaterialYou` KDE colour scheme (MIT, generated), `glass`
+Look & Feel (MIT), `noctalia` btop theme (MIT), generated Zed/Konsole/Neovim and
+editor colour resources, and `dracula-kde.png` (MIT, Dracula Theme;
+[source](https://github.com/dracula/wallpaper)). Personal home paths, complete
+browser profiles, icon-library copies and third-party editor extension caches
+are excluded from the public package.
+
+External dependencies retain their licences: YAMIS icons, OrchisDark Kvantum,
+Fluent-Dark GTK, Klassy decoration, Better Blur DX and Noto Sans. Their metadata
+uses the existing sources in the package; they are not copied into the repository.
+
+
+Все восемь пакетов также содержат данные второй партии P0 № 11–20:
+fish/Pure, btop/Cava, Yazi/bat, Wofi/fzf, lazygit/Zellij и native appearance
+для OpenCode V2, Claude Code и Codex. OMP перекрашивается только при существующем
+подключении. AI credentials, модели, permissions и исполняемые hooks не входят
+в пакеты. Границы автоматического включения: [APPLICATIONS.md](../docs/APPLICATIONS.md).
+
+
+Обновление 2026-11-16: GTK/Breeze и KDE colour resources/fields согласованы с
+`palette`; Alacritty/Ghostty/OMP также обновляются. Browser snapshots содержат
+native accent + day/night, без генерируемого chrome CSS. Ресурсы прозрачности
+и формы widgets сохраняются. Акцент пакетной палитры не заменяется вычислением
+из текущих обоев при каждом Apply (`accent_from_wallpaper=false`).
+
+Третья партия: все восемь пакетов содержат native palette resources
+Micro, lsd/Glow, Chromium/Chrome, GIMP 3, Heroic, Prism, Vim, mpv/Cliamp
+и VSCodium. В каждом 35 явных `app_targets`; LibreOffice исключён.
+Chromium/Chrome: ресурс требует ручной загрузки/reload и сброса в браузере.
+Обновление исходной палитры требует повторного запуска maintenance generator;
+явные сохранённые ресурсы при Apply имеют приоритет над fallback generation.
+[Контракт](../docs/APPLICATIONS.md).
+
+Генератор сохраняет выбор акцента Plasma от обоев: `glass` и `material-you` —
+`true`, остальные шесть — `false`. При этом прикладные ресурсы берут сохранённую
+палитру пакета. `theme.json`, `manifest.json` и канонический ключ `kdeglobals`
+согласованы, конфликтующие варианты регистра удаляются.
+
+Выбранная KDE-схема сохраняется при maintenance refresh. По решению пользователя
+в восьми комплектных темах остаются BreezeLight/BreezeDark; генератор не подменяет
+их схемой Kolira. Прикладные ресурсы продолжают брать цвета из сохранённой палитры.

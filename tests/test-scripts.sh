@@ -1717,24 +1717,29 @@ else
   ok "Konsole not installed here: profile creation skipped"
 fi
 
-# --- 20. Firefox: userChrome + look prefs, profile folder differs ------------
+# --- 20. Firefox: controlled colours only, profile folder differs ----------
 echo "=== Section 20: Firefox ==="
 FF_A="$TMP_ROOT/ff-a"; FF_B="$TMP_ROOT/ff-b"
 mkdir -p "$FF_A/.mozilla/firefox/aaa.default-release/chrome" "$FF_B/.mozilla/firefox/zzz.default-release"
 printf '[Install1]\nDefault=aaa.default-release\n' >"$FF_A/.mozilla/firefox/installs.ini"
 printf '[Install9]\nDefault=zzz.default-release\n' >"$FF_B/.mozilla/firefox/installs.ini"
-printf 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);\nuser_pref("privacy.resistFingerprinting", true);\n' >"$FF_A/.mozilla/firefox/aaa.default-release/user.js"
-printf '#nav-bar { background: #282a36; }\n' >"$FF_A/.mozilla/firefox/aaa.default-release/chrome/userChrome.css"
+printf 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);\nuser_pref("privacy.resistFingerprinting", true);\nuser_pref("ui.accentcolor", "#bd93f9");\nuser_pref("ui.accentcolortext", "#282a36");\nuser_pref("browser.theme.toolbar-theme", 0);\n' >"$FF_A/.mozilla/firefox/aaa.default-release/user.js"
+printf '#nav-bar { display: none; }\n' >"$FF_A/.mozilla/firefox/aaa.default-release/chrome/userChrome.css"
+printf ':root { --toolbar-bgcolor: #282a36; --toolbar-color: #ffffff; }\n' >"$FF_A/.mozilla/firefox/aaa.default-release/chrome/kolira-colors.css"
 printf 'user_pref("privacy.resistFingerprinting", false);\nuser_pref("browser.startup.page", 3);\n' >"$FF_B/.mozilla/firefox/zzz.default-release/user.js"
 ff() { local h="$1"; shift; env -u XDG_CONFIG_HOME -u XDG_DATA_HOME HOME="$h" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 ff "$FF_A" save fox >/dev/null 2>&1
 ff "$FF_A" export fox --out="$TMP_ROOT/fox.zip" >/dev/null 2>&1
 ff "$FF_B" import "$TMP_ROOT/fox.zip" --apply >/dev/null 2>&1
 ffb="$FF_B/.mozilla/firefox/zzz.default-release"
-if grep -q "#282a36" "$ffb/chrome/userChrome.css" 2>/dev/null && grep -q "legacyUserProfileCustomizations.stylesheets\", true" "$ffb/user.js" &&
+if grep -q 'ui.accentcolor", "#bd93f9"' "$ffb/user.js" &&
+  grep -q 'ui.systemUsesDarkTheme", 1' "$ffb/user.js" &&
+  [ ! -e "$ffb/chrome/userChrome.css" ] &&
+  ! grep -q -- '--toolbar-bgcolor' "$ffb/chrome/kolira-colors.css" 2>/dev/null &&
+  ! grep -q 'legacyUserProfileCustomizations.stylesheets", true' "$ffb/user.js" &&
   grep -q "resistFingerprinting\", false" "$ffb/user.js" && grep -q "browser.startup.page" "$ffb/user.js" &&
   [ ! -e "$FF_B/.mozilla/firefox/aaa.default-release" ]; then
-  ok "Firefox look lands in the receiver's own profile; their privacy/startup prefs stay"
+  ok "Firefox native accent/day-night land in the default profile; no UI CSS/import/enabling, privacy/startup stay"
 else
   fail "Firefox apply wrong: $(find "$FF_B/.mozilla/firefox" | head -20) // $(cat "$ffb/user.js" 2>&1)"
 fi
@@ -1843,8 +1848,7 @@ printf 'font-size = 15\nkeybind = ctrl+b=close_surface\n' >"$SB/.config/ghostty/
 printf -- '--theme="TwoDark"\n--paging=never\n' >"$SB/.config/bat/config"
 sh_cli "$SB" import "$TMP_ROOT/shells.zip" --apply >/dev/null 2>&1
 bad=""
-# shellcheck disable=SC2016  # the literal $HOME is what the shell config must contain
-grep -qF 'oh-my-posh init fish --config "$HOME/.config/oh-my-posh/kolira.omp.json")' "$SB/.config/fish/config.fish" || bad="$bad omp-line"
+grep -qF "oh-my-posh init fish --config \"$SB/.config/oh-my-posh/kolira.omp.json\")" "$SB/.config/fish/config.fish" || bad="$bad omp-line"
 grep -q "set -g fish_greeting" "$SB/.config/fish/config.fish" || bad="$bad fish-config"
 [ -f "$SB/.config/oh-my-posh/kolira.omp.json" ] || bad="$bad omp-file"
 grep -q "fish_color_command:bd93f9" "$SB/.config/fish/fish_variables" && grep -q "fish_user_paths:/b" "$SB/.config/fish/fish_variables" || bad="$bad fish-vars"
@@ -2316,17 +2320,26 @@ else
   fail "theme wallpaper not applied: $(cat "$NRC")"
 fi
 
-# --- Neovim is not the app's business --------------------------------------------
-NV="$TMP_ROOT/nvim-untouched"
+# --- Neovim: owned colour data/glue, personal init and return ---------------------
+NV="$TMP_ROOT/nvim-colours"
 mkdir -p "$NV/.config/nvim"
 printf 'vim.opt.number = true\n' >"$NV/.config/nvim/init.lua"
 nv() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$NV" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 nv import "$SCRIPT_DIR/themes/frutiger-aero-light" --apply >/dev/null 2>&1
-if [ "$(cat "$NV/.config/nvim/init.lua")" = 'vim.opt.number = true' ] && [ "$(find "$NV/.config/nvim" -type f | wc -l)" = 1 ] &&
+if [ "$(cat "$NV/.config/nvim/init.lua")" = 'vim.opt.number = true' ] && [ -s "$NV/.config/nvim/kolira-palette.json" ] &&
+  [ -s "$NV/.config/nvim/colors/kolira.lua" ] && [ -s "$NV/.config/nvim/after/plugin/kolira.lua" ] &&
   ! nv palette apply --targets=nvim >/dev/null 2>&1; then
-  ok "themes and the palette leave Neovim alone"
+  ok "profile Apply gives Neovim owned colour files and leaves personal init alone"
 else
   fail "Neovim touched: $(find "$NV/.config/nvim" -type f)"
+fi
+mkdir -p "$NV/.config/kolira/themes/neutral"
+printf '{"schema":"kolira/theme@2","name":"neutral"}\n' >"$NV/.config/kolira/themes/neutral/theme.json"
+nv apply neutral >/dev/null 2>&1
+if [ "$(cat "$NV/.config/nvim/init.lua")" = 'vim.opt.number = true' ] && [ "$(find "$NV/.config/nvim" -type f | wc -l)" = 1 ]; then
+  ok "returning to a theme without Neovim removes only owned colour files"
+else
+  fail "Neovim return left owned files or changed init"
 fi
 
 # --- Missing configs preserve the user's original state, including kolira* names ------
@@ -2341,7 +2354,9 @@ printf '[Appearance]\nColorScheme=Light\n\n[General]\nName=Theme Profile\nParent
 printf '[Desktop Entry]\nDefaultProfile=Theme Profile.profile\n\n[Other]\nkeep=1\n' >"$US/.config/konsolerc"
 us() { env -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u WALLPAPER_DIR HOME="$US" KTM_THEME_NO_APPLY=1 "$CLI_DIR/kolira" "$@"; }
 cp -a "$US" "$TMP_ROOT/unspecified-before"
-us import "$SCRIPT_DIR/themes/dracula" --apply >/dev/null 2>&1
+mkdir -p "$US/.config/kolira/themes/withoutapps"
+printf '{"schema":"kolira/theme@2","name":"withoutapps"}\n' >"$US/.config/kolira/themes/withoutapps/theme.json"
+us apply withoutapps >/dev/null 2>&1
 VS="$US/.config/vesktop/settings/settings.json"
 if cmp -s "$TMP_ROOT/unspecified-before/.config/vesktop/settings/settings.json" "$VS" &&
   cmp -s "$TMP_ROOT/unspecified-before/.config/vesktop/themes/kolira.theme.css" "$US/.config/vesktop/themes/kolira.theme.css" &&
@@ -2365,7 +2380,7 @@ fi
 printf '[Desktop Entry]\nDefaultProfile=Mine.profile\n' >"$US/.config/konsolerc"
 printf '[Appearance]\nColorScheme=Dark\n\n[General]\nCommand=/bin/fish\nName=Mine\n' >"$US/.local/share/konsole/Mine.profile"
 cp -a "$US/.local/share/konsole/Mine.profile" "$TMP_ROOT/own-konsole-before.profile"
-us apply dracula >/dev/null 2>&1
+us apply withoutapps >/dev/null 2>&1
 if grep -q "DefaultProfile=Mine.profile" "$US/.config/konsolerc" && grep -q "Command=/bin/fish" "$US/.local/share/konsole/Mine.profile" && cmp -s "$TMP_ROOT/own-konsole-before.profile" "$US/.local/share/konsole/Mine.profile"; then
   ok "a later personal Konsole profile keeps its original appearance and behaviour"
 else

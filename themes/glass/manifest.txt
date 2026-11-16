@@ -27,31 +27,54 @@ timestamp=2026-11-05T11:16:19+10:00
 .config/alacritty/kolira.toml
 .config/wofi/style.css
 .config/wofi/wallpaper.css
-.config/btop/btop.conf
 .config/btop/themes/noctalia.theme
 .config/zed/settings.json
 .config/zed/themes/new-darcula--newdarcula.json
 .config/Code/User/settings.json
 .config/Cursor/User/settings.json
-.zen/gp0y8wrv.Default (release)/user.js
-.zen/gp0y8wrv.Default (release)/chrome/userChrome.css
-.zen/gp0y8wrv.Default (release)/chrome/userContent.css
-.zen/gp0y8wrv.Default (release)/chrome/zen-themes.css
 .config/fish/config.fish
 .config/oh-my-posh/kolira.omp.json
-.config/fish/fish_variables
 .config/ghostty/config
 .config/ghostty/kolira
-.config/cava/config
-.config/yazi/theme.toml
 .config/yazi/flavors
-.config/bat/config
 .config/bat/themes
 .local/share/konsole/Theme Profile.profile
-.mozilla/firefox/l48zutsk.default-release-1788951816985/user.js
-.mozilla/firefox/l48zutsk.default-release-1788951816985/chrome/userChrome.css
-.mozilla/firefox/l48zutsk.default-release-1788951816985/chrome/userContent.css
-obsidian/vault/.obsidian/appearance.json
 .local/share/color-schemes/Breeze1.colors
 .config/kolira/palette.json
 .local/share/plasma/look-and-feel/glass
+.config/nvim/kolira-palette.json
+.zen/kolira.default/user.js
+.mozilla/firefox/kolira.default/user.js
+.claude/settings.json
+.codex/config.toml
+.codex/themes/kolira.tmTheme
+.config/GIMP/3.0/gimprc
+.config/GIMP/3.0/themes/Kolira/gimp.css
+.config/bat/config
+.config/bat/themes/kolira.tmTheme
+.config/btop/btop.conf
+.config/btop/themes/kolira.theme
+.config/cava/config
+.config/chromium/kolira-theme/manifest.json
+.config/cliamp/config.toml
+.config/cliamp/themes/kolira.toml
+.config/fish/fish_variables
+.config/fzf/kolira.opts
+.config/glow/glow.yml
+.config/glow/kolira.json
+.config/google-chrome/kolira-theme/manifest.json
+.config/heroic/config.json
+.config/lazygit/config.yml
+.config/lsd/config.yaml
+.config/lsd/themes/kolira.yaml
+.config/micro/colorschemes/kolira.micro
+.config/micro/settings.json
+.config/mpv/mpv.conf
+.config/opencode/cli.json
+.config/wofi/kolira.css
+.config/yazi/theme.toml
+.config/zellij/config.kdl
+.config/zellij/themes/kolira.kdl
+.local/share/PrismLauncher/prismlauncher.cfg
+.local/share/PrismLauncher/themes/kolira/theme.json
+.vim/kolira-palette.json

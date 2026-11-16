@@ -8,27 +8,27 @@ text = "#fffbf4"
 cursor = "#2f2a24"
 
 [colors.selection]
-text = "#fff8eb"
+text = "#fffbf4"
 background = "#586d47"
 
 [colors.normal]
-black = "#2f2a24"
-red = "#842b2f"
+black = "#dedad3"
+red = "#842a2d"
 green = "#38633b"
-yellow = "#6f4e22"
-blue = "#315b7c"
-magenta = "#68406f"
-cyan = "#2f676a"
-white = "#6f685f"
+yellow = "#593f25"
+blue = "#3f5133"
+magenta = "#5e3f66"
+cyan = "#3c5a37"
+white = "#2f2a24"
 
 [colors.bright]
-black = "#5f574f"
-red = "#6f2026"
-green = "#28552e"
-yellow = "#5d401c"
-blue = "#244f72"
-magenta = "#573261"
-cyan = "#245a5e"
+black = "#5c564e"
+red = "#842a2d"
+green = "#38633b"
+yellow = "#593f25"
+blue = "#3f5133"
+magenta = "#5e3f66"
+cyan = "#3c5a37"
 white = "#2f2a24"
 
 [window]

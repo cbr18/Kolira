@@ -1,0 +1,25 @@
+{
+  "name": "material-you",
+  "author": "kolira (generated from wallpaper)",
+  "variant": "dark",
+  "base": [
+    "#1e1f23",
+    "#2a2b30",
+    "#3c3d41",
+    "#737477",
+    "#919295",
+    "#d0d1d3",
+    "#e4e4e6",
+    "#f5f5f6",
+    "#e88f87",
+    "#e09865",
+    "#cab45d",
+    "#85bc79",
+    "#3fc0c0",
+    "#7aaeef",
+    "#d291cc",
+    "#ac6c32"
+  ],
+  "accent": "#7aaeef",
+  "source": "wallpaper:$HOME/Изображения/Wallpaper/dracula-kde.png"
+}

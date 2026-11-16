@@ -978,8 +978,7 @@ Kirigami.ApplicationWindow {
         onTriggered: if (!settingsController.automationConfigured) automationDialog.open()
     }
 
-    // After applying: programs to restart, Telegram's
-    // one-time choice — each with a warning and its own checkbox; nothing
+    // After applying: follow-up actions, each with a warning and its own checkbox; nothing
     // runs without the user (a call or a game may be on).
     AppDialog {
         id: actionsDialog

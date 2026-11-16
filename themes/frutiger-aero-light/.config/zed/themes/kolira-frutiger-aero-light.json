@@ -1,0 +1,60 @@
+{
+  "$schema": "https://zed.dev/schema/themes/v0.2.0.json",
+  "name": "Kolira frutiger-aero-light",
+  "author": "Kolira contributors",
+  "themes": [
+    {
+      "name": "Kolira frutiger-aero-light",
+      "appearance": "light",
+      "style": {
+        "background": "#ffffff",
+        "surface.background": "#f0f6fc",
+        "elevated_surface.background": "#f0f6fc",
+        "text": "#1b1b1b",
+        "text.muted": "#8a9cad",
+        "text.accent": "#3399e6",
+        "border": "#d9ebf9",
+        "border.focused": "#3399e6",
+        "editor.background": "#ffffff",
+        "editor.foreground": "#1b1b1b",
+        "editor.gutter.background": "#ffffff",
+        "editor.line_number": "#8a9cad",
+        "editor.active_line_number": "#1b1b1b",
+        "editor.active_line.background": "#f0f6fc",
+        "tab.active_background": "#ffffff",
+        "tab.inactive_background": "#f0f6fc",
+        "toolbar.background": "#f0f6fc",
+        "status_bar.background": "#f0f6fc",
+        "terminal.background": "#ffffff",
+        "terminal.foreground": "#1b1b1b",
+        "players": [
+          {
+            "cursor": "#3399e6",
+            "background": "#3399e6",
+            "selection": "#3399e650"
+          }
+        ],
+        "syntax": {
+          "comment": {
+            "color": "#8a9cad"
+          },
+          "string": {
+            "color": "#2f8a2f"
+          },
+          "keyword": {
+            "color": "#6b4fbb"
+          },
+          "number": {
+            "color": "#d06b00"
+          },
+          "function": {
+            "color": "#0066cc"
+          },
+          "type": {
+            "color": "#a07800"
+          }
+        }
+      }
+    }
+  ]
+}

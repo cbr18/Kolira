@@ -1,0 +1,20 @@
+[mgr]
+cwd = { fg = "#3f5133" }
+hovered = { fg = "#2f2a24", bg = "#dedad3" }
+preview_hovered = { underline = true }
+find_keyword = { fg = "#593f25", bold = true }
+marker_copied = { fg = "#38633b" }
+marker_cut = { fg = "#842a2d" }
+marker_selected = { fg = "#5e3f66" }
+
+[mode]
+normal_main = { fg = "#fffbf4", bg = "#3f5133", bold = true }
+normal_alt = { fg = "#2f2a24", bg = "#dedad3" }
+select_main = { fg = "#fffbf4", bg = "#5e3f66" }
+
+[status]
+overall = { fg = "#2f2a24", bg = "#f6f0e6" }
+
+[input]
+border = { fg = "#3f5133" }
+value = { fg = "#2f2a24" }

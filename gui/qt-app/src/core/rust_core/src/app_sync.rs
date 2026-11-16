@@ -4,6 +4,44 @@ use crate::{change_plan::Plan, field, palette, paths, stores, theme::Package};
 use anyhow::{Context, Result};
 use std::{fs, path::Path};
 
+pub(crate) const TARGETS: &[&str] = &[
+    "discord",
+    "konsole",
+    "ghostty",
+    "cava",
+    "firefox",
+    "zen",
+    "neovim",
+    "obsidian",
+    "pywalfox",
+    "kitty",
+    "fish",
+    "pure",
+    "oh-my-posh",
+    "btop",
+    "yazi",
+    "bat",
+    "wofi",
+    "fzf",
+    "lazygit",
+    "zellij",
+    "opencode",
+    "claude-code",
+    "codex",
+    "micro",
+    "lsd",
+    "glow",
+    "chromium",
+    "google-chrome",
+    "gimp",
+    "heroic",
+    "prismlauncher",
+    "vim",
+    "mpv",
+    "cliamp",
+    "vscodium",
+];
+
 /// Reject redirected writes below the user's resource container. Relative links
 /// within it are portable (icon aliases); external and dangling links are not.
 pub(crate) fn validate_destination(path: &Path, container: &Path) -> Result<()> {
@@ -48,12 +86,17 @@ pub(crate) fn targets(source: &Path, package: &Package) -> Result<Vec<String>> {
         .collect())
 }
 
-fn write(plan: &mut Plan, path: &Path, text: String) -> Result<()> {
+pub(crate) fn validate_live(path: &Path) -> Result<()> {
     // XDG roots may themselves be relocated; descendants may not escape them.
-    let root = [paths::config_home(), paths::data_home(), paths::home_dir()]
-        .into_iter()
-        .find(|root| path.starts_with(root))
-        .context("app path outside HOME/XDG")?;
+    let root = [
+        paths::config_home(),
+        paths::data_home(),
+        paths::cache_home(),
+        paths::home_dir(),
+    ]
+    .into_iter()
+    .find(|root| path.starts_with(root))
+    .context("app path outside HOME/XDG")?;
     for parent in path.ancestors().skip(1).take_while(|p| *p != root) {
         anyhow::ensure!(
             !(parent.is_symlink() && parent.is_dir()),
@@ -61,7 +104,10 @@ fn write(plan: &mut Plan, path: &Path, text: String) -> Result<()> {
             parent.display()
         );
     }
-    validate_destination(path, &root)?;
+    validate_destination(path, &root)
+}
+pub(crate) fn write(plan: &mut Plan, path: &Path, text: String) -> Result<()> {
+    validate_live(path)?;
     plan.write_text(path, text, "app_theme")
 }
 
@@ -95,12 +141,98 @@ pub(crate) fn plan_apps(source: &Path, package: &Package, plan: &mut Plan) -> Re
             editor.native_watch,
             plan,
         )?;
+        if editor.editor == "zed" {
+            for key in ["zed_dark", "zed_light"] {
+                if let Some(value) = package.values.get(key).filter(|v| v.is_string()) {
+                    let wanted = value.as_str().unwrap();
+                    let available = fs::read_dir(cache.join("themes"))
+                        .ok()
+                        .into_iter()
+                        .flatten()
+                        .flatten()
+                        .any(|entry| {
+                            fs::read(entry.path())
+                                .ok()
+                                .and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).ok())
+                                .is_some_and(|v| {
+                                    v["themes"].as_array().is_some_and(|themes| {
+                                        themes.iter().any(|t| t["name"] == wanted)
+                                    })
+                                })
+                        });
+                    if available {
+                        let settings = paths::config_home().join("zed/settings.json");
+                        let old = plan.text(&settings)?.unwrap_or_else(|| "{}".into());
+                        let side = if key == "zed_dark" { "dark" } else { "light" };
+                        let text = field::json_set(&old, &["theme".into(), side.into()], value)?;
+                        let text = if let Some(mode) = package.values.get("zed_mode") {
+                            field::json_set(&text, &["theme".into(), "mode".into()], mode)?
+                        } else {
+                            text
+                        };
+                        write(plan, &settings, text)?;
+                    }
+                }
+            }
+        } else {
+            let (key, dir) = match editor.editor.as_str() {
+                "cursor" => ("cursor_ide_theme", "Cursor"),
+                "vscodium" => ("vscode_theme", "VSCodium"),
+                "windsurf" => ("windsurf_theme", "Windsurf"),
+                _ => ("vscode_theme", "Code"),
+            };
+            if let Some(value) = package.values.get(key).filter(|v| v.is_string()) {
+                let manifest: serde_json::Value =
+                    serde_json::from_slice(&fs::read(cache.join("package.json"))?)?;
+                if manifest["contributes"]["themes"]
+                    .as_array()
+                    .is_some_and(|themes| {
+                        themes
+                            .iter()
+                            .any(|t| t["label"] == *value || t["id"] == *value)
+                    })
+                {
+                    let settings = paths::config_home().join(dir).join("User/settings.json");
+                    let old = plan.text(&settings)?.unwrap_or_else(|| "{}".into());
+                    write(
+                        plan,
+                        &settings,
+                        field::json_set(&old, &["workbench.colorTheme".into()], value)?,
+                    )?;
+                }
+            }
+        }
     }
+    crate::third_apps::plan(source, package, plan)?;
+    crate::terminal_apps::plan(source, package, plan)?;
+    crate::neovim::plan(
+        source,
+        package.palette.as_ref(),
+        package.app_targets.iter().any(|t| t == "neovim"),
+        plan,
+    )?;
     let Some(p) = &package.palette else {
         return Ok(());
     };
     p.validate()?;
     let wants = |id: &str| package.app_targets.iter().any(|t| t == id);
+    if wants("obsidian") {
+        crate::obsidian::plan(source, p, plan)?;
+    }
+    if wants("kitty")
+        && !source.join(crate::appearance::KITTY_THEME).exists()
+        && !source.join(crate::appearance::KITTY_HOST).exists()
+    {
+        let host = paths::live_path(crate::appearance::KITTY_HOST);
+        if let Some(old) = plan.text(&host)? {
+            let target = paths::live_path(crate::appearance::KITTY_THEME);
+            let look = plan
+                .text(&target)?
+                .unwrap_or_else(|| crate::appearance::kitty_split(&old).0);
+            write(plan, &target, palette::kitty_conf_with_palette(&look, p))?;
+            write(plan, &host, crate::appearance::kitty_host(&old))?;
+        }
+    }
     for (_, rel) in crate::discord::CLIENTS {
         let dir = paths::live_path(rel);
         if !wants("discord") || !dir.is_dir() || source.join(rel).exists() {
@@ -121,7 +253,7 @@ pub(crate) fn plan_apps(source: &Path, package: &Package, plan: &mut Plan) -> Re
     }
     let konsole = paths::data_home().join("konsole");
     if wants("konsole")
-        && (konsole.is_dir() || which::which("konsole").is_ok())
+        && (konsole.is_dir() || which::which("konsole").is_ok() || which::which("yakuake").is_ok())
         && !source.join(".local/share/konsole").exists()
     {
         let rc = paths::config_home().join("konsolerc");
@@ -184,56 +316,48 @@ pub(crate) fn plan_apps(source: &Path, package: &Package, plan: &mut Plan) -> Re
         let old = plan.text(&cava)?.unwrap_or_default();
         write(plan, &cava, crate::extras::cava_palette_text(&old, p))?;
     }
-    // Telegram generation is offline: use only its previously downloaded base.
-    let base = paths::cache_home().join("kolira/telegram-colors.palette");
-    if wants("telegram")
-        && paths::data_home().join("TelegramDesktop").is_dir()
-        && !source.join(crate::telegram::PALETTE_FILE).exists()
-        && plan.is_file(&base)?
-    {
-        let base = plan.text(&base)?.context("Telegram base palette")?;
+    if wants("pywalfox") {
+        let original = plan
+            .text(&paths::cache_home().join("wal/colors.json"))?
+            .context(
+                "Initialize Pywalfox first: a baseline colors.json is required for reversible sync",
+            )?;
+        let original: serde_json::Value =
+            serde_json::from_str(&original).context("Invalid Pywalfox baseline")?;
+        anyhow::ensure!(
+            original["special"].is_object() && original["colors"].is_object(),
+            "Invalid Pywalfox baseline"
+        );
+        let bg = p.slot(0).hex();
+        let fg = p.slot(5).hex();
+        let colors: serde_json::Map<String, serde_json::Value> = palette::ansi16(p)
+            .iter()
+            .enumerate()
+            .map(|(i, c)| (format!("color{i}"), serde_json::json!(c.hex())))
+            .collect();
+        let value = serde_json::json!({"wallpaper":"","alpha":"100","special":{"background":bg,"foreground":fg,"cursor":fg},"colors":colors});
         write(
             plan,
-            &paths::live_path(crate::telegram::PALETTE_FILE),
-            crate::telegram::generate(p, &base),
+            &paths::cache_home().join("wal/colors.json"),
+            serde_json::to_string_pretty(&value)?,
         )?;
     }
-    // Firefox: preserve custom CSS and only manage our own imported stylesheet.
-    if let Some(profile) = crate::tracked_apps::firefox_config_paths()
-        .first()
-        .and_then(|p| Path::new(p).parent().map(|p| p.to_path_buf()))
-    {
-        if wants("firefox") && !source.join(&profile).exists() {
-            let root = paths::live_path(profile.to_str().context("Firefox profile path")?);
-            let chrome = root.join("chrome/userChrome.css");
-            let old = plan.text(&chrome)?.unwrap_or_default();
-            let import = "@import url(\"kolira.css\");";
-            let text = if old.contains(import) {
-                old
-            } else {
-                format!("{import}\n{old}")
-            };
-            write(plan, &chrome, text)?;
-            write(plan, &root.join("chrome/kolira.css"), format!(
-                "/* Kolira palette */\n:root {{ --toolbar-bgcolor: {}; --toolbar-color: {}; --lwt-accent-color: {}; --lwt-text-color: {}; }}\n",
-                p.base[0], p.base[5], p.base[0], p.base[5]))?;
+    for zen in [false, true] {
+        if !wants(if zen { "zen" } else { "firefox" }) {
+            continue;
+        }
+        for profile in crate::tracked_apps::browser_profiles(zen) {
+            let root = paths::live_path(&profile);
             let user = root.join("user.js");
             let old = plan.text(&user)?.unwrap_or_default();
-            write(
-                plan,
-                &user,
-                crate::appearance::applied(
-                    profile
-                        .join("user.js")
-                        .to_str()
-                        .context("Firefox user.js")?,
-                    "user_pref(\"toolkit.legacyUserProfileCustomizations.stylesheets\", true);\n",
-                    Some(&old),
-                )?,
-            )?;
+            let dark = p.variant == crate::palette::Variant::Dark;
+            let text = crate::browser_appearance::accent(
+                &crate::browser_appearance::mode(&old, dark, zen),
+                p,
+                zen,
+            );
+            write(plan, &user, text)?;
         }
     }
-    // Chromium Preferences contains personal state and is managed by a running
-    // browser. Do not edit it without a supported theme-extension contract.
     Ok(())
 }

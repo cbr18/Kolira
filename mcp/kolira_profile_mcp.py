@@ -393,7 +393,7 @@ class KoliraMcpServer:
             },
             {
                 "name": "list_actions",
-                "description": "Follow-up steps a theme leaves on this machine (restart a running Vesktop/Discord/Zen/Firefox, Telegram's one-time file choice), each with reason and warning. apply_profile already returns the ones the user wants to be asked about.",
+                "description": "Follow-up steps a theme leaves on this machine (restart a running Vesktop/Discord/Zen/Firefox), each with reason and warning. apply_profile already returns the ones the user wants to be asked about.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {"name": {"type": "string"}},

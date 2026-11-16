@@ -172,3 +172,20 @@ JSON: `core operation.restore` с `id`, `confirmed: true`, опциональн�
 не трактуется как пустой: операция завершается с видимой ошибкой и recovery.
 Это автоматический возврат при следующем Apply; он дополняет существующую
 страховочную транзакцию при ошибке. Полные backups старых операций сохраняются.
+
+## Дополнительные приложения
+
+Первая партия из [APPLICATIONS.md](APPLICATIONS.md) использует тот же журнал.
+Обратное слияние extensions.json удаляет именно добавленные записи, сохраняя
+расширения, установленные позже. Obsidian хранит переносимые слоты только в теме;
+backup и журнал содержат фактические локальные цели. Browser import, безопасные
+цвета и day/night возвращаются вместе; prefs.js не редактируется, для видимого
+возврата закэшированных browser prefs может потребоваться перезапуск.
+
+
+The bat binary theme cache (`$XDG_CACHE_HOME/bat`) participates in the apply
+safety copy and before/after journal. Cache rebuild runs inside the transaction;
+a rebuild failure rolls back files and cache. Returning to a theme without bat
+settings restores its original cache, including themes without source files.
+Native TOML/YAML/KDL appearance hosts follow the same late-edit protection as
+JSONC/INI hosts; unsupported ambiguous structures fail during preflight.

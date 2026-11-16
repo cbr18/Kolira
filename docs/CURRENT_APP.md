@@ -136,7 +136,9 @@ Obsidian…), плюс `theme.json` (описание, значения для G
 экрана, рабочие столы, тайлинг, клавиши, SSH-хосты и т.п. не трогаются; таблица
 — `docs/THEMES.md`, код — `rust_core/src/appearance.rs`.
 
-- Konsole — `[Appearance]` профиля по умолчанию + его `.colorscheme` (`rust_core/src/konsole.rs`)
+- Konsole / Yakuake — `[Appearance]` default profile + его `.colorscheme`;
+  команда/scrollback/размер шрифта сохраняются. Открытые сессии требуют ручного
+  обновления выбора схемы, без автоматической подмены целого профиля.
 
 ### Launchers/Menu (опционально)
 - `.config/wofi/style.css`, `wallpaper.css`
@@ -152,16 +154,25 @@ Obsidian…), плюс `theme.json` (описание, значения для G
 - `.config/Cursor/User/settings.json`
 
 ### Browser (опционально)
-- `.zen/<профиль>/user.js` — каталог профиля авто-детектится (первый с `user.js`); включая `zen.view.window.scheme` (`0` dark, `1` light, `2` system)
-- `.zen/<профиль>/chrome/userChrome.css`
-- `.zen/<профиль>/chrome/userContent.css`
-- `.zen/<профиль>/chrome/zen-themes.css`
+- Zen / Firefox: безопасный default profile из installs.ini/profiles.ini,
+  native/XDG/Flatpak roots; native accent/day-night в user.js;
+  userChrome и stylesheet support не меняются.
+- Никаких переносимых UI CSS, opacity/density, privacy/addon prefs или записи prefs.js.
+- Контраст текста/иконок проверяется; отключённый личный CSS не включается молча.
+- Pywalfox — отдельный opt-in с существующим baseline wal/colors.json.
 
 ### Notes (опционально)
-- `obsidian/vault/.obsidian/appearance.json`
+- Obsidian: vault index + явный локальный выбор при нескольких хранилищах.
+- appearance.json (только theme/cssTheme/enabledCssSnippets), собственный snippet
+  и активная custom theme. Снимок использует переносимые слоты, не пути автора.
+- obsidian.json, Preferences, заметки и плагины не сохраняются/не изменяются.
 
-`obsidian.json` (список хранилищ) и `Preferences` (проверка орфографии,
-масштаб) не сохраняются — это не оформление.
+### Neovim (опционально)
+- nvim/kolira-palette.json + фиксированные colors/kolira.lua и after/plugin/kolira.lua.
+- init.lua/init.vim и plugin specs не меняются; произвольный Lua из темы не выполняется.
+
+Контракты первых десяти приложений, выбор vault и ограничения runtime:
+[APPLICATIONS.md](APPLICATIONS.md).
 
 **Значки рабочего стола.** `plasma-org.kde.plasma.desktop-appletsrc` (панели,
 виджеты, рабочий стол) восстанавливается целиком, кроме положения значков:
@@ -208,13 +219,13 @@ Qt/QML-приложение (`gui/qt-app/`) ставится установщи�
 - выбор компонента идёт из списков установленных ресурсов; core-поля сначала стейджатся и применяются одним батчом через `AppThemeCore`;
 - установленность приложения определяется по исполняемому файлу или Flatpak (`binaries`/`flatpak_ids` адаптера: Zed — `zeditor`/`zed`/`dev.zed.Zed`, VS Code — `code`/`code-oss`/`codium`/`vscodium`, …); только конфиг без программы — статус «не установлено — найден только старый конфиг»; компоненты профиля (`tracked_apps`) принимают альтернативы `a|b` в `detect_command`;
 - магазины тем редакторов (`rust_core/src/stores.rs`, `kolira apps store-search|store-install`, GUI «Найти в магазине…»): Zed — индекс `api.zed.dev` (`provides=themes`), установка = `themes/*.json` из архива расширения в `~/.config/zed/themes/<id>--<файл>.json`; VS Code/Cursor — поиск Open VSX, установка CLI редактора `--install-extension <id>` (расширения VSCodium/OSS — `~/.vscode-oss/extensions`); сеть — через общий `net.rs` (отключаемо);
-- адаптеры приложений (`src/core/app_theme_adapters.py`) имеют уровень интеграции: Zed, VS Code, Cursor, Obsidian и btop умеют показывать/применять темы (Zed перечисляет имена из `themes[]` каждого файла-семейства в `~/.config/zed/themes` и в установленных расширениях); Discord читает текущий light/dark fallback и открывает нативные настройки; Telegram перечисляет `.tdesktop-theme`, но не пишет `tdata` — поэтому в UI для него нет выпадающего списка, только подпись «Тема выбирается в самом приложении»; VS Code/Cursor хранят в `workbench.colorTheme` поле `id` темы из `package.json` расширения (у Doki это UUID), а в UI показывается её `label`; Kitty и Alacritty — `integration=config`, без списка тем и авто-применения, с кнопкой **Open config**, которая открывает конфиг в системном редакторе через `xdg-open`;
+- адаптеры приложений (`src/core/app_theme_adapters.py`) имеют уровень интеграции: Zed, VS Code, Cursor, Obsidian и btop умеют показывать/применять темы (Zed перечисляет имена из `themes[]` каждого файла-семейства в `~/.config/zed/themes` и в установленных расширениях); Discord читает текущий light/dark fallback и открывает нативные настройки; VS Code/Cursor хранят в `workbench.colorTheme` поле `id` темы из `package.json` расширения (у Doki это UUID), а в UI показывается её `label`; Kitty и Alacritty — `integration=config`, без списка тем и авто-применения, с кнопкой **Open config**, которая открывает конфиг в системном редакторе через `xdg-open`;
 - адаптеры перед записью копируют старый конфиг в `kolira/backups/app-theme-<timestamp>/`;
 - сохранение профиля пишет тему-пакет через Rust CLI (`kolira save`, без отдельного `theme-bundle.json`); область профиля на странице Theme читает значения из `theme.json`; старые профили с `theme-bundle.json`/снимком открываются как legacy; диалог сохранения — флажок «Include the current wallpaper», диалог применения — «Keep the current wallpaper», после применения — диалог «Missing Theme Parts» со ссылками и кнопкой «Install from stores» (`apply --install-missing`);
 - есть создание пользовательских производных тем (`create_custom_theme`): копия базовой color scheme в `$XDG_DATA_HOME/color-schemes` с перенесёнными живыми группами `[Colors:*]`/`[WM]` из `kdeglobals` (правки цветов из Theme Inspector не теряются) и Kvantum-темы в `$XDG_DATA_HOME/Kvantum`; системные базовые темы не изменяются;
 - старый field-based Theme Inspector остаётся для Advanced/Customize (`SectionPage.qml`, `ThemeFieldRow.qml`), но не является главным экраном;
 - для AI-агентов добавлен stdio MCP-сервер `mcp/kolira_profile_mcp.py` (см. `docs/MCP.md`): перечисление тем, сборка/валидация/явное применение профилей, создание производных тем; удаление профилей не экспонируется;
-- интерфейс на системном языке: QML через `qsTr`, Python через `tr()`; статические подписи групп/компонентов `ThemeBundleCore` помечены `QT_TRANSLATE_NOOP("ThemeBundle", …)` и переводятся при выдаче в QML; пайплайн `scripts/update-translations.sh` по-прежнему собирает `kolira_ru.qm`.
+- интерфейс на системном языке: QML через `qsTr`, Python через `tr()`; статические подписи групп/компонентов `ThemeBundleCore` помечены `QT_TRANSLATE_NOOP("ThemeBundle", …)` и переводятся при выдаче в QML; пайплайн `gui/qt-app/tools/update_translations.py` по-прежнему собирает `kolira_ru.qm`.
 - тексты из данных тоже переводятся: подписи и описания полей инспектора
   (`theme_fields.json`, контекст `ThemeFields`), описания приложений
   (`TrackedApps`), тексты ядра — пункты автоматизации и действия после
@@ -223,7 +234,7 @@ Qt/QML-приложение (`gui/qt-app/`) ставится установщи�
   into …», «… restarted» — и собирает их из переводимых шаблонов; CLI остаётся
   английским для скриптов). `gui/qt-app/tools/gen_i18n_strings.py` пишет
   `src/core/i18n_strings.py` (QT_TRANSLATE_NOOP для pylupdate6) и вписывает
-  переводы из `tools/i18n_ru.py` в `py_ru.ts`; `update-translations.sh` вызывает
+  переводы из `tools/i18n_ru.py` в `py_ru.ts`; `tools/update_translations.py` вызывает
   его до и после pylupdate6. Тесты проверяют, что файл строк покрывает поля,
   приложения и тексты ядра, а каталоги переведены полностью.
 
@@ -441,3 +452,31 @@ Live-проверка новых сценариев и обнаружение и
 Оба этапа, GSettings и обои проверены отдельными сценариями; явный keep-wallpaper
 сохраняет изображение и файл. Границы старого журнала и browser prefs:
 `tasks/2026_11_15_restore-missing-config-baseline.md`.
+
+## Комплектные приложения и Material You (2026-11-15)
+
+В репозитории восемь готовых пакетов, включая material-you. В каждом есть
+палитра и явные цели первой партии приложений. Для Cursor/Code не нужны
+marketplace extensions: встроенная база и цветовые overrides; Zed/Neovim —
+свои ресурсы. Pywalfox автоматически не включается. Старые browser UI skins
+в пакетах заменены только цветами/day-night. Пользовательские варианты тем
+обновляются отдельным импортом из staging с backup; installer сам не заменяет
+локально изменённый пакет. [Ресурсы](../themes/README.md),
+[проверка и доставка](../tasks/2026_11_15_bundled-apps-and-material-you.md).
+
+
+P0 application rows 11–20 are implemented: fish/Pure/OMP, btop/Cava, Yazi/bat,
+Wofi, fzf, lazygit, Zellij, OpenCode V2, Claude Code and Codex. The tracked registry
+contains 51 applications. Native paths, colour-only policies, startup/reload and
+custom-path limits are documented in [APPLICATIONS.md](APPLICATIONS.md).
+
+
+2026-11-16: исправлена согласованность палитры комплектных тем — stale красные
+GTK colours Everforest, KDE accent/scheme, Alacritty/Ghostty и OMP colour data.
+Native browser accent/day-night проверяются на всех восьми пакетах отдельно от
+контраста/возврата. [Результаты и границы](audits/2026_11_16_palette-consistency.md).
+
+Третья партия добавляет Micro, lsd/Glow, Chromium/Chrome (ручной выбор), GIMP 3,
+Heroic, Prism, Vim, mpv/Cliamp и VSCodium. Все восемь пакетов содержат ресурсы
+из палитры. LibreOffice исключён: стандартная тема и личные настройки сохраняются.
+Пути и ограничения: [APPLICATIONS.md](APPLICATIONS.md).

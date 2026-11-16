@@ -159,6 +159,13 @@ pub fn live_path(relative: &str) -> PathBuf {
     if parts.first().map(|p| *p == ".cache").unwrap_or(false) {
         return push_rest(cache_home(), 1);
     }
+    for (prefix, variable) in [(".codex", "CODEX_HOME"), (".claude", "CLAUDE_CONFIG_DIR")] {
+        if parts.first().is_some_and(|p| *p == prefix) {
+            if let Some(base) = std::env::var_os(variable).filter(|v| !v.is_empty()) {
+                return push_rest(PathBuf::from(base), 1);
+            }
+        }
+    }
     home_dir().join(path)
 }
 
@@ -189,6 +196,15 @@ pub fn validate_profile_name(name: &str) -> Result<()> {
 /// Agent control files are workspace metadata, not theme assets. An imported
 /// package must not become a source of trusted client instructions or hooks.
 pub fn is_agent_metadata(path: &Path) -> bool {
+    // Only these appearance hosts/resources are transferable. Mixed hosts are
+    // filtered by appearance::capture/normalize; auth, instructions and hooks
+    // under these directories remain excluded.
+    if matches!(
+        path.to_str(),
+        Some(".claude/settings.json" | ".codex/config.toml" | ".codex/themes/kolira.tmTheme")
+    ) {
+        return false;
+    }
     path.components().any(|component| {
         let name = component.as_os_str().to_string_lossy().to_ascii_lowercase();
         [

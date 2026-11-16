@@ -46,7 +46,7 @@ Usage:
                                (registry of what themes need; orphaned lists installed-but-unused)
   kolira deps NAME [--refresh] [--install[=all|0,2]] [--json]
                               (what the theme needs and where from; install from official sources)
-  kolira actions NAME [--json]         (what applying leaves to do: restarts, Telegram)
+  kolira actions NAME [--json]         (what applying leaves to do: restarts or native appearance controls)
   kolira action ID                     (do one: vesktop, discord, zen, firefox)
   kolira automation [--json] | set KEY=ask|always|never … | ask
                               (what applying may do by itself: store, packages, restart_<app>)
@@ -1138,7 +1138,7 @@ fn dispatch() -> ExitCode {
             ExitCode::SUCCESS
         }
         "actions" => {
-            // What applying NAME leaves to do (restarts, Telegram).
+            // What applying NAME leaves to do (restarts or native appearance controls).
             let Some(name) = args.iter().skip(1).find(|a| !a.starts_with("--")) else {
                 return fail("Usage: kolira actions NAME [--json]");
             };

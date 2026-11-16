@@ -627,7 +627,13 @@ pub(crate) fn plan_from_cache(
     }
     anyhow::ensure!(valid_vsx_id(id), "invalid extension id");
     let root = extension_root(editor)?;
-    let target = root.join(format!("{id}-kolira"));
+    let owned_id = if id.starts_with("kolira-cache.") {
+        id.to_string()
+    } else {
+        let (publisher, name) = id.split_once('.').context("extension id")?;
+        format!("kolira-cache.{publisher}-{name}")
+    };
+    let target = root.join(format!("{owned_id}-kolira"));
     strict_destination(&target, &root)?;
     let mut pkg: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(cache.join("package.json"))?)?;
@@ -668,8 +674,20 @@ pub(crate) fn plan_from_cache(
     obj.remove("extensionDependencies");
     obj.remove("extensionPack");
     obj.insert("contributes".into(), serde_json::json!({"themes":themes}));
+    let (_, owned_name) = owned_id.split_once('.').context("owned extension id")?;
+    obj.insert("publisher".into(), "kolira-cache".into());
+    obj.insert("name".into(), owned_name.into());
     if watch {
         obj.insert("_watch".into(), true.into());
+        if let Some(themes) = obj
+            .get_mut("contributes")
+            .and_then(|v| v.get_mut("themes"))
+            .and_then(|v| v.as_array_mut())
+        {
+            for theme in themes {
+                theme["_watch"] = true.into();
+            }
+        }
     }
     fn check_targets(src: &Path, dst: &Path, container: &Path) -> Result<()> {
         strict_destination(dst, container)?;
@@ -687,6 +705,30 @@ pub(crate) fn plan_from_cache(
         &target.join("package.json"),
         serde_json::to_string_pretty(&pkg)?,
         "editor_theme",
+    )?;
+    let registry = root.join("extensions.json");
+    strict_destination(&registry, &root)?;
+    let mut entries: Vec<serde_json::Value> = match plan.text(&registry)? {
+        Some(text) => serde_json::from_str(&text)
+            .context("Invalid editor extensions.json; refusing to overwrite")?,
+        None => Vec::new(),
+    };
+    let version = pkg
+        .get("version")
+        .and_then(|v| v.as_str())
+        .context("Extension version missing")?;
+    entries.retain(|entry| {
+        entry["relativeLocation"].as_str() != target.file_name().and_then(|s| s.to_str())
+    });
+    entries.push(serde_json::json!({
+        "identifier":{"id":owned_id},"version":version,
+        "location":{"$mid":1,"scheme":"file","path":target,"fsPath":target,"external":format!("file://{}",target.display())},
+        "relativeLocation":target.file_name().and_then(|s|s.to_str()).context("Extension folder")?,
+    }));
+    plan.write_text(
+        &registry,
+        serde_json::to_string_pretty(&entries)?,
+        "editor_registry",
     )?;
     Ok(vec![target.display().to_string()])
 }

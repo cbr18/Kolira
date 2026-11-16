@@ -181,7 +181,7 @@ def bundle_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     fake_bin = tmp_path / "fake-bin"
     fake_bin.mkdir()
     for name in ("zeditor", "code", "cursor", "obsidian", "btop", "kitty",
-                 "alacritty", "discord", "telegram-desktop", "xdg-open"):
+                 "alacritty", "discord", "xdg-open"):
         tool = fake_bin / name
         tool.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
         tool.chmod(0o755)
@@ -235,8 +235,6 @@ def bundle_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     put(".config/btop/themes/noctalia.theme", "# noctalia\n")
     put(".config/btop/themes/nord.theme", "# nord\n")
     put(".config/discord/settings.json", '{\n  "BACKGROUND_COLOR": "#ffffff",\n  "IS_MAXIMIZED": true\n}\n')
-    put(".config/telegram-desktop/themes/noctalia.tdesktop-theme", "windowBg: #121415;\n")
-    put(".config/noctalia/Assets/Templates/telegram.tdesktop-theme", "windowBg: #f6f0e6;\n")
     put(".config/kitty/kitty.conf", "background_opacity 0.5\ninclude themes/old.conf\n")
     put(".config/kitty/themes/old.conf", "# old\n")
     put(".config/kitty/themes/night.conf", "# night\n")
@@ -381,7 +379,8 @@ def test_application_adapters_detect_and_apply_with_backups(
     appearance = json.loads(
         (home / "obsidian/vault/.obsidian/appearance.json").read_text(encoding="utf-8")
     )
-    assert appearance["theme"] == "Fancy"
+    assert appearance["cssTheme"] == "Fancy"
+    assert appearance["theme"] == "obsidian"  # base day/night remains separate
 
     btop = BtopAdapter()
     assert btop.detect()
@@ -426,27 +425,18 @@ def test_config_only_app_model_and_open_config(
     assert _launched(opened) == [["xdg-open", kitty["configPath"]]]
 
 
-def test_discord_and_telegram_adapters_use_safe_fallbacks(
+def test_discord_adapter_uses_safe_fallbacks(
     bundle_home, monkeypatch: pytest.MonkeyPatch
 ):
     adapters = ADAPTERS
     discord = adapters["discord"]
-    telegram = adapters["telegram"]
+    assert "telegram" not in adapters and "kotatogram" not in adapters
 
     assert discord.detect()
     assert discord.current_theme()["label"] == "Light"
     assert discord.capabilities["apply_theme"] is False
     assert discord.capabilities["open_config"] is True
 
-    assert telegram.detect()
-    telegram_themes = {theme["id"] for theme in telegram.installed_themes()["themes"]}
-    assert {"noctalia", "telegram"} <= telegram_themes
-    assert telegram.capabilities["apply_theme"] is False
-    assert telegram.capabilities["installed_themes"] is True
-
-    opened = _capture_launches(bundle_home["home"], monkeypatch, "xdg-open")
-    assert telegram.open_config()["ok"]
-    assert _launched(opened) == [["xdg-open", str(bundle_home["home"] / ".config/telegram-desktop/themes")]]
 
 
 def test_theme_bundle_core_tracks_adapter_changes(bundle_home):

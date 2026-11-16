@@ -31,10 +31,16 @@ use crate::paths::{config_home, home_dir};
 
 pub const OMP_THEME: &str = ".config/oh-my-posh/kolira.omp.json";
 pub const SHELL_HOSTS: &[&str] = &[".config/fish/config.fish", ".zshrc", ".bashrc"];
-const OMP_PATH: &str = "\"$HOME/.config/oh-my-posh/kolira.omp.json\"";
 
 /// Byte span of the `--config` value in an `oh-my-posh init` line.
 fn omp_config_span(line: &str) -> Option<(usize, usize)> {
+    let t = line.trim_start();
+    if !(t.starts_with("oh-my-posh init ")
+        || t.starts_with("eval (oh-my-posh init ")
+        || t.starts_with("eval \"$(oh-my-posh init "))
+    {
+        return None;
+    }
     if !line.contains("oh-my-posh")
         || !line.contains(" init ")
         || line.trim_start().starts_with('#')
@@ -67,7 +73,7 @@ fn omp_config_span(line: &str) -> Option<(usize, usize)> {
 pub fn omp_current() -> Option<PathBuf> {
     let home = home_dir();
     for rel in SHELL_HOSTS {
-        let Ok(text) = fs::read_to_string(home.join(rel)) else {
+        let Ok(text) = fs::read_to_string(crate::paths::live_path(rel)) else {
             continue;
         };
         for line in text.lines() {
@@ -75,7 +81,9 @@ pub fn omp_current() -> Option<PathBuf> {
                 let raw = line[s..e].trim_matches(['\'', '"']);
                 let expanded = raw
                     .replace("$HOME", &home.to_string_lossy())
-                    .replace("${HOME}", &home.to_string_lossy());
+                    .replace("${HOME}", &home.to_string_lossy())
+                    .replace("${XDG_CONFIG_HOME}", &config_home().to_string_lossy())
+                    .replace("$XDG_CONFIG_HOME", &config_home().to_string_lossy());
                 let path = match expanded.strip_prefix("~/") {
                     Some(rest) => home.join(rest),
                     None => PathBuf::from(expanded),
@@ -91,11 +99,10 @@ pub fn omp_current() -> Option<PathBuf> {
 
 /// Shell config files that have an oh-my-posh init line.
 pub fn omp_hosts() -> Vec<String> {
-    let home = home_dir();
     SHELL_HOSTS
         .iter()
         .filter(|rel| {
-            fs::read_to_string(home.join(rel))
+            fs::read_to_string(crate::paths::live_path(rel))
                 .is_ok_and(|t| t.lines().any(|l| omp_config_span(l).is_some()))
         })
         .map(|r| r.to_string())
@@ -107,7 +114,17 @@ pub fn omp_host(text: &str) -> String {
     let mut out: Vec<String> = Vec::new();
     for line in text.lines() {
         match omp_config_span(line) {
-            Some((s, e)) => out.push(format!("{}{OMP_PATH}{}", &line[..s], &line[e..])),
+            Some((s, e)) => {
+                let path = crate::paths::live_path(OMP_THEME);
+                let mut escaped = String::new();
+                for c in path.to_string_lossy().chars() {
+                    if matches!(c, '\\' | '"' | '$') || u32::from(c) == 96 {
+                        escaped.push('\\');
+                    }
+                    escaped.push(c);
+                }
+                out.push(format!("{}\"{}\"{}", &line[..s], escaped, &line[e..]));
+            }
             None => out.push(line.to_string()),
         }
     }
@@ -256,7 +273,7 @@ fn replace_block(existing: &str, block: &str, begin: &str, end: &str) -> String 
     }
 }
 
-pub(crate) fn ghostty_palette_text(current: &str, p: &Palette) -> String {
+pub fn ghostty_palette_text(current: &str, p: &Palette) -> String {
     replace_block(current, &ghostty_colors(p), GHOSTTY_BEGIN, GHOSTTY_END)
 }
 
@@ -338,11 +355,6 @@ fn css_color(c: crate::palette::Rgb, alpha: f64) -> String {
 pub fn gtk4_css(p: &Palette, opacity: f64) -> String {
     let o = opacity.clamp(0.3, 1.0);
     let r = kde_roles(p);
-    let accent_fg = if r.accent.luminance() > 0.45 {
-        p.slot(0)
-    } else {
-        crate::palette::Rgb(255, 255, 255)
-    };
     let solid = |x: f64| (o + (1.0 - o) * x).min(1.0);
     // Views and cards a little clearer than the window — only when translucent.
     let less = |d: f64| if o >= 1.0 { 1.0 } else { (o - d).max(0.3) };
@@ -365,8 +377,8 @@ pub fn gtk4_css(p: &Palette, opacity: f64) -> String {
         ("dialog_bg_color", css_color(r.window_alt, solid(0.5))),
         ("dialog_fg_color", r.text.hex()),
         ("accent_bg_color", r.accent.hex()),
-        ("accent_fg_color", accent_fg.hex()),
-        ("accent_color", r.link.hex()),
+        ("accent_fg_color", r.selection_text.hex()),
+        ("accent_color", r.accent.hex()),
         ("destructive_bg_color", r.negative.hex()),
         ("success_color", r.positive.hex()),
         ("warning_color", r.neutral.hex()),
@@ -458,6 +470,24 @@ pub fn reload_cava() {
 pub const FISH_VARS: &str = ".config/fish/fish_variables";
 pub const BAT_CONFIG: &str = ".config/bat/config";
 
+/// SETUVAR records require fish's v3 format header when a file is first created.
+pub fn fish_header(text: &str) -> Result<String> {
+    if let Some(version) = text
+        .lines()
+        .find_map(|l| l.trim_start().strip_prefix("# VERSION:"))
+    {
+        anyhow::ensure!(
+            version.trim() == "3.0",
+            "Unsupported fish universal-variable format; refusing to rewrite it"
+        );
+        Ok(text.into())
+    } else {
+        Ok(format!(
+            "# This file contains fish universal variable definitions.\n# VERSION: 3.0\n{text}"
+        ))
+    }
+}
+
 /// Universal variables that are fish's colours.
 pub fn fish_colour_line(line: &str) -> bool {
     let t = line.trim_start();
@@ -465,7 +495,9 @@ pub fn fish_colour_line(line: &str) -> bool {
         .strip_prefix("SETUVAR --export ")
         .or_else(|| t.strip_prefix("SETUVAR "))
         .unwrap_or("");
-    name.starts_with("fish_color_") || name.starts_with("fish_pager_color_")
+    name.starts_with("fish_color_")
+        || name.starts_with("fish_pager_color_")
+        || name.starts_with("pure_color_")
 }
 
 fn fish_var_name(line: &str) -> Option<&str> {
@@ -531,6 +563,85 @@ pub fn bat_theme_line(line: &str) -> bool {
     t.starts_with("--theme") || t.starts_with("--italic-text")
 }
 
+/// Refresh named GTK/Breeze colour definitions without adding widget selectors.
+pub fn gtk_colors_with_palette(existing: &str, p: &Palette) -> String {
+    let r = kde_roles(p);
+    let role = |name: &str| {
+        let n = name.trim_end_matches("_breeze");
+        let fg = n.contains("foreground")
+            || n.contains("_fg")
+            || n.contains("_text")
+            || n == "tooltip_text";
+        if n.contains("visited") {
+            r.visited
+        } else if n.starts_with("link") {
+            r.link
+        } else if n.starts_with("error") || n.starts_with("destructive") {
+            r.negative
+        } else if n.starts_with("success") {
+            r.positive
+        } else if n.starts_with("warning") {
+            r.neutral
+        } else if n.contains("decoration_hover") {
+            r.hover
+        } else if n.contains("decoration_focus") || n.contains("decoration_color") {
+            r.accent
+        } else if n.contains("selected") || n.contains("accent") || n.contains("foreground_active")
+        {
+            if fg || n.ends_with("text") {
+                r.selection_text
+            } else {
+                r.accent
+            }
+        } else if n.contains("border") {
+            p.slot(2)
+        } else if fg {
+            r.text
+        } else if n.contains("header") || n.contains("titlebar") {
+            r.header
+        } else if n.contains("view") || n.contains("base") {
+            r.view
+        } else if n.contains("button") {
+            r.button
+        } else if n.starts_with("tooltip")
+            || n.contains("sidebar")
+            || n.contains("popover")
+            || n.contains("dialog")
+        {
+            r.window_alt
+        } else if n.contains("card") {
+            r.button
+        } else {
+            r.window
+        }
+    };
+    let mut out = String::new();
+    for line in existing.split_inclusive('\n') {
+        if let Some(rest) = line.trim().strip_prefix("@define-color ") {
+            if let Some(name) = rest.split_whitespace().next() {
+                let colour = role(name);
+                let value = rest[name.len()..].trim().trim_end_matches(';').trim();
+                let formatted = value
+                    .strip_prefix("alpha(")
+                    .and_then(|v| v.strip_suffix(')'))
+                    .and_then(|v| v.rsplit_once(','))
+                    .and_then(|(_, a)| {
+                        a.trim()
+                            .parse::<f64>()
+                            .ok()
+                            .filter(|a| (0.0..=1.0).contains(a))
+                    })
+                    .map(|a| css_color(colour, a))
+                    .unwrap_or_else(|| colour.hex());
+                let _ = writeln!(out, "@define-color {name} {formatted};");
+                continue;
+            }
+        }
+        out.push_str(line);
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -539,11 +650,20 @@ mod tests {
     fn omp_swaps_only_the_config_path() {
         let fish = "oh-my-posh init fish --config '/home/u/.local/share/omp-manager/themes/aliens.omp.json' | source  # [omp-manager]\nabbr -a g git\n";
         let out = omp_host(fish);
-        assert!(out.starts_with("oh-my-posh init fish --config \"$HOME/.config/oh-my-posh/kolira.omp.json\" | source  # [omp-manager]"), "{out}");
+        assert!(
+            out.starts_with(&format!(
+                "oh-my-posh init fish --config \"{}\" | source  # [omp-manager]",
+                crate::paths::live_path(OMP_THEME).display()
+            )),
+            "{out}"
+        );
         assert!(out.contains("abbr -a g git"));
         assert_eq!(omp_host(&out), out);
         let zsh = "eval \"$(oh-my-posh init zsh --config=~/x.json)\"\n";
-        assert!(omp_host(zsh).contains("--config=\"$HOME/.config/oh-my-posh/kolira.omp.json\")"));
+        assert!(omp_host(zsh).contains(&format!(
+            "--config=\"{}\")",
+            crate::paths::live_path(OMP_THEME).display()
+        )));
         assert_eq!(
             omp_host("# oh-my-posh init fish --config x\n"),
             "# oh-my-posh init fish --config x\n"

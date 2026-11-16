@@ -1,0 +1,27 @@
+user: "#51a2da"
+group: "#40d4e8"
+permission:
+  read: "#8be05a"
+  write: "#ffe066"
+  exec: "#ff6b6b"
+  exec-sticky: "#9fb4ff"
+  no-access: "#557a98"
+  octal: "#40d4e8"
+  acl: "#40d4e8"
+  context: "#40d4e8"
+date:
+  hour-old: "#8be05a"
+  day-old: "#40d4e8"
+  older: "#51a2da"
+size:
+  none: "#557a98"
+  small: "#8be05a"
+  medium: "#ffe066"
+  large: "#ff6b6b"
+inode:
+  valid: "#9fb4ff"
+  invalid: "#557a98"
+links:
+  valid: "#9fb4ff"
+  invalid: "#557a98"
+tree-edge: "#557a98"

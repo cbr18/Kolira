@@ -126,6 +126,7 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         '{\n  "workbench.colorTheme": "Default Dark Modern"\n}\n')
     put(".config/Cursor/User/settings.json",
         '{\n  "workbench.colorTheme": "Cursor Dark Midnight"\n}\n')
+    put(".zen/profiles.ini", "[Profile0]\nPath=test (release)\nDefault=1\n")
     put(".zen/test (release)/user.js",
         'user_pref("browser.tabs.allow_transparent_browser", true);\n'
         'user_pref("mod.sameerasw.zen_bg_opacity", "0.55");\n'
@@ -173,7 +174,7 @@ def test_reads_live_values(home: Path) -> None:
     assert core.get("zed_mode")["value"] == "dark"
     assert core.get("vscode_theme")["value"] == "Default Dark Modern"
     assert core.get("cursor_ide_theme")["value"] == "Cursor Dark Midnight"
-    assert core.get("zen_opacity")["value"] == pytest.approx(0.55)
+    assert core.get("zen_opacity") is None  # colour/day-night only
     assert core.get("zen_window_scheme")["value"] == "0"
     assert core.get("zen_window_scheme")["display"] == "Dark"
     assert core.get("obsidian_theme")["value"] is None
@@ -276,7 +277,7 @@ def test_write_obsidian_inserts_key(home: Path) -> None:
     assert core.set_value("obsidian_theme", "moonstone").success
     assert core.apply().success
     text = (home / "obsidian/vault/.obsidian/appearance.json").read_text()
-    assert '"theme": "moonstone"' in text
+    assert '"cssTheme": "moonstone"' in text
     assert core.get("obsidian_theme")["value"] == "moonstone"
 
 

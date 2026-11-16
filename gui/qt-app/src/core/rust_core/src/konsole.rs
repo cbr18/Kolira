@@ -40,7 +40,10 @@ pub fn default_profile() -> Option<String> {
 /// Tracked files: the default profile (or the one a theme would create) and
 /// its colour scheme when it is a user scheme.
 pub fn config_paths() -> Vec<String> {
-    if which::which("konsole").is_err() && !konsole_dir().exists() {
+    if which::which("konsole").is_err()
+        && which::which("yakuake").is_err()
+        && !konsole_dir().exists()
+    {
         return Vec::new();
     }
     let profile = default_profile().unwrap_or_else(|| THEME_PROFILE.to_string());

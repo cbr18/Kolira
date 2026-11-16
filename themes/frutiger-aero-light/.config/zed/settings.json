@@ -4,9 +4,5 @@
     "light": "Zed (Default)",
     "dark": "Zed (Default)"
   },
-  "theme": {
-    "mode": "light",
-    "light": "Light Glass",
-    "dark": "Light Glass",
-  }
+  "theme": {"mode":"light","dark":"Kolira frutiger-aero-light","light":"Kolira frutiger-aero-light"}
 }

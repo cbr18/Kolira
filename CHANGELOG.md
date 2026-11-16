@@ -2,6 +2,73 @@
 
 ## Unreleased
 
+## 0.8.0 — 2026-11-16
+
+- Удалена поддержка Telegram/Kotatogram: генерация, GUI/CLI, действия и ресурсы
+  всех восьми тем. Старые пакеты и apply-journal больше не меняют эти клиенты;
+  личные настройки и данные сохраняются.
+- Перезапуск после Apply допустим и отмечается отдельно; в конец приоритетов
+  попадают ручной выбор/импорт/сброс темы и дополнительная настройка.
+
+- Очередь приложений теперь отдаёт приоритет автоматическому Apply и возврату:
+  ручной выбор/настройка и неподтверждённое применение вынесены в P4.
+  Автоматический Chromium через BrowserThemeColor отложен после native-проверки:
+  снятие политики теряет GTK/Qt baseline; этот путь не включён в Apply.
+
+- Акцент с обоев (`accentColorFromWallpaper`) теперь применяется в темах `glass`
+  и `material-you`: в `theme.json` `values.accent_from_wallpaper` переведено в
+  `true` (было `false` и перебивало `true` из `kdeglobals` при Apply), убран
+  конфликтующий дубль `AccentColorFromWallpaper=false` в `.config/kdeglobals` обеих
+  тем. Остальные темы (`dracula`, `everforest`, `frutiger-aero`,
+  `frutiger-aero-light`, `minecraft-overworld-dark`, `Paper`) остаются на `false`.
+- Maintenance refresh сохраняет пользовательские BreezeLight/BreezeDark и акцент
+  от обоев Glass/Material You, убирает конфликтующие варианты регистра ключа.
+- Добавлены цвета из палитры и безопасный возврат для Micro, lsd/Glow,
+  GIMP 3, Heroic, Prism, Vim, mpv/Cliamp и VSCodium; все восемь комплектных
+  тем обновлены. Chromium/Chrome получают только нативный frame accent с
+  ручной загрузкой/reload/сбросом в браузере. LibreOffice исключён пользователем.
+- Вложенный отсутствующий ключ JSONC вставляется по позиции существующего
+  объекта с сохранением комментариев и личного форматирования.
+
+- Исправлены красные GTK/Breeze colours в Everforest и stale palette resources
+  остальных комплектных тем; KDE accent/colour fields, Alacritty/Ghostty и OMP
+  теперь обновляются из палитры вместе с прочими поддерживаемыми приложениями.
+- Браузеры используют native accent + day/night без переписывания toolbar,
+  кнопок, надписей или иконок через CSS. Личный CSS не включается. Добавлены
+  проверки фактического акцента/режима Firefox и Zen для всех восьми тем.
+
+- Added the next ten P0 application rows: fish/Pure/Oh My Posh, btop/Cava,
+  Yazi/bat, Wofi, fzf, lazygit, Zellij, OpenCode V2, Claude Code and Codex.
+  Native appearance fields preserve personal configuration and return to baseline
+  when switching to a theme without those fields; AI secrets are excluded.
+- Updated all eight bundled themes with the new colour resources and selectors.
+  bat cache rebuild now participates in rollback and return-to-baseline recovery.
+
+
+- Замена объектов/массивов в JSONC выполняется на месте: повторное обновление
+  editor overrides, Zed theme и Obsidian snippet list не создаёт дубли ключей;
+  окружающие комментарии и личные значения сохраняются.
+
+- Все восемь комплектных тем обновлены для первых десяти групп приложений:
+  палитры, встроенные темы Cursor/VS Code с цветами, собственные Zed/Neovim,
+  безопасные browser colours/day-night и ресурсы мессенджеров/терминалов.
+  Material You добавлен как публичный пакет без личных путей и библиотек.
+- Исправлен экспорт browser colours из снимка с другим именем default profile;
+  ресурсы и day/night больше не теряются при переносе ZIP.
+
+- Первая партия покрытия приложений: Cursor/Zed, Neovim, Obsidian,
+  Zen/Firefox/Pywalfox, Discord/Vesktop, Kitty и Konsole/Yakuake.
+  Новые ресурсы и ключи выбора включены в preview, rollback и возврат к теме
+  без конфига. Личные настройки и поздние изменения сохраняются.
+- Neovim получает автономную colorscheme из данных палитры без изменения init
+  и установки плагинов; Obsidian — выбор vault и переносимые слоты снимка.
+- Zen/Firefox меняют только цвета и day/night; проверяется контраст иконок,
+  игнорируются UI CSS/прозрачность старых тем, prefs.js не редактируется.
+- Кэш Cursor регистрируется как отдельное расширение только с цветовыми темами;
+  повторный save/apply стабилен. Выбор тем Cursor/Zed применяется вместе с кэшем.
+- Pywalfox включается явно и требует исходный colors.json. Для открытых Konsole/Yakuake
+  предлагается ручное обновление цвета вместо подмены целого профиля.
+
 - Возврат к теме без части конфигов восстанавливает исходное оформление этих
   приложений вместо сброса к defaults. Журнал охватывает INI/JSONC, второй этап,
   удаления, ссылки и права; поздние личные значения и комментарии сохраняются.
@@ -38,6 +105,25 @@
 - Восстановлены проверки путей назначения ресурсов и безопасная обработка VSIX;
   исправлены устаревшие контрольные суммы комплектной Minecraft-темы.
 - Обновление переводов: `python3 gui/qt-app/tools/update_translations.py`.
+
+- Третья партия P0 № 21–29 плюс VSCodium: Micro, lsd/Glow, Chromium/Chrome
+  (ручной выбор/сброс кэшированной темы), GIMP 3, Heroic, Prism, Vim,
+  mpv/Cliamp и VSCodium — 35 явных `app_targets`, 51 запись реестра. Все восемь
+  комплектных тем содержат нативные palette-ресурсы для обеих партий. Новые
+  Rust-модули `third_apps.rs`, `native_appearance.rs`, `structured_appearance.rs`,
+  `terminal_apps.rs`, `browser_appearance.rs`, `neovim.rs`, `obsidian.rs` и
+  пример `examples/refresh_theme_apps.rs` для обслуживания пакетов тем.
+- Новые документы: `docs/APPLICATIONS.md` (контракты оформления приложений,
+  vault Obsidian, ограничения браузеров и AI-клиентов), `docs/APP_COVERAGE_PRIORITIES.md`
+  (очередь P0–P4), аудиты `docs/audits/2026_11_15_app-coverage-files.md` и
+  `docs/audits/2026_11_16_palette-consistency.md`.
+- Новые тесты: `rust_core/tests/{first_ten,second_ten,third_ten}.rs`, e2e
+  `tests/e2e/{browser-native-accent,browser-colour-contrast,editor-cache-native,
+  chromium-policy-native,third-apps-native,third-apps-gtk,third-apps-heroic,
+  third-apps-clients}.py`.
+- Переводы обновлены и собраны (`kolira_ru.qm`, `py_ru.ts`, `qml_ru.ts`).
+- Устаревшие `.zen/.../user.js` и `chrome/*.css` убраны из комплектных тем —
+  браузеры меняют только нативный акцент и day/night, `prefs.js` не правится.
 
 ## 0.7.0 — 2026-11-12
 

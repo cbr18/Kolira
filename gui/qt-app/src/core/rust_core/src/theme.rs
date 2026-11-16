@@ -169,7 +169,7 @@ pub struct ApplyReport {
     pub backup: String,
     /// Dependencies not installed here (deps.rs), to offer for installation.
     pub dependencies: Vec<Needed>,
-    /// Follow-up actions to offer (restart programs, Telegram…).
+    /// Follow-up actions to offer (restart programs or native appearance controls).
     pub actions: Vec<crate::actions::Action>,
     /// Optional dependencies missing here — reported as warnings, not blockers.
     pub optional_warnings: Vec<String>,
@@ -402,8 +402,16 @@ pub fn load(dir: &Path) -> Result<Package> {
     package
         .dependencies
         .retain(|dependency| dependency.kind != "fastfetch" && dependency.name != "fastfetch");
+    drop_retired_targets(&mut package);
     validate_assets(&package)?;
     Ok(package)
+}
+
+/// Compatibility for old packages; no adapter or generator remains for these IDs.
+pub(crate) fn drop_retired_targets(package: &mut Package) {
+    package
+        .app_targets
+        .retain(|target| !matches!(target.as_str(), "telegram" | "kotatogram"));
 }
 
 /// Packages may carry appearance resources, never arbitrary HOME files.
@@ -424,8 +432,7 @@ pub fn validate_assets(package: &Package) -> Result<()> {
     }
     for target in &package.app_targets {
         anyhow::ensure!(
-            ["discord", "konsole", "ghostty", "cava", "telegram", "firefox"]
-                .contains(&target.as_str()),
+            crate::app_sync::TARGETS.contains(&target.as_str()),
             "unknown app palette target: {target}"
         );
         anyhow::ensure!(
@@ -1075,6 +1082,12 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
                 if !stores::valid_vsx_id(&ext) {
                     continue;
                 }
+                // Managed colour-only copies are local resources, not marketplace IDs.
+                let store = if ext.starts_with("kolira-cache.") {
+                    "local"
+                } else {
+                    store
+                };
                 let url = match store {
                     "vscode-marketplace" => stores::vscode_marketplace_download_url(&ext),
                     "open-vsx" => stores::open_vsx_download_url(&ext),
@@ -1115,14 +1128,16 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
                         enabled: true,
                     });
                 }
-                package.sources.insert(
-                    id.into(),
-                    Source {
-                        store: store.into(),
-                        id: ext,
-                        url,
-                    },
-                );
+                if store != "local" {
+                    package.sources.insert(
+                        id.into(),
+                        Source {
+                            store: store.into(),
+                            id: ext,
+                            url,
+                        },
+                    );
+                }
             }
         }
     }
@@ -1731,33 +1746,12 @@ fn apply_inner(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
         &keep_fields,
         options.sync_apps.then_some(&package),
     )?;
-    // Telegram: nothing to run — once the user chose the palette file in
-    // Telegram, it watches the file and re-applies it after the restore.
     if dir.join(crate::spicetify::CONFIG).is_file() {
         crate::spicetify::refresh();
     }
-    if dir.join(crate::extras::CAVA).is_file() {
-        crate::extras::reload_cava();
-    }
-    if dir.join(".config/bat/themes").is_dir()
-        && std::env::var("KTM_THEME_NO_APPLY").as_deref() != Ok("1")
-        && which::which("bat").is_ok()
-    {
-        let status = crate::paths::status_bounded(
-            std::process::Command::new("bat")
-                .args(["cache", "--build"])
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null()),
-        );
-        if !status.is_some_and(|status| status.success()) {
-            report
-                .errors
-                .push("bat cache --build failed or timed out".into());
-        }
-    }
     report.backup = backup.display().to_string();
     report.applied = crate::profile::get_profile_components(name).unwrap_or_default();
-    // Restarts, Telegram's one-time choice: offered, not done (actions.rs) —
+    // Follow-up actions: offered, not done (actions.rs) —
     // a program may be in a call.
     for action in crate::actions::for_changes(&dir, &crate::operation::changed_paths()?) {
         let policy = if action.kind == "restart" {

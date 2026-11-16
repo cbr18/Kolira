@@ -1,6 +1,6 @@
 # Задачи проекта
 
-Актуализировано 2026-11-15 по файлам задач и текущему коду. Это индекс локальных
+Актуализировано 2026-11-16 по файлам задач и текущему коду. Это индекс локальных
 задач; `plans/` хранит планы, `docs/ROADMAP.md` — направление развития.
 Статус DONE означает завершённую реализацию в пределах описанной проверки,
 а не проверку всех сценариев на настоящем рабочем столе.
@@ -9,6 +9,9 @@
 
 | Задача | Что осталось |
 |---|---|
+| [Удаление ручной интеграции мессенджеров](2026_11_16_remove-telegram.md) | IN PROGRESS: адаптеры, генерация и ресурсы убраны; проверка совместимости старых пакетов/журналов и полный прогон. |
+| [Chromium: автоматический акцент](2026_11_16_chromium-policy-sync.md) | DEFERRED / P4: native BrowserThemeColor проверен; снятие политики сбрасывает GTK/Qt baseline. Небезопасный прототип не подключён к Apply; нужен способ автоматического возврата без правки Preferences. |
+| [Расширение покрытия приложений](2026_11_15_app-coverage-expansion.md) | IN PROGRESS: аудит путей, [план](../plans/2026_11_15_app-coverage-expansion.md) и [приоритеты](../docs/APP_COVERAGE_PRIORITIES.md) готовы. Сначала автоматические сценарии установленных приложений; ручные и неподтверждённые live-сценарии вынесены в P4 в конец списка; затем остальные Linux/ricing-сценарии. GitHub stars — дополнительный сигнал. Файловые адаптеры P0 № 1–7, 9–24, 26–29 и VSCodium добавлены; live-ограничения — в P4; LibreOffice исключён. [Третья партия и ограничения](2026_11_16_third-ten-apps.md). Далее аудит существующих Alacritty/Ghostty, затем Starship. |
 | [Реальный цикл зависимостей из AUR](2026_11_08_aur-dependency-cycle.md) | Код поддерживает AUR (источник "aur", команда `yay -S {id}`, проверка наличия helper). Требует реального тестирования в изолированном Arch Linux контейнере. |
 
 Блокирующие дефекты F01/F02 аудита и защита применения реализованы.
@@ -20,6 +23,50 @@ ID операций и бэкапы защиты применения; AUR и с
 Работы по дополнительным источникам/библиотеке обоев отложены пользователем.
 
 ## Закрыто
+
+- Очередь автоматизации — актуализирована 2026-11-16: ручные действия и
+  неподтверждённый hot reload вынесены в P4 в конец
+  [приоритетов](../docs/APP_COVERAGE_PRIORITIES.md). Native Chromium: 32 цикла
+  возврата PASS, GTK/Qt FAIL; интеграция отложена,
+  [исследование и воспроизведение](2026_11_16_chromium-policy-sync.md).
+
+- [Третья партия приложений](2026_11_16_third-ten-apps.md) — DONE 2026-11-16:
+  Micro, lsd/Glow, Chromium/Chrome (ручной выбор), GIMP 3, Heroic, Prism, Vim,
+  mpv/Cliamp, VSCodium. 53 registry entries; 8 пакетов, 35 targets, LibreOffice
+  исключён. 276 Rust / 345 Qt / 260 shell; нативные проверки всех 8 пакетов,
+  Docker Plasma + GUI return ALL PASSED. BreezeLight/BreezeDark и акцент от
+  обоев Glass/Material You сохранены. Live deploy этой партии не выполнялся.
+
+- [Glass / Material You: акцент от обоев](2026_11_16_glass-material-wallpaper-accent.md) — пользовательская правка DONE;
+  maintenance refresh теперь сохраняет её и выбранные BreezeLight/BreezeDark,
+  регрессии повторной генерации и согласованности 8 пакетов PASS.
+
+- [Палитра восьми тем и native browser accent](2026_11_16_palette-consistency.md) — DONE 2026-11-16:
+  исправлен stale красный GTK Everforest, согласованы palette resources/выбор
+  поддержанных приложений. Native Firefox/Zen: 8 тем + возврат, без chrome CSS.
+  263 Rust / 345 Qt / 260 shell, clippy/линтеры; 19 GTK CSS, 76 contrast pairs PASS.
+  Docker 8 тем + GUI ALL PASSED. Восемь локальных пакетов обновлены с backup,
+  Everforest применён с сохранением обоев, операция `apply-hKWDh8`, ошибок нет.
+
+- [Вторая партия P0 № 11–20](2026_11_16_second-ten-apps.md) — DONE 2026-11-16:
+  fish/Pure/OMP, btop/Cava, Yazi/bat, Wofi/fzf, lazygit/Zellij, OpenCode V2,
+  Claude Code, Codex. 262 Rust / 345 Qt / 260 shell, clippy/линтеры/910 переводов;
+  Docker восемь тем и GUI — ALL PASSED (границы snapshot в карточке).
+  Code/GUI установлены, восемь локальных тем обновлены с backup, реальные previews PASS.
+  Active profile не менялся; по последующему запросу выполнен живой Apply обновлённой Material You
+  с сохранением обоев, операция `apply-KnvVpV`, ошибок нет.
+
+- [Установка, обновление тем и Material You](2026_11_15_bundled-apps-and-material-you.md) — DONE 2026-11-15:
+  восемь комплектных и локальных пакетов обновлены; Material You в репозитории,
+  code/GUI установлены и перезапущены, pre-import/deploy backups сохранены.
+  246 Rust / 345 Qt / 260 shell, линтеры/903 перевода; Docker восемь тем PASS,
+  preview всех восьми на реальных конфигах PASS. Desktop Apply не запускался.
+
+- [Первые десять приложений P0](2026_11_15_first-ten-apps.md) — DONE 2026-11-15:
+  Cursor/Zed, Neovim, выбранные Obsidian vault, безопасные Zen/Firefox/Pywalfox,
+  Discord/Vesktop, Kitty, Konsole/Yakuake. 243 Rust / 345 Qt /
+  258 shell, линтеры и 903 перевода; реальные браузеры, native Cursor, nvim headless;
+  Docker: шесть тем + возврат через GUI — ALL PASSED. Runtime-ограничения в карточке.
 
 - [Возврат исходного состояния при отсутствующих конфигах](2026_11_15_restore-missing-config-baseline.md) — DONE 2026-11-15:
   полный before/after-журнал; отсутствующие конфиги сохраняют baseline вместо
@@ -120,7 +167,7 @@ ID операций и бэкапы защиты применения; AUR и с
 - [Двухэтапный apply (этап 1 + этап 2)](2026_11_14_11_05_two-stage-apply-write-if-changed.md) — DONE 2026-11-14:
   Этап 1 — восстановление снимка; этап 2 — последовательный докатчик под той же
   `MutationGuard` (уточнено ревью 2026-11-15), для редакторов, мессенджеров (Discord/Vesktop/Vencord), терминалов
-  (Konsole/Ghostty/Kitty/Alacritty), оболочки (Cava/Telegram). Флаг `--without-sync`
+  (Konsole/Ghostty/Kitty/Alacritty), оболочки (Cava). Флаг `--without-sync`
   пропускает этап 2. Докатчик записывает только изменившиеся файлы; отсутствие
   всех перезаписей этапа 1 не заявляется. Историческая проверка: 134 Rust-теста, clippy чистый.
 

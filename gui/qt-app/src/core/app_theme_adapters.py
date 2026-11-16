@@ -98,10 +98,6 @@ class DiscordAdapter(AppThemeAdapter):
     id = "discord"
 
 
-class TelegramAdapter(AppThemeAdapter):
-    id = "telegram"
-
-
 def backup_file(path):
     value = _request("backup", path=str(path))
     return Path(value) if value else None
@@ -109,7 +105,7 @@ def backup_file(path):
 
 ADAPTERS = {adapter.id: adapter for adapter in (
     ZedAdapter(), VSCodeAdapter(), CursorAdapter(), ObsidianAdapter(),
-    DiscordAdapter(), TelegramAdapter(), BtopAdapter(), KittyAdapter(), AlacrittyAdapter(),
+    DiscordAdapter(), BtopAdapter(), KittyAdapter(), AlacrittyAdapter(),
 )}
 
 

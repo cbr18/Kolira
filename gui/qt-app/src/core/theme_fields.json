@@ -1411,42 +1411,6 @@
    ]
   },
   {
-   "id": "zen_transparent",
-   "section": "apps",
-   "label": "Zen transparency",
-   "type": "bool",
-   "source": "userjs",
-   "file": ".zen/gp0y8wrv.Default (release)/user.js",
-   "key": "browser.tabs.allow_transparent_browser",
-   "apply": "userjs",
-   "badge": "app",
-   "description": "Allow transparent browser tabs in Zen",
-   "keywords": [
-    "zen",
-    "прозрачность",
-    "браузер"
-   ]
-  },
-  {
-   "id": "zen_opacity",
-   "section": "apps",
-   "label": "Zen background opacity",
-   "type": "float",
-   "source": "userjs",
-   "file": ".zen/gp0y8wrv.Default (release)/user.js",
-   "key": "mod.sameerasw.zen_bg_opacity",
-   "apply": "userjs",
-   "badge": "app",
-   "description": "Zen background opacity",
-   "keywords": [
-    "zen",
-    "прозрачность"
-   ],
-   "min": 0.0,
-   "max": 1.0,
-   "step": 0.05
-  },
-  {
    "id": "zen_window_scheme",
    "section": "apps",
    "label": "Zen window scheme",
@@ -1499,11 +1463,11 @@
    "source": "json",
    "file": "obsidian/vault/.obsidian/appearance.json",
    "path": [
-    "theme"
+    "cssTheme"
    ],
    "apply": "json",
    "badge": "app",
-   "description": "Obsidian base theme",
+   "description": "Obsidian CSS theme in the selected vault",
    "keywords": [
     "obsidian",
     "тема"

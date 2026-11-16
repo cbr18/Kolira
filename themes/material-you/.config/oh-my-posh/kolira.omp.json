@@ -1,0 +1,83 @@
+{
+  "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
+  "blocks": [
+    {
+      "alignment": "left",
+      "segments": [
+        {
+          "foreground": "#f5f5f6",
+          "style": "plain",
+          "template": "╭─",
+          "type": "text"
+        },
+        {
+          "background": "#f5f5f6",
+          "foreground": "#000000",
+          "leading_diamond": "",
+          "style": "diamond",
+          "template": " {{ .UserName }} ",
+          "trailing_diamond": "",
+          "type": "session"
+        },
+        {
+          "background": "#d291cc",
+          "foreground": "#000000",
+          "powerline_symbol": "",
+          "options": {
+            "style": "full"
+          },
+          "style": "powerline",
+          "template": " {{ .Path }} ",
+          "type": "path"
+        },
+        {
+          "background": "#85bc79",
+          "foreground": "#000000",
+          "powerline_symbol": "",
+          "style": "powerline",
+          "template": " {{ .HEAD }} ",
+          "type": "git"
+        },
+        {
+          "background": "#e88f87",
+          "foreground": "#000000",
+          "leading_diamond": "<transparent,background></>",
+          "style": "diamond",
+          "template": " {{ if .Error }}{{ .Error }}{{ else }}{{ if .Venv }}{{ .Venv }} {{ end }}{{ .Full }}{{ end }} ",
+          "trailing_diamond": "",
+          "type": "python"
+        },
+        {
+          "foreground": "#919295",
+          "options": {
+            "time_format": "15:04"
+          },
+          "style": "plain",
+          "template": "  {{ .CurrentDate | date .Format }}",
+          "type": "time"
+        }
+      ],
+      "type": "prompt"
+    },
+    {
+      "alignment": "left",
+      "newline": true,
+      "segments": [
+        {
+          "foreground": "#f5f5f6",
+          "style": "plain",
+          "template": "╰─❯",
+          "type": "text"
+        }
+      ],
+      "type": "prompt"
+    }
+  ],
+  "transient_prompt": {
+    "background": "transparent",
+    "foreground": "#919295",
+    "template": "{{ .Segments.Time.CurrentDate | date \"15:04\" }} <#e4e4e6>❯</> "
+  },
+  "final_space": true,
+  "version": 4
+}

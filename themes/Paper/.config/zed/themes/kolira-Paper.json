@@ -1,0 +1,60 @@
+{
+  "$schema": "https://zed.dev/schema/themes/v0.2.0.json",
+  "name": "Kolira Paper",
+  "author": "Kolira contributors",
+  "themes": [
+    {
+      "name": "Kolira Paper",
+      "appearance": "light",
+      "style": {
+        "background": "#fffbf4",
+        "surface.background": "#f6f0e6",
+        "elevated_surface.background": "#f6f0e6",
+        "text": "#2f2a24",
+        "text.muted": "#5c564e",
+        "text.accent": "#586d47",
+        "border": "#dedad3",
+        "border.focused": "#586d47",
+        "editor.background": "#fffbf4",
+        "editor.foreground": "#2f2a24",
+        "editor.gutter.background": "#fffbf4",
+        "editor.line_number": "#5c564e",
+        "editor.active_line_number": "#2f2a24",
+        "editor.active_line.background": "#f6f0e6",
+        "tab.active_background": "#fffbf4",
+        "tab.inactive_background": "#f6f0e6",
+        "toolbar.background": "#f6f0e6",
+        "status_bar.background": "#f6f0e6",
+        "terminal.background": "#fffbf4",
+        "terminal.foreground": "#2f2a24",
+        "players": [
+          {
+            "cursor": "#586d47",
+            "background": "#586d47",
+            "selection": "#586d4750"
+          }
+        ],
+        "syntax": {
+          "comment": {
+            "color": "#5c564e"
+          },
+          "string": {
+            "color": "#38633b"
+          },
+          "keyword": {
+            "color": "#5e3f66"
+          },
+          "number": {
+            "color": "#704a25"
+          },
+          "function": {
+            "color": "#3f5133"
+          },
+          "type": {
+            "color": "#593f25"
+          }
+        }
+      }
+    }
+  ]
+}

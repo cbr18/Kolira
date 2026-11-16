@@ -155,35 +155,6 @@
     }
   },
   {
-    "id": "telegram",
-    "name": "Telegram Desktop",
-    "icon": "telegram",
-    "launch_command": [
-      "telegram-desktop"
-    ],
-    "binaries": [
-      "telegram-desktop",
-      "Telegram",
-      "telegram"
-    ],
-    "flatpak_ids": [
-      "org.telegram.desktop"
-    ],
-    "config_paths": [
-      ".config/telegram-desktop/themes"
-    ],
-    "integration": "config",
-    "capabilities": {
-      "detect": true,
-      "current_theme": false,
-      "installed_themes": true,
-      "apply_theme": false,
-      "launch": true,
-      "open_theme_settings": true,
-      "open_config": true
-    }
-  },
-  {
     "id": "btop",
     "name": "btop",
     "icon": "btop",

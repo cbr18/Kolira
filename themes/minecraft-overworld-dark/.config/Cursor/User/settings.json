@@ -1,20 +1,8 @@
 {
   "workbench.colorTheme": "Default Dark Modern",
-  "workbench.colorCustomizations": {
-    "editor.background": "#252525",
-    "editor.foreground": "#CCCCCC",
-    "editor.selectionBackground": "#70B23770",
-    "editorCursor.foreground": "#70B237",
-    "sideBar.background": "#383838",
-    "activityBar.background": "#252525",
-    "statusBar.background": "#383838",
-    "statusBar.foreground": "#CCCCCC",
-    "button.background": "#70B237",
-    "button.foreground": "#000000",
-    "focusBorder": "#70B237",
-    "tab.activeBackground": "#555555"
-  },
+  "workbench.colorCustomizations": {"editor.background":"#252525","editor.foreground":"#cccccc","editor.selectionBackground":"#404040","editor.lineHighlightBackground":"#383838","sideBar.background":"#383838","sideBar.foreground":"#cccccc","activityBar.background":"#383838","activityBar.foreground":"#cccccc","statusBar.background":"#383838","statusBar.foreground":"#cccccc","titleBar.activeBackground":"#383838","titleBar.activeForeground":"#cccccc","tab.activeBackground":"#252525","tab.activeForeground":"#cccccc","terminal.background":"#252525","terminal.foreground":"#cccccc","focusBorder":"#70b237"},
   "editor.fontFamily": "Monocraft, monospace",
   "editor.fontLigatures": false,
-  "terminal.integrated.fontFamily": "Monocraft, monospace"
+  "terminal.integrated.fontFamily": "Monocraft, monospace",
+  "editor.tokenColorCustomizations": {"textMateRules":[{"scope":["comment"],"settings":{"foreground":"#999999"}},{"scope":["string"],"settings":{"foreground":"#70b237"}},{"scope":["keyword","storage"],"settings":{"foreground":"#a98558"}},{"scope":["constant.numeric"],"settings":{"foreground":"#f6c453"}},{"scope":["entity.name.function"],"settings":{"foreground":"#55d6d0"}}]}
 }

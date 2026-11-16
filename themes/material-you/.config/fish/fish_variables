@@ -1,0 +1,29 @@
+# This file contains fish universal variable definitions.
+# VERSION: 3.0
+
+SETUVAR fish_color_normal:d0d1d3
+SETUVAR fish_color_command:7aaeef
+SETUVAR fish_color_quote:85bc79
+SETUVAR fish_color_redirection:3fc0c0
+SETUVAR fish_color_end:d291cc
+SETUVAR fish_color_error:e88f87
+SETUVAR fish_color_param:d0d1d3
+SETUVAR fish_color_comment:737477
+SETUVAR fish_color_match:cab45d
+SETUVAR fish_color_search_match:cab45d
+SETUVAR fish_color_operator:d291cc
+SETUVAR fish_color_escape:3fc0c0
+SETUVAR fish_color_autosuggestion:737477
+SETUVAR fish_pager_color_prefix:7aaeef
+SETUVAR fish_pager_color_completion:d0d1d3
+SETUVAR fish_pager_color_description:737477
+SETUVAR fish_pager_color_progress:3fc0c0
+SETUVAR pure_color_primary:7aaeef
+SETUVAR pure_color_info:3fc0c0
+SETUVAR pure_color_mute:737477
+SETUVAR pure_color_success:85bc79
+SETUVAR pure_color_normal:d0d1d3
+SETUVAR pure_color_danger:e88f87
+SETUVAR pure_color_light:f5f5f6
+SETUVAR pure_color_warning:cab45d
+SETUVAR pure_color_dark:1e1f23

@@ -25,11 +25,19 @@ pub const THEME_FILE: &str = "kolira.theme.css";
 pub const CLIENTS: &[(&str, &str)] = &[
     ("Vencord", ".config/Vencord"),
     ("Vesktop", ".config/vesktop"),
+    (
+        "Vesktop Flatpak",
+        ".var/app/dev.vencord.Vesktop/config/vesktop",
+    ),
+    (
+        "Vencord Flatpak",
+        ".var/app/com.discordapp.Discord/config/Vencord",
+    ),
 ];
 pub const SETTINGS_KEYS: &[&str] = &["enabledThemes", "themeLinks", "transparent"];
 
 fn client_dir(rel: &str) -> PathBuf {
-    crate::paths::home_dir().join(rel)
+    crate::paths::live_path(rel)
 }
 
 /// Tracked files of every client set up here.

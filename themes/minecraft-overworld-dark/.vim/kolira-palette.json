@@ -1,0 +1,25 @@
+{
+  "name": "minecraft-overworld-dark",
+  "author": "Kolira contributors (from this theme's KDE colours)",
+  "variant": "dark",
+  "base": [
+    "#252525",
+    "#383838",
+    "#404040",
+    "#999999",
+    "#a2a2a2",
+    "#cccccc",
+    "#bdbdbd",
+    "#cccccc",
+    "#f06f65",
+    "#f6c453",
+    "#e7c77d",
+    "#70b237",
+    "#63c484",
+    "#55d6d0",
+    "#a98558",
+    "#f39a5c"
+  ],
+  "accent": "#70b237",
+  "source": "theme:minecraft-overworld-dark"
+}

@@ -8,6 +8,7 @@ these translations in. Contexts: ThemeFields, TrackedApps, Core.
 """
 
 THEME_FIELDS = {
+    "Obsidian CSS theme in the selected vault": "CSS-тема Obsidian в выбранном хранилище",
     # labels
     "Accent color": "Акцентный цвет",
     "Accent from wallpaper": "Акцент из обоев",
@@ -163,6 +164,8 @@ THEME_FIELDS = {
 }
 
 TRACKED_APPS = {
+    "Data-only palette and fixed standalone colourscheme; reload with :colorscheme kolira": "Палитра и автономная цветовая схема; обновление командой :colorscheme kolira",
+    "Colours and day/night only; personal browser UI and privacy remain unchanged": "Только цвета и день/ночь; личный интерфейс и приватность браузера сохраняются",
     "KWin window manager: effects, rules, blur, glass": "Оконный менеджер KWin: эффекты, правила окон, размытие, стекло",
     "Plasma panels, widgets, desktop applets": "Панели, виджеты и апплеты рабочего стола Plasma",
     "Colors, accent, Look & Feel, color scheme, widget style": "Цвета, акцент, оформление, цветовая схема, стиль виджетов",
@@ -184,7 +187,6 @@ TRACKED_APPS = {
     "Colour scheme generated from the palette (lua/kolira.lua + colors/)": "Цветовая схема из палитры (lua/kolira.lua и colors/)",
     "CSS themes of Vencord / Vesktop (palette → midnight-based theme)": "CSS-темы Vencord / Vesktop (палитра → тема на основе midnight)",
     "Spicetify theme and colour scheme (palette → color.ini); runs spicetify apply": "Тема и цветовая схема Spicetify (палитра → color.ini); запускает spicetify apply",
-    "Telegram palette (palette → .tdesktop-palette); Telegram follows it once chosen in Settings → Chat Settings": "Палитра Telegram (палитра → .tdesktop-palette); Telegram следит за ней, если один раз выбрать её в «Настройки → Настройки чатов»",
     "Prompt theme (.omp.json) used by the shell's oh-my-posh init line": "Тема приглашения (.omp.json) из строки инициализации oh-my-posh",
     "fish_color_* / fish_pager_color_* universal variables only": "Только универсальные переменные fish_color_* / fish_pager_color_*",
     "Look in ghostty/kolira, included by the config": "Вид в ghostty/kolira, подключается из конфигурации",
@@ -216,7 +218,6 @@ CORE = {
     "calls and downloads in Firefox stop; tabs return with session restore": "звонки и загрузки в Firefox остановятся; вкладки вернутся, если включено восстановление сеанса",
     "open calls and downloads in Zen stop; tabs come back if session restore is on": "звонки и загрузки в Zen остановятся; вкладки вернутся, если включено восстановление сеанса",
     "open calls and downloads in Firefox stop; tabs come back if session restore is on": "звонки и загрузки в Firefox остановятся; вкладки вернутся, если включено восстановление сеанса",
-    "Telegram: choose the theme file once": "Telegram: один раз выбрать файл темы",
     "Restart Vesktop": "Перезапустить Vesktop",
     "Restart Discord (Vencord)": "Перезапустить Discord (Vencord)",
     "Restart Zen Browser": "Перезапустить Zen",
@@ -225,7 +226,6 @@ CORE = {
     "Discord (Vencord) reads the theme's look only when it starts": "Discord (Vencord) читает вид темы только при запуске",
     "Zen Browser reads the theme's look only when it starts": "Zen читает вид темы только при запуске",
     "Firefox reads the theme's look only when it starts": "Firefox читает вид темы только при запуске",
-    "Telegram → Settings → Chat Settings → Choose from file → ~/.local/share/TelegramDesktop/kolira.tdesktop-palette; afterwards Telegram follows it by itself": "Telegram → Настройки → Настройки чатов → Выбрать из файла → ~/.local/share/TelegramDesktop/kolira.tdesktop-palette; дальше Telegram следит за ним сам",
 }
 
 # Report lines rebuilt in the GUI (src/core/core_messages.py).
@@ -314,3 +314,9 @@ PROFILE_RECOVERY.update({
     "Current appearance saved": "Текущее оформление сохранено",
     "Theme or live settings changed. Review the updated changes.": "Тема или текущие настройки изменились. Проверьте обновлённые изменения.",
 })
+
+# Installed-app batch P0 11–20.
+TRACKED_APPS.update({'Pure colours': 'Цвета Pure', 'Pure colour variables only; does not enable or replace the prompt': 'Только цветовые переменные Pure; prompt не включается и не заменяется', 'Colour-only options with fixed fish startup glue; other shells require native setup': 'Только цвета и фиксированное подключение fish; другие оболочки требуют настройки', 'Only gui.theme colours; personal YAML and commands remain unchanged': 'Только цвета gui.theme; личный YAML и команды сохраняются', 'Native theme resource and root theme selectors; keybindings and plugins stay personal': 'Нативная тема и её выбор; личные привязки клавиш и плагины сохраняются', 'OpenCode V2 native system palette and day/night in cli.json only': 'Только системная палитра и день/ночь OpenCode V2 в cli.json', 'Native ANSI day/night; preserves accessibility choices, credentials and permissions': 'Нативные ANSI день/ночь; специальные режимы, авторизация и разрешения сохраняются', 'Native tmTheme syntax highlighting only; models, approvals and tools stay personal': 'Только подсветка синтаксиса tmTheme; модели, подтверждения и инструменты сохраняются'})
+
+# Third application batch: colour-only native contracts.
+TRACKED_APPS.update({'Palette colorscheme only; settings, bindings and plugins remain personal': 'Только цветовая схема из палитры; настройки, клавиши и плагины сохраняются', 'Native colour data; preserves sorting, icons, classic mode and LS_COLORS': 'Нативные цвета; сортировка, значки, classic и LS_COLORS сохраняются', 'Native Glamour style and selector; Markdown files remain untouched': 'Нативная схема Glamour и её выбор; Markdown-файлы не меняются', 'Manual native theme extension load/reload/reset; never edits browser Preferences or policies': 'Ручная загрузка, обновление и сброс нативной темы; Preferences и policies браузера не меняются', 'Manual native frame-accent theme; selection and reset stay in browser UI': 'Нативный акцент рамки с ручным выбором и сбросом в браузере', 'GIMP 3 native theme colours and scheme; tool presets, images and plugins remain personal': 'Нативные цвета и режим GIMP 3; инструменты, изображения и плагины сохраняются', 'Managed colour variables in native customCSS; accounts, games and personal CSS remain intact': 'Только цветовые переменные в customCSS; аккаунты, игры и личный CSS сохраняются', 'Native Qt palette and ApplicationTheme only; accounts, instances and Java settings remain personal': 'Нативная палитра Qt и ApplicationTheme; аккаунты, сборки и Java сохраняются', 'JSON palette plus fixed colourscheme/startup glue; never imports theme-supplied Vimscript or replaces vimrc': 'JSON-палитра и фиксированное подключение; сторонний Vimscript и vimrc не импортируются', 'OSD colours only; playback, audio, video, profiles and scripts remain personal': 'Только цвета OSD; воспроизведение, звук, видео, профили и скрипты сохраняются', 'Native TOML theme and selector; playback, playlists and visualizer settings stay personal': 'Нативная TOML-тема и её выбор; воспроизведение, плейлисты и визуализатор сохраняются', 'Native JSONC palette overrides and shared editor cache; fonts, extensions and behaviour stay personal': 'Нативные цвета JSONC и общий кэш редакторов; шрифты, расширения и поведение сохраняются'})

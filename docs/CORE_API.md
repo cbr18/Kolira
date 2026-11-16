@@ -156,3 +156,22 @@ English `message` and machine `status`. `app.all` exposes `statusTemplate` and
 `statusArgs`. API version 1 stays compatible. GUI translation precedes one-pass
 substitution: paths and user values are not interpreted as further placeholders.
 Unknown diagnostics remain available through their original message.
+
+## Выбор Obsidian vault
+
+`app.vault_selection` принимает `{}`; `app.select_vaults` принимает
+`{"vaults":["Documents/MyVault"]}` — пути относительно HOME в порядке
+переносимых слотов. Оба возвращают `{vaults: string[], selected: string[]}`.
+Выбор проверяется по локальному index и записывается атомарно под MutationGuard;
+абсолютные пути, traversal и симлинки не допускаются. При одном доступном vault
+отсутствующий выбор означает его автоматический выбор, при нескольких — ни одного.
+Явный пустой список отключает выбор. Подробности: [APPLICATIONS.md](APPLICATIONS.md).
+
+### Application palette follow-ups (third batch)
+
+`app_targets` also accepts micro, lsd, glow, chromium, google-chrome, gimp,
+heroic, prismlauncher, vim, mpv, cliamp and vscodium. Registry count: 53.
+These use the existing profile preview/apply operation and before/after recovery;
+`palette apply` retains its own target list. Chromium selection/reset remains
+manual and is returned in actions. LibreOffice is excluded, not a target.
+[Native paths and limits](APPLICATIONS.md).

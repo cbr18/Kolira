@@ -4,8 +4,7 @@
 //! * **restart** a running program that reads its look only at start:
 //!   Vesktop / Discord with Vencord (a newly enabled theme, the translucent
 //!   window), Zen / Firefox (`user.js`, `userChrome.css`);
-//! * **manual**: Telegram's one-time choice of the palette file (it cannot be
-//!   set from outside; after that Telegram follows the file by itself).
+//! * **manual**: an application requires its native appearance controls.
 //!
 //! `for_theme` lists what applies to a theme here; `run` performs one action.
 //! Each comes with a warning the GUI shows next to its checkbox.
@@ -14,7 +13,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -137,21 +136,6 @@ pub fn for_theme_since(dir: &Path, before: Option<&Path>) -> Vec<Action> {
             });
         }
     }
-    if dir.join(crate::telegram::PALETTE_FILE).is_file()
-        && crate::telegram::installed()
-        && !crate::telegram::follows_file()
-    {
-        out.push(Action {
-            id: "telegram".into(),
-            kind: "manual".into(),
-            title: "Telegram: choose the theme file once".into(),
-            reason: format!(
-                "Telegram → Settings → Chat Settings → Choose from file → ~/{}; afterwards Telegram follows it by itself",
-                crate::telegram::PALETTE_FILE
-            ),
-            warning: String::new(),
-        });
-    }
     out
 }
 
@@ -170,11 +154,61 @@ pub(crate) fn for_changes(dir: &Path, changes: &[std::path::PathBuf]) -> Vec<Act
             });
         }
     }
+    for (id, title, rel) in [
+        (
+            "chromium",
+            "Chromium",
+            ".config/chromium/kolira-theme/manifest.json",
+        ),
+        (
+            "google-chrome",
+            "Google Chrome",
+            ".config/google-chrome/kolira-theme/manifest.json",
+        ),
+    ] {
+        let file = crate::paths::live_path(rel);
+        if changes.contains(&file) {
+            out.push(Action {
+                id:format!("{id}_native_theme"), kind:"manual".into(),
+                title:format!("{title}: load/reload or reset the native theme in the browser"),
+                reason:if file.exists() { format!("Load or reload {} through Extensions; browser Preferences and policies are not edited",file.parent().unwrap().display()) } else { "The palette resource was removed. Reset the cached theme in browser Appearance settings".into() },
+                warning:"The browser caches themes; restoring resource files does not reset its native theme selection".into(),
+            });
+        }
+    }
+    for (id, title, marker) in [
+        ("micro", "Micro", ".config/micro"),
+        ("glow", "Glow", ".config/glow"),
+        ("gimp", "GIMP", ".config/GIMP/3.0"),
+        ("heroic", "Heroic", ".config/heroic"),
+        (
+            "prismlauncher",
+            "Prism Launcher",
+            ".local/share/PrismLauncher",
+        ),
+        ("vim", "Vim", ".vim"),
+        ("mpv", "mpv", ".config/mpv"),
+        ("cliamp", "Cliamp", ".config/cliamp"),
+    ] {
+        let root = crate::paths::live_path(marker);
+        if changes.iter().any(|p| p.starts_with(&root)) {
+            out.push(Action{id:format!("{id}_appearance"),kind:"manual".into(),title:format!("{title}: reopen or reload the native appearance"),reason:"New sessions read the updated palette; existing sessions keep their current settings".into(),warning:"Applications and documents are kept running".into()});
+        }
+    }
+    let konsole = crate::paths::data_home().join("konsole");
+    if changes.iter().any(|p| p.starts_with(&konsole))
+        && (running(&["konsole", "yakuake"]).is_some())
+    {
+        out.push(Action{id:"konsole_appearance".into(),kind:"manual".into(),title:"Konsole / Yakuake: refresh the colour scheme in the profile settings".into(),
+            reason:"Existing sessions keep their own profile; choose the updated colour scheme in Appearance".into(),warning:"Terminal sessions are kept running".into()});
+    }
     out.extend(
         for_theme(dir)
             .into_iter()
             .filter(|action| action.kind == "manual"),
     );
+    let mut seen = std::collections::HashSet::new();
+    out.retain(|action| seen.insert(action.id.clone()));
     out
 }
 
@@ -225,10 +259,7 @@ pub fn run(id: &str) -> Result<String> {
         let bin = launch(app.launch)?;
         return Ok(format!("{} restarted ({bin})", app.title));
     }
-    match id {
-        "telegram" => Err(anyhow!("Telegram's theme is chosen inside Telegram: Settings → Chat Settings → Choose from file")),
-        _ => bail!("unknown action {id:?}"),
-    }
+    bail!("unknown action {id:?}")
 }
 
 #[cfg(test)]

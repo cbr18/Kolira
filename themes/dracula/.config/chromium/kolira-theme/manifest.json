@@ -1,0 +1,1 @@
+{"manifest_version":3,"name":"Kolira palette accent","version":"1.0.0","description":"Palette frame accent only. Load/reload or reset through the browser Appearance/Extensions UI.","theme":{"colors":{"frame":[189,147,249],"frame_inactive":[129,105,171]}}}

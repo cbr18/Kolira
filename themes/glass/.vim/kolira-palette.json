@@ -1,0 +1,25 @@
+{
+  "name": "glass",
+  "author": "Kolira contributors (from this theme's KDE colours)",
+  "variant": "dark",
+  "base": [
+    "#141618",
+    "#202326",
+    "#393b3c",
+    "#a1a9b1",
+    "#c2c3c3",
+    "#fcfcfc",
+    "#e6e6e7",
+    "#fcfcfc",
+    "#da4453",
+    "#f67400",
+    "#f8a458",
+    "#27ae60",
+    "#22a4aa",
+    "#1d99f3",
+    "#9b59b6",
+    "#e85c2a"
+  ],
+  "accent": "#3daee9",
+  "source": "theme:glass"
+}

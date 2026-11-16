@@ -4,9 +4,5 @@
     "light": "Zed (Default)",
     "dark": "Zed (Default)"
   },
-  "theme": {
-    "mode": "dark",
-    "light": "Ayu Light",
-    "dark": "Dracula",
-  }
+  "theme": {"mode":"dark","dark":"Kolira dracula","light":"Kolira dracula"}
 }

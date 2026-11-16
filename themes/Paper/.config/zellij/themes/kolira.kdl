@@ -1,0 +1,124 @@
+themes {
+    kolira {
+        text_unselected {
+            base "#2f2a24"
+            background "#fffbf4"
+            emphasis_0 "#3f5133"
+            emphasis_1 "#38633b"
+            emphasis_2 "#593f25"
+            emphasis_3 "#5e3f66"
+        }
+        text_selected {
+            base "#2f2a24"
+            background "#dedad3"
+            emphasis_0 "#3f5133"
+            emphasis_1 "#38633b"
+            emphasis_2 "#593f25"
+            emphasis_3 "#5e3f66"
+        }
+        ribbon_unselected {
+            base "#2f2a24"
+            background "#fffbf4"
+            emphasis_0 "#3f5133"
+            emphasis_1 "#38633b"
+            emphasis_2 "#593f25"
+            emphasis_3 "#5e3f66"
+        }
+        ribbon_selected {
+            base "#2f2a24"
+            background "#dedad3"
+            emphasis_0 "#3f5133"
+            emphasis_1 "#38633b"
+            emphasis_2 "#593f25"
+            emphasis_3 "#5e3f66"
+        }
+        ribbon_hover {
+            base "#2f2a24"
+            background "#fffbf4"
+            emphasis_0 "#3f5133"
+            emphasis_1 "#38633b"
+            emphasis_2 "#593f25"
+            emphasis_3 "#5e3f66"
+        }
+        table_title {
+            base "#2f2a24"
+            background "#fffbf4"
+            emphasis_0 "#3f5133"
+            emphasis_1 "#38633b"
+            emphasis_2 "#593f25"
+            emphasis_3 "#5e3f66"
+        }
+        table_cell_unselected {
+            base "#2f2a24"
+            background "#fffbf4"
+            emphasis_0 "#3f5133"
+            emphasis_1 "#38633b"
+            emphasis_2 "#593f25"
+            emphasis_3 "#5e3f66"
+        }
+        table_cell_selected {
+            base "#2f2a24"
+            background "#dedad3"
+            emphasis_0 "#3f5133"
+            emphasis_1 "#38633b"
+            emphasis_2 "#593f25"
+            emphasis_3 "#5e3f66"
+        }
+        list_unselected {
+            base "#2f2a24"
+            background "#fffbf4"
+            emphasis_0 "#3f5133"
+            emphasis_1 "#38633b"
+            emphasis_2 "#593f25"
+            emphasis_3 "#5e3f66"
+        }
+        list_selected {
+            base "#2f2a24"
+            background "#dedad3"
+            emphasis_0 "#3f5133"
+            emphasis_1 "#38633b"
+            emphasis_2 "#593f25"
+            emphasis_3 "#5e3f66"
+        }
+        frame_unselected {
+            base "#2f2a24"
+            background "#fffbf4"
+            emphasis_0 "#3f5133"
+            emphasis_1 "#38633b"
+            emphasis_2 "#593f25"
+            emphasis_3 "#5e3f66"
+        }
+        frame_selected {
+            base "#2f2a24"
+            background "#dedad3"
+            emphasis_0 "#3f5133"
+            emphasis_1 "#38633b"
+            emphasis_2 "#593f25"
+            emphasis_3 "#5e3f66"
+        }
+        frame_highlight {
+            base "#2f2a24"
+            background "#fffbf4"
+            emphasis_0 "#3f5133"
+            emphasis_1 "#38633b"
+            emphasis_2 "#593f25"
+            emphasis_3 "#5e3f66"
+        }
+        exit_code_success {
+            base "#2f2a24"
+            background "#fffbf4"
+            emphasis_0 "#3f5133"
+            emphasis_1 "#38633b"
+            emphasis_2 "#593f25"
+            emphasis_3 "#5e3f66"
+        }
+        exit_code_error {
+            base "#2f2a24"
+            background "#fffbf4"
+            emphasis_0 "#3f5133"
+            emphasis_1 "#38633b"
+            emphasis_2 "#593f25"
+            emphasis_3 "#5e3f66"
+        }
+    }
+}

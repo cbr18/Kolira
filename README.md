@@ -1,5 +1,7 @@
 # Kolira
 
+Application coverage: [app contracts](docs/APPLICATIONS.md) — colours, selection, safe return, Obsidian vault setup and runtime limits.
+
 > **Create, inspect and apply themes for KDE Plasma.**
 > Kolira сохраняет оформление в переносимые темы, помогает собирать их из
 > установленных компонентов и палитр, а затем применяет с резервной копией.
@@ -318,13 +320,14 @@ Applying restores it after a pre-apply backup and reports what this machine
 lacks, with where to get it. Format, CLI and GUI behaviour:
 **`docs/THEMES.md`**.
 
-Ready themes ship in `themes/` and are added by the installer (licences, sources
+Eight ready themes ship in `themes/` and are added by the installer (licences, sources
 and dependencies: `themes/README.md`):
 
 - **`glass`** — dark translucent glass, blur everywhere, monochrome Saturn wallpaper
 - **`Paper`** — light, flat and warm, watercolour wallpaper
 - **`everforest`** — Everforest Dark Medium, misty pine forest
 - **`dracula`** — Dracula palette on glass, official Dracula wallpaper
+- **`material-you`** — graphite surfaces and a saved wallpaper-derived blue palette
 - **`minecraft-overworld-dark`** — stone-grey and grass-green pixel theme, Kvantum/Klassy,
   dark Breeze panels, Glass-style blur and original voxel night wallpaper; requires Monocraft (see `themes/README.md`)
 
@@ -357,8 +360,7 @@ profiles with a `theme-bundle.json` beside a snapshot are still read as legacy.
 
 Supported application adapters currently include Zed, VS Code, Cursor,
 Obsidian and btop. Discord reads its current light/dark background preference
-and opens native settings; Telegram can list `.tdesktop-theme` files but cannot
-read or apply its active theme, so the UI shows no theme picker for it. VS Code /
+and opens native settings. VS Code /
 Cursor themes that declare an `id` in their extension manifest (e.g. Doki uses
 UUIDs) are stored by that id in `workbench.colorTheme` and shown by their label. Kitty and
 Alacritty use a config-only integration: the UI

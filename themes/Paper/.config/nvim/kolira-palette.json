@@ -1,0 +1,25 @@
+{
+  "name": "Paper",
+  "author": "Kolira contributors (from this theme's KDE colours)",
+  "variant": "light",
+  "base": [
+    "#fffbf4",
+    "#f6f0e6",
+    "#dedad3",
+    "#5c564e",
+    "#635e58",
+    "#2f2a24",
+    "#433e37",
+    "#2f2a24",
+    "#842a2d",
+    "#704a25",
+    "#593f25",
+    "#38633b",
+    "#3c5a37",
+    "#3f5133",
+    "#5e3f66",
+    "#7a3a29"
+  ],
+  "accent": "#586d47",
+  "source": "theme:Paper"
+}

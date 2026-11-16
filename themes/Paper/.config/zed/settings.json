@@ -4,9 +4,5 @@
     "light": "Zed (Default)",
     "dark": "Zed (Default)"
   },
-  "theme": {
-    "mode": "light",
-    "light": "Gruvbox Light Hard",
-    "dark": "One Dark",
-  }
+  "theme": {"mode":"light","dark":"Kolira Paper","light":"Kolira Paper"}
 }

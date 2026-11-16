@@ -4,9 +4,5 @@
     "light": "Zed (Default)",
     "dark": "Zed (Default)"
   },
-  "theme": {
-    "mode": "dark",
-    "light": "Ayu Light",
-    "dark": "Night Owl Dark",
-  }
+  "theme": {"mode":"dark","dark":"Kolira frutiger-aero","light":"Kolira frutiger-aero"}
 }

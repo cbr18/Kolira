@@ -51,7 +51,6 @@ pub fn neutral(dark: bool) -> Vec<(String, Value)> {
         ("translucency_enabled", json!(false)),
         ("kitty_opacity", json!(1.0)),
         ("alacritty_opacity", json!(1.0)),
-        ("zen_transparent", json!(false)),
     ];
     pairs.into_iter().map(|(k, v)| (k.to_string(), v)).collect()
 }

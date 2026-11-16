@@ -1,5 +1,7 @@
 # kolira — Qt/QML Application (v0.7.0)
 
+Application coverage: [app contracts](../../docs/APPLICATIONS.md) — colours, selection, safe return, Obsidian vault setup and runtime limits.
+
 Native KDE Plasma application for managing theme profiles and wallpapers.
 
 Fastfetch and the Plasma application launcher (including its button icon/image)
@@ -42,8 +44,8 @@ them or require Simple Application Launcher.
   CLI, off the GUI thread: `ThemeBundleController.storeSearch/storeInstall`)
 - **Application theme adapters** — Zed, VS Code, Cursor, Obsidian and btop can
   expose current/installed themes (VS Code/Cursor map a theme `id` such as a
-  Doki UUID back to its label); Discord/Telegram provide safe partial
-  integrations (Telegram shows no picker — its active theme lives in `tdata`); Kitty and Alacritty are config-only integrations with an “Open
+  Doki UUID back to its label); Discord provides a safe partial
+  integration; Kitty and Alacritty are config-only integrations with an “Open
   config” action via `xdg-open`
 - **MCP server** — `mcp/kolira_profile_mcp.py` lets AI agents enumerate themes,
   create derived color/Kvantum themes, build/validate profiles and explicitly
@@ -427,12 +429,13 @@ The kit installer copies those binaries into `~/.local/bin/`.
 | KDE/Plasma | KWin, Plasma Shell, KDE Globals |
 | GTK/Qt | GTK3, GTK4, Qt5/Qt6 |
 | Window Deco | Klassy, Kvantum |
-| Terminals | Kitty (live reload), Alacritty |
+| Terminals | Kitty (live reload), Alacritty, Konsole / Yakuake (manual refresh for open sessions) |
 | Launchers | Wofi |
 | Monitors | btop |
-| Editors | Zed, VS Code, Cursor |
-| Browser | Zen Browser |
-| Notes | Obsidian |
+| Editors | Zed, VS Code, Cursor, Neovim (standalone colourscheme) |
+| Browser | Zen / Firefox (colours and day/night only), Pywalfox (explicit opt-in) |
+| Notes | Obsidian (selected vaults) |
+| Chat | Discord / Vesktop / Vencord |
 | System | Color Schemes, Look & Feel |
 
 ## Configuration
@@ -621,3 +624,11 @@ app resources. When a subsequent theme omits a config, the restored baseline is
 kept. Later user values remain; generated files disappear only if still owned by
 the previous Apply and no surviving personal host references them. The preview
 shows this same restoration plan. `--keep-wallpaper` preserves the image file too.
+
+
+The Rust tracked application registry contains 51 entries, including Pure, fzf,
+lazygit, Zellij, OpenCode V2, Claude Code and Codex. Paths and activation limits
+are documented in [APPLICATIONS.md](../../docs/APPLICATIONS.md).
+
+Third-batch native colour contracts and manual Chromium reset limits are documented
+in [APPLICATIONS.md](../../docs/APPLICATIONS.md). LibreOffice is excluded.

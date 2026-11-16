@@ -81,7 +81,7 @@ def test_import_tracked_apps() -> None:
     """Tracked apps registry must import and contain every definition."""
     from core.tracked_apps import TRACKED_APPS, detect_all_apps
 
-    assert len(TRACKED_APPS) == 32, f"Expected 32 tracked apps, got {len(TRACKED_APPS)}"
+    assert len(TRACKED_APPS) == 51, f"Expected 51 tracked apps, got {len(TRACKED_APPS)}"
     assert "fastfetch" not in {app.id for app in TRACKED_APPS}
     detect_all_apps()  # must not raise
 
@@ -2894,7 +2894,7 @@ def _i18n_sources() -> dict:
 
 def test_i18n_strings_cover_fields_apps_and_core() -> None:
     """Every text the UI takes from data is in the catalogue (regenerate with
-    scripts/update-translations.sh when this fails)."""
+    tools/update_translations.py when this fails)."""
     import json
     import re
     from pathlib import Path

@@ -14,7 +14,7 @@ A01 [аудита](../docs/audits/2026_11_08_codebase-audit.md).
 | Этап | Исполнитель Rust | Сохранённый контракт |
 |---|---|---|
 | Inspector | `config_edit.rs`, `inspector_session.rs`, `inspector_view.rs`, общий `field.rs` | INI, JSONC, TOML, user.js; staging/Apply/Undo/Revert, выбор, валидация; read-only снимки |
-| Темы приложений | `app_themes.rs`, `data/app_adapters.json` | 9 адаптеров; JSONC и mode-specific Zed, VS Code/Cursor, Obsidian, Kitty, btop, ограниченные Discord/Telegram; Flatpak/XDG |
+| Темы приложений | `app_themes.rs`, `data/app_adapters.json` | 8 адаптеров; JSONC и mode-specific Zed, VS Code/Cursor, Obsidian, Kitty, btop, ограниченные Discord; Flatpak/XDG |
 | Ресурсы | `resource_clone.rs`, `bundle_view.rs` | Копия установленной основы с правками, проверка конфликта до записи, SVG/PNG, лицензия/provenance; метаданные и legacy bundles |
 | Настройки/реестры | `gui_api.rs`, общие `tracked_apps.rs`/`custom_components.rs`/`paths.rs` | Defaults, типы, неизвестные ключи, automation, миграция, встроенные и свои компоненты |
 | Обои | общий `wallpaper.rs`, Rust wallpaper binaries | Расширения, symlink, порядок, текущие обои Plasma, preference каталога, прямое применение и NO_APPLY |

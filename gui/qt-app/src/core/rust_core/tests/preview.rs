@@ -336,7 +336,7 @@ fn all_bundled_previews_match_the_applied_files() {
         h.assert_files(&report);
         count += 1;
     }
-    assert_eq!(count, 7);
+    assert_eq!(count, 8);
 }
 
 #[test]

@@ -1,3 +1,5 @@
 {
-  "workbench.colorTheme": "Cursor Dark Midnight"
+  "workbench.colorTheme": "Default Dark Modern",
+  "workbench.colorCustomizations": {"editor.background":"#141618","editor.foreground":"#fcfcfc","editor.selectionBackground":"#393b3c","editor.lineHighlightBackground":"#202326","sideBar.background":"#202326","sideBar.foreground":"#fcfcfc","activityBar.background":"#202326","activityBar.foreground":"#fcfcfc","statusBar.background":"#202326","statusBar.foreground":"#fcfcfc","titleBar.activeBackground":"#202326","titleBar.activeForeground":"#fcfcfc","tab.activeBackground":"#141618","tab.activeForeground":"#fcfcfc","terminal.background":"#141618","terminal.foreground":"#fcfcfc","focusBorder":"#3daee9"},
+  "editor.tokenColorCustomizations": {"textMateRules":[{"scope":["comment"],"settings":{"foreground":"#a1a9b1"}},{"scope":["string"],"settings":{"foreground":"#27ae60"}},{"scope":["keyword","storage"],"settings":{"foreground":"#9b59b6"}},{"scope":["constant.numeric"],"settings":{"foreground":"#f67400"}},{"scope":["entity.name.function"],"settings":{"foreground":"#1d99f3"}}]}
 }
