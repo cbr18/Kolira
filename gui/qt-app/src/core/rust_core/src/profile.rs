@@ -1387,6 +1387,13 @@ pub(crate) fn plan_restore(
         return Err(anyhow!("Profile not found: {profile}"));
     }
 
+    if rel_paths
+        .iter()
+        .any(|rel| std::path::Path::new(rel).starts_with(crate::spicetify::DIR))
+    {
+        crate::spicetify::preflight(source)?;
+    }
+
     for rel in rel_paths {
         if appearance::is_preserved(rel) {
             continue;
@@ -1508,6 +1515,9 @@ pub(crate) fn plan_restore(
                         if rel.starts_with(".local/share/konsole/") && rel.ends_with(".profile") {
                             crate::konsole::plan_finish_profile(rel, plan)?;
                         }
+                    }
+                    None if Path::new(rel).starts_with(crate::spicetify::THEMES) => {
+                        crate::spicetify::plan_theme_tree(plan, &src, &dst, rel)?;
                     }
                     None => plan.copy(&src, &dst, "apply").with_context(|| {
                         format!("Failed to restore {} -> {}", src.display(), dst.display())

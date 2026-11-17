@@ -722,3 +722,12 @@ Walker со встроенным CSS/SCSS/внешней темой пропус
 меняются старым apply-journal. Это позволяет обновлять зависимый реестр при
 установке, сохраняя пользовательские старые темы. Maintenance refresh чистит
 эти ресурсы в staging; живые браузерные конфиги не затрагиваются.
+
+Spicetify snapshots не включают/не поставляют исполняемые theme scripts
+(`.js`, `.mjs`, `.cjs`, `.wasm`, `.ts`) и не меняют `inject_theme_js`.
+Это относится и к прямому копированию старого каталога `Themes/`.
+Snapshot `current_theme` — одно имя каталога, без traversal/separators.
+Native применение требует уже настроенного Spicetify даже без stage 2; failed/timeout refresh
+является ошибкой, локальные файлы откатываются. Refresh выполняется также
+при возврате к snapshot без Spicetify-конфига. Пропатченный Spotify runtime
+находится за пределами подтверждённого файлового rollback (P4).

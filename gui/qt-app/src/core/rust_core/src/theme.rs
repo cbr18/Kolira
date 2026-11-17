@@ -1749,14 +1749,19 @@ fn apply_inner(name: &str, options: &ApplyOptions) -> Result<ApplyReport> {
         &keep_fields,
         options.sync_apps.then_some(&package),
     )?;
-    if dir.join(crate::spicetify::CONFIG).is_file() {
-        crate::spicetify::refresh();
+    let changed_paths = crate::operation::changed_paths()?;
+    if dir.join(crate::spicetify::CONFIG).is_file()
+        || changed_paths
+            .iter()
+            .any(|path| path.starts_with(crate::paths::live_path(crate::spicetify::DIR)))
+    {
+        crate::spicetify::refresh()?;
     }
     report.backup = backup.display().to_string();
     report.applied = crate::profile::get_profile_components(name).unwrap_or_default();
     // Follow-up actions: offered, not done (actions.rs) —
     // a program may be in a call.
-    for action in crate::actions::for_changes(&dir, &crate::operation::changed_paths()?) {
+    for action in crate::actions::for_changes(&dir, &changed_paths) {
         let policy = if action.kind == "restart" {
             crate::automation::policy(&format!("restart_{}", action.id))
         } else {

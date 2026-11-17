@@ -57,7 +57,8 @@ pub fn is_retired_app_path(rel: &str) -> bool {
 }
 
 pub fn is_preserved(rel: &str) -> bool {
-    crate::launcher_apps::preserved(rel)
+    crate::spicetify::is_script(rel)
+        || crate::launcher_apps::preserved(rel)
         || crate::four_apps::preserved(rel)
         || is_retired_app_path(rel)
         || (std::path::Path::new(rel).starts_with(".vim") && rel != crate::third_apps::VIM_DATA)
@@ -235,7 +236,6 @@ const SPICETIFY: &[Rule] = &[r(
         "inject_css",
         "replace_colors",
         "overwrite_assets",
-        "inject_theme_js",
     ]),
 )];
 const CAVA_RULES: &[Rule] = &[r("color", Keys::All)];
@@ -1134,6 +1134,7 @@ pub(crate) fn restore_changed(
         Policy::Native => crate::native_appearance::restore(rel, before, after, current)?,
         Policy::Jsonc(_) => restore_json(before, after, current),
         Policy::Ini(_)
+        | Policy::Kv(_)
         | Policy::KwinRc
         | Policy::KwinRules
         | Policy::Appletsrc

@@ -104,9 +104,16 @@ kolira palette apply [--targets=kde,kitty,alacritty,gtk,kvantum] [--kvantum-base
 
 **Spotify / Spicetify** (цель `spicetify`, по умолчанию включена, пропускается
 без `~/.config/spicetify/config-xpui.ini`): `Themes/Kolira/color.ini`
-(раздел `[Kolira]`, соответствие ролей — как в шаблоне matugen) + пустой
+(раздел `[Kolira]`, соответствие ролей общей палитре) + пустой
 `user.css`; в `config-xpui.ini` выставляются `current_theme`/`color_scheme`
 `Kolira`, `inject_css`/`replace_colors` `1`, затем `spicetify apply -n`.
+
+Записи Spicetify проходят атомарный Plan с сохранением прав; ошибка/timeout
+внешнего apply возвращается вызывающему коду и откатывает локальные файлы.
+Исполняемые theme scripts не импортируются, `inject_theme_js` не переносится.
+Нативное применение требует существующей baseline-конфигурации. Сам Spotify
+внешняя утилита патчит отдельно: восстановление всех её runtime side effects
+не подтверждено и остаётся ограничением P4.
 
 **Ghostty** (цель `ghostty`, по умолчанию; пропускается без
 `~/.config/ghostty/config`): блок цветов (`background`, `foreground`,

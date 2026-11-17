@@ -9,10 +9,9 @@
 //! * applying a theme runs `spicetify apply` when Spicetify is installed.
 
 use std::fmt::Write as _;
-use std::fs;
 use std::path::PathBuf;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use crate::field::set_ini_text;
 use crate::palette::{kde_roles, Palette, Rgb};
@@ -80,15 +79,17 @@ pub fn apply_palette(p: &Palette) -> Result<Option<PathBuf>> {
         return Ok(None);
     }
     let dir = base.join("Themes").join(THEME_NAME);
-    fs::create_dir_all(&dir)?;
-    fs::write(dir.join("color.ini"), color_ini(p))?;
+    let mut plan = crate::change_plan::Plan::default();
+    let color = dir.join("color.ini");
+    crate::app_sync::write(&mut plan, &color, color_ini(p))?;
     if !dir.join("user.css").exists() {
-        fs::write(
-            dir.join("user.css"),
-            "/* kolira: colours only (color.ini) */\n",
+        crate::app_sync::write(
+            &mut plan,
+            &dir.join("user.css"),
+            "/* kolira: colours only (color.ini) */\n".into(),
         )?;
     }
-    let mut text = fs::read_to_string(&config)?;
+    let mut text = plan.text(&config)?.context("Missing Spicetify config")?;
     for (k, v) in [
         ("current_theme", THEME_NAME),
         ("color_scheme", THEME_NAME),
@@ -97,23 +98,103 @@ pub fn apply_palette(p: &Palette) -> Result<Option<PathBuf>> {
     ] {
         text = set_ini_text(&text, "Setting", k, v);
     }
-    fs::write(&config, text)?;
-    refresh();
-    Ok(Some(dir.join("color.ini")))
+    crate::app_sync::write(&mut plan, &config, text)?;
+    if let Err(error) = plan.commit().and_then(|_| refresh()) {
+        let rollback = crate::change_plan::Plan {
+            before: plan.after.clone(),
+            after: plan.before.clone(),
+            ..Default::default()
+        };
+        rollback
+            .commit()
+            .context("Spicetify configuration rollback failed")?;
+        return Err(error);
+    }
+    Ok(Some(color))
+}
+
+/// Imported themes cannot enable or supply executable Spotify extensions.
+pub fn is_script(rel: &str) -> bool {
+    std::path::Path::new(rel).starts_with(THEMES)
+        && std::path::Path::new(rel).extension().is_some_and(|v| {
+            ["js", "mjs", "cjs", "wasm", "ts"]
+                .iter()
+                .any(|ext| v.to_string_lossy().eq_ignore_ascii_case(ext))
+        })
+}
+/// Directory snapshots are copied recursively elsewhere; apply the same script
+/// exclusion here so a raw legacy Themes/ directory cannot bypass it.
+pub(crate) fn plan_theme_tree(
+    plan: &mut crate::change_plan::Plan,
+    source: &std::path::Path,
+    dest: &std::path::Path,
+    rel: &str,
+) -> Result<()> {
+    if is_script(rel) {
+        return Ok(());
+    }
+    if source.is_dir() && !source.is_symlink() {
+        for entry in std::fs::read_dir(source)? {
+            let entry = entry?;
+            let name = entry.file_name();
+            plan_theme_tree(
+                plan,
+                &entry.path(),
+                &dest.join(&name),
+                &format!("{rel}/{}", name.to_string_lossy()),
+            )?;
+        }
+        Ok(())
+    } else {
+        plan.copy(source, dest, "apply")
+    }
+}
+pub fn preflight(source: &std::path::Path) -> Result<()> {
+    if source.join(CONFIG).is_file() {
+        let text = std::fs::read_to_string(source.join(CONFIG))?;
+        if let Some(name) = crate::field::ini_get(&text, "Setting", "current_theme") {
+            let valid = name.is_empty()
+                || (!name.contains(['/', '\\'])
+                    && !name.chars().any(char::is_control)
+                    && matches!(
+                        std::path::Path::new(&name).components().next(),
+                        Some(std::path::Component::Normal(_))
+                    )
+                    && std::path::Path::new(&name).components().count() == 1);
+            anyhow::ensure!(
+                valid,
+                "Spicetify current_theme must be a single theme folder name"
+            );
+        }
+    }
+
+    if !crate::field::no_apply()
+        && source.join(CONFIG).is_file()
+        && which::which("spicetify").is_ok()
+    {
+        anyhow::ensure!(crate::paths::live_path(CONFIG).is_file(),"Spicetify must already be configured before applying its theme; refusing to create an untracked Spotify baseline");
+    }
+    Ok(())
 }
 
 /// Re-patch Spotify after the Spicetify config/theme changed.
-pub fn refresh() {
+pub fn refresh() -> Result<()> {
     if std::env::var("KTM_THEME_NO_APPLY").as_deref() == Ok("1")
         || which::which("spicetify").is_err()
     {
-        return;
+        return Ok(());
     }
-    let _ = crate::paths::status_bounded(
+    let status = crate::paths::status_bounded(
         std::process::Command::new("spicetify")
             .args(["apply", "-n"])
             .stderr(std::process::Stdio::null()),
+    )
+    .context("Spicetify apply timed out or could not start")?;
+    anyhow::ensure!(
+        status.success(),
+        "Spicetify apply failed ({status}); Spotify runtime changes could not be verified"
     );
+    Ok(())
 }
 
 #[cfg(test)]

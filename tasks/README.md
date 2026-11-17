@@ -9,7 +9,6 @@
 
 | Задача | Что осталось |
 |---|---|
-| [Расширение покрытия приложений](2026_11_15_app-coverage-expansion.md) | IN PROGRESS: три партии P0, четыре терминальных приложения и Rofi/Fuzzel реализованы. Walker ограничен существующим CSS и остаётся P4; далее Spotify/Spicetify. |
 | [Реальный цикл зависимостей из AUR](2026_11_08_aur-dependency-cycle.md) | Код поддерживает AUR (источник "aur", команда `yay -S {id}`, проверка наличия helper). Требует реального тестирования в изолированном Arch Linux контейнере. |
 
 Блокирующие дефекты F01/F02 аудита и защита применения реализованы.
@@ -21,6 +20,15 @@ ID операций и бэкапы защиты применения; AUR и с
 Работы по дополнительным источникам/библиотеке обоев отложены пользователем.
 
 ## Закрыто
+
+- [Покрытие приложений: существующий срез](2026_11_15_app-coverage-expansion.md) — CLOSED 2026-11-17
+  по уточнению пользователя: дальше покрытие в этой задаче не расширяем.
+  [Матрица всех 56 registry entries](../docs/audits/2026_11_17_existing-adapters-closeout.md).
+  Исправлены btop native-format return и существующий Spicetify safety/error/return.
+  306 Rust + 3 generator / 345 Qt / 260 shell PASS; native Firefox/Zen,
+  btop/Yazi/lazygit RGB туда/обратно, Prism/Heroic/CLI/GTK и контейнерные
+  launcher/terminal проверки восьми палитр. Plasma 6 циклов + GUI return ALL PASSED.
+  CLI обновлён локально; новых приложений/targets нет, ограничения P4 сохранены.
 
 - [Исправления лаунчеров](2026_11_17_launcher-review.md) — DONE 2026-11-17:
   исправлены native Rofi/Fuzzel, ownership/возврат, повторный Apply и генератор.
