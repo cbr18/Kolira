@@ -26,6 +26,7 @@
     ".config/cliamp/themes/kolira.toml": "fbb6dc725b02e7ba70a65b61b6a99e9597350c7ae756d26a84936cc9eca39a87",
     ".config/fish/fish_variables": "661f3a981280f0b604ba570a937d95c434845634597eb7a37610252e33efd17e",
     ".config/foot/foot.ini": "bdad47718e3dd698359dfd531fc2a45b1bbde25dff3f54e94c052aceff42ebf8",
+    ".config/fuzzel/fuzzel.ini": "8eceac681424d604a4009173daa9e1ca1978dc3c82038d0cbf334314b2c1e430",
     ".config/fzf/kolira.opts": "dcd1c976f6038d5439dec89995ca00cdf799de1920a6b3448f4e1eb6a3a2331e",
     ".config/ghostty/kolira": "d65b86960bb9d7a6d5d71a162e618b5c8d8c5f2d7a056a4692f2df5c73c7a2c2",
     ".config/glow/glow.yml": "c999f4f9e77649f469d6628a8422cce31c0e74d69f40f54713f2abf953531528",
@@ -57,8 +58,10 @@
     ".config/plasma-org.kde.plasma.desktop-appletsrc": "e1fb59afeb19ba04afd26bdb2290b8a09193ea54f051ef9bb80ff5954a68a8b2",
     ".config/plasmarc": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".config/plasmashellrc": "0d2631c02c848f1692dd16c7f4619683ec959a498da0f46feafd5d6e61d393a8",
+    ".config/rofi/themes/kolira.rasi": "2c45e75ad4c494e01631c55786de4bb61fd3bd4822953b725b4c9b46ad575991",
     ".config/starship.toml": "fa10be3b48e9f80ca4e885efd75162fd02bad65b534fcb7c09e43d10d4b1a328",
     ".config/tmux/kolira.json": "f5b3b2ef834401cfbb5f5939d2362fecfb9c90e192373df853c4f91cbdcb9109",
+    ".config/walker/kolira.css": "6aea1e80fdaaaeaa0d08df6582737b4746065f0c5369093f6c27b659edd5baa9",
     ".config/wezterm/kolira.toml": "d1b5b3a8232d78b95ff4aae6e6ceed6e8a645a16e6394cf72a08f78b76a83ec4",
     ".config/wofi/kolira.css": "a37d7d4432fbb050ae5eca9473c8bbfd9309df919326ac3e02fe78dc360f9d87",
     ".config/wofi/style.css": "41664fe18c91b08b43be6a6b2a0b4fde7c9658df0e5839a8cc23320689fe3c96",
@@ -79,14 +82,11 @@
     ".mozilla/firefox/kolira.default/user.js": "0ea4681525e190ecf3a879eef3e3086e07c8ce9adf5acc170c270c5cfc91fde3",
     ".vim/kolira-palette.json": "63cdaf8eaea748472566613339af1988c47e211e4a8e8488da2856211d8d2fed",
     ".zen/kolira.default/user.js": "8e314801998640f817e209cb0777f02555d981512ecd762e2df6e2e76a5ba076",
-    "manifest.json": "eab43163a4cfb45c0905e9d4043a0b21909ddc6eee8f52e9ca312dab6c37bf89",
-    "manifest.txt": "852c7aa2f45fd3ad903dc6ea4bab643323607584476378f475f6994ec0501fdf",
+    "manifest.json": "1b2ebce393bebf968998694f65be20f2b1d5c275aabe07afb4bb167e93add91f",
+    "manifest.txt": "4db32fc12f7a97d9e8ec3ceef4d8ee7fad622f7258b3ddef13da010dd4222701",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-    "theme.json": "a7a785f90ff7d366f309f639ef46bff568ff13b60aef0828663aca8357f445b7",
+    "theme.json": "f919eb16278e6b79f6530f66a565d412b620aa93b73206fad6749b519df9a09d",
     "wallpaper/everforest-misty-pines.jpg": "eaa504fb6526ae9d04e7a647944ecb9ea2ca867a3241064b66467fda288e4958",
-    "wallpaper/source": "90437a63f17675e4ed75072ee076622b2c650787a8f4336b3f9d4057f7445a5a",
-    ".config/rofi/themes/kolira.rasi": "613292b62034225cad5245ae6fe18cf84b8b1fc50f92431c24e4c626307911ad",
-    ".config/fuzzel/fuzzel.ini": "c6ad1ec7f5414e908afd34c349624ea09efba09a46f2b382a742ebe205a878e2",
-    ".config/walker/style.css": "8a537b8a10749884bc93c72c7db64d8df9661bde4be41e3634603be143bf0058"
+    "wallpaper/source": "90437a63f17675e4ed75072ee076622b2c650787a8f4336b3f9d4057f7445a5a"
   }
 }

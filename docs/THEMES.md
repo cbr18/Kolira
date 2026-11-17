@@ -702,3 +702,23 @@ exported from snapshots: the core creates local glue. Conflicting personal glue
 aborts preparation. Runtime tmux colours share the transaction and return journal;
 terminal fonts, startup commands and prompt modules stay personal.
 [Detailed contracts and supported versions](APPLICATIONS.md#starship-tmux-foot-wezterm).
+
+### Цветовые ресурсы лаунчеров
+
+Rofi/Fuzzel/Walker включаются через `app_targets` (`rofi`, `fuzzel`, `walker`).
+Генератор комплектных тем создаёт ресурсы из base16/accent; импорт/экспорт
+проверяет whitelist цветов. Rofi `config.rasi` и личные Walker hosts, настройки
+и XML не переносятся. Fuzzel содержит только нативные ключи `[colors]`.
+Walker `kolira.css` — переносимые данные, которые core добавляет в существующий
+CSS выбранной темы; старый `walker/style.css` не импортируется.
+Применение/возврат используют общий Plan и журнал, включая отсутствующие файлы
+и поздние личные правки. Это дополнение цвета сохраняет выбранный Rofi layout.
+Walker со встроенным CSS/SCSS/внешней темой пропускается и остаётся в P4.
+[Поддержанные версии и поведение](APPLICATIONS.md#лаунчеры).
+
+Удалённые `chromium`/`chrome`, как и `telegram`/`kotatogram`, допускаются только
+для чтения старых пакетов: при load/import их targets отбрасываются.
+Пути Chromium/Chrome (native и Flatpak) не сохраняются, не импортируются и не
+меняются старым apply-journal. Это позволяет обновлять зависимый реестр при
+установке, сохраняя пользовательские старые темы. Maintenance refresh чистит
+эти ресурсы в staging; живые браузерные конфиги не затрагиваются.

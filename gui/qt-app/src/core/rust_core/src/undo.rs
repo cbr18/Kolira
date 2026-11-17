@@ -170,8 +170,7 @@ fn save(journal: &Journal) -> Result<()> {
 /// config bytes. Errors abort Apply while its recovery copy is still intact.
 fn entries(rels: &[String]) -> Result<BTreeMap<String, Entry>> {
     fn walk(rel: String, out: &mut BTreeMap<String, Entry>) -> Result<()> {
-        if appearance::is_removed_messenger_path(&rel)
-            || Path::new(&rel).starts_with(".config/fastfetch")
+        if appearance::is_retired_app_path(&rel) || Path::new(&rel).starts_with(".config/fastfetch")
         {
             return Ok(());
         }
@@ -414,8 +413,7 @@ fn plan_revert_inner(plan: &mut Plan) -> Result<Journal> {
             )),
             "Invalid journal path"
         );
-        if appearance::is_removed_messenger_path(&rel)
-            || Path::new(&rel).starts_with(".config/fastfetch")
+        if appearance::is_retired_app_path(&rel) || Path::new(&rel).starts_with(".config/fastfetch")
         {
             continue;
         }
@@ -487,7 +485,7 @@ fn plan_revert_inner(plan: &mut Plan) -> Result<Journal> {
     for (rel, hash) in std::mem::take(&mut j.created) {
         // Shell init lines keep pointing to this shared prompt file when the
         // next theme has no prompt. Keep it, matching profile::plan_reset.
-        if appearance::is_removed_messenger_path(&rel)
+        if appearance::is_retired_app_path(&rel)
             || Path::new(&rel).starts_with(".config/fastfetch")
             || rel == crate::extras::OMP_THEME
         {
@@ -501,8 +499,7 @@ fn plan_revert_inner(plan: &mut Plan) -> Result<Journal> {
     }
     let originals = dir().join("originals");
     for (rel, (hash, name)) in std::mem::take(&mut j.replaced) {
-        if appearance::is_removed_messenger_path(&rel)
-            || Path::new(&rel).starts_with(".config/fastfetch")
+        if appearance::is_retired_app_path(&rel) || Path::new(&rel).starts_with(".config/fastfetch")
         {
             continue;
         }

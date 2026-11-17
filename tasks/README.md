@@ -1,6 +1,6 @@
 # Задачи проекта
 
-Актуализировано 2026-11-16 по файлам задач и текущему коду. Это индекс локальных
+Актуализировано 2026-11-17 по файлам задач и текущему коду. Это индекс локальных
 задач; `plans/` хранит планы, `docs/ROADMAP.md` — направление развития.
 Статус DONE означает завершённую реализацию в пределах описанной проверки,
 а не проверку всех сценариев на настоящем рабочем столе.
@@ -9,8 +9,7 @@
 
 | Задача | Что осталось |
 |---|---|
-| [Starship, tmux, Foot, WezTerm](2026_11_16_four-terminal-apps.md) | DONE: код и восемь тем готовы; 287 Rust / 345 Qt / 260 shell PASS. |
-| [Расширение покрытия приложений](2026_11_15_app-coverage-expansion.md) | IN PROGRESS: три партии P0 и код Starship/tmux/Foot/WezTerm реализованы. Лаунчеры Rofi, Fuzzel, Walker добавлены; доработка Spotify/Spicetify далее. |
+| [Расширение покрытия приложений](2026_11_15_app-coverage-expansion.md) | IN PROGRESS: три партии P0, четыре терминальных приложения и Rofi/Fuzzel реализованы. Walker ограничен существующим CSS и остаётся P4; далее Spotify/Spicetify. |
 | [Реальный цикл зависимостей из AUR](2026_11_08_aur-dependency-cycle.md) | Код поддерживает AUR (источник "aur", команда `yay -S {id}`, проверка наличия helper). Требует реального тестирования в изолированном Arch Linux контейнере. |
 
 Блокирующие дефекты F01/F02 аудита и защита применения реализованы.
@@ -22,6 +21,20 @@ ID операций и бэкапы защиты применения; AUR и с
 Работы по дополнительным источникам/библиотеке обоев отложены пользователем.
 
 ## Закрыто
+
+- [Исправления лаунчеров](2026_11_17_launcher-review.md) — DONE 2026-11-17:
+  исправлены native Rofi/Fuzzel, ownership/возврат, повторный Apply и генератор.
+  299 Rust + 3 generator / 345 Qt / 260 shell PASS; release, clippy, fmt,
+  shellcheck, 923 finished переводов. Native Rofi/Fuzzel/GTK4 + preflight/return
+  восьми тем PASS; Starship/Foot/WezTerm регрессии восьми тем PASS.
+  Walker 2.x ограничен существующим CSS; полная автоматизация остаётся P4.
+  CLI/GUI и восемь локальных тем обновлены с бэкапами; installed GUI и реальные
+  preview восьми тем PASS. Clean-machine Plasma: шесть тем + GUI возврат ALL PASSED.
+  Активный Everforest и файлы рабочего стола сохранены.
+
+- [Starship, tmux, Foot, WezTerm](2026_11_16_four-terminal-apps.md) — DONE:
+  код и восемь тем готовы; повторная native проверка Starship/Foot/WezTerm восьми
+  пакетов 2026-11-17 PASS; границы tmux и UI описаны в карточке.
 
 - [Аудит терминалов Alacritty/Ghostty](2026_11_16_alacritty-ghostty-audit.md) — DONE 2026-11-16:
   статический аудит файловых адаптеров: Alacritty (toml_edit split/host, palette генерация,

@@ -1,0 +1,7 @@
+FROM archlinux:latest
+RUN printf 'Server = https://fastly.mirror.pkgbuild.com/$repo/os/$arch\nServer = https://geo.mirror.pkgbuild.com/$repo/os/$arch\n' > /etc/pacman.d/mirrorlist && \
+    pacman -Syu --noconfirm --needed rofi fuzzel python python-gobject gtk4 ttf-dejavu xorg-server-xvfb xorg-xauth && \
+    useradd -m -u 1000 native-test
+USER native-test
+ENV KOLIRA_LAUNCHERS_CONTAINER=1 GDK_BACKEND=x11
+CMD ["xvfb-run", "-a", "python3", "/src/tests/e2e/launchers-native.py"]

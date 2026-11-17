@@ -982,17 +982,27 @@ fn gtk_stale_red_is_replaced_without_changing_alpha_or_widget_rules() {
 }
 
 #[test]
-fn retired_messengers_are_ignored_in_legacy_themes_and_undo_journals() {
+fn retired_apps_are_ignored_in_legacy_themes_and_undo_journals() {
     use sha2::{Digest, Sha256};
     let h = Home::new();
     let rels = [
+        ".config/chromium/Default/Preferences",
+        ".config/google-chrome/kolira-theme/manifest.json",
+        ".var/app/org.chromium.Chromium/config/chromium/Default/Preferences",
+        ".var/app/com.google.Chrome/config/google-chrome/Default/Preferences",
         ".config/telegram-desktop/settings.json",
         ".config/kotatogram-desktop/settings.json",
         ".local/share/TelegramDesktop/kolira.tdesktop-palette",
         ".local/share/KotatogramDesktop/kolira.tdesktop-palette",
         ".var/app/org.telegram.desktop/data/TelegramDesktop/tdata/personal",
     ];
-    h.package(json!(["telegram", "kotatogram"]));
+    h.package(json!([
+        "telegram",
+        "kotatogram",
+        "chromium",
+        "chrome",
+        "google-chrome"
+    ]));
     for rel in rels {
         h.write(rel, "personal client data\n");
         h.write(
@@ -1084,7 +1094,10 @@ fn retired_messengers_are_ignored_in_legacy_themes_and_undo_journals() {
     }
     assert!(kolira_core::tracked_apps::get_tracked_apps()
         .iter()
-        .all(|app| !matches!(app.id.as_str(), "telegram" | "kotatogram")));
+        .all(|app| !matches!(
+            app.id.as_str(),
+            "telegram" | "kotatogram" | "chromium" | "chrome" | "google-chrome"
+        )));
     assert!(!kolira_core::palette::TARGETS.contains(&"telegram"));
     assert!(!kolira_core::palette::DEFAULT_TARGETS.contains(&"telegram"));
     let result = h

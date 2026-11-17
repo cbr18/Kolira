@@ -1,14 +1,34 @@
-/* BEGIN kolira colours */
-*{
-    background: #f6f0e6;
-    foreground: #2f2a24;
-    background-color: #f6f0e6;
-    color: #2f2a24;
-    border: 1px solid #dedad3;
-    border-radius: 4px;
-    padding: 8px;
-}
-#input { background-color: #5c564e; color: #2f2a24; border-color: #586d47; }
-#entry:selected { background-color: #586d47; color: #2f2a24; }
-#text:selected { color: #2f2a24; }
-/* END kolira colours */
+element { background-color: transparent; }
+element { text-color: #2f2a24; }
+element alternate.active { background-color: #fffbf4; }
+element alternate.active { text-color: #2f2a24; }
+element alternate.normal { background-color: #fffbf4; }
+element alternate.normal { text-color: #2f2a24; }
+element alternate.urgent { background-color: #fffbf4; }
+element alternate.urgent { text-color: #2f2a24; }
+element normal.active { background-color: #fffbf4; }
+element normal.active { text-color: #2f2a24; }
+element normal.normal { background-color: #fffbf4; }
+element normal.normal { text-color: #2f2a24; }
+element normal.urgent { background-color: #fffbf4; }
+element normal.urgent { text-color: #2f2a24; }
+element selected { background-color: #586d47; }
+element selected { text-color: #fffbf4; }
+element selected.active { background-color: #586d47; }
+element selected.active { text-color: #fffbf4; }
+element selected.normal { background-color: #586d47; }
+element selected.normal { text-color: #fffbf4; }
+element selected.urgent { background-color: #586d47; }
+element selected.urgent { text-color: #fffbf4; }
+element-icon { background-color: transparent; }
+element-text { background-color: transparent; }
+element-text { text-color: inherit; }
+entry { cursor-color: #586d47; }
+entry { text-color: #2f2a24; }
+inputbar { background-color: #f6f0e6; }
+listview { background-color: transparent; }
+mainbox { background-color: transparent; }
+prompt { text-color: #586d47; }
+window { background-color: #fffbf4; }
+window { border-color: #dedad3; }
+window { text-color: #2f2a24; }

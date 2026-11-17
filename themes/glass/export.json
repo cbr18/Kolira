@@ -26,6 +26,7 @@
     ".config/cliamp/themes/kolira.toml": "d1fa1e2ed41fe0d8c925447f8346bdf03f970112cba36e092398fb909b9be252",
     ".config/fish/fish_variables": "164a1f08700b24c156c1379c915eac490b7bb0b985a352aab6fa3a75ce779022",
     ".config/foot/foot.ini": "305577247712e99f04630ce08e66c9fd89e7989caf37a1eeb2cf6917b2a9cd81",
+    ".config/fuzzel/fuzzel.ini": "1d7c00e8c65b2bbea0b235e6da876bc23851d37bafd16271224a783e614ee3a4",
     ".config/fzf/kolira.opts": "a80b6873a20ea04d44ffb9788a85e60401f62b82ad539d3708f5cfe6b6f36351",
     ".config/ghostty/kolira": "ce628a0f82f98af5420b396f2aa832beefe04d38a0c4f7b1464208aa6e0d1625",
     ".config/glow/glow.yml": "c999f4f9e77649f469d6628a8422cce31c0e74d69f40f54713f2abf953531528",
@@ -57,8 +58,10 @@
     ".config/plasma-org.kde.plasma.desktop-appletsrc": "53aa3ae829e9e990fe2f1242ffde89250282e3d6223fa1766bded85840700bb7",
     ".config/plasmarc": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
     ".config/plasmashellrc": "0d2631c02c848f1692dd16c7f4619683ec959a498da0f46feafd5d6e61d393a8",
+    ".config/rofi/themes/kolira.rasi": "6e8cab786ecdea43a1356f90b9e1f7296781474549f11d3ef9ec62fae1094c39",
     ".config/starship.toml": "0180ac06c0b4f5c26e1c552cdd16f1b4467ec954d1fce4c51bd45733b1df3718",
     ".config/tmux/kolira.json": "a8c0c4f5d87d983f479d8dfaf503552e7a29e652c4930b330c61787f8e713a38",
+    ".config/walker/kolira.css": "d3c242af864cdd628c30bb56b3170cf01183a8392c2f9d55f9edb5371abe9b5c",
     ".config/wezterm/kolira.toml": "fea9086e9239ebfc319381b0466a21ce10ac44ff523d9e41efe366112c3305f7",
     ".config/wofi/kolira.css": "5ab4a54a7b0966e9b9413c88d94098d2f7b08f00cea9166ce85dcd0172505335",
     ".config/wofi/style.css": "41664fe18c91b08b43be6a6b2a0b4fde7c9658df0e5839a8cc23320689fe3c96",
@@ -80,14 +83,11 @@
     ".mozilla/firefox/kolira.default/user.js": "4ccaf0dbcbe843c364219bb3222ed6dad94913e602dcb536fad268b46befa612",
     ".vim/kolira-palette.json": "3648ec19d7f025d9dfddfe4a7d8d2bbf3fde481b4dcef377073ea1ef138098bb",
     ".zen/kolira.default/user.js": "b848639140bed719caf2db8accf8785ad38a01ea7a879b5415a57d57273ab040",
-    "manifest.json": "b07844295682743f52147eeb4552b91c7f2dbd69536db4592c0252e40f0cb597",
-    "manifest.txt": "2f9ed0d1d839d89c584fc162c253d31685775997876af16f84430935b94da44b",
+    "manifest.json": "0be96c6dd93d60ff13bdc9a1ad6c051e9a64c03acb44615d7a4e6adf141b70d9",
+    "manifest.txt": "7a4c0ed37042d338a8f070eb2081a73ccfad957db3b47ea3523b224e3cf2a52e",
     "obsidian/vault/.obsidian/appearance.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-    "theme.json": "b780b1e1f7ba3a39c7059299561050a4177a83e8400f1c1a146dc810be75fdc7",
+    "theme.json": "7ac752812ce9d62f20996938572ab95a75db1c4c7b7f2644bfb3ef98b01cbb99",
     "wallpaper/glass-saturn-mono.jpg": "e80c120a94025dc4a4a28a08d3b4e90c58b66f291850d07953ca8e05df0ef30f",
-    "wallpaper/source": "93a5954a983f672acf6551c460a5c5889bc225e3230250c9b38e0303b92207dc",
-    ".config/rofi/themes/kolira.rasi": "c7b654de8e313b405488547d2d91194f2f92da211bd92220d90ce2ed7a730c2a",
-    ".config/fuzzel/fuzzel.ini": "afbffcea330ce65055926e4bc53c4e734ccc3f9f48ee623cb540b269101f4b27",
-    ".config/walker/style.css": "935d0d16cf725287ba6c850c6329d13df1df74a327ba47f7a2d011484efe5e9e"
+    "wallpaper/source": "93a5954a983f672acf6551c460a5c5889bc225e3230250c9b38e0303b92207dc"
   }
 }

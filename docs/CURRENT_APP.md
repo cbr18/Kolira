@@ -467,7 +467,7 @@ marketplace extensions: встроенная база и цветовые overri
 
 P0 application rows 11–20 are implemented: fish/Pure/OMP, btop/Cava, Yazi/bat,
 Wofi, fzf, lazygit, Zellij, OpenCode V2, Claude Code and Codex. The tracked registry
-contains 53 applications. Native paths, colour-only policies, startup/reload and
+contains 56 applications. Native paths, colour-only policies, startup/reload and
 custom-path limits are documented in [APPLICATIONS.md](APPLICATIONS.md).
 
 
@@ -484,3 +484,9 @@ Heroic, Prism, Vim, mpv/Cliamp и VSCodium. Все восемь пакетов �
 Starship/tmux/Foot/WezTerm: [контракты и версии](APPLICATIONS.md#starship-tmux-foot-wezterm).
 WezTerm Lua и tmux startup commands остаются локальными; пакеты содержат только
 цветовые данные. tmux native values входят в общий журнал и safety recovery.
+
+2026-11-17: исправлены адаптеры Rofi/Fuzzel и общий возврат launcher hosts.
+Восемь пакетов содержат по 38 app_targets; все цвета генерируются из палитры.
+Walker 2.x обрабатывает существующий CSS выбранной темы и остаётся P4 до
+полного native цикла; встроенные/SCSS/внешние темы безопасно пропускаются.
+[Пути и ограничения](APPLICATIONS.md#лаунчеры).

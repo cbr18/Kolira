@@ -409,9 +409,12 @@ pub fn load(dir: &Path) -> Result<Package> {
 
 /// Compatibility for old packages; no adapter or generator remains for these IDs.
 pub(crate) fn drop_retired_targets(package: &mut Package) {
-    package
-        .app_targets
-        .retain(|target| !matches!(target.as_str(), "telegram" | "kotatogram"));
+    package.app_targets.retain(|target| {
+        !matches!(
+            target.as_str(),
+            "telegram" | "kotatogram" | "chromium" | "chrome" | "google-chrome"
+        )
+    });
 }
 
 /// Packages may carry appearance resources, never arbitrary HOME files.

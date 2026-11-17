@@ -353,7 +353,7 @@ fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(
                 text = text
                     .lines()
                     .filter(|l| {
-                        !l.starts_with("user=") && !crate::appearance::is_removed_messenger_path(l)
+                        !l.starts_with("user=") && !crate::appearance::is_retired_app_path(l)
                     })
                     .collect::<Vec<_>>()
                     .join("\n")

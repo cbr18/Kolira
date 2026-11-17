@@ -27,6 +27,7 @@
     ".config/cliamp/themes/kolira.toml": "bf048d9a76cb555451eca8c74a745a36d807fef689a106d79954498253eafb1b",
     ".config/fish/fish_variables": "200265c21719fe545ed2bc30448277a8f69e2b2e3378ccfdc6023736010dea26",
     ".config/foot/foot.ini": "2b1bbbb79c2f44302d151e566d899f0f4826ed30405cbe9a1f9953242bef6248",
+    ".config/fuzzel/fuzzel.ini": "79b2787d41e8c0239564f0c31c28b88bd71648c6c8e99becb790a38c029c253d",
     ".config/fzf/kolira.opts": "5b5b10e267d53029d9f9de85261d99742e988480615afd2ce85490430f5c6cd7",
     ".config/ghostty/kolira": "e1110b6310ecc4df632b0709274efe02bc10be30b01cb7974b71a2ab9fe5d1ad",
     ".config/glow/glow.yml": "c999f4f9e77649f469d6628a8422cce31c0e74d69f40f54713f2abf953531528",
@@ -56,8 +57,10 @@
     ".config/plasma-org.kde.plasma.desktop-appletsrc": "6b8c203bda161b04ebd7f983a127c3e320be9a912796927983bf572cb0e0317e",
     ".config/plasmarc": "34f372063f2202b3ab41a3bf59e28065b12967dfa6b9ee17c0bda33cfe509925",
     ".config/plasmashellrc": "2d2c40695b315e6dd0370c6b9f3635ea3751c56bc4cbfc09ca690b85463f9362",
+    ".config/rofi/themes/kolira.rasi": "27450a0f6154ddb5e72b40ecfd222614082f5364cc419b63b2d68028668aff54",
     ".config/starship.toml": "50c84f621757f73d1c576a708fa6380b5607e37beffcba25816ca66090c3dc33",
     ".config/tmux/kolira.json": "97e6163031368623857475f20008e93a604194b49f5a9c8fcacbb33e0ca9c00e",
+    ".config/walker/kolira.css": "bc7a1445dbe68a2cbe28afc337cd9deb9427a196098af65f032ada96338ffd78",
     ".config/wezterm/kolira.toml": "a4ab58e6bbd059b784012c57f6655be25c267792a42ba74073acca19ac8b8252",
     ".config/wofi/kolira.css": "23325925b822bea935e7831bb2ee827b4d5fca1a47ffe831f9eacde884b73cd4",
     ".config/wofi/style.css": "1e6195ee9cdf5f93bd52fbb6c8b2f6f0d618aa2841e4d5c9b05b1b48a89800b3",
@@ -77,14 +80,11 @@
     ".mozilla/firefox/kolira.default/user.js": "8965e40f3f792f37ae5d3a224e4dcc79993fd4b5f44589cab3e3e222db980fe2",
     ".vim/kolira-palette.json": "29357a11037bf72e32d7be8b84ae793b3f3c39b1873c7c476439629eb67c319a",
     ".zen/kolira.default/user.js": "86ead8d69aa3e6e71a7c7050bf494a02394e861d0b6b17214731e6d6abd63322",
-    "manifest.json": "65608a5cb1f95e0a6aaddbf7ee7ea96fd1b2ee6ae8d44f5a21b1d82dd906dcab",
-    "manifest.txt": "57c2536f1d19eda64cad2c482e275a3b250ae69e43f7ea00af6bcb574dc09001",
+    "manifest.json": "75c2a08daaf6a3da5ed328b945a887d820047fdc9c3f7b672db15ce1897e3182",
+    "manifest.txt": "356458a3eac5c36b52af4729d46ebf35357d12c9f0b861e5e563e9ff3cabcc4a",
     "obsidian/vault/.obsidian/appearance.json": "4eeaef8673657dc645e1cb3f5149b41ac895bc2bbc7c34db82f8441d1aa18867",
-    "theme.json": "184ff2a3effcabf16e8ddb087ce9eb4c3755ed04a0e4243fe5665614cc8601e9",
+    "theme.json": "639437f4f894a142c2da331c91a080c4bbc0c945dbc3bc3d4ae7e7fc7f9d8891",
     "wallpaper/paper-falat-sviciaz.jpg": "43945d0609075068ee770a3e2fac9375c958388045dfeb50942fa697fe256b6f",
-    "wallpaper/source": "96496d5669804c8c3b73bd46935d27db6e9f258e38603ef0002b3e0c609a73a7",
-    ".config/rofi/themes/kolira.rasi": "f81b04b1acb308be98f0c261bfef3600d320055153d180f7073804f12a1cfc6a",
-    ".config/fuzzel/fuzzel.ini": "992a1409ab1706ced22a980a69472dfc77180ea2ca2309ef0d38390813bb9926",
-    ".config/walker/style.css": "43bedbab67172ff7e115fdd50aaa6c7187b45888ec4d19d988910fec45ab0dda"
+    "wallpaper/source": "96496d5669804c8c3b73bd46935d27db6e9f258e38603ef0002b3e0c609a73a7"
   }
 }

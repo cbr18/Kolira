@@ -43,9 +43,23 @@ pub fn is_removed_messenger_path(rel: &str) -> bool {
     .any(|root| std::path::Path::new(rel).starts_with(root))
 }
 
+/// Retired clients are excluded even from legacy snapshots and undo journals.
+pub fn is_retired_app_path(rel: &str) -> bool {
+    is_removed_messenger_path(rel)
+        || [
+            ".config/chromium",
+            ".config/google-chrome",
+            ".var/app/org.chromium.Chromium",
+            ".var/app/com.google.Chrome",
+        ]
+        .iter()
+        .any(|root| std::path::Path::new(rel).starts_with(root))
+}
+
 pub fn is_preserved(rel: &str) -> bool {
-    crate::four_apps::preserved(rel)
-        || is_removed_messenger_path(rel)
+    crate::launcher_apps::preserved(rel)
+        || crate::four_apps::preserved(rel)
+        || is_retired_app_path(rel)
         || (std::path::Path::new(rel).starts_with(".vim") && rel != crate::third_apps::VIM_DATA)
         || rel == crate::terminal_apps::FZF_LOADER
         || std::path::Path::new(rel).starts_with(".config/libreoffice")
@@ -280,6 +294,9 @@ const ZED: &[&str] = &[
 
 /// The policy for a tracked file (`$HOME`-relative path).
 pub fn policy(rel: &str) -> Policy {
+    if rel == crate::launcher_apps::FUZZEL {
+        return Policy::Ini(crate::launcher_apps::FUZZEL_RULES);
+    }
     if rel == crate::four_apps::FOOT {
         return Policy::Ini(FOOT);
     }
@@ -1075,6 +1092,12 @@ pub(crate) fn restore_changed(
     if current == after {
         return Ok(before.into());
     }
+    if rel == crate::launcher_apps::FUZZEL {
+        return Ok(crate::launcher_apps::restore_fuzzel(before, after, current));
+    }
+    if crate::launcher_apps::is_host(rel) {
+        return crate::launcher_apps::restore_host(before, after, current);
+    }
     if crate::four_apps::is_host(rel) {
         return crate::four_apps::restore_host(rel, before, after, current);
     }
@@ -1229,7 +1252,7 @@ fn ini_values(text: &str) -> std::collections::BTreeMap<(String, String), String
 fn ini_line_value(line: &str) -> &str {
     line.split_once('=').map(|(_, v)| v.trim()).unwrap_or(line)
 }
-fn restore_ini(before: &str, after: &str, current: &str) -> String {
+pub(crate) fn restore_ini(before: &str, after: &str, current: &str) -> String {
     let (old, written, live) = (ini_values(before), ini_values(after), ini_values(current));
     let keys: std::collections::BTreeSet<_> = old.keys().chain(written.keys()).collect();
     let mut sections = parse_ini(current);
@@ -1594,6 +1617,12 @@ pub fn for_theme(rel: &str, text: &str) -> Option<String> {
             .ok()
             .map(|_| text.to_string());
     }
+    if rel == crate::launcher_apps::FUZZEL {
+        return crate::launcher_apps::fuzzel_source(text).ok();
+    }
+    if crate::launcher_apps::is_asset(rel) {
+        return crate::launcher_apps::valid_asset(rel, text).ok();
+    }
     if crate::third_apps::is_asset(rel) {
         return crate::third_apps::valid_asset(rel, text).ok();
     }
@@ -1639,6 +1668,12 @@ pub fn applied(rel: &str, theme_text: &str, live_text: Option<&str>) -> Result<S
     }
     if is_preserved(rel) {
         return Ok(live_text.unwrap_or("").to_string());
+    }
+    if crate::launcher_apps::is_asset(rel) {
+        return crate::launcher_apps::valid_asset(rel, theme_text);
+    }
+    if rel == crate::launcher_apps::FUZZEL {
+        return crate::launcher_apps::fuzzel_merge(theme_text, live_text.unwrap_or(""));
     }
     if crate::third_apps::is_asset(rel) {
         return crate::third_apps::valid_asset(rel, theme_text);
@@ -1794,6 +1829,18 @@ pub fn include_of(host: &str) -> Option<&'static str> {
 pub fn normalize(rel: &str, text: &str, has_include: bool) -> Result<Vec<(String, String)>> {
     if is_preserved(rel) {
         return Ok(Vec::new());
+    }
+    if crate::launcher_apps::is_asset(rel) {
+        return Ok(vec![(
+            rel.into(),
+            crate::launcher_apps::valid_asset(rel, text)?,
+        )]);
+    }
+    if rel == crate::launcher_apps::FUZZEL {
+        return Ok(vec![(
+            rel.into(),
+            crate::launcher_apps::fuzzel_source(text)?,
+        )]);
     }
     if crate::third_apps::is_asset(rel) {
         return Ok(vec![(

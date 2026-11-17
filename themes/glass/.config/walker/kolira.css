@@ -1,0 +1,11 @@
+.box-wrapper { background-color: #141618; }
+.box-wrapper { border-color: #393b3c; }
+.box-wrapper { color: #fcfcfc; }
+.input { background-color: #202326; }
+.input { caret-color: #3daee9; }
+.input { color: #fcfcfc; }
+.list { color: #fcfcfc; }
+child:selected .item-box { background-color: #3daee9; }
+child:selected .item-box { color: #141618; }
+row:selected .item-box { background-color: #3daee9; }
+row:selected .item-box { color: #141618; }

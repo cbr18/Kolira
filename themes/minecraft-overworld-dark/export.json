@@ -27,6 +27,7 @@
     ".config/cliamp/themes/kolira.toml": "04ff6155c7a90ba2820c9e97f77a979e18478c6bf33fbd3a6c66f077d182840a",
     ".config/fish/fish_variables": "7cb32a2486342adbadb96e1e7a2f5986b98b8a4105de7e9ad040c90ba33886b3",
     ".config/foot/foot.ini": "b0a4d3c32e4da0b543c24e7abb650543707d964313517195a052ea809ddeecf1",
+    ".config/fuzzel/fuzzel.ini": "0cbc7ab013d961774f164c180d5d25fd26be620777253cc0317c14bcf269e5ef",
     ".config/fzf/kolira.opts": "4aeef18fdcca7798145ff793720e6b2b955d94b5db9685a7a43bbc335859665a",
     ".config/ghostty/kolira": "62f8c9a98988beb443c3345ab792312f2fb0fa237b792aaed2ff8d9b61dc6a50",
     ".config/glow/glow.yml": "c999f4f9e77649f469d6628a8422cce31c0e74d69f40f54713f2abf953531528",
@@ -52,8 +53,10 @@
     ".config/nvim/kolira-palette.json": "d567b4fa1497b0a12b672af3c299cd10604ced0ce190f42399f8a3b47b055c26",
     ".config/opencode/cli.json": "4c7ce99a4378de46efc549c6f8e80c53862ea41d1c2cdc68d1980d1c661d915e",
     ".config/plasmarc": "df1d02122b1e512ff764aaa8bc8c1e49f3bc8e6c08dff9b4174e4871eaa7fcb6",
+    ".config/rofi/themes/kolira.rasi": "61cfc6e6fd4f9ba216439f7b6199b964e7bb30f4179c0770beff69660b52f7c1",
     ".config/starship.toml": "455cf16e7ba65d86bdb50176ff5886358da916772392d57c961dc14779d57364",
     ".config/tmux/kolira.json": "8b225fd1fbc4df92c1f7cf60ca4103108ac0c1ac19f44f5188f28525009b6968",
+    ".config/walker/kolira.css": "4ed4f85701f964e674854d0920baae30f66c125e2cdb0b03a9834d96a0326d44",
     ".config/wezterm/kolira.toml": "8b7d1b591d2c22c8732a86c988823db69907e10af0c74afd3a16b7c8db61a9cb",
     ".config/wofi/kolira.css": "2d55be67fb6c224823b888ab0e19824b8a4f39e6857bb314dce97842ef494f01",
     ".config/wofi/style.css": "802aa010187da36bbd9b2508ad87f9bfce54b6485412063d3bdc86cbd0ff58a5",
@@ -104,12 +107,9 @@
     ".vim/kolira-palette.json": "d567b4fa1497b0a12b672af3c299cd10604ced0ce190f42399f8a3b47b055c26",
     ".zen/kolira.default/user.js": "1e6f1626f87f73fcee7c307df9c5ff1e1610605e7a64e05b7a369bf7d836c913",
     "LICENSE": "98d2b54c865c62b527d70f373ed5f316a02a5fc566e2de27a5473cf30db28682",
-    "manifest.json": "04a4d1f5dabd3072212f4f84abf4be82d3d03cc6cad892b2474b0ef0ab0fc53f",
-    "manifest.txt": "3f1f4f44c6c30d36076d847803580c5f3be947a90517fd78538a1a450c111094",
-    "theme.json": "a2265424fee62a135c461f7c848394441bb8c6015a447f10d91dddacb056eb08",
-    "wallpaper/minecraft-overworld-night.png": "af851dc3ec0268b7f7cd3eb70a0ad869eee692b3044facff63527448e9a9fe6a",
-    ".config/rofi/themes/kolira.rasi": "4997ef9e0cbab272152f1b8ba0f93c94aab53a758caed0dbbcceb1034eff05e4",
-    ".config/fuzzel/fuzzel.ini": "06efd7851a4b1dc7740f59245da0385e1597cc3d64977a9ef0223f1b05a2a5a7",
-    ".config/walker/style.css": "0b08141a3f0ba5ec89664e083849450e6edf022762f50c7c0f0f6b88ea3b5e18"
+    "manifest.json": "f3b1279dd0604fb03bf37d95fb2a68467f843667686b90d69e91a39d5cb00d0b",
+    "manifest.txt": "382f24f96a6d3b52c4ff7eea1ab915ebef5a09318c372a77a34e9fc1ee62310f",
+    "theme.json": "94d728a65f2c243bfa7ebd0430b24f2d5617fce810eebbb2c8d7600f485a720c",
+    "wallpaper/minecraft-overworld-night.png": "af851dc3ec0268b7f7cd3eb70a0ad869eee692b3044facff63527448e9a9fe6a"
   }
 }

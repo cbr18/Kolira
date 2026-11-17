@@ -75,5 +75,5 @@ pub mod structured_appearance;
 pub mod third_apps;
 
 pub mod four_apps;
-pub mod tmux_runtime;
 pub mod launcher_apps;
+pub mod tmux_runtime;

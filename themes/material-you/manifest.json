@@ -192,6 +192,25 @@
       ]
     },
     {
+      "id": "rofi",
+      "paths": [
+        ".config/rofi/config.rasi",
+        ".config/rofi/themes/kolira.rasi"
+      ]
+    },
+    {
+      "id": "fuzzel",
+      "paths": [
+        ".config/fuzzel/fuzzel.ini"
+      ]
+    },
+    {
+      "id": "walker",
+      "paths": [
+        ".config/walker/style.css"
+      ]
+    },
+    {
       "id": "zen",
       "paths": [
         ".zen/kolira.default/user.js"
@@ -230,6 +249,7 @@
         ".config/cliamp/themes/kolira.toml",
         ".config/fish/fish_variables",
         ".config/foot/foot.ini",
+        ".config/fuzzel/fuzzel.ini",
         ".config/fzf/kolira.opts",
         ".config/glow/glow.yml",
         ".config/glow/kolira.json",
@@ -241,8 +261,10 @@
         ".config/micro/settings.json",
         ".config/mpv/mpv.conf",
         ".config/opencode/cli.json",
+        ".config/rofi/themes/kolira.rasi",
         ".config/starship.toml",
         ".config/tmux/kolira.json",
+        ".config/walker/kolira.css",
         ".config/wezterm/kolira.toml",
         ".config/wofi/kolira.css",
         ".config/yazi/theme.toml",
@@ -250,29 +272,7 @@
         ".config/zellij/themes/kolira.kdl",
         ".local/share/PrismLauncher/prismlauncher.cfg",
         ".local/share/PrismLauncher/themes/kolira/theme.json",
-        ".vim/kolira-palette.json",
-        ".config/rofi/themes/kolira.rasi",
-        ".config/fuzzel/fuzzel.ini",
-        ".config/walker/style.css"
-      ]
-    },
-    {
-      "id": "rofi",
-      "paths": [
-        ".config/rofi/config.rasi",
-        ".config/rofi/themes/kolira.rasi"
-      ]
-    },
-    {
-      "id": "fuzzel",
-      "paths": [
-        ".config/fuzzel/fuzzel.ini"
-      ]
-    },
-    {
-      "id": "walker",
-      "paths": [
-        ".config/walker/style.css"
+        ".vim/kolira-palette.json"
       ]
     }
   ]

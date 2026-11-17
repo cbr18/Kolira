@@ -328,3 +328,10 @@ TRACKED_APPS.update({
     "Native ANSI and day/night colours; restart to reload, fonts and commands stay personal": "Нативные ANSI-цвета и день/ночь; перечитывание при перезапуске, шрифты и команды сохраняются",
     "Native colour data and fixed local glue; personal Lua never travels in themes": "Нативная палитра и фиксированное подключение; личный Lua не переносится с темой",
 })
+
+TRACKED_APPS.update({
+    "Rofi": "Rofi", "Fuzzel": "Fuzzel", "Walker": "Walker", "Launchers / Menu": "Лаунчеры / меню",
+    "Rofi Rasi colour overrides; personal layout, keybindings and modes stay intact": "Только цвета Rasi; личный layout, клавиши и режимы Rofi сохраняются",
+    "Fuzzel native colours; personal font, opacity and launch commands stay intact": "Нативные цвета Fuzzel; личный шрифт, прозрачность и команды запуска сохраняются",
+    "Walker 2.x existing theme CSS only; embedded defaults, SCSS and external themes are skipped": "Только существующий CSS темы Walker 2.x; встроенное оформление, SCSS и внешние темы пропускаются",
+})

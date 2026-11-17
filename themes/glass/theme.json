@@ -264,9 +264,12 @@
     "starship",
     "tmux",
     "foot",
-    "wezterm"
+    "wezterm",
+    "rofi",
+    "fuzzel",
+    "walker"
   ],
   "editor_themes": [],
-  "app_coverage_revision": 4,
+  "app_coverage_revision": 5,
   "app_coverage_omp_palette": "328b5263cd262bc96d5c0514792d96f60e50023ee0a6b62b5302f96893672b0a"
 }

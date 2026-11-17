@@ -1,3 +1,10 @@
+Kvantum MinecraftOverworld, Klassy square corners; Glass-style Better Blur DX and translucent windows; no KWin animation.
+Minecraft Overworld Dark
+Monocraft is an external font dependency. Fastfetch and panel layouts are preserved.
+Original voxel night wallpaper, pixel icons, stone-grey surfaces and grass-green accents.
+.config/nvim/kolira-palette.json
+.zen/kolira.default/user.js
+.mozilla/firefox/kolira.default/user.js
 .claude/settings.json
 .codex/config.toml
 .codex/themes/kolira.tmTheme
@@ -23,12 +30,11 @@
 .config/micro/colorschemes/kolira.micro
 .config/micro/settings.json
 .config/mpv/mpv.conf
-.config/nvim/kolira-palette.json
 .config/opencode/cli.json
 .config/rofi/themes/kolira.rasi
 .config/starship.toml
 .config/tmux/kolira.json
-.config/walker/style.css
+.config/walker/kolira.css
 .config/wezterm/kolira.toml
 .config/wofi/kolira.css
 .config/yazi/theme.toml
@@ -36,10 +42,4 @@
 .config/zellij/themes/kolira.kdl
 .local/share/PrismLauncher/prismlauncher.cfg
 .local/share/PrismLauncher/themes/kolira/theme.json
-.mozilla/firefox/kolira.default/user.js
 .vim/kolira-palette.json
-.zen/kolira.default/user.js
-Kvantum MinecraftOverworld, Klassy square corners; Glass-style Better Blur DX and translucent windows; no KWin animation.
-Minecraft Overworld Dark
-Monocraft is an external font dependency. Fastfetch and panel layouts are preserved.
-Original voxel night wallpaper, pixel icons, stone-grey surfaces and grass-green accents.

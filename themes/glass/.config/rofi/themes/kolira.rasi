@@ -1,14 +1,34 @@
-/* BEGIN kolira colours */
-*{
-    background: #202326;
-    foreground: #fcfcfc;
-    background-color: #202326;
-    color: #fcfcfc;
-    border: 1px solid #393b3c;
-    border-radius: 4px;
-    padding: 8px;
-}
-#input { background-color: #a1a9b1; color: #fcfcfc; border-color: #3daee9; }
-#entry:selected { background-color: #3daee9; color: #fcfcfc; }
-#text:selected { color: #fcfcfc; }
-/* END kolira colours */
+element { background-color: transparent; }
+element { text-color: #fcfcfc; }
+element alternate.active { background-color: #141618; }
+element alternate.active { text-color: #fcfcfc; }
+element alternate.normal { background-color: #141618; }
+element alternate.normal { text-color: #fcfcfc; }
+element alternate.urgent { background-color: #141618; }
+element alternate.urgent { text-color: #fcfcfc; }
+element normal.active { background-color: #141618; }
+element normal.active { text-color: #fcfcfc; }
+element normal.normal { background-color: #141618; }
+element normal.normal { text-color: #fcfcfc; }
+element normal.urgent { background-color: #141618; }
+element normal.urgent { text-color: #fcfcfc; }
+element selected { background-color: #3daee9; }
+element selected { text-color: #141618; }
+element selected.active { background-color: #3daee9; }
+element selected.active { text-color: #141618; }
+element selected.normal { background-color: #3daee9; }
+element selected.normal { text-color: #141618; }
+element selected.urgent { background-color: #3daee9; }
+element selected.urgent { text-color: #141618; }
+element-icon { background-color: transparent; }
+element-text { background-color: transparent; }
+element-text { text-color: inherit; }
+entry { cursor-color: #3daee9; }
+entry { text-color: #fcfcfc; }
+inputbar { background-color: #202326; }
+listview { background-color: transparent; }
+mainbox { background-color: transparent; }
+prompt { text-color: #3daee9; }
+window { background-color: #141618; }
+window { border-color: #393b3c; }
+window { text-color: #fcfcfc; }

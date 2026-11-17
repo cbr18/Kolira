@@ -26,6 +26,7 @@
     ".config/cliamp/themes/kolira.toml": "a5e723db923ffdb177098e88050508190e97201b1beb16a551e311a98bdbcc2c",
     ".config/fish/fish_variables": "a3803564354a23386bb2f87a890589970b314d20be71263b8456dc8ad18092da",
     ".config/foot/foot.ini": "20e8373b6948d5a048412e82ce4f697f3da9414b630de49a3af67c3c7a32bb29",
+    ".config/fuzzel/fuzzel.ini": "3022c43fdf6b102fbc7d0d1c6a383f30ec3517628a58f94dcbeaf85ec7956c4a",
     ".config/fzf/kolira.opts": "63cb12a8ad7f9928aab5887af1bbaf3c292eb06b5d1b4bfba1814e98848603bf",
     ".config/ghostty/kolira": "60d9348d5f3d7414450c723570a6bfa79792d5765216f487955d671eaef3e5da",
     ".config/glow/glow.yml": "c999f4f9e77649f469d6628a8422cce31c0e74d69f40f54713f2abf953531528",
@@ -57,8 +58,10 @@
     ".config/plasma-org.kde.plasma.desktop-appletsrc": "0d24147c873f5bb51252482ad292abd109420943a6a74ded5340719c30c4cf8a",
     ".config/plasmarc": "df1d02122b1e512ff764aaa8bc8c1e49f3bc8e6c08dff9b4174e4871eaa7fcb6",
     ".config/plasmashellrc": "b9b6196220fe9b3f487e15dfef7aa3734e9aad3ee9484fffdc55dd46a91f4592",
+    ".config/rofi/themes/kolira.rasi": "c6e8bffa3f8fa9ffb2c9cdc76fe3943f7403318bc414f3788290f545d589fbb2",
     ".config/starship.toml": "dc8ca507bf6e2471e9ea9396f88804761d7925f48316dc224d453eec0351a123",
     ".config/tmux/kolira.json": "eea219169a139d3080efe2a5ae00817c42c69b569a3ec69d05d422fa90b4a090",
+    ".config/walker/kolira.css": "ee77007808087be4b7813b97ba9fce6251d9d76f7699f1cb939bf664f5272cd1",
     ".config/wezterm/kolira.toml": "2eb2d9223e8b4b59d1509f86177a5f5aa67cdb080569d9dedb15523e226cd015",
     ".config/wofi/kolira.css": "34a86587970d1ab109e143ea18f032c29f9649429482f74986c6eb55a6fd70c1",
     ".config/wofi/style.css": "41664fe18c91b08b43be6a6b2a0b4fde7c9658df0e5839a8cc23320689fe3c96",
@@ -79,14 +82,11 @@
     ".mozilla/firefox/kolira.default/user.js": "7de4a4a4233c91e856b65c5b3c1594bddff2cb035d54f5bae8ba5b7364bc2c20",
     ".vim/kolira-palette.json": "e2ad7baa0401d37c86cf8531d6b49ad2037f942161784676bd6215c668a08083",
     ".zen/kolira.default/user.js": "19de1b91d0e3b5be0003a5a5ad3191c33ac593120c45207d82fdf3ffc9b7236d",
-    "manifest.json": "aa6a78414738b435a806882ed879cbeb936c895690974e1f87399bb5dbee092e",
-    "manifest.txt": "be0a2861d5a1160901b21db81ca48479583c60499bb4890ea766595877917b2d",
+    "manifest.json": "0b8201af77ad79b5c8b7ece343523877ab77b3483af01ffa627d00b7f2eb7c6b",
+    "manifest.txt": "77f905cd2e1fd48f92efa0d5c8a07a33f12ccb6509daad7330a338a3a46d9067",
     "obsidian/vault/.obsidian/appearance.json": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
-    "theme.json": "fbc3cfbe8e35a84f48d3d1f7dec3ab9d0f7a849f20f1c1cdbdd21ac3d912b5e7",
+    "theme.json": "c7e7814fa8fe4fa7cec152b48daf70d44ae7b30ae32aaaa71cf0d4335365acd5",
     "wallpaper/dracula-kde.png": "ea3b30412f97bc24c74707930253135d4b2ac247c43d4887ca00062cc5272d22",
-    "wallpaper/source": "47645aa7576ec3ce19752e66897b341efadf2ca961ba333cf85e1a6e417f2803",
-    ".config/rofi/themes/kolira.rasi": "7c9e33e00b4f80b1267eac2ecfaf39a8dcb07a4bcce33d486bd44c79020245f3",
-    ".config/fuzzel/fuzzel.ini": "20adf065883f07e400576aa4e47c89cedd0d50e9b03c243ab7fabbc7be09c276",
-    ".config/walker/style.css": "b22f256fca7f55055504db78e3a07ec237a651cb6bd3cc357044d4f9d1f2f155"
+    "wallpaper/source": "47645aa7576ec3ce19752e66897b341efadf2ca961ba333cf85e1a6e417f2803"
   }
 }

@@ -113,7 +113,7 @@
       "kind": "discord-client",
       "name": "Vesktop",
       "source": "aur",
-      "title": "Vesktop (Discord with Vencord) \u2014 or install Vencord into Discord: https://vencord.dev/download/",
+      "title": "Vesktop (Discord with Vencord) — or install Vencord into Discord: https://vencord.dev/download/",
       "url": "https://vencord.dev/download/"
     },
     {
@@ -259,9 +259,12 @@
     "starship",
     "tmux",
     "foot",
-    "wezterm"
+    "wezterm",
+    "rofi",
+    "fuzzel",
+    "walker"
   ],
   "editor_themes": [],
-  "app_coverage_revision": 4,
+  "app_coverage_revision": 5,
   "app_coverage_omp_palette": "52d5003f48d929f8545af9368b526766857ff1da99902594fe0ed36f6b47ae65"
 }

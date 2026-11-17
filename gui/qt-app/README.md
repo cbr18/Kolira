@@ -630,9 +630,17 @@ The Rust tracked application registry contains 56 entries, including Pure, fzf,
 lazygit, Zellij, OpenCode V2, Claude Code, Codex, Rofi, Fuzzel and Walker. Paths and activation limits
 are documented in [APPLICATIONS.md](../../docs/APPLICATIONS.md).
 
-Third-batch native colour contracts and manual Chromium reset limits are documented
+Third-batch native colour contracts and activation limits are documented
 in [APPLICATIONS.md](../../docs/APPLICATIONS.md). LibreOffice is excluded.
 
 Starship, tmux, Foot and WezTerm use the same Rust palette/apply/return core.
 Native tmux changes do not restart sessions; Foot/WezTerm may need a restart.
 [Contracts, version limits and native verification](../../docs/APPLICATIONS.md#starship-tmux-foot-wezterm).
+
+Rofi uses native inline colour overrides without changing the selected layout.
+Fuzzel uses `[colors]` RGBA and preserves personal opacity, fonts and launch commands.
+Walker 2.x patches an existing selected theme stylesheet only. Embedded defaults,
+SCSS, external themes and incompatible versions are skipped; Walker remains P4
+until a native client restart/return cycle is verified. All three use the shared
+Rust Plan and journal; portable snapshots exclude personal Rofi/Walker hosts.
+[Launcher contracts and native tests](../../docs/APPLICATIONS.md#лаунчеры).
