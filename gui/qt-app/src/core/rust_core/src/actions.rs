@@ -154,24 +154,32 @@ pub(crate) fn for_changes(dir: &Path, changes: &[std::path::PathBuf]) -> Vec<Act
             });
         }
     }
-    for (id, title, marker) in [
-        ("micro", "Micro", ".config/micro"),
-        ("glow", "Glow", ".config/glow"),
-        ("gimp", "GIMP", ".config/GIMP/3.0"),
-        ("heroic", "Heroic", ".config/heroic"),
-        (
-            "prismlauncher",
-            "Prism Launcher",
-            ".local/share/PrismLauncher",
-        ),
-        ("vim", "Vim", ".vim"),
-        ("mpv", "mpv", ".config/mpv"),
-        ("cliamp", "Cliamp", ".config/cliamp"),
-    ] {
+    // Одно короткое сообщение вместо карточки на каждое приложение, чьё
+    // оформление читается только при запуске (Micro, Glow, GIMP, Heroic,
+    // Prism Launcher, Vim, mpv, Cliamp): существующие сессии оставляют свои
+    // настройки, новые читают обновлённую палитру. Приложения и документы не
+    // закрываются, перезапуск не выполняется автоматически.
+    let appearance_markers = [
+        ".config/micro",
+        ".config/glow",
+        ".config/GIMP/3.0",
+        ".config/heroic",
+        ".local/share/PrismLauncher",
+        ".vim",
+        ".config/mpv",
+        ".config/cliamp",
+    ];
+    if appearance_markers.iter().any(|marker| {
         let root = crate::paths::live_path(marker);
-        if changes.iter().any(|p| p.starts_with(&root)) {
-            out.push(Action{id:format!("{id}_appearance"),kind:"manual".into(),title:format!("{title}: reopen or reload the native appearance"),reason:"New sessions read the updated palette; existing sessions keep their current settings".into(),warning:"Applications and documents are kept running".into()});
-        }
+        changes.iter().any(|path| path.starts_with(&root))
+    }) {
+        out.push(Action {
+            id: "appearance_reload".into(),
+            kind: "manual".into(),
+            title: "It is recommended to restart these programs.".into(),
+            reason: "".into(),
+            warning: "".into(),
+        });
     }
     let konsole = crate::paths::data_home().join("konsole");
     if changes.iter().any(|p| p.starts_with(&konsole))

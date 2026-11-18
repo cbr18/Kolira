@@ -226,6 +226,7 @@ CORE = {
     "Discord (Vencord) reads the theme's look only when it starts": "Discord (Vencord) читает вид темы только при запуске",
     "Zen Browser reads the theme's look only when it starts": "Zen читает вид темы только при запуске",
     "Firefox reads the theme's look only when it starts": "Firefox читает вид темы только при запуске",
+    "It is recommended to restart these programs.": "Рекомендуется перезапустить такие-то программы.",
 }
 
 # Report lines rebuilt in the GUI (src/core/core_messages.py).

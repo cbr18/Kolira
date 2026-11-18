@@ -4,102 +4,102 @@
 <context>
     <name>AppThemeCore</name>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="316" />
+        <location filename="../src/core/i18n_strings.py" line="317" />
         <source>kolira is not available: %s</source>
         <translation>kolira недоступен: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="317" />
+        <location filename="../src/core/i18n_strings.py" line="318" />
         <source>Unknown field: %s</source>
         <translation>Неизвестное поле: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="318" />
+        <location filename="../src/core/i18n_strings.py" line="319" />
         <source>Invalid value for %s: %r</source>
         <translation>Недопустимое значение для %s: %r</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="319" />
+        <location filename="../src/core/i18n_strings.py" line="320" />
         <source>%s staged — press Apply</source>
         <translation>%s: изменение подготовлено — нажмите «Применить»</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="320" />
+        <location filename="../src/core/i18n_strings.py" line="321" />
         <source>Nothing to apply</source>
         <translation>Применять нечего</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="321" />
+        <location filename="../src/core/i18n_strings.py" line="322" />
         <source>Applied %s change(s)</source>
         <translation>Применено изменений: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="322" />
+        <location filename="../src/core/i18n_strings.py" line="323" />
         <source>No active profile</source>
         <translation>Нет активной темы</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="323" />
+        <location filename="../src/core/i18n_strings.py" line="324" />
         <source>%s is not stored in the profile</source>
         <translation>%s не хранится в профиле</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="324" />
+        <location filename="../src/core/i18n_strings.py" line="325" />
         <source>Unknown reset target: %s</source>
         <translation>Неизвестная цель сброса: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="325" />
+        <location filename="../src/core/i18n_strings.py" line="326" />
         <source>This field has no portable default; pick a value instead</source>
         <translation>У этого поля нет универсального значения по умолчанию; выберите значение</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="326" />
+        <location filename="../src/core/i18n_strings.py" line="327" />
         <source>Failed to write %s: %s</source>
         <translation>Не удалось записать %s: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="327" />
+        <location filename="../src/core/i18n_strings.py" line="328" />
         <source>%s set</source>
         <translation>%s задано</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="328" />
+        <location filename="../src/core/i18n_strings.py" line="329" />
         <source>Unstaged: %s</source>
         <translation>Подготовленное изменение отменено: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="329" />
+        <location filename="../src/core/i18n_strings.py" line="330" />
         <source>Nothing to undo</source>
         <translation>Нет изменений для отмены</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="330" />
+        <location filename="../src/core/i18n_strings.py" line="331" />
         <source>Undo failed: %s</source>
         <translation>Отмена не удалась: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="331" />
+        <location filename="../src/core/i18n_strings.py" line="332" />
         <source>Undone: %s</source>
         <translation>Отменено: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="332" />
+        <location filename="../src/core/i18n_strings.py" line="333" />
         <source>Discarded %s staged change(s)</source>
         <translation>Отброшено подготовленных изменений: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="333" />
+        <location filename="../src/core/i18n_strings.py" line="334" />
         <source>No changes in this session</source>
         <translation>В этом сеансе нет изменений</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="334" />
+        <location filename="../src/core/i18n_strings.py" line="335" />
         <source>Reverted %s file(s)</source>
         <translation>Восстановлено файлов: %s</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="335" />
+        <location filename="../src/core/i18n_strings.py" line="336" />
         <source>Inspector session is closed</source>
         <translation>Сеанс инспектора закрыт</translation>
     </message>
@@ -215,410 +215,415 @@
         <source>Firefox reads the theme's look only when it starts</source>
         <translation>Firefox читает вид темы только при запуске</translation>
     </message>
+    <message>
+        <location filename="../src/core/i18n_strings.py" line="235" />
+        <source>It is recommended to restart these programs.</source>
+        <translation>Рекомендуется перезапустить такие-то программы.</translation>
+    </message>
 </context><context>
     <name>CoreMessages</name>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="235" />
+        <location filename="../src/core/i18n_strings.py" line="236" />
         <source>installed %1 into %2: %3</source>
         <translation>установлено: %1 в %2: %3</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="236" />
+        <location filename="../src/core/i18n_strings.py" line="237" />
         <source>installed %1 (%2)</source>
         <translation>установлено: %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="237" />
+        <location filename="../src/core/i18n_strings.py" line="238" />
         <source>installed %1 for %2 — themes: %3</source>
         <translation>установлено: %1 для %2 — темы: %3</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="238" />
+        <location filename="../src/core/i18n_strings.py" line="239" />
         <source>installed %1 for %2</source>
         <translation>установлено: %1 для %2</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="239" />
+        <location filename="../src/core/i18n_strings.py" line="240" />
         <source>%1 — opened %2 with: %3</source>
         <translation>%1 — открыт %2 с командой: %3</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="240" />
+        <location filename="../src/core/i18n_strings.py" line="241" />
         <source>AUR packages need an AUR helper (yay or paru): install one first</source>
         <translation>Для пакетов AUR нужен помощник (yay или paru): сначала установите его</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="241" />
+        <location filename="../src/core/i18n_strings.py" line="242" />
         <source>no terminal found — run: %1</source>
         <translation>терминал не найден — выполните: %1</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="242" />
+        <location filename="../src/core/i18n_strings.py" line="243" />
         <source>%1 restarted</source>
         <translation>%1 перезапущен</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="243" />
+        <location filename="../src/core/i18n_strings.py" line="244" />
         <source>%1 is not running</source>
         <translation>%1 не запущен</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="244" />
+        <location filename="../src/core/i18n_strings.py" line="245" />
         <source>it did not quit within %1 s — close it yourself</source>
         <translation>не закрылся за %1 с — закройте вручную</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="245" />
+        <location filename="../src/core/i18n_strings.py" line="246" />
         <source>%1, but "%2" is still not found — check %3</source>
         <translation>%1, но «%2» всё ещё не найдено — проверьте %3</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="246" />
+        <location filename="../src/core/i18n_strings.py" line="247" />
         <source>Applied profile: %1</source>
         <translation>Тема применена: %1</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="247" />
+        <location filename="../src/core/i18n_strings.py" line="248" />
         <source>All dependencies are installed.</source>
         <translation>Все зависимости установлены.</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="248" />
+        <location filename="../src/core/i18n_strings.py" line="249" />
         <source>Nothing to do.</source>
         <translation>Делать нечего.</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="249" />
+        <location filename="../src/core/i18n_strings.py" line="250" />
         <source>Settings file not found: %1</source>
         <translation>Файл настроек не найден: %1</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="250" />
+        <location filename="../src/core/i18n_strings.py" line="251" />
         <source>%1 does not expose the current theme</source>
         <translation>%1 не предоставляет сведения о текущей теме</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="251" />
+        <location filename="../src/core/i18n_strings.py" line="252" />
         <source>%1 themes cannot be enumerated</source>
         <translation>Нельзя получить список тем %1</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="252" />
+        <location filename="../src/core/i18n_strings.py" line="253" />
         <source>%1 themes cannot be applied automatically</source>
         <translation>Темы %1 нельзя применять автоматически</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="253" />
+        <location filename="../src/core/i18n_strings.py" line="254" />
         <source>Could not parse Discord settings.json: %1</source>
         <translation>Не удалось прочитать settings.json Discord: %1</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="254" />
+        <location filename="../src/core/i18n_strings.py" line="255" />
         <source>Application not detected</source>
         <translation>Приложение не найдено</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="255" />
+        <location filename="../src/core/i18n_strings.py" line="256" />
         <source>Not installed — only an old config was found</source>
         <translation>Не установлено — найден только старый конфиг</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="256" />
+        <location filename="../src/core/i18n_strings.py" line="257" />
         <source>Obsidian vault not found</source>
         <translation>Хранилище Obsidian не найдено</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="257" />
+        <location filename="../src/core/i18n_strings.py" line="258" />
         <source>btop config not found</source>
         <translation>Конфиг btop не найден</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="258" />
+        <location filename="../src/core/i18n_strings.py" line="259" />
         <source>Discord settings.json not found</source>
         <translation>Файл settings.json Discord не найден</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="259" />
+        <location filename="../src/core/i18n_strings.py" line="260" />
         <source>Application has no known theme settings command</source>
         <translation>Команда открытия настроек темы неизвестна</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="260" />
+        <location filename="../src/core/i18n_strings.py" line="261" />
         <source>Theme is empty</source>
         <translation>Тема не задана</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="261" />
+        <location filename="../src/core/i18n_strings.py" line="262" />
         <source>%1 theme set to %2</source>
         <translation>Тема %1 изменена на %2</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="262" />
+        <location filename="../src/core/i18n_strings.py" line="263" />
         <source>Opened %1</source>
         <translation>Открыто: %1</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="263" />
+        <location filename="../src/core/i18n_strings.py" line="264" />
         <source>Launched %1</source>
         <translation>Запущено: %1</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="264" />
+        <location filename="../src/core/i18n_strings.py" line="265" />
         <source>Removed %1</source>
         <translation>Удалено: %1</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="265" />
+        <location filename="../src/core/i18n_strings.py" line="266" />
         <source>Reinstalled %1</source>
         <translation>Переустановлено: %1</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="266" />
+        <location filename="../src/core/i18n_strings.py" line="267" />
         <source>Installed %1 in %2</source>
         <translation>Установлено: %1, терминал: %2</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="267" />
+        <location filename="../src/core/i18n_strings.py" line="268" />
         <source>Preparing</source>
         <translation>Подготовка</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="268" />
+        <location filename="../src/core/i18n_strings.py" line="269" />
         <source>Applying</source>
         <translation>Применение</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="269" />
+        <location filename="../src/core/i18n_strings.py" line="270" />
         <source>Recovering</source>
         <translation>Восстановление</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="270" />
+        <location filename="../src/core/i18n_strings.py" line="271" />
         <source>Applied</source>
         <translation>Применено</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="271" />
+        <location filename="../src/core/i18n_strings.py" line="272" />
         <source>Completed</source>
         <translation>Завершено</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="272" />
+        <location filename="../src/core/i18n_strings.py" line="273" />
         <source>Rolled back</source>
         <translation>Выполнен откат</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="273" />
+        <location filename="../src/core/i18n_strings.py" line="274" />
         <source>Recovery failed</source>
         <translation>Ошибка восстановления</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="274" />
+        <location filename="../src/core/i18n_strings.py" line="275" />
         <source>Preparation failed</source>
         <translation>Ошибка подготовки</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="275" />
+        <location filename="../src/core/i18n_strings.py" line="276" />
         <source>Failed</source>
         <translation>Ошибка</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="276" />
+        <location filename="../src/core/i18n_strings.py" line="277" />
         <source>Cancelled</source>
         <translation>Отменено</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="277" />
+        <location filename="../src/core/i18n_strings.py" line="278" />
         <source>Skipped</source>
         <translation>Пропущено</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="278" />
+        <location filename="../src/core/i18n_strings.py" line="279" />
         <source>Running</source>
         <translation>Выполняется</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="279" />
+        <location filename="../src/core/i18n_strings.py" line="280" />
         <source>Pending</source>
         <translation>Ожидает</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="280" />
+        <location filename="../src/core/i18n_strings.py" line="281" />
         <source>Interrupted</source>
         <translation>Прервано</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="281" />
+        <location filename="../src/core/i18n_strings.py" line="282" />
         <source>Restored</source>
         <translation>Восстановлено</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="282" />
+        <location filename="../src/core/i18n_strings.py" line="283" />
         <source>Verified</source>
         <translation>Проверено</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="283" />
+        <location filename="../src/core/i18n_strings.py" line="284" />
         <source>Application</source>
         <translation>Приложение</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="284" />
+        <location filename="../src/core/i18n_strings.py" line="285" />
         <source>Command line</source>
         <translation>Командная строка</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="285" />
+        <location filename="../src/core/i18n_strings.py" line="286" />
         <source>MCP</source>
         <translation>MCP</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="286" />
+        <location filename="../src/core/i18n_strings.py" line="287" />
         <source>Schedule</source>
         <translation>Расписание</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="287" />
+        <location filename="../src/core/i18n_strings.py" line="288" />
         <source>Wallpaper</source>
         <translation>Обои</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="288" />
+        <location filename="../src/core/i18n_strings.py" line="289" />
         <source>Image</source>
         <translation>Изображение</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="289" />
+        <location filename="../src/core/i18n_strings.py" line="290" />
         <source>Manual</source>
         <translation>Вручную</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="290" />
+        <location filename="../src/core/i18n_strings.py" line="291" />
         <source>Imported</source>
         <translation>Импорт</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="291" />
+        <location filename="../src/core/i18n_strings.py" line="292" />
         <source>Gallery</source>
         <translation>Галерея</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="292" />
+        <location filename="../src/core/i18n_strings.py" line="293" />
         <source>File</source>
         <translation>Файл</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="293" />
+        <location filename="../src/core/i18n_strings.py" line="294" />
         <source>Colours</source>
         <translation>Цвета</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="294" />
+        <location filename="../src/core/i18n_strings.py" line="295" />
         <source>Plasma colours</source>
         <translation>Цвета Plasma</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="295" />
+        <location filename="../src/core/i18n_strings.py" line="296" />
         <source>Built-in</source>
         <translation>Встроенная</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="296" />
+        <location filename="../src/core/i18n_strings.py" line="297" />
         <source>System default</source>
         <translation>Системное значение</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="297" />
+        <location filename="../src/core/i18n_strings.py" line="298" />
         <source>On</source>
         <translation>Вкл.</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="298" />
+        <location filename="../src/core/i18n_strings.py" line="299" />
         <source>Off</source>
         <translation>Выкл.</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="299" />
+        <location filename="../src/core/i18n_strings.py" line="300" />
         <source>Dark</source>
         <translation>Тёмная</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="300" />
+        <location filename="../src/core/i18n_strings.py" line="301" />
         <source>Light</source>
         <translation>Светлая</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="301" />
+        <location filename="../src/core/i18n_strings.py" line="302" />
         <source>System</source>
         <translation>Системная</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="302" />
+        <location filename="../src/core/i18n_strings.py" line="303" />
         <source>Browser theme</source>
         <translation>Тема браузера</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="303" />
+        <location filename="../src/core/i18n_strings.py" line="304" />
         <source>System packages: see the terminal</source>
         <translation>Системные пакеты: смотрите терминал</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="304" />
+        <location filename="../src/core/i18n_strings.py" line="305" />
         <source>Cancellation requested; waiting for the package transaction to finish safely</source>
         <translation>Запрошена отмена; ожидается безопасное завершение пакетной операции</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="305" />
+        <location filename="../src/core/i18n_strings.py" line="306" />
         <source>Installation interrupted or timed out; refresh before retrying</source>
         <translation>Установка прервана или истекло время ожидания; обновите состояние перед повтором</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="306" />
+        <location filename="../src/core/i18n_strings.py" line="307" />
         <source>Nothing to set</source>
         <translation>Нет изменений</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="307" />
+        <location filename="../src/core/i18n_strings.py" line="308" />
         <source>Select at least one target</source>
         <translation>Выберите хотя бы одно приложение</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="308" />
+        <location filename="../src/core/i18n_strings.py" line="309" />
         <source>Nothing to apply</source>
         <translation>Применять нечего</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="309" />
+        <location filename="../src/core/i18n_strings.py" line="310" />
         <source>text on window</source>
         <translation>текст на фоне окна</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="310" />
+        <location filename="../src/core/i18n_strings.py" line="311" />
         <source>text on view</source>
         <translation>текст в области просмотра</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="311" />
+        <location filename="../src/core/i18n_strings.py" line="312" />
         <source>selected text</source>
         <translation>выделенный текст</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="312" />
+        <location filename="../src/core/i18n_strings.py" line="313" />
         <source>%1: contrast %2:1 &lt; %3:1</source>
         <translation>%1: контраст %2:1 &lt; %3:1</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="313" />
+        <location filename="../src/core/i18n_strings.py" line="314" />
         <source>%1: skipped, %2 not found</source>
         <translation>%1: пропущено, %2 не найден</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="314" />
+        <location filename="../src/core/i18n_strings.py" line="315" />
         <source> (no running kitty to reload)</source>
         <translation> (kitty не запущен; обновление после запуска)</translation>
     </message>
     <message>
-        <location filename="../src/core/i18n_strings.py" line="315" />
+        <location filename="../src/core/i18n_strings.py" line="316" />
         <source> — plasma-apply-colorscheme failed</source>
         <translation> — ошибка plasma-apply-colorscheme</translation>
     </message>

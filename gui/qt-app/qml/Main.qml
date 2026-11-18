@@ -1051,6 +1051,7 @@ Kirigami.ApplicationWindow {
                             wrapMode: Text.WordWrap
                             font.pointSize: TypeScale.caption
                             color: ThemeColors.dimColor(root.glassMode)
+                            visible: modelData.reason !== ""
                             text: qsTranslate("Core", modelData.reason)
                         }
                         Label {

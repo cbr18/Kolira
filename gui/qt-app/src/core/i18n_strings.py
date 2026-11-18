@@ -232,6 +232,7 @@ STRINGS = [
     QT_TRANSLATE_NOOP('Core', "Discord (Vencord) reads the theme's look only when it starts"),
     QT_TRANSLATE_NOOP('Core', "Zen Browser reads the theme's look only when it starts"),
     QT_TRANSLATE_NOOP('Core', "Firefox reads the theme's look only when it starts"),
+    QT_TRANSLATE_NOOP('Core', 'It is recommended to restart these programs.'),
     QT_TRANSLATE_NOOP('CoreMessages', 'installed %1 into %2: %3'),
     QT_TRANSLATE_NOOP('CoreMessages', 'installed %1 (%2)'),
     QT_TRANSLATE_NOOP('CoreMessages', 'installed %1 for %2 — themes: %3'),
