@@ -22,6 +22,21 @@ pub const PREFS: &[&str] = &[
     "layout.css.prefers-color-scheme.content-override",
     "toolkit.legacyUserProfileCustomizations.stylesheets",
 ];
+/// Remove obsolete INI-style assignments for owned prefs: these are invalid JS.
+/// Unknown lines and personal preferences remain untouched.
+pub(crate) fn clean_legacy_assignments(text: &str) -> String {
+    text.split_inclusive('\n')
+        .filter(|line| {
+            let Some((key, value)) = line.trim().split_once('=') else {
+                return true;
+            };
+            !(PREFS.contains(&key.trim())
+                && serde_json::from_str::<serde_json::Value>(value.trim().trim_end_matches(';'))
+                    .is_ok())
+        })
+        .collect()
+}
+
 pub fn is_profile_file(rel: &str) -> bool {
     ROOTS
         .iter()
@@ -41,6 +56,8 @@ pub fn host(live: &str) -> String {
 }
 /// Native LookAndFeel accent preferences; never enable or patch userChrome.
 pub fn accent(text: &str, p: &Palette, zen: bool) -> String {
+    let clean = clean_legacy_assignments(text);
+    let text = clean.as_str();
     let roles = crate::palette::kde_roles(p);
     let mut out = field::userjs_set(
         text,
@@ -136,6 +153,18 @@ pub fn check_stylesheet(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn legacy_assignments_do_not_poison_browser_prefs() {
+        let text = "ui.accentcolor=\"#ff78ac\"\nzen.view.window.scheme=1\n// personal\nuser_pref(\"privacy.example\", true);\nunknown.setting=1\n";
+        let clean = clean_legacy_assignments(text);
+        assert!(!clean.contains("ff78ac") && !clean.contains("scheme=1"));
+        assert!(
+            clean.contains("// personal")
+                && clean.contains("privacy.example")
+                && clean.contains("unknown.setting=1")
+        );
+        assert_eq!(clean_legacy_assignments(&clean), clean);
+    }
     #[test]
     fn white_icons_on_white_and_layout_injections_are_removed() {
         let css=safe_colors(":root { --toolbar-bgcolor: #ffffff; --toolbar-color: #ffffff; } * { width: 1px; fill: white !important; }").unwrap();

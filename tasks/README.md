@@ -22,6 +22,10 @@ ID операций и бэкапы защиты применения; AUR и с
 
 ## Закрыто
 
+- [Core audit 2026-11-22](2026_11_22_core-audit.md) — F1/F2 исправлены и CLI установлен; 308 Rust / 260 shell PASS, clippy PASS. UI/UX не менялся.
+
+- [Zen legacy user.js](2026_11_22_zen-legacy-userjs.md) — исправлена очистка некорректных appearance assignments; визуальная проверка после перезапуска Zen остаётся.
+
 - [Покрытие приложений: существующий срез](2026_11_15_app-coverage-expansion.md) — CLOSED 2026-11-17
   по уточнению пользователя: дальше покрытие в этой задаче не расширяем.
   [Матрица всех 56 registry entries](../docs/audits/2026_11_17_existing-adapters-closeout.md).

@@ -731,3 +731,7 @@ Native применение требует уже настроенного Spice
 является ошибкой, локальные файлы откатываются. Refresh выполняется также
 при возврате к snapshot без Spicetify-конфига. Пропатченный Spotify runtime
 находится за пределами подтверждённого файлового rollback (P4).
+
+Browser user.js merges remove legacy INI-style assignments for managed appearance preferences (only JSON literal values). These invalid JavaScript lines must not survive before generated user_pref calls. Personal preferences and unknown lines are preserved.
+
+Browser preference field reads use the last active user_pref definition. Field writes and palette sync update every active duplicate, preserving comments and quoted examples. Glass and Material You export manifests match the current bundled color-scheme payloads. Zen spaces and session data remain unmanaged.

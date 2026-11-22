@@ -830,6 +830,8 @@ pub fn prefs_filter(text: &str, keys: &[&str]) -> String {
 /// Allowed prefs replaced in place, the theme's new ones appended, allowed
 /// ones the theme lacks removed; every other line kept.
 pub fn prefs_merge(theme: &str, live: &str, keys: &[&str]) -> String {
+    let clean = crate::browser_appearance::clean_legacy_assignments(live);
+    let live = clean.as_str();
     let theme_lines: Vec<&str> = theme.lines().filter(|l| pref_allowed(keys, l)).collect();
     let mut used = vec![false; theme_lines.len()];
     let mut out: Vec<String> = Vec::new();

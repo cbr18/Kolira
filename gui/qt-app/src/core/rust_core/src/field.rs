@@ -548,24 +548,85 @@ pub(crate) fn toml_set(text: &str, key: &str, value: &Value, section: &str) -> R
     Ok(doc.to_string())
 }
 
-fn userjs_span(text: &str, key: &str) -> Option<(usize, usize, String)> {
-    let needle = format!("\"{key}\"");
-    let mut from = 0;
-    while let Some(rel) = text[from..].find("user_pref(") {
-        let start = from + rel;
-        let after = &text[start + "user_pref(".len()..];
-        let trimmed = after.trim_start();
-        if trimmed.starts_with(&needle) {
-            let end_rel = after.find(");")?;
-            let inner = &after[..end_rel];
-            let comma = inner.find(',')?;
-            let raw = inner[comma + 1..].trim().to_string();
-            let end = start + "user_pref(".len() + end_rel + 2;
-            return Some((start, end, raw));
+// Scan calls outside comments and strings; the last active definition wins.
+fn userjs_spans(text: &str, key: &str) -> Vec<(usize, usize, String)> {
+    let bytes = text.as_bytes();
+    let mut spans = Vec::new();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i..].starts_with(b"//") {
+            while i < bytes.len() && bytes[i] != b'\n' {
+                i += 1;
+            }
+        } else if bytes[i..].starts_with(b"/*") {
+            i += 2;
+            while i + 1 < bytes.len() && !bytes[i..].starts_with(b"*/") {
+                i += 1;
+            }
+            i = (i + 2).min(bytes.len());
+        } else if matches!(bytes[i], b'"' | b'\'' | b'`') {
+            let quote = bytes[i];
+            i += 1;
+            while i < bytes.len() {
+                if bytes[i] == b'\\' {
+                    i = (i + 2).min(bytes.len());
+                } else if bytes[i] == quote {
+                    i += 1;
+                    break;
+                } else {
+                    i += 1;
+                }
+            }
+        } else if bytes[i..].starts_with(b"user_pref(")
+            && (i == 0
+                || !(bytes[i - 1].is_ascii_alphanumeric()
+                    || matches!(bytes[i - 1], b'_' | b'.' | b'$')))
+        {
+            let start = i;
+            let mut j = i + "user_pref(".len();
+            let mut quoted = false;
+            while j < bytes.len() {
+                if bytes[j] == b'\\' && quoted {
+                    j = (j + 2).min(bytes.len());
+                    continue;
+                }
+                if bytes[j] == b'"' {
+                    quoted = !quoted;
+                }
+                if bytes[j] == b')' && !quoted {
+                    break;
+                }
+                j += 1;
+            }
+            if j < bytes.len() {
+                let inner = &text[i + "user_pref(".len()..j];
+                if let Some((name, raw)) = inner.split_once(',') {
+                    if serde_json::from_str::<String>(name.trim()).ok().as_deref() == Some(key)
+                        && serde_json::from_str::<Value>(raw.trim()).is_ok()
+                    {
+                        let mut end = j + 1;
+                        while end < bytes.len() && matches!(bytes[end], b' ' | b'\t') {
+                            end += 1;
+                        }
+                        if bytes.get(end) == Some(&b';') {
+                            end += 1;
+                        }
+                        spans.push((start, end, raw.trim().to_string()));
+                    }
+                }
+                i = j + 1;
+            } else {
+                break;
+            }
+        } else {
+            i += 1;
         }
-        from = start + 1;
     }
-    None
+    spans
+}
+
+fn userjs_span(text: &str, key: &str) -> Option<(usize, usize, String)> {
+    userjs_spans(text, key).pop()
 }
 
 pub(crate) fn userjs_get(text: &str, key: &str) -> Option<Value> {
@@ -582,17 +643,20 @@ pub(crate) fn userjs_set(text: &str, key: &str, value: &Value) -> String {
         other => value_str(other),
     };
     let line = format!("user_pref(\"{key}\", {literal});");
-    match userjs_span(text, key) {
-        Some((s, e, _)) => format!("{}{}{}", &text[..s], line, &text[e..]),
-        None => {
-            let sep = if text.is_empty() || text.ends_with('\n') {
-                ""
-            } else {
-                "\n"
-            };
-            format!("{text}{sep}{line}\n")
-        }
+    let spans = userjs_spans(text, key);
+    if spans.is_empty() {
+        let sep = if text.is_empty() || text.ends_with('\n') {
+            ""
+        } else {
+            "\n"
+        };
+        return format!("{text}{sep}{line}\n");
     }
+    let mut out = text.to_string();
+    for (start, end, _) in spans.into_iter().rev() {
+        out.replace_range(start..end, &line);
+    }
+    out
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1287,6 +1351,31 @@ mod tests {
         let out = json_set(&out, &["new_key".to_string()], &json!(true)).unwrap();
         assert!(out.contains("\"new_key\": true"));
         assert!(json_set("{}", &["a".into(), "b".into()], &json!(1)).is_err());
+    }
+
+    #[test]
+    fn browser_prefs_ignore_examples_and_update_all_active_duplicates() {
+        let text = r#"// user_pref("zen.view.window.scheme", 8);
+/* user_pref("zen.view.window.scheme", 9); */
+const example = 'user_pref("zen.view.window.scheme", 7);';
+user_pref("zen.view.window.scheme", 0); // keep
+user_pref("zen.view.window.scheme", 2);
+user_pref("privacy.example", true);
+"#;
+        assert_eq!(userjs_get(text, "zen.view.window.scheme"), Some(json!(2)));
+        let out = userjs_set(text, "zen.view.window.scheme", &json!(1));
+        assert_eq!(userjs_get(&out, "zen.view.window.scheme"), Some(json!(1)));
+        assert_eq!(userjs_spans(&out, "zen.view.window.scheme").len(), 2);
+        assert!(userjs_spans(&out, "zen.view.window.scheme")
+            .iter()
+            .all(|(_, _, raw)| raw == "1"));
+        assert!(out.contains("// user_pref(\"zen.view.window.scheme\", 8);"));
+        assert!(out.contains("/* user_pref(\"zen.view.window.scheme\", 9); */"));
+        assert!(out.contains("// keep") && out.contains("privacy.example"));
+        assert_eq!(userjs_set(&out, "zen.view.window.scheme", &json!(1)), out);
+        let literal = "a ); \" b";
+        let out = userjs_set("", "example", &json!(literal));
+        assert_eq!(userjs_get(&out, "example"), Some(json!(literal)));
     }
 
     #[test]

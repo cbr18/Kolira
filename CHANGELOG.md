@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Fixed browser preference reads/writes with commented examples and duplicate definitions; refreshed Glass/Material You export checksums without replacing their color schemes.
+
+- Fixed Zen/Firefox theme switching retaining invalid legacy appearance assignments in user.js before the generated preferences.
+
 - Диалог "Завершение применения" показывает одну строку вместо предупреждения
   на каждое приложение: "Рекомендуется перезапустить такие-то программы." без
   восклицательного знака; существующие сессии не закрываются, перезапуск не
