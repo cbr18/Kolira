@@ -15,6 +15,7 @@ class DependencyController(QObject):
     applyRequested = Signal(str, bool)
     retryApply = Signal(str, bool)
     policySaved = Signal()
+    availabilityChanged = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -155,6 +156,7 @@ class DependencyController(QObject):
         self.finished.emit(success, message)
         if action == "list":
             return
+        self.availabilityChanged.emit()
         after, self._after_install = self._after_install, None
         if after:
             if success:

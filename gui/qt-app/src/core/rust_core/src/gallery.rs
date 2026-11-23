@@ -118,6 +118,14 @@ fn source_label(id: &str) -> String {
     format!("gallery:{id}")
 }
 
+/// The editor can offer these presets without network access or a Live import.
+pub(crate) fn bundled_palettes() -> Vec<Palette> {
+    BUNDLED
+        .iter()
+        .filter_map(|(id, text)| parse_base16(text, &source_label(id)).ok())
+        .collect()
+}
+
 /// Ids from a GitHub tree listing (`base16/<id>.yaml` blobs).
 pub fn parse_index(json: &str) -> Result<Vec<String>> {
     let value: serde_json::Value = serde_json::from_str(json).context("invalid catalogue index")?;

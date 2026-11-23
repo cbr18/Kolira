@@ -35,6 +35,8 @@ THEME_FIELDS = {
     "GTK font": "Шрифт GTK",
     "Decoration library": "Модуль оформления окон",
     "Decoration theme": "Тема оформления окон",
+    "Disable window decoration": "Отключить оформление окон",
+    "Run KWin without a window decoration": "Убрать оформление окон KWin",
     "Border size": "Размер рамки",
     "Active titlebar opacity": "Непрозрачность активного заголовка",
     "Inactive titlebar opacity": "Непрозрачность неактивного заголовка",
@@ -226,11 +228,19 @@ CORE = {
     "Discord (Vencord) reads the theme's look only when it starts": "Discord (Vencord) читает вид темы только при запуске",
     "Zen Browser reads the theme's look only when it starts": "Zen читает вид темы только при запуске",
     "Firefox reads the theme's look only when it starts": "Firefox читает вид темы только при запуске",
-    "It is recommended to restart these programs.": "Рекомендуется перезапустить такие-то программы.",
+    "It is recommended to restart these programs.": "Чтобы обновить оформление, перезапустите приложения из списка.",
 }
 
 # Report lines rebuilt in the GUI (src/core/core_messages.py).
 CORE_MESSAGES = {
+    "Restore point storage is full. Free space by deleting a point or unpinning an older one.": "Хранилище точек заполнено. Удалите или открепите старую точку.",
+    "Restore point data has changed": "Данные точки восстановления изменились.",
+    "Restore point is unavailable": "Точка восстановления недоступна.",
+    "Invalid restore point name": "Недопустимое название точки восстановления.",
+    "Cannot convert legacy component: %1": "Не удалось перенести компонент старой темы «%1».",
+    "Cannot convert legacy application choice: %1": "Не удалось перенести оформление приложения «%1».",
+    "Legacy global theme was not captured: %1": "В снимке отсутствует оформление глобальной темы «%1».",
+    "Legacy wallpaper is unavailable: %1": "Файл обоев недоступен (%1).",
     "installed %1 into %2: %3": "установлено: %1 в %2: %3",
     "installed %1 (%2)": "установлено: %1 (%2)",
     "installed %1 for %2 — themes: %3": "установлено: %1 для %2 — темы: %3",

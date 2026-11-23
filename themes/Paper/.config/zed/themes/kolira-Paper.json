@@ -10,11 +10,28 @@
         "background": "#fffbf4",
         "surface.background": "#f6f0e6",
         "elevated_surface.background": "#f6f0e6",
+        "panel.background": "#f6f0e6",
         "text": "#2f2a24",
         "text.muted": "#5c564e",
-        "text.accent": "#586d47",
+        "text.accent": "#4b5d3c",
+        "icon.accent": "#4b5d3c",
+        "link_text.hover": "#4b5d3c",
         "border": "#dedad3",
-        "border.focused": "#586d47",
+        "border.focused": "#4b5d3c",
+        "panel.focused_border": "#4b5d3c",
+        "pane.focused_border": "#4b5d3c",
+        "element.hover": "#e9e6d9",
+        "element.selected": "#dddbcd",
+        "ghost_element.hover": "#e9e6d9",
+        "ghost_element.selected": "#dddbcd",
+        "created": "#37613a",
+        "modified": "#593f25",
+        "warning": "#593f25",
+        "deleted": "#842a2d",
+        "conflict": "#704a25",
+        "renamed": "#3f5133",
+        "error": "#842a2d",
+        "success": "#37613a",
         "editor.background": "#fffbf4",
         "editor.foreground": "#2f2a24",
         "editor.gutter.background": "#fffbf4",
@@ -27,11 +44,12 @@
         "status_bar.background": "#f6f0e6",
         "terminal.background": "#fffbf4",
         "terminal.foreground": "#2f2a24",
+        "search.match_background": "#d6ccc0",
         "players": [
           {
-            "cursor": "#586d47",
-            "background": "#586d47",
-            "selection": "#586d4750"
+            "cursor": "#4b5d3c",
+            "background": "#4b5d3c",
+            "selection": "#e1e1d5"
           }
         ],
         "syntax": {
@@ -39,7 +57,7 @@
             "color": "#5c564e"
           },
           "string": {
-            "color": "#38633b"
+            "color": "#37613a"
           },
           "keyword": {
             "color": "#5e3f66"

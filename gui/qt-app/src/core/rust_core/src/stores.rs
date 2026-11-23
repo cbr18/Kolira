@@ -62,7 +62,7 @@ fn store_for(app: &str) -> Result<Store> {
     }
 }
 
-fn valid_zed_id(id: &str) -> bool {
+pub(crate) fn valid_zed_id(id: &str) -> bool {
     !id.is_empty()
         && id.len() <= 100
         && id.as_bytes()[0].is_ascii_alphanumeric()

@@ -136,6 +136,9 @@ class ProfileCore(ABC):
     def preview(self, profile: str, keep_wallpaper: bool = False, *, use_settings: bool = True, without_sync: bool = False) -> Result:
         return Result.err("Preview is not supported")
 
+    def prepare_apply_preview(self, profile: str, keep_wallpaper: bool = False, *, without_sync: bool = False) -> Result:
+        return self.preview(profile, keep_wallpaper, without_sync=without_sync)
+
     def save_before_apply(self, name: str) -> Result:
         return Result.err("Saving before Apply is not supported")
 

@@ -108,7 +108,7 @@ fn write_json_manifest(target: &Path, manifest: &ThemeManifest) -> Result<()> {
 
 /// Read the `manifest.json` of a profile and return it (a fallback default when
 /// the file is missing, so old profiles stay readable).
-fn read_manifest(profile_dir: &Path) -> ThemeManifest {
+pub(crate) fn read_manifest(profile_dir: &Path) -> ThemeManifest {
     let path = profile_dir.join("manifest.json");
     fs::read_to_string(&path)
         .ok()
@@ -416,6 +416,26 @@ pub(crate) fn copy_tree(src: &Path, dst: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Resolve a path that can be edited inside a private copy of a snapshot.
+pub(crate) fn snapshot_relative<'a>(snapshot: &Path, path: &'a Path) -> Result<&'a str> {
+    let relative = path
+        .strip_prefix(snapshot)?
+        .to_str()
+        .context("Invalid snapshot path")?;
+    for item in path.ancestors().take_while(|item| *item != snapshot) {
+        anyhow::ensure!(!item.is_symlink(), "Symlink in snapshot path: {relative}");
+    }
+    Ok(relative)
+}
+
+pub(crate) fn snapshot_text(path: &Path) -> Result<String> {
+    match fs::read_to_string(path) {
+        Ok(text) => Ok(text),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
+        Err(e) => Err(e.into()),
+    }
+}
+
 /// Copy the tracked live files into a target directory.
 /// `[ -e "$src" ] || continue` — broken symlinks and missing files are skipped.
 fn copy_tracked_into(target: &Path, rel_paths: &[String]) -> Result<()> {
@@ -456,6 +476,9 @@ fn copy_tracked_appearance(target: &Path, rel_paths: &[String]) -> Result<()> {
         }
         let dst = target.join(crate::obsidian::snapshot_rel(rel).unwrap_or_else(|| rel.clone()));
         if let Some(parent) = dst.parent() {
+            for ancestor in parent.ancestors().take_while(|path| *path != target) {
+                anyhow::ensure!(!ancestor.is_symlink(), "Symlink in snapshot path: {rel}");
+            }
             fs::create_dir_all(parent)?;
         }
         if fs::symlink_metadata(&dst).is_ok() {
@@ -539,22 +562,42 @@ pub(crate) fn split_live_hosts(rel_paths: &[String]) -> Result<()> {
         let include_path = live_path(include);
         let existing = fs::read_to_string(&include_path).unwrap_or_default();
         // Lines from the host come last: they are what the user saw.
-        let merged = if host == appearance::KITTY_HOST {
-            format!(
-                "{}{}{}",
-                existing,
-                if existing.is_empty() || existing.ends_with('\n') {
-                    ""
-                } else {
-                    "\n"
-                },
-                look
-            )
-        } else {
-            merge_toml(&existing, &look)?
-        };
+        let merged = merge_host_look(host, &existing, &look)?;
         write_text(&include_path, &merged)?;
         write_text(&host_path, &appearance::applied(host, "", Some(&text))?)?;
+    }
+    Ok(())
+}
+
+fn merge_host_look(host: &str, existing: &str, look: &str) -> Result<String> {
+    if host == appearance::KITTY_HOST {
+        let separator = if existing.is_empty() || existing.ends_with('\n') {
+            ""
+        } else {
+            "\n"
+        };
+        return Ok(format!("{existing}{separator}{look}"));
+    }
+    merge_toml(existing, look)
+}
+
+fn capture_unsplit_terminal_look(target: &Path, rel_paths: &[String]) -> Result<()> {
+    for (host, include) in [
+        (appearance::KITTY_HOST, appearance::KITTY_THEME),
+        (appearance::ALACRITTY_HOST, appearance::ALACRITTY_THEME),
+    ] {
+        if !rel_paths.iter().any(|rel| rel == host) {
+            continue;
+        }
+        let Ok(text) = fs::read_to_string(live_path(host)) else {
+            continue;
+        };
+        let Some((_, look)) = appearance::include_from_host(host, &text)? else {
+            continue;
+        };
+        let file = target.join(include);
+        let existing = fs::read_to_string(&file).unwrap_or_default();
+        write_text(&file, &merge_host_look(host, &existing, &look)?)?;
     }
     Ok(())
 }
@@ -1022,16 +1065,9 @@ fn rgb_string_to_hex(value: &str) -> Option<String> {
 /// 2026-11-04; this replaced an ImageMagick average-colour approximation.)
 fn reapply_color_scheme(source: &Path) {
     let kdeglobals = source.join(".config/kdeglobals");
-    let Some(scheme) = ini_group_key(&kdeglobals, "General", "ColorScheme") else {
-        return;
-    };
-    if scheme.is_empty() {
-        return;
-    }
-
-    let from_wallpaper = ini_group_key(&kdeglobals, "General", "accentColorFromWallpaper")
-        .as_deref()
-        == Some("true");
+    let scheme = ini_group_key(&kdeglobals, "General", "ColorScheme").filter(|s| !s.is_empty());
+    let wallpaper_flag = ini_group_key(&kdeglobals, "General", "accentColorFromWallpaper");
+    let from_wallpaper = wallpaper_flag.as_deref() == Some("true");
     let explicit = ini_group_key(&kdeglobals, "General", "AccentColor")
         .and_then(|value| rgb_string_to_hex(&value));
 
@@ -1046,7 +1082,7 @@ fn reapply_color_scheme(source: &Path) {
     } else {
         ("false", "true")
     };
-    if ini_group_key(&kdeglobals, "General", "accentColorFromWallpaper").is_some() {
+    if wallpaper_flag.is_some() {
         for value in [flipped, flag] {
             run_external(
                 "kwriteconfig6",
@@ -1067,7 +1103,9 @@ fn reapply_color_scheme(source: &Path) {
     // Scheme first, accent in a separate call: given `--accent-color`,
     // plasma-apply-colorscheme sets only the accent and silently ignores the
     // scheme argument (verified 2026-11-04, Plasma 6).
-    run_external("plasma-apply-colorscheme", &[&scheme]);
+    if let Some(scheme) = scheme {
+        run_external("plasma-apply-colorscheme", &[&scheme]);
+    }
     if let Some(accent) = explicit.filter(|_| !from_wallpaper) {
         run_external("plasma-apply-colorscheme", &["--accent-color", &accent]);
     }
@@ -1077,6 +1115,10 @@ fn reapply_color_scheme(source: &Path) {
     // palette (paper's olive after switching to glass). Broadcast the palette
     // change ourselves — KGlobalSettings::PaletteChanged (0), the signal
     // plasma-apply-colorscheme emits when it does apply.
+    notify_palette_changed();
+}
+
+fn notify_palette_changed() {
     run_external(
         "dbus-send",
         &[
@@ -1377,6 +1419,53 @@ fn restore_from_profile(profile: &str, source: &Path, rel_paths: &[String]) -> R
     plan.commit()
 }
 
+fn merge_terminal_settings(include: &str, snapshot: &str, baseline: &str) -> Result<String> {
+    use crate::field;
+    let sparse = field::terminal_settings_only(include, snapshot)?;
+    let mut text = if sparse { baseline } else { snapshot }.to_string();
+    for id in field::terminal_fields(include) {
+        let setting = field::field(id).context("Unknown terminal setting")?;
+        let (from, current) = if sparse {
+            (snapshot, baseline)
+        } else {
+            (baseline, snapshot)
+        };
+        if sparse || field::terminal_value(setting, current).is_none() {
+            if let Some(value) = field::terminal_value(setting, from) {
+                if field::terminal_value(setting, current).as_ref() != Some(&value) {
+                    text = field::unset_terminal(setting, &text)?;
+                    text = field::patched(setting, &text, &value)?;
+                }
+            }
+        }
+    }
+    Ok(text)
+}
+
+fn terminal_baseline(host: &str, host_text: &str, include_text: &str) -> Result<String> {
+    if host == appearance::KITTY_HOST {
+        let mut offset = 0;
+        let mut managed_include = None;
+        for line in host_text.split_inclusive('\n') {
+            let end = offset + line.len();
+            if line.trim() == appearance::KITTY_INCLUDE {
+                managed_include = Some((offset, end));
+            }
+            offset = end;
+        }
+        if let Some((start, end)) = managed_include {
+            // Kitty reads the include in place and the last value wins.
+            let before = appearance::kitty_split(&host_text[..start]).0;
+            let after = appearance::kitty_split(&host_text[end..]).0;
+            return merge_host_look(host, &merge_host_look(host, &before, include_text)?, &after);
+        }
+    }
+    match appearance::include_from_host(host, host_text)? {
+        Some((_, look)) => merge_host_look(host, include_text, &look),
+        None => Ok(include_text.into()),
+    }
+}
+
 pub(crate) fn plan_restore(
     profile: &str,
     source: &Path,
@@ -1394,8 +1483,32 @@ pub(crate) fn plan_restore(
         crate::spicetify::preflight(source)?;
     }
 
+    // The caller has already planned restoration of the prior theme here.
+    // Read both files before splitting the host or replacing its include.
+    let mut terminal_baselines = std::collections::BTreeMap::new();
+    for (host, include) in appearance::TERMINAL_CONFIGS {
+        if rel_paths.iter().any(|rel| rel == host)
+            && rel_paths.iter().any(|rel| rel == include)
+            && (theme_file(source, include).is_file() || theme_file(source, host).is_file())
+        {
+            let mut baseline = plan.text(&live_path(include))?.unwrap_or_default();
+            if let Some(host_text) = plan.text(&live_path(host))? {
+                baseline = terminal_baseline(host, &host_text, &baseline)?;
+            }
+            terminal_baselines.insert(include, baseline);
+        }
+    }
+
+    let obsidian = obsidian_overrides(source)?;
     for rel in rel_paths {
         if appearance::is_preserved(rel) {
+            continue;
+        }
+        if crate::obsidian::is_appearance(rel) && crate::obsidian::snapshot_rel(rel).is_some() {
+            crate::obsidian::plan_saved(source, rel, &obsidian, plan)?;
+            continue;
+        }
+        if crate::obsidian::is_theme_resource(rel) && crate::obsidian::snapshot_rel(rel).is_some() {
             continue;
         }
         let src = theme_file(source, rel);
@@ -1438,6 +1551,11 @@ pub(crate) fn plan_restore(
                     if let Some(theme_host) = plan.text(&src)? {
                         if let Some((inc, look)) = appearance::include_from_host(rel, &theme_host)?
                         {
+                            let look = if let Some(baseline) = terminal_baselines.get(inc) {
+                                merge_terminal_settings(inc, &look, baseline)?
+                            } else {
+                                look
+                            };
                             plan.write_text(&live_path(inc), look, "apply")?;
                         }
                     }
@@ -1473,6 +1591,15 @@ pub(crate) fn plan_restore(
                 ) {
                     continue;
                 }
+                if let Some(baseline) = terminal_baselines.get(rel.as_str()) {
+                    if let Some(snapshot) = plan.text(&src)? {
+                        let merged = merge_terminal_settings(rel, &snapshot, baseline)?;
+                        if merged != snapshot {
+                            plan.write_text(&dst, merged, "apply")?;
+                            continue;
+                        }
+                    }
+                }
                 let theme_text = ((!matches!(policy, appearance::Policy::Whole)
                     || crate::browser_appearance::is_colors(rel)
                     || crate::third_apps::is_asset(rel)
@@ -1507,11 +1634,14 @@ pub(crate) fn plan_restore(
                     }
                     Some(theme_text) => {
                         let live = plan.text(&dst)?;
-                        plan.write_text(
-                            &dst,
-                            appearance::applied(rel, &theme_text, live.as_deref())?,
-                            "apply",
-                        )?;
+                        let merged = appearance::applied(rel, &theme_text, live.as_deref())?;
+                        if crate::browser_appearance::is_zen(rel)
+                            && rel.ends_with("/user.js")
+                            && merged == live.as_deref().unwrap_or_default()
+                        {
+                            continue;
+                        }
+                        plan.write_text(&dst, merged, "apply")?;
                         if rel.starts_with(".local/share/konsole/") && rel.ends_with(".profile") {
                             crate::konsole::plan_finish_profile(rel, plan)?;
                         }
@@ -1535,6 +1665,14 @@ pub(crate) fn plan_restore(
         "active_profile",
     )?;
     Ok(())
+}
+
+fn obsidian_overrides(source: &Path) -> Result<crate::obsidian::Overrides> {
+    if crate::theme::is_package(source) {
+        Ok(crate::theme::load(source)?.obsidian_overrides)
+    } else {
+        Ok(Default::default())
+    }
 }
 
 /// Apply a profile natively. Returns the pre-apply backup directory.
@@ -1653,13 +1791,27 @@ fn apply_with_paths(profile: &str, rel_paths: &[String]) -> Result<PathBuf> {
 /// The live value of each field in `ids`, or KDE's default when it has none.
 pub(crate) fn live_values(ids: &[String]) -> Vec<(String, serde_json::Value)> {
     let mut ids: Vec<String> = ids.to_vec();
-    if ids.iter().any(|i| i == "decoration_theme") {
-        ids.push("decoration_library".to_string());
+    if ids
+        .iter()
+        .any(|id| matches!(id.as_str(), "decoration_theme" | "decoration_library"))
+    {
+        for field in [
+            "decoration_library",
+            "decoration_theme",
+            "decoration_disabled",
+        ] {
+            if !ids.iter().any(|id| id == field) {
+                ids.push(field.into());
+            }
+        }
     }
     ids.iter()
         .map(|id| {
             let live = crate::field::field(id)
                 .and_then(|f| crate::field::read(f, &crate::field::Base::Live));
+            if id == "decoration_disabled" {
+                return (id.clone(), live.unwrap_or(serde_json::Value::Bool(false)));
+            }
             let fallback = match id.as_str() {
                 "icon_theme" => "breeze",
                 "cursor_theme" => "breeze_cursors",
@@ -1765,6 +1917,14 @@ fn apply_with_paths_keeping_inner(
         }
     }
     let mut app_paths = Vec::new();
+    let obsidian = obsidian_overrides(&prepared)?;
+    let mut obsidian_plan = crate::change_plan::Plan::default();
+    for rel in rel_paths.iter().filter(|rel| {
+        crate::obsidian::is_appearance(rel) && crate::obsidian::snapshot_rel(rel).is_some()
+    }) {
+        crate::obsidian::plan_saved(&prepared, rel, &obsidian, &mut obsidian_plan)?;
+    }
+    app_paths.extend(obsidian_plan.after.keys().cloned());
     if !keep_wallpaper {
         let mut wallpaper_plan = crate::change_plan::Plan::default();
         plan_wallpaper(&prepared, &mut wallpaper_plan)?;
@@ -1967,17 +2127,22 @@ fn capture_wallpaper(target: &Path, rel_paths: &[String]) -> Result<()> {
         return Ok(());
     };
     let source = PathBuf::from(&current);
-    let Some(name) = source.file_name() else {
-        return Ok(());
-    };
     if !source.is_file() {
         return Ok(());
     }
+    capture_wallpaper_file(target, &source)
+}
+
+pub(crate) fn capture_wallpaper_file(target: &Path, source: &Path) -> Result<()> {
+    let name = source.file_name().context("Wallpaper file name")?;
     let dir = target.join(PROFILE_WALLPAPER_DIR);
     fs::create_dir_all(&dir)?;
-    fs::copy(&source, dir.join(name))
+    fs::copy(source, dir.join(name))
         .with_context(|| format!("Failed to copy wallpaper {}", source.display()))?;
-    fs::write(dir.join(PROFILE_WALLPAPER_SOURCE), format!("{current}\n"))?;
+    fs::write(
+        dir.join(PROFILE_WALLPAPER_SOURCE),
+        format!("{}\n", source.display()),
+    )?;
     Ok(())
 }
 
@@ -2084,7 +2249,11 @@ fn capture_active_kvantum_theme(target: &Path, rel_paths: &[String]) -> Result<(
     if !rel_paths.iter().any(|p| p == KVANTUM_CONFIG_REL) {
         return Ok(());
     }
-    let Some(rel) = kvantum_theme_rel(&live_path(KVANTUM_CONFIG_REL)) else {
+    capture_kvantum_from_config(target, &live_path(KVANTUM_CONFIG_REL))
+}
+
+pub(crate) fn capture_kvantum_from_config(target: &Path, config: &Path) -> Result<()> {
+    let Some(rel) = kvantum_theme_rel(config) else {
         return Ok(());
     };
     let source = live_path(&rel);
@@ -2130,22 +2299,8 @@ fn save_with_paths(profile: &str, rel_paths: &[String]) -> Result<()> {
     let profiles = kolira_profiles_dir();
     fs::create_dir_all(&profiles)?;
     let tmp = unique_dir(&profiles, &format!(".save-{profile}"))?;
-    let snapshot_paths: Vec<_> = rel_paths
-        .iter()
-        .map(|rel| crate::obsidian::snapshot_rel(rel).unwrap_or_else(|| rel.clone()))
-        .collect();
     let built = split_live_hosts(rel_paths)
-        .and(copy_tracked_appearance(&tmp, rel_paths))
-        .and(
-            crate::kwin_effects::pin_states(&tmp.join(".config/kwinrc"))
-                .map_err(anyhow::Error::from),
-        )
-        .and(capture_derived(&tmp, rel_paths))
-        .and(capture_wallpaper(&tmp, rel_paths))
-        .and(capture_active_kvantum_theme(&tmp, rel_paths))
-        // No metadata/kde diagnostics in a theme: they describe this machine
-        // (pre-apply backups still keep them for recovery).
-        .and(write_manifest(&tmp, profile, &snapshot_paths));
+        .and_then(|()| capture_snapshot(&tmp, profile, rel_paths, true, false));
 
     if let Err(e) = built {
         let _ = fs::remove_dir_all(&tmp);
@@ -2175,6 +2330,103 @@ fn save_with_paths(profile: &str, rel_paths: &[String]) -> Result<()> {
 
     write_active(profile)?;
     Ok(())
+}
+
+pub(crate) fn capture_snapshot(
+    target: &Path,
+    profile: &str,
+    rel_paths: &[String],
+    include_wallpaper: bool,
+    fold_terminal_hosts: bool,
+) -> Result<()> {
+    if fold_terminal_hosts {
+        let staging = target.canonicalize()?;
+        for rel in rel_paths {
+            if let Ok(source) = live_path(rel).canonicalize() {
+                anyhow::ensure!(
+                    !staging.starts_with(source),
+                    "A tracked path contains the theme directory: {rel}"
+                );
+            }
+        }
+    }
+    copy_tracked_appearance(target, rel_paths)?;
+    if fold_terminal_hosts {
+        capture_unsplit_terminal_look(target, rel_paths)?;
+    }
+    crate::kwin_effects::pin_states(&target.join(".config/kwinrc"))?;
+    capture_derived(target, rel_paths)?;
+    if include_wallpaper {
+        capture_wallpaper(target, rel_paths)?;
+    }
+    capture_active_kvantum_theme(target, rel_paths)?;
+    let snapshot_paths: Vec<_> = rel_paths
+        .iter()
+        .map(|rel| crate::obsidian::snapshot_rel(rel).unwrap_or_else(|| rel.clone()))
+        .collect();
+    write_manifest(target, profile, &snapshot_paths)
+}
+
+/// Restore the appearance-only capture as a new Live baseline, with the same
+/// preparation, native reload and recovery as a profile change.
+pub(crate) fn restore_appearance_point(
+    id: &str,
+    source: &Path,
+    gtk: &std::collections::BTreeMap<String, String>,
+) -> Result<serde_json::Value> {
+    let _lock = crate::operation::MutationGuard::acquire()?;
+    let package = crate::theme::load(source)?;
+    let mut rels = resolve_cli_paths(None)?;
+    for asset in package
+        .assets
+        .iter()
+        .filter(|asset| asset.kind != "wallpaper")
+    {
+        crate::theme::validate_asset_restore(source, &asset.path)?;
+        if !rels.contains(&asset.path) {
+            rels.push(asset.path.clone());
+        }
+    }
+    validate_restore(source, &rels)?;
+    let mut plan = crate::change_plan::Plan::default();
+    let appletsrc = live_path(APPLETSRC_REL);
+    let old_layout = plan.text(&appletsrc)?;
+    plan_restore(id, source, &rels, &mut plan)?;
+    // Keep desktop icon positions and screen metadata when restoring appearance.
+    if let (Some(live), Some(restored)) = (&old_layout, plan.text(&appletsrc)?) {
+        plan.write_text(
+            &appletsrc,
+            keep_desktop_icons(&restored, live),
+            "layout_preserved",
+        )?;
+    }
+    let wallpaper = plan_post_restore(source, &rels, false, &[], None, &mut plan)?;
+    plan.remove(&active_file(), "new_baseline")?;
+    let journal = crate::paths::theme_root().join("apply-journal");
+    plan.remove(&journal.join("journal.json"), "new_baseline")?;
+    let mut footprint: Vec<_> = plan.changed().map(|(path, _)| path.clone()).collect();
+    footprint.extend([journal, live_path(".config/kdeglobals"), appletsrc]);
+    crate::operation::run("", || {
+        crate::operation::note_restored(id);
+        let result = serde_json::json!({"kind":"restore","restored_operation":id,
+            "operation_id":crate::operation::current_id()});
+        crate::operation::note_report(result.clone())?;
+        let safety = unique_dir(&backups_dir(), "pre-restore")?;
+        crate::operation::prepare_live(&safety, footprint, gtk.keys().map(String::as_str))?;
+        if !no_apply() {
+            stop_plasma_shell_for_restore();
+        }
+        plan.commit()?;
+        crate::operation::restore_gtk(gtk)?;
+        recover_after_rollback()?;
+        if let Some(path) = wallpaper {
+            let displayed = plasma_wallpaper_from(&live_path(APPLETSRC_REL));
+            if displayed.as_deref() != path.to_str() {
+                apply_wallpaper_live(&path);
+            }
+        }
+        Ok(result)
+    })
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2556,6 +2808,23 @@ pub(crate) fn recover_after_rollback() -> Result<()> {
         ));
     }
     crate::operation::hook_checkpoint()
+}
+
+/// Refresh affected clients after restoring the narrower Inspector draft.
+pub(crate) fn refresh_live_after_rollback(roots: &[PathBuf]) {
+    let covers = |rel| {
+        let path = live_path(rel);
+        roots.iter().any(|root| path.starts_with(root))
+    };
+    if covers(".config/kdeglobals") {
+        notify_palette_changed();
+    }
+    if covers(".config/kwinrc") || covers(".config/kcminputrc") {
+        run_external("qdbus6", &["org.kde.KWin", "/KWin", "reconfigure"]);
+    }
+    if covers(".config/kitty/kitty.conf") {
+        apply_kitty_live(&crate::paths::home_dir());
+    }
 }
 
 /// Pure preflight used before dependency installers may run.

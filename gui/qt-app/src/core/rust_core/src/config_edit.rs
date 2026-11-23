@@ -51,6 +51,10 @@ pub fn toml_get(text: &str, key: &str, path: &[String]) -> Option<Value> {
     field::toml_get(text, key, path)
 }
 pub fn generic_toml(text: &str, key: &str, raw: &str) -> Result<(String, Value)> {
+    edit_toml(text, key, Some(raw))
+}
+
+fn edit_toml(text: &str, key: &str, raw: Option<&str>) -> Result<(String, Value)> {
     let (section, leaf) = key.rsplit_once('/').unwrap_or(("", key));
     let dotted = section.replace('/', ".");
     let header = if section.is_empty() {
@@ -70,7 +74,11 @@ pub fn generic_toml(text: &str, key: &str, raw: &str) -> Result<(String, Value)>
         section.split('/').map(str::to_string).collect()
     };
     let old = toml_get(text, leaf, &path).unwrap_or(Value::Null);
-    Ok((toml_set(text, leaf, &coerce(&old, raw)?, header)?, old))
+    let patched = match raw {
+        Some(raw) => toml_set(text, leaf, &coerce(&old, raw)?, header)?,
+        None => text.to_owned(),
+    };
+    Ok((patched, old))
 }
 
 pub fn strip_jsonc(text: &str) -> String {
@@ -162,6 +170,36 @@ pub fn plan(path: &Path, key: &str, raw: &str) -> Result<(String, Value)> {
     if !path.is_file() {
         bail!("File not found: {}", path.display());
     }
+    let text = String::from_utf8_lossy(&fs::read(path)?).into_owned();
+    plan_text(path, key, Some(raw), &text)
+}
+
+pub(crate) fn observe_edit(path: &Path, key: &str, raw: &str) -> Result<(Value, Result<Value>)> {
+    let text = fs::read_to_string(path)?;
+    match path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "json" | "jsonc" => {
+            let clean = strip_trailing_commas(&strip_jsonc(&text));
+            serde_json::from_str::<Value>(&clean)?;
+        }
+        "toml" => {
+            text.parse::<toml::Value>()?;
+        }
+        _ => {}
+    }
+    let (_, current) = plan_text(path, key, None, &text)?;
+    let proposed = plan_text(path, key, Some(raw), &text)
+        .and_then(|(patch, _)| plan_text(path, key, None, &patch))
+        .map(|(_, value)| value);
+    Ok((current, proposed))
+}
+
+fn plan_text(path: &Path, key: &str, raw: Option<&str>, text: &str) -> Result<(String, Value)> {
     let suffix = path
         .extension()
         .and_then(|s| s.to_str())
@@ -173,7 +211,6 @@ pub fn plan(path: &Path, key: &str, raw: &str) -> Result<(String, Value)> {
     if path.file_name().is_some_and(|n| n == "prefs.js") {
         bail!("Edit user.js instead of prefs.js");
     }
-    let text = String::from_utf8_lossy(&fs::read(path)?).into_owned();
     match suffix.as_str() {
         "json" | "jsonc" => {
             let parts: Vec<String> = key
@@ -181,25 +218,39 @@ pub fn plan(path: &Path, key: &str, raw: &str) -> Result<(String, Value)> {
                 .filter(|p| !p.is_empty())
                 .map(str::to_string)
                 .collect();
-            let old = json_read(&text, &parts).unwrap_or(Value::Null);
-            Ok((field::json_set(&text, &parts, &coerce(&old, raw)?)?, old))
+            let old = json_read(text, &parts).unwrap_or(Value::Null);
+            let patched = match raw {
+                Some(raw) => field::json_set(text, &parts, &coerce(&old, raw)?)?,
+                None => text.to_owned(),
+            };
+            Ok((patched, old))
         }
-        "toml" => generic_toml(&text, key, raw),
+        "toml" => edit_toml(text, key, raw),
         "js" => {
-            let old = userjs_read(&text, key).unwrap_or(Value::Null);
-            Ok((userjs_set(&text, key, &coerce(&old, raw)?), old))
+            let old = userjs_read(text, key).unwrap_or(Value::Null);
+            let patched = match raw {
+                Some(raw) => userjs_set(text, key, &coerce(&old, raw)?),
+                None => text.to_owned(),
+            };
+            Ok((patched, old))
         }
         _ => {
             let (group, leaf) = key.split_once('/').unwrap_or(("", key));
-            let old = field::ini_get(&text, group, leaf)
+            let old = field::ini_get(text, group, leaf)
                 .map(Value::from)
                 .unwrap_or(Value::Null);
             if group.is_empty() && old.is_null() {
-                if let Some(value) = field::kv_get(&text, leaf) {
-                    return Ok((field::kv_set(&text, leaf, raw), json!(value)));
+                if let Some(value) = field::kv_get(text, leaf) {
+                    let patched =
+                        raw.map_or_else(|| text.to_owned(), |raw| field::kv_set(text, leaf, raw));
+                    return Ok((patched, json!(value)));
                 }
             }
-            Ok((field::set_ini_text(&text, group, leaf, raw), old))
+            let patched = raw.map_or_else(
+                || text.to_owned(),
+                |raw| field::set_ini_text(text, group, leaf, raw),
+            );
+            Ok((patched, old))
         }
     }
 }

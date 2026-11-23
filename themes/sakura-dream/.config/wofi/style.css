@@ -1,0 +1,94 @@
+/* Sakura Dream Wofi — pastel kawaii anime */
+window {
+    margin: 0;
+    padding: 0;
+
+    background-color: rgba(255, 240, 246, 0.92);
+    border: 1px solid #F4C5D9;
+    border-radius: 16px;
+
+    font-family: "Noto Sans";
+    font-size: 12pt;
+    color: #69465B;
+}
+
+/* Main container */
+#outer-box {
+    margin: 0;
+    padding: 16px;
+
+    background-color: transparent;
+}
+
+/* Search */
+#input {
+    margin: 0 0 12px 0;
+    padding: 11px 14px;
+
+    background-color: #FFF8FC;
+    color: #69465B;
+
+    border: 1px solid #F4C5D9;
+    border-radius: 10px;
+
+    outline: none;
+    box-shadow: none;
+}
+
+#input:focus {
+    border: 1px solid #F6A6C1;
+}
+
+/* Results area */
+#scroll {
+    margin: 0;
+    padding: 0;
+
+    background-color: transparent;
+}
+
+#inner-box {
+    margin: 0;
+    padding: 0;
+
+    background-color: transparent;
+}
+
+/* Individual entries */
+#entry {
+    margin: 2px 0;
+    padding: 9px 12px;
+
+    background-color: transparent;
+
+    border: 1px solid transparent;
+    border-radius: 9px;
+}
+
+/* Selected entry — gentle pink */
+#entry:selected {
+    background-color: #FFB7D5;
+
+    border: 1px solid #F6A6C1;
+
+    outline: none;
+}
+
+/* Text */
+#text {
+    margin: 0 0 0 10px;
+
+    background-color: transparent;
+    color: #69465B;
+}
+
+#text:selected {
+    color: #69465B;
+}
+
+/* Application icons */
+#img {
+    margin: 0;
+
+    background-color: transparent;
+}

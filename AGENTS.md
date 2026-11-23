@@ -108,9 +108,9 @@ A change is not done until the docs agree with the code. At minimum:
   follow symlinks, extensions `jpg jpeg png webp bmp` (case-insensitive),
   byte/code-point order (`Vec<String>::sort()` / `sorted()`). See the table in
   `gui/qt-app/README.md`.
-- **Profile scopes are read-only snapshots** in the Theme Inspector; only
-  *Live* is editable. Mutating profile operations delegate to the Rust CLI
-  `kolira`.
+- **Saved-theme and Live drafts are separate.** The editors share controls
+  where the Rust API supports editing the saved field. Other saved fields are
+  read-only. Saving a saved-theme draft never applies it to the desktop.
 - **`KTM_THEME_NO_APPLY=1`** disables external commands and D-Bus hooks (used by
   tests and dry runs).
 - **JSONC files** (Zed / VS Code / Cursor / Obsidian / fastfetch) are patched by

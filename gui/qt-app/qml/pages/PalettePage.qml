@@ -19,14 +19,6 @@ Kirigami.ScrollablePage {
     title: qsTr("Palette")
     readonly property bool glassMode: themeController.isGlass
     readonly property var pal: paletteController.palette
-    readonly property var slots: ["base00", "base01", "base02", "base03", "base04", "base05", "base06", "base07",
-                                  "base08", "base09", "base0A", "base0B", "base0C", "base0D", "base0E", "base0F"]
-    readonly property var slotHints: [
-        qsTr("Background"), qsTr("Lighter background"), qsTr("Selection background"), qsTr("Comments, inactive"),
-        qsTr("Dark foreground"), qsTr("Text"), qsTr("Light foreground"), qsTr("Lightest"),
-        qsTr("Red"), qsTr("Orange"), qsTr("Yellow"), qsTr("Green"),
-        qsTr("Cyan"), qsTr("Blue"), qsTr("Magenta"), qsTr("Brown")
-    ]
     property string editingSlot: ""
     property string message: ""
     property bool messageOk: true
@@ -249,61 +241,12 @@ Kirigami.ScrollablePage {
                     text: qsTr("Readability: %1").arg((page.pal.warnings || []).join("; "))
                 }
 
-                GridLayout {
+                PaletteColors {
                     Layout.fillWidth: true
-                    columns: Math.max(2, Math.min(8, Math.floor(width / (Platform.Units.gridUnit * 5))))
-                    columnSpacing: Platform.Units.smallSpacing
-                    rowSpacing: Platform.Units.smallSpacing
-
-                    Repeater {
-                        model: page.slots
-                        delegate: ColumnLayout {
-                            required property int index
-                            required property string modelData
-                            readonly property string colorValue: (page.pal.base || [])[index] || "#000000"
-                            Layout.fillWidth: true
-                            spacing: 2
-
-                            ColorSwatch {
-                                objectName: "paletteSwatch_" + modelData
-                                Layout.fillWidth: true
-                                Layout.minimumWidth: 0
-                                swatchColor: parent.colorValue
-                                glassMode: page.glassMode
-                                text: qsTr("%1 (%2): %3").arg(modelData).arg(page.slotHints[index]).arg(parent.colorValue)
-                                enabled: !paletteController.busy
-                                onClicked: page.editSlot(modelData, parent.colorValue)
-                            }
-                            Label {
-                                Layout.fillWidth: true
-                                text: modelData.slice(4) + " " + parent.colorValue
-                                font.family: "monospace"
-                                font.pointSize: TypeScale.caption
-                                color: ThemeColors.dimColor(page.glassMode)
-                                elide: Text.ElideRight
-                            }
-                        }
-                    }
-                }
-
-                RowLayout {
-                    spacing: Platform.Units.mediumSpacing
-                    ColorSwatch {
-                        objectName: "paletteAccent"
-                        Layout.preferredWidth: Platform.Units.gridUnit * 4
-                        swatchColor: page.pal.accent || "#000000"
-                        glassMode: page.glassMode
-                        text: qsTr("Accent: %1").arg(page.pal.accent || "")
-                        enabled: !paletteController.busy
-                        onClicked: page.editSlot("accent", page.pal.accent)
-                    }
-                    Label {
-                        Layout.fillWidth: true
-                        Layout.minimumWidth: 0
-                        wrapMode: Text.Wrap
-                        text: qsTr("Accent %1 — selection, focus, active elements").arg(page.pal.accent || "")
-                        color: ThemeColors.fgColor(page.glassMode)
-                    }
+                    enabled: !paletteController.busy
+                    paletteData: page.pal
+                    glassMode: page.glassMode
+                    onColorRequested: (slot, current) => page.editSlot(slot, current)
                 }
             }
         }

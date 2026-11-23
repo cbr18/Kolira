@@ -64,19 +64,19 @@ pub(crate) fn validate_destination(path: &Path, container: &Path) -> Result<()> 
     Ok(())
 }
 
-fn cache_tree(path: &Path) -> Result<()> {
+pub(crate) fn validate_theme_tree(path: &Path) -> Result<()> {
     let metadata = fs::symlink_metadata(path)?;
     anyhow::ensure!(
         !metadata.file_type().is_symlink(),
-        "symlink in editor cache: {}",
+        "symlink in application theme: {}",
         path.display()
     );
     if metadata.is_dir() {
         for entry in fs::read_dir(path)? {
-            cache_tree(&entry?.path())?;
+            validate_theme_tree(&entry?.path())?;
         }
     } else {
-        anyhow::ensure!(metadata.is_file(), "unsupported editor cache entry");
+        anyhow::ensure!(metadata.is_file(), "unsupported application theme entry");
     }
     Ok(())
 }
@@ -116,6 +116,20 @@ pub(crate) fn write(plan: &mut Plan, path: &Path, text: String) -> Result<()> {
     plan.write_text(path, text, "app_theme")
 }
 
+fn kitty_has_snapshot_theme(source: &Path, plan: &mut Plan) -> Result<bool> {
+    use crate::appearance::{KITTY_HOST, KITTY_THEME};
+    if let Some(text) = plan.text(&crate::profile::theme_file(source, KITTY_THEME))? {
+        return Ok(!field::terminal_settings_only(KITTY_THEME, &text)?);
+    }
+    if let Some(text) = plan.text(&crate::profile::theme_file(source, KITTY_HOST))? {
+        return Ok(!field::terminal_settings_only(
+            KITTY_THEME,
+            &crate::appearance::kitty_split(&text).0,
+        )?);
+    }
+    Ok(false)
+}
+
 /// Only fill missing app resources. A snapshot's explicit app theme always wins
 /// over palette generation; applying a custom Discord/Firefox theme preserves it.
 pub(crate) fn plan_apps(source: &Path, package: &Package, plan: &mut Plan) -> Result<()> {
@@ -138,7 +152,7 @@ pub(crate) fn plan_apps(source: &Path, package: &Package, plan: &mut Plan) -> Re
         for ancestor in cache.ancestors().take_while(|p| *p != source) {
             anyhow::ensure!(!ancestor.is_symlink(), "symlink in editor cache path");
         }
-        cache_tree(&cache)?;
+        validate_theme_tree(&cache)?;
         stores::plan_from_cache(
             &editor.editor,
             &editor.id,
@@ -147,36 +161,27 @@ pub(crate) fn plan_apps(source: &Path, package: &Package, plan: &mut Plan) -> Re
             plan,
         )?;
         if editor.editor == "zed" {
+            let available: Vec<_> = fs::read_dir(cache.join("themes"))
+                .into_iter()
+                .flatten()
+                .flatten()
+                .map(|entry| entry.path())
+                .filter(|path| path.is_file())
+                .flat_map(|path| crate::app_themes::zed_family_names(&path))
+                .collect();
             for key in ["zed_dark", "zed_light"] {
-                if let Some(value) = package.values.get(key).filter(|v| v.is_string()) {
-                    let wanted = value.as_str().unwrap();
-                    let available = fs::read_dir(cache.join("themes"))
-                        .ok()
-                        .into_iter()
-                        .flatten()
-                        .flatten()
-                        .any(|entry| {
-                            fs::read(entry.path())
-                                .ok()
-                                .and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).ok())
-                                .is_some_and(|v| {
-                                    v["themes"].as_array().is_some_and(|themes| {
-                                        themes.iter().any(|t| t["name"] == wanted)
-                                    })
-                                })
-                        });
-                    if available {
-                        let settings = paths::config_home().join("zed/settings.json");
-                        let old = plan.text(&settings)?.unwrap_or_else(|| "{}".into());
-                        let side = if key == "zed_dark" { "dark" } else { "light" };
-                        let text = field::json_set(&old, &["theme".into(), side.into()], value)?;
-                        let text = if let Some(mode) = package.values.get("zed_mode") {
-                            field::json_set(&text, &["theme".into(), "mode".into()], mode)?
-                        } else {
-                            text
-                        };
-                        write(plan, &settings, text)?;
+                if let Some(value) = package.values.get(key).filter(|v| {
+                    v.as_str()
+                        .is_some_and(|name| available.iter().any(|entry| entry == name))
+                }) {
+                    let settings = paths::live_path(crate::appearance::ZED_CONFIG);
+                    let old = plan.text(&settings)?.unwrap_or_else(|| "{}".into());
+                    let side = if key == "zed_dark" { "dark" } else { "light" };
+                    let mut text = crate::appearance::patch_zed_theme(&old, side, Some(value));
+                    if let Some(mode) = package.values.get("zed_mode") {
+                        text = crate::appearance::patch_zed_theme(&text, "mode", Some(mode));
                     }
+                    write(plan, &settings, text)?;
                 }
             }
         } else {
@@ -224,12 +229,9 @@ pub(crate) fn plan_apps(source: &Path, package: &Package, plan: &mut Plan) -> Re
     p.validate()?;
     let wants = |id: &str| package.app_targets.iter().any(|t| t == id);
     if wants("obsidian") {
-        crate::obsidian::plan(source, p, plan)?;
+        crate::obsidian::plan(source, p, &package.obsidian_overrides, plan)?;
     }
-    if wants("kitty")
-        && !source.join(crate::appearance::KITTY_THEME).exists()
-        && !source.join(crate::appearance::KITTY_HOST).exists()
-    {
+    if wants("kitty") && !kitty_has_snapshot_theme(source, plan)? {
         let host = paths::live_path(crate::appearance::KITTY_HOST);
         if let Some(old) = plan.text(&host)? {
             let target = paths::live_path(crate::appearance::KITTY_THEME);
@@ -358,12 +360,16 @@ pub(crate) fn plan_apps(source: &Path, package: &Package, plan: &mut Plan) -> Re
             let user = root.join("user.js");
             let old = plan.text(&user)?.unwrap_or_default();
             let dark = p.variant == crate::palette::Variant::Dark;
-            let text = crate::browser_appearance::accent(
-                &crate::browser_appearance::mode(&old, dark, zen),
-                p,
-                zen,
-            );
-            write(plan, &user, text)?;
+            let mut text = old.clone();
+            if !zen || !package.zen_overrides.mode {
+                text = crate::browser_appearance::mode(&text, dark, zen);
+            }
+            if !zen || !package.zen_overrides.accent {
+                text = crate::browser_appearance::accent(&text, p, zen);
+            }
+            if text != old {
+                write(plan, &user, text)?;
+            }
         }
     }
     Ok(())

@@ -34,6 +34,8 @@ pub struct FieldDef {
     pub path: Vec<String>,
     #[serde(default)]
     pub choices: String,
+    pub(crate) min: Option<f64>,
+    pub(crate) max: Option<f64>,
     #[serde(default = "default_apply")]
     pub apply: String,
     #[serde(default)]
@@ -230,7 +232,10 @@ pub fn set_ini_text(text: &str, group: &str, key: &str, value: &str) -> String {
         let s = line.trim();
         if s.starts_with('[') && s.ends_with(']') {
             let name = &s[1..s.len() - 1];
-            if current == group && header.is_some() && group_end == lines.len() {
+            if current == group
+                && (group.is_empty() || header.is_some())
+                && group_end == lines.len()
+            {
                 group_end = i;
             }
             if name == group {
@@ -259,7 +264,7 @@ pub fn set_ini_text(text: &str, group: &str, key: &str, value: &str) -> String {
         lines.push(format!("[{group}]"));
         lines.push(format!("{key}={value}"));
     } else {
-        lines.push(format!("{key}={value}"));
+        lines.insert(group_end, format!("{key}={value}"));
     }
     lines.join("\n") + "\n"
 }
@@ -279,16 +284,27 @@ pub fn kv_get(text: &str, key: &str) -> Option<String> {
 }
 
 pub fn kv_set(text: &str, key: &str, value: &str) -> String {
+    kv_set_entry(text, key, value, false)
+}
+
+fn kv_set_entry(text: &str, key: &str, value: &str, last: bool) -> String {
     let mut lines: Vec<String> = text.lines().map(str::to_string).collect();
-    for line in lines.iter_mut() {
+    let matches = |line: &String| {
         let s = line.trim();
-        if !s.is_empty() && !s.starts_with('#') && s.split_whitespace().next() == Some(key) {
-            let indent: String = line.chars().take_while(|c| c.is_whitespace()).collect();
-            *line = format!("{indent}{key} {value}");
-            return lines.join("\n") + "\n";
-        }
+        !s.starts_with('#') && s.split_whitespace().next() == Some(key)
+    };
+    let index = if last {
+        lines.iter().rposition(matches)
+    } else {
+        lines.iter().position(matches)
+    };
+    if let Some(index) = index {
+        let line = &mut lines[index];
+        let indent: String = line.chars().take_while(|c| c.is_whitespace()).collect();
+        *line = format!("{indent}{key} {value}");
+    } else {
+        lines.push(format!("{key} {value}"));
     }
-    lines.push(format!("{key} {value}"));
     lines.join("\n") + "\n"
 }
 
@@ -659,6 +675,14 @@ pub(crate) fn userjs_set(text: &str, key: &str, value: &Value) -> String {
     out
 }
 
+pub(crate) fn userjs_remove(text: &str, key: &str) -> String {
+    let mut out = text.to_string();
+    for (start, end, _) in userjs_spans(text, key).into_iter().rev() {
+        out.replace_range(start..end, "");
+    }
+    out
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Values
 // ─────────────────────────────────────────────────────────────────────────────
@@ -698,6 +722,9 @@ fn color_parts(v: &Value) -> Option<(u8, u8, u8)> {
     let s = value_str(v);
     let s = s.trim();
     if let Some(hex) = s.strip_prefix('#') {
+        if !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
+            return None;
+        }
         let hex: String = if hex.len() == 3 || hex.len() == 4 {
             hex.chars().take(3).flat_map(|c| [c, c]).collect()
         } else {
@@ -768,6 +795,19 @@ pub fn normalize_input(f: &FieldDef, v: &Value) -> Option<Value> {
     }
 }
 
+pub(crate) fn qt_font_value(current: &str, family: &str, size: Option<f64>) -> String {
+    let mut parts: Vec<_> = current.split(',').map(str::to_string).collect();
+    if parts.len() < 2 {
+        let size = size.unwrap_or(10.0);
+        return format!("{family},{size},-1,5,50,0,0,0,0,0,0,0,0,0,0,1");
+    }
+    parts[0] = family.into();
+    if let Some(size) = size {
+        parts[1] = size.to_string();
+    }
+    parts.join(",")
+}
+
 /// Current value of a field (coerced), or None when unset/unreadable.
 pub fn read(f: &FieldDef, base: &Base) -> Option<Value> {
     read_raw(f, base).and_then(|raw| coerce(f, raw))
@@ -776,9 +816,45 @@ pub fn read(f: &FieldDef, base: &Base) -> Option<Value> {
 pub(crate) fn read_raw(f: &FieldDef, base: &Base) -> Option<Value> {
     let path = file_for(f, base)?;
     let text = read_text(&path)?;
+    raw_from_text(f, &text)
+}
+
+/// Observe a Live field for conflict detection, distinguishing missing data from a read error.
+pub(crate) fn observe_live(f: &FieldDef) -> Result<Option<Value>> {
+    let path = file_for(f, &Base::Live);
+    observe_file(f, path.as_deref())
+}
+
+pub(crate) fn observe_file(f: &FieldDef, path: Option<&Path>) -> Result<Option<Value>> {
+    let Some(path) = path else {
+        return Ok(None);
+    };
+    let text = match std::fs::read_to_string(path) {
+        Ok(text) => text,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error).with_context(|| format!("Read {}", path.display())),
+    };
+    match f.source.as_str() {
+        "json" => {
+            let clean =
+                crate::config_edit::strip_trailing_commas(&crate::config_edit::strip_jsonc(&text));
+            serde_json::from_str::<Value>(&clean).context("Invalid JSON configuration")?;
+        }
+        "toml" => {
+            text.parse::<toml::Value>()
+                .context("Invalid TOML configuration")?;
+        }
+        _ => {}
+    }
+    raw_from_text(f, &text)
+        .map(|raw| coerce(f, raw).with_context(|| format!("Invalid live value: {}", f.label)))
+        .transpose()
+}
+
+fn raw_from_text(f: &FieldDef, text: &str) -> Option<Value> {
     match f.source.as_str() {
         "ini" | "kvantum" => {
-            let mut value = ini_get(&text, &f.group, &f.key)?;
+            let mut value = ini_get(text, &f.group, &f.key)?;
             if f.source == "ini"
                 && f.apply == "ini"
                 && value.len() >= 2
@@ -789,10 +865,15 @@ pub(crate) fn read_raw(f: &FieldDef, base: &Base) -> Option<Value> {
             }
             Some(Value::String(value))
         }
-        "kv" => kv_get(&text, &f.key).map(Value::String),
-        "toml" => toml_get(&text, &f.key, &f.path),
-        "json" => json_get(&text, &f.path),
-        "userjs" => userjs_get(&text, &f.key),
+        "kv" if f.file == crate::appearance::KITTY_THEME => text
+            .lines()
+            .rev()
+            .find_map(|line| kv_get(line, &f.key))
+            .map(Value::String),
+        "kv" => kv_get(text, &f.key).map(Value::String),
+        "toml" => toml_get(text, &f.key, &f.path),
+        "json" => json_get(text, &f.path),
+        "userjs" => userjs_get(text, &f.key),
         _ => None,
     }
 }
@@ -880,7 +961,7 @@ pub(crate) const GTK_MIRROR: &[(&str, &str)] = &[
     ("icon_theme", "gtk-icon-theme-name"),
     ("cursor_theme", "gtk-cursor-theme-name"),
 ];
-const GTK_SETTINGS: &[&str] = &[
+pub(crate) const GTK_SETTINGS: &[&str] = &[
     ".config/gtk-3.0/settings.ini",
     ".config/gtk-4.0/settings.ini",
 ];
@@ -1183,7 +1264,12 @@ pub fn home() -> PathBuf {
 pub(crate) fn patched(f: &FieldDef, text: &str, value: &Value) -> Result<String> {
     Ok(match f.apply.as_str() {
         "config" | "cmd_config" | "ini" => set_ini_text(text, &f.group, &f.key, &value_str(value)),
-        "kv" => kv_set(text, &f.key, &value_str(value)),
+        "kv" => kv_set_entry(
+            text,
+            &f.key,
+            &value_str(value),
+            f.file == crate::appearance::KITTY_THEME,
+        ),
         "toml" => toml_set(
             text,
             &f.key,
@@ -1194,6 +1280,86 @@ pub(crate) fn patched(f: &FieldDef, text: &str, value: &Value) -> Result<String>
         "userjs" => userjs_set(text, &f.key, value),
         other => return Err(anyhow!("unsupported apply mode {other} for {}", f.id)),
     })
+}
+
+pub(crate) fn terminal_fields(include: &str) -> &'static [&'static str] {
+    match include {
+        crate::appearance::KITTY_THEME => &["kitty_opacity", "kitty_blur"],
+        crate::appearance::ALACRITTY_THEME => &["alacritty_opacity", "alacritty_blur"],
+        _ => &[],
+    }
+}
+
+pub(crate) fn write_snapshot_value(snapshot: &Path, id: &str, raw: &Value) -> Result<()> {
+    use crate::profile::{snapshot_relative, snapshot_text};
+    let definition = field(id).with_context(|| format!("Unknown field: {id}"))?;
+    anyhow::ensure!(
+        definition.profile_tracked,
+        "Field is not part of theme appearance: {id}"
+    );
+    let base = Base::Snapshot(snapshot.into());
+    let path = file_for(definition, &base)
+        .with_context(|| format!("No stored file for theme field: {id}"))?;
+    let relative = snapshot_relative(snapshot, &path)?;
+    let text = patched(definition, &snapshot_text(&path)?, raw)?;
+    let text = crate::appearance::for_theme(relative, &text)
+        .with_context(|| format!("Field is outside theme appearance policy: {id}"))?;
+    crate::gui_api::write_bytes(&path, text.as_bytes(), None)?;
+    if id == "kvantum_theme" {
+        crate::profile::capture_kvantum_from_config(snapshot, &path)?;
+    }
+    for (_, key) in GTK_MIRROR.iter().filter(|(field, _)| *field == id) {
+        for relative in GTK_SETTINGS {
+            let path = base.resolve(relative);
+            snapshot_relative(snapshot, &path)?;
+            let text = set_ini_text(&snapshot_text(&path)?, "Settings", key, &value_str(raw));
+            crate::gui_api::write_bytes(&path, text.as_bytes(), None)?;
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn terminal_value(f: &FieldDef, text: &str) -> Option<Value> {
+    raw_from_text(f, text).and_then(|raw| coerce(f, raw))
+}
+
+pub(crate) fn unset_terminal(f: &FieldDef, text: &str) -> Result<String> {
+    if f.source == "kv" {
+        if !text.lines().any(|line| kv_get(line, &f.key).is_some()) {
+            return Ok(text.into());
+        }
+        let mut result = String::with_capacity(text.len());
+        for line in text.split_inclusive('\n') {
+            if kv_get(line, &f.key).is_none() {
+                result.push_str(line);
+            }
+        }
+        return Ok(result);
+    }
+    let mut doc: toml_edit::DocumentMut = text.parse().context("invalid TOML")?;
+    if let Some(section) = f.path.first() {
+        if let Some(table) = doc
+            .get_mut(section)
+            .and_then(toml_edit::Item::as_table_like_mut)
+        {
+            table.remove(&f.key);
+            if table.is_empty() {
+                doc.remove(section);
+            }
+        }
+    }
+    Ok(doc.to_string())
+}
+
+pub(crate) fn terminal_settings_only(include: &str, text: &str) -> Result<bool> {
+    let mut remainder = text.to_string();
+    for id in terminal_fields(include) {
+        remainder = unset_terminal(field(id).context("Unknown terminal setting")?, &remainder)?;
+    }
+    Ok(remainder.lines().all(|line| {
+        let line = line.trim();
+        line.is_empty() || line.starts_with('#')
+    }))
 }
 pub(crate) fn plan_value(
     id: &str,

@@ -10,11 +10,28 @@
         "background": "#141618",
         "surface.background": "#202326",
         "elevated_surface.background": "#202326",
+        "panel.background": "#202326",
         "text": "#fcfcfc",
         "text.muted": "#a1a9b1",
-        "text.accent": "#3daee9",
+        "text.accent": "#47b2ea",
+        "icon.accent": "#47b2ea",
+        "link_text.hover": "#47b2ea",
         "border": "#393b3c",
-        "border.focused": "#3daee9",
+        "border.focused": "#47b2ea",
+        "panel.focused_border": "#47b2ea",
+        "pane.focused_border": "#47b2ea",
+        "element.hover": "#222e36",
+        "element.selected": "#253945",
+        "ghost_element.hover": "#222e36",
+        "ghost_element.selected": "#253945",
+        "created": "#4cbc7b",
+        "modified": "#f8a458",
+        "warning": "#f8a458",
+        "deleted": "#e98f98",
+        "conflict": "#f88d2e",
+        "renamed": "#4faff6",
+        "error": "#e98f98",
+        "success": "#4cbc7b",
         "editor.background": "#141618",
         "editor.foreground": "#fcfcfc",
         "editor.gutter.background": "#141618",
@@ -27,11 +44,12 @@
         "status_bar.background": "#202326",
         "terminal.background": "#141618",
         "terminal.foreground": "#fcfcfc",
+        "search.match_background": "#4d3a28",
         "players": [
           {
-            "cursor": "#3daee9",
-            "background": "#3daee9",
-            "selection": "#3daee950"
+            "cursor": "#47b2ea",
+            "background": "#47b2ea",
+            "selection": "#1b313e"
           }
         ],
         "syntax": {
@@ -39,16 +57,16 @@
             "color": "#a1a9b1"
           },
           "string": {
-            "color": "#27ae60"
+            "color": "#4cbc7b"
           },
           "keyword": {
-            "color": "#9b59b6"
+            "color": "#c29ad2"
           },
           "number": {
-            "color": "#f67400"
+            "color": "#f88d2e"
           },
           "function": {
-            "color": "#1d99f3"
+            "color": "#4faff6"
           },
           "type": {
             "color": "#f8a458"

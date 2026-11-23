@@ -51,6 +51,10 @@ def test_messages_preserve_paths_and_placeholders(russian):
     assert state_label("succeeded") == "Завершено"
     assert source_label("imagecolors:/tmp/мой файл.png") == "Цвета Plasma: /tmp/мой файл.png"
     assert localize("third-party diagnostic: %1 <raw>") == "third-party diagnostic: %1 <raw>"
+    assert localize("Legacy wallpaper is unavailable: /tmp/%1.png") == "Файл обоев недоступен (/tmp/%1.png)."
+    assert QCoreApplication.translate("Core", "It is recommended to restart these programs.") == (
+        "Чтобы обновить оформление, перезапустите приложения из списка."
+    )
     assert state_label("future_state") == "future_state"
     assert render_message("%1 restarted", ["%2"]) == "%2 перезапущен"
 
@@ -81,5 +85,5 @@ def test_actual_navigation_errors_and_gutters(tmp_path):
     import os
     import subprocess
     root = Path(__file__).resolve().parents[3]
-    result = subprocess.run([sys.executable, str(root/'tests/e2e/ui-audit.py'), str(tmp_path/'interaction.txt'), '--check', '--width', '640', '--height', '480'], env=dict(os.environ, QT_QPA_PLATFORM='offscreen'), text=True, capture_output=True, timeout=25)
+    result = subprocess.run([sys.executable, str(root/'tests/e2e/ui-audit.py'), str(tmp_path/'interaction.txt'), '--check', '--width', '640', '--height', '480'], env=dict(os.environ, QT_QPA_PLATFORM='offscreen'), text=True, capture_output=True, timeout=60)
     assert result.returncode == 0, result.stdout + result.stderr

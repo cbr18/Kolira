@@ -124,6 +124,9 @@ class ThemeInspectorController(QObject):
     scopeChanged = Signal()
     busyChanged = Signal()
     appConfigsChanged = Signal()
+    draftRefreshed = Signal()
+    conflictsFound = Signal(list)
+    liveApplyFinished = Signal(bool)
     toast = Signal(str, bool)          # message, success
 
     def __init__(self, parent: Optional[QObject] = None) -> None:
@@ -201,6 +204,51 @@ class ThemeInspectorController(QObject):
     @Property(int, notify=sectionsChanged)
     def sessionChanges(self) -> int:
         return self._core.session_changes()
+
+    @Property(list, notify=sectionsChanged)
+    def draft(self) -> list:
+        return self._core.draft
+
+    @Slot()
+    @Slot(str)
+    def discardDraft(self, section: str = "") -> None:
+        if self._busy:
+            return
+        result = self._core.discard_draft(section)
+        self.toast.emit(result.message, result.success)
+        self.refresh()
+        if result.success:
+            self.draftRefreshed.emit()
+
+    def _draft_request(self, request) -> None:
+        if self._busy:
+            return
+        self._set_busy(True)
+        payload = {}
+
+        def work():
+            result = request()
+            payload["conflicts"] = (result.data or {}).get("conflicts", [])
+            return result.success, result.message
+
+        def done(ok, message):
+            self._set_busy(False)
+            if not ok:
+                self.toast.emit(message, False)
+                return
+            self.refresh()
+            self.draftRefreshed.emit()
+            self.conflictsFound.emit(payload["conflicts"])
+
+        _run(self, work, done)
+
+    @Slot()
+    def refreshDraft(self) -> None:
+        self._draft_request(self._core.refresh_draft)
+
+    @Slot(str, str)
+    def resolveDraft(self, token: str, choice: str) -> None:
+        self._draft_request(lambda: self._core.resolve_draft(token, choice))
 
     @Property(int, notify=sectionsChanged)
     def undoDepth(self) -> int:
@@ -404,18 +452,29 @@ class ThemeInspectorController(QObject):
 
     @Slot()
     def applyChanges(self) -> None:
-        """Применить все застейдженные правки одним проходом."""
+        """Apply the Live draft as one Rust transaction."""
         if not self._can_edit_live():
             return
 
+        payload = {}
+
         def work() -> tuple[bool, str]:
-            result = self._core.apply()
+            result = self._core.apply(check_live=True)
+            payload["conflicts"] = (result.data or {}).get("conflicts", [])
             return result.success, result.message
 
         def done(success: bool, message: str) -> None:
             self._set_busy(False)
-            self.toast.emit(message, success)
             self.refresh()
+            if payload.get("conflicts"):
+                self.conflictsFound.emit(payload["conflicts"])
+            else:
+                if success:
+                    from theme_controller import reload_app_look
+
+                    reload_app_look()
+                self.liveApplyFinished.emit(success)
+                self.toast.emit(message, success)
 
         self._set_busy(True)
         _run(self, work, done)

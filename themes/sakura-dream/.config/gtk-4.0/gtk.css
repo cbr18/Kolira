@@ -1,0 +1,10 @@
+/* Sakura Dream GTK4 overrides — gentle pastel pink accents */
+* {
+    -GtkWidget-window-decoration: none;
+}
+
+/* libadwaita apps ignore gtk-theme-name; tint their app window to match Sakura Dream. */
+window.background {
+    background-color: #FFF0F6;
+    color: #493040;
+}

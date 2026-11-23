@@ -11,6 +11,14 @@
     "field": "color_scheme",
     "choice": true
   },
+  "accent_color": {
+    "field": "accent_color",
+    "choice": false
+  },
+  "accent_from_wallpaper": {
+    "field": "accent_from_wallpaper",
+    "choice": false
+  },
   "decoration_theme": {
     "field": "decoration_theme",
     "choice": true
@@ -65,6 +73,66 @@
   },
   "gtk_dark": {
     "field": "gtk_dark",
+    "choice": false
+  },
+  "kitty_opacity": {
+    "field": "kitty_opacity",
+    "choice": false
+  },
+  "kitty_blur": {
+    "field": "kitty_blur",
+    "choice": false
+  },
+  "alacritty_opacity": {
+    "field": "alacritty_opacity",
+    "choice": false
+  },
+  "alacritty_blur": {
+    "field": "alacritty_blur",
+    "choice": false
+  },
+  "vscode_theme": {
+    "field": "vscode_theme",
+    "choice": true
+  },
+  "cursor_ide_theme": {
+    "field": "cursor_ide_theme",
+    "choice": true
+  },
+  "zed_mode": {
+    "field": "zed_mode",
+    "choice": true
+  },
+  "zed_light": {
+    "field": "zed_light",
+    "choice": true
+  },
+  "zed_dark": {
+    "field": "zed_dark",
+    "choice": true
+  },
+  "zen_accent_color": {
+    "field": "",
+    "choice": false
+  },
+  "zen_mode": {
+    "field": "",
+    "choice": true
+  },
+  "obsidian_mode": {
+    "field": "",
+    "choice": true
+  },
+  "obsidian_theme": {
+    "field": "",
+    "choice": true
+  },
+  "btop_theme": {
+    "field": "btop_theme",
+    "choice": true
+  },
+  "btop_rounded": {
+    "field": "btop_rounded",
     "choice": false
   }
 }

@@ -13,6 +13,9 @@ Kirigami.AbstractCard {
     // Explicit data (avoids relying on QML model-role semantics)
     property string profileName: ""
     property bool profileIsActive: false
+    property bool profileLastApplied: false
+    property bool profileMatchesLive: false
+    property bool loadPreviewAssets: false
     property bool profileSelected: false
     property int profileComponentCount: 0
     property string profileCreatedAt: ""
@@ -103,12 +106,13 @@ Kirigami.AbstractCard {
                 Layout.fillWidth: true
                 spacing: 2
 
-                RowLayout {
+                ColumnLayout {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
                     spacing: Platform.Units.smallSpacing
 
                     Label {
+                        objectName: "themeCardName"
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
                         elide: Text.ElideRight
@@ -121,29 +125,21 @@ Kirigami.AbstractCard {
                         color: ThemeColors.fgColor(card.glassMode)
                     }
 
-                    RowLayout {
-                        visible: card.profileIsActive
-                        spacing: 4
-
-                        Rectangle {
-                            Layout.alignment: Qt.AlignVCenter
-                            width: 8
-                            height: 8
-                            radius: 4
-                            color: ThemeColors.positive()
-                        }
-
-                        Label {
-                            text: qsTr("Active")
-                            font.pointSize: TypeScale.caption
-                            font.bold: true
-                            color: ThemeColors.positive()
-                        }
+                    Label {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        visible: card.profileLastApplied || card.profileMatchesLive
+                        text: card.profileMatchesLive ? qsTr("Matches Live") : qsTr("Last applied")
+                        wrapMode: Text.Wrap
+                        font.pointSize: TypeScale.caption
+                        color: card.profileMatchesLive ? ThemeColors.positive() : ThemeColors.dimColor(card.glassMode)
                     }
                 }
 
                 Label {
+                    objectName: "themeCardMetadata"
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     text: card.metaLine
                     font.pointSize: TypeScale.caption
                     color: ThemeColors.dimColor(card.glassMode)
@@ -151,12 +147,15 @@ Kirigami.AbstractCard {
                 }
 
                 Label {
+                    objectName: "themeCardDescription"
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     text: card.profileDescription
+                    textFormat: Text.PlainText
                     font.pointSize: TypeScale.caption
                     font.italic: true
                     color: ThemeColors.fgColorSoft(card.glassMode)
-                    wrapMode: Text.WordWrap
+                    wrapMode: Text.Wrap
                     maximumLineCount: 2
                     elide: Text.ElideRight
                     visible: card.profileDescription !== ""
@@ -172,8 +171,22 @@ Kirigami.AbstractCard {
             }
         }
 
+        ThemeAppearancePreview {
+            Layout.fillWidth: true
+            summary: card.summary
+            loadAssets: card.loadPreviewAssets
+        }
+
+        Label {
+            Layout.fillWidth: true
+            visible: (card.summary.unavailableResources || []).length > 0
+            text: qsTr("Some resources are unavailable")
+            color: ThemeColors.warning()
+            wrapMode: Text.WordWrap
+        }
+
         // ─── Palette + theme fingerprint ───
-        ActionFlow {
+        ColumnLayout {
             Layout.topMargin: Platform.Units.smallSpacing
             spacing: Platform.Units.mediumSpacing
             visible: card.swatches.length > 0
@@ -208,10 +221,12 @@ Kirigami.AbstractCard {
 
             ColumnLayout {
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 spacing: 1
 
                 Label {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     text: card.paletteLine
                     font.family: "monospace"
                     font.pointSize: TypeScale.caption
@@ -221,6 +236,7 @@ Kirigami.AbstractCard {
 
                 Label {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     text: card.detailLine
                     font.pointSize: TypeScale.caption
                     color: ThemeColors.dimColor(card.glassMode)
@@ -229,34 +245,18 @@ Kirigami.AbstractCard {
             }
         }
 
-        // ─── Actions: 3 primary + overflow menu ───
         ActionFlow {
             Layout.topMargin: Platform.Units.smallSpacing
             spacing: Platform.Units.smallSpacing
 
             AppButton {
-                text: card.profileIsActive ? qsTr("Re-apply") : qsTr("Apply")
-                icon.name: card.profileIsActive ? "view-refresh" : "dialog-ok-apply"
-                highlighted: !card.profileIsActive
+                objectName: "themeCardApply-" + card.profileName
+                text: qsTr("Apply")
+                icon.name: "dialog-ok-apply"
+                highlighted: true
                 enabled: !profileController.busy
                 onClicked: card.applyClicked(card.profileName)
             }
-
-            AppButton {
-                text: qsTr("Preview")
-                icon.name: "document-preview"
-                visible: !card.profileIsActive
-                enabled: !profileController.busy
-                onClicked: card.previewClicked(card.profileName)
-            }
-
-            AppButton {
-                text: qsTr("Inspect")
-                icon.name: "preferences-desktop-theme"
-                enabled: !profileController.busy
-                onClicked: card.inspectClicked(card.profileName)
-            }
-
 
             ToolButton {
                 id: overflowButton
@@ -272,6 +272,17 @@ Kirigami.AbstractCard {
             Menu {
                 id: overflowMenu
 
+                MenuItem {
+                    text: qsTr("Inspect")
+                    icon.name: "preferences-desktop-theme"
+                    onTriggered: card.inspectClicked(card.profileName)
+                }
+                MenuItem {
+                    text: qsTr("Preview")
+                    icon.name: "document-preview"
+                    visible: !card.profileIsActive
+                    onTriggered: card.previewClicked(card.profileName)
+                }
                 MenuItem {
                     text: qsTr("Duplicate")
                     icon.name: "edit-copy"

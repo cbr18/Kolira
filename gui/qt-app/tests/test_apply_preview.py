@@ -7,11 +7,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from core.protocol import Result
 
 
-def make_controller(monkeypatch, **operations):
+def make_controller(monkeypatch, *, preview, **operations):
     from core.protocol import CoreFactory
     from controllers import ProfileController
     core = SimpleNamespace(list_profiles=lambda: [], get_active_profile=lambda: '',
-                           get_profile_components=lambda _: [], pending_operations=lambda: [], **operations)
+                           get_profile_components=lambda _: [], pending_operations=lambda: [],
+                           prepare_apply_preview=preview, **operations)
     monkeypatch.setattr(CoreFactory, '_profile_core', core)
     return ProfileController()
 

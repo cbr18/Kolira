@@ -1,0 +1,78 @@
+{
+  "$schema": "https://zed.dev/schema/themes/v0.2.0.json",
+  "name": "Kolira sakura-dream",
+  "author": "Kolira contributors",
+  "themes": [
+    {
+      "name": "Kolira sakura-dream",
+      "appearance": "light",
+      "style": {
+        "background": "#fff0f6",
+        "surface.background": "#ffe4ef",
+        "elevated_surface.background": "#ffe4ef",
+        "panel.background": "#ffe4ef",
+        "text": "#493040",
+        "text.muted": "#684d5c",
+        "text.accent": "#823d58",
+        "icon.accent": "#823d58",
+        "link_text.hover": "#823d58",
+        "border": "#fff8fc",
+        "border.focused": "#823d58",
+        "panel.focused_border": "#823d58",
+        "pane.focused_border": "#823d58",
+        "element.hover": "#ffdbea",
+        "element.selected": "#ffd3e4",
+        "ghost_element.hover": "#ffdbea",
+        "ghost_element.selected": "#ffd3e4",
+        "created": "#255f4d",
+        "modified": "#704412",
+        "warning": "#704412",
+        "deleted": "#992958",
+        "conflict": "#784b17",
+        "renamed": "#694196",
+        "error": "#992958",
+        "success": "#255f4d",
+        "editor.background": "#fff0f6",
+        "editor.foreground": "#493040",
+        "editor.gutter.background": "#fff0f6",
+        "editor.line_number": "#684d5c",
+        "editor.active_line_number": "#493040",
+        "editor.active_line.background": "#ffe4ef",
+        "tab.active_background": "#fff0f6",
+        "tab.inactive_background": "#ffe4ef",
+        "toolbar.background": "#ffe4ef",
+        "status_bar.background": "#ffe4ef",
+        "terminal.background": "#fff0f6",
+        "terminal.foreground": "#493040",
+        "search.match_background": "#dbc5bd",
+        "players": [
+          {
+            "cursor": "#823d58",
+            "background": "#823d58",
+            "selection": "#ffdae9"
+          }
+        ],
+        "syntax": {
+          "comment": {
+            "color": "#684d5c"
+          },
+          "string": {
+            "color": "#255f4d"
+          },
+          "keyword": {
+            "color": "#873c55"
+          },
+          "number": {
+            "color": "#784b17"
+          },
+          "function": {
+            "color": "#694196"
+          },
+          "type": {
+            "color": "#704412"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -298,6 +298,105 @@ fn wallpaper_plugin(s: &Section) -> &str {
         .unwrap_or("org.kde.image")
 }
 
+pub(crate) fn desktop_wallpapers(text: &str) -> crate::wallpaper::DesktopWallpapers {
+    let sections = parse_ini(text);
+    let mut result = crate::wallpaper::DesktopWallpapers::new();
+    for section in &sections {
+        if let ["Containments", id] = segments(section.group()).as_slice() {
+            if id.parse::<u32>().is_ok() && !is_panel(section) {
+                result.insert(
+                    (*id).to_owned(),
+                    crate::wallpaper::DesktopWallpaper {
+                        plugin: wallpaper_plugin(section).to_owned(),
+                        image: None,
+                    },
+                );
+            }
+        }
+    }
+    for section in &sections {
+        if let ["Containments", id, "Wallpaper", "org.kde.image", "General"] =
+            segments(section.group()).as_slice()
+        {
+            if let Some(wallpaper) = result
+                .get_mut(*id)
+                .filter(|wallpaper| wallpaper.plugin == crate::wallpaper::IMAGE_PLUGIN)
+            {
+                wallpaper.image = get(section, "Image")
+                    .filter(|value| !value.is_empty())
+                    .map(str::to_owned);
+            }
+        }
+    }
+    result
+}
+
+pub(crate) fn with_wallpaper_image(text: &str, url: &str) -> String {
+    let mut sections = parse_ini(text);
+    for id in desktop_wallpapers(text).keys() {
+        let containment = format!("Containments][{id}");
+        if let Some(desktop) = sections
+            .iter_mut()
+            .find(|section| section.group() == containment)
+        {
+            set_keys(
+                desktop,
+                &["wallpaperplugin"],
+                &[format!(
+                    "wallpaperplugin={}",
+                    crate::wallpaper::IMAGE_PLUGIN
+                )],
+            );
+        }
+        let group = format!("{containment}][Wallpaper][org.kde.image][General");
+        let image = format!("Image={url}");
+        if let Some(settings) = sections.iter_mut().find(|section| section.group() == group) {
+            set_keys(settings, &["Image"], &[image]);
+        } else {
+            sections.push(Section {
+                header: header(&group),
+                lines: vec![image],
+            });
+        }
+    }
+    render_ini(&sections)
+}
+
+/// Restore the selectors changed by the wallpaper picker on existing desktops.
+pub(crate) fn restore_wallpaper_selection(current: &str, before: &str) -> String {
+    let previous = parse_ini(before);
+    let desktops = desktop_wallpapers(before);
+    let mut sections = parse_ini(current);
+    for id in desktop_wallpapers(current)
+        .keys()
+        .filter(|id| desktops.contains_key(*id))
+    {
+        let containment = format!("Containments][{id}");
+        for (group, key) in [
+            (containment.clone(), "wallpaperplugin"),
+            (
+                format!("{containment}][Wallpaper][org.kde.image][General"),
+                "Image",
+            ),
+        ] {
+            let lines = previous
+                .iter()
+                .find(|section| section.group() == group)
+                .map(|section| section.lines.as_slice())
+                .unwrap_or_default();
+            if let Some(section) = sections.iter_mut().find(|section| section.group() == group) {
+                set_keys(section, &[key], lines);
+            } else if let Some(line) = lines.iter().find(|line| key_of(line) == Some(key)) {
+                sections.push(Section {
+                    header: header(&group),
+                    lines: vec![line.clone()],
+                });
+            }
+        }
+    }
+    render_ini(&sections)
+}
+
 fn header(group: &str) -> Option<String> {
     Some(format!("[{group}]"))
 }

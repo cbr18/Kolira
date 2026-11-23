@@ -239,9 +239,12 @@ class AppThemeCore(ThemeCore):
         self._session = None
         self._undo_count = 0
         self._app_changes = {}
+        self._app_draft_count = 0
+        self._wallpaper_draft = None
         # Read-only mirrors of the Rust session, used to render staged values.
         self._staged: dict[str, Any] = {}
         self._staged_configs: dict[tuple[str, str], str] = {}
+        self.draft: list[dict] = []
         self._session_call("state")
 
     # ── paths ─────────────────────────────────────────────────────────────
@@ -544,8 +547,11 @@ class AppThemeCore(ThemeCore):
             self._revision = response["revision"]
             self._session = response["session"]
             self._app_changes = response["apps"]
+            self._app_draft_count = response.get("appDraftCount", 0)
+            self._wallpaper_draft = response.get("wallpaperDraft")
             self._staged = response["staged"]
             self._staged_configs = {(r, k): v for r, k, v in response["configs"]}
+            self.draft = response.get("draft", [])
             self._undo_count = response["undoDepth"]
             self._choices_cache.clear()
         from .core_messages import localize_inspector
@@ -564,8 +570,14 @@ class AppThemeCore(ThemeCore):
     def set_config_value(self, rel_path: str, key: str, value: str) -> Result:
         return self._session_call("config", path=rel_path, key=key, value=value)
 
-    def apply(self) -> Result:
-        return self._session_call("apply")
+    def apply(self, *, check_live: bool = False) -> Result:
+        return self._session_call("apply", check_live=check_live, source="gui")
+
+    def refresh_draft(self) -> Result:
+        return self._session_call("refresh")
+
+    def resolve_draft(self, token: str, choice: str) -> Result:
+        return self._session_call("resolve", token=token, choice=choice)
 
     def undo(self) -> Result:
         return self._session_call("undo")
@@ -573,11 +585,18 @@ class AppThemeCore(ThemeCore):
     def revert(self) -> Result:
         return self._session_call("revert")
 
+    def discard_draft(self, section: str = "") -> Result:
+        return self._session_call("discard", **({"section": section} if section else {}))
+
     def reset(self, field_id: str, to: str = "default") -> Result:
         return self._session_call("reset", id=field_id, target=to)
 
     def session_changes(self) -> int:
-        return len(self._staged) + len(self._staged_configs)
+        return len(self._staged) + len(self._staged_configs) + self._app_draft_count + bool(self._wallpaper_draft)
+
+    @property
+    def session_id(self) -> str | None:
+        return self._session
 
     def undo_depth(self) -> int:
         return self._undo_count

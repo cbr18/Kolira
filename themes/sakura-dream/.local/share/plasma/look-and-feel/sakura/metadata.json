@@ -1,0 +1,19 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "",
+                "Name": "Kolira contributors"
+            }
+        ],
+        "Description": "Sakura Dream — pastel kawaii sakura look and feel",
+        "Id": "sakura",
+        "License": "MIT",
+        "Name": "Sakura Dream",
+        "Website": ""
+    },
+    "Keywords": "Desktop;Workspace;Appearance;Look and Feel;",
+    "X-Plasma-APIVersion": "2",
+    "X-Plasma-MainScript": "default"
+}

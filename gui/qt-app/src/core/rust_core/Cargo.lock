@@ -539,7 +539,7 @@ dependencies = [
 
 [[package]]
 name = "kolira_core"
-version = "0.7.0"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -547,6 +547,7 @@ dependencies = [
  "dirs",
  "flate2",
  "image",
+ "rustix 1.1.6",
  "serde",
  "serde_json",
  "sha2",

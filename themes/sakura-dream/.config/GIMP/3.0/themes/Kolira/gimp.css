@@ -1,0 +1,21 @@
+/* Kolira colour definitions; native GIMP layout is inherited. */
+@import url("/usr/share/gimp/3.0/themes/Default/gimp-light.css");
+@define-color fg-color #493040;
+@define-color bg-color #fff0f6;
+@define-color border-color #fff8fc;
+@define-color dimmed-fg-color #7a5b6c;
+@define-color disabled-fg-color #7a5b6c;
+@define-color disabled-button-color #ffe4ef;
+@define-color hover-color #fff8fc;
+@define-color widget-bg-color #ffe4ef;
+@define-color selected-color #fff8fc;
+@define-color extreme-bg-color #fff8fb;
+@define-color extreme-selected-color #fff8fc;
+@define-color strong-border-color #fff8fc;
+@define-color stronger-border-color #7a5b6c;
+@define-color edge-border-color #fff8fc;
+@define-color scrollbar-slider-color #7a5b6c;
+@define-color scrollbar-trough-color #fff0f6;
+@define-color accent_color #ff78ac;
+@define-color accent_bg_color #ff78ac;
+@define-color accent_fg_color #493040;

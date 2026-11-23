@@ -282,7 +282,7 @@ def component(groups: list[dict], component_id: str) -> dict:
 def test_component_registry_uses_installed_theme_names(bundle_home):
     groups = bundle_home["core"].groups("live")
 
-    assert [group["id"] for group in groups] == ["plasma", "desktop", "qt", "gtk"]
+    assert [group["id"] for group in groups] == ["plasma", "desktop", "qt", "palette", "applications", "gtk"]
     color = component(groups, "color_scheme")
     assert color["currentValue"] == "Breeze1"
     assert {choice["value"] for choice in color["choices"]} >= {"Breeze1", "Mine"}

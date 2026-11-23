@@ -348,7 +348,7 @@ pub(crate) fn verify_before_write(prepared: &Path) -> Result<()> {
     }
     Ok(())
 }
-fn source_signature(root: &Path) -> Result<String> {
+pub(crate) fn source_signature(root: &Path) -> Result<String> {
     fn visit(
         root: &Path,
         path: &Path,

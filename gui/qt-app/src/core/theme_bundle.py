@@ -53,6 +53,7 @@ class BundleComponentDef:
     external_module: str = ""
     legacy_section: str = ""
     profile_tracked: bool = True
+    saved_only: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,7 +68,7 @@ class BundleGroupDef:
 GROUPS: tuple[BundleGroupDef, ...] = (
     BundleGroupDef(
         "plasma", QT_TRANSLATE_NOOP("ThemeBundle", "KDE & Plasma"), "preferences-desktop-theme",
-        QT_TRANSLATE_NOOP("ThemeBundle", "Global theme, Plasma Style, colors, decorations, icons, cursors and fonts"),
+        QT_TRANSLATE_NOOP("ThemeBundle", "Global theme, Plasma Style, decorations, icons, cursors and fonts"),
         (
             BundleComponentDef(
                 "plasma_global", QT_TRANSLATE_NOOP("ThemeBundle", "Global theme"), "look_and_feel",
@@ -82,13 +83,6 @@ GROUPS: tuple[BundleGroupDef, ...] = (
                 description=QT_TRANSLATE_NOOP("ThemeBundle", "Visual style of Plasma widgets and panels"),
                 external_module="kcm_desktoptheme",
                 legacy_section="assets",
-            ),
-            BundleComponentDef(
-                "color_scheme", QT_TRANSLATE_NOOP("ThemeBundle", "Color scheme"), "color_scheme",
-                icon="preferences-desktop-color",
-                description=QT_TRANSLATE_NOOP("ThemeBundle", "Installed KDE color scheme"),
-                external_module="kcm_colors",
-                legacy_section="colors",
             ),
             BundleComponentDef(
                 "decoration_theme", QT_TRANSLATE_NOOP("ThemeBundle", "Window decoration"), "decoration_theme",
@@ -191,6 +185,65 @@ GROUPS: tuple[BundleGroupDef, ...] = (
         ),
     ),
     BundleGroupDef(
+        "palette", QT_TRANSLATE_NOOP("ThemeBundle", "Palette"), "preferences-desktop-color",
+        QT_TRANSLATE_NOOP("ThemeBundle", "KDE color scheme and accent"),
+        (
+            BundleComponentDef(
+                "color_scheme", QT_TRANSLATE_NOOP("ThemeBundle", "Color scheme"), "color_scheme",
+                icon="preferences-desktop-color",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Installed or bundled KDE color scheme"),
+                external_module="kcm_colors",
+                legacy_section="colors",
+            ),
+            BundleComponentDef(
+                "accent_color", QT_TRANSLATE_NOOP("ThemeBundle", "Accent color"), "accent_color",
+                kind="color", icon="color-picker",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Custom accent used when the wallpaper accent is off"),
+            ),
+            BundleComponentDef(
+                "accent_from_wallpaper", QT_TRANSLATE_NOOP("ThemeBundle", "Accent from wallpaper"), "accent_from_wallpaper",
+                kind="bool", icon="preferences-desktop-wallpaper",
+                description=QT_TRANSLATE_NOOP("ThemeBundle", "Let Plasma choose the accent from the wallpaper"),
+            ),
+        ),
+    ),
+    BundleGroupDef(
+        "applications", QT_TRANSLATE_NOOP("ThemeBundle", "Applications"), "applications-other",
+        QT_TRANSLATE_NOOP("ThemeBundle", "Terminal appearance and application themes"),
+        (
+            BundleComponentDef("kitty_opacity", QT_TRANSLATE_NOOP("ThemeBundle", "Kitty opacity"),
+                               "kitty_opacity", kind="float", icon="utilities-terminal"),
+            BundleComponentDef("kitty_blur", QT_TRANSLATE_NOOP("ThemeBundle", "Kitty blur"),
+                               "kitty_blur", kind="int", icon="utilities-terminal"),
+            BundleComponentDef("alacritty_opacity", QT_TRANSLATE_NOOP("ThemeBundle", "Alacritty opacity"),
+                               "alacritty_opacity", kind="float", icon="utilities-terminal"),
+            BundleComponentDef("alacritty_blur", QT_TRANSLATE_NOOP("ThemeBundle", "Alacritty blur"),
+                               "alacritty_blur", kind="bool", icon="utilities-terminal"),
+            BundleComponentDef("vscode_theme", QT_TRANSLATE_NOOP("ThemeBundle", "VS Code theme"),
+                               "vscode_theme", icon="vscode", saved_only=True),
+            BundleComponentDef("cursor_ide_theme", QT_TRANSLATE_NOOP("ThemeBundle", "Cursor editor theme"),
+                               "cursor_ide_theme", icon="cursor", saved_only=True),
+            BundleComponentDef("zed_mode", QT_TRANSLATE_NOOP("ThemeBundle", "Zed theme mode"),
+                               "zed_mode", icon="zed", saved_only=True),
+            BundleComponentDef("zed_light", QT_TRANSLATE_NOOP("ThemeBundle", "Zed light theme"),
+                               "zed_light", icon="zed", saved_only=True),
+            BundleComponentDef("zed_dark", QT_TRANSLATE_NOOP("ThemeBundle", "Zed dark theme"),
+                               "zed_dark", icon="zed", saved_only=True),
+            BundleComponentDef("zen_accent_color", QT_TRANSLATE_NOOP("ThemeBundle", "Zen accent color"),
+                               "", kind="color", icon="color-picker", saved_only=True),
+            BundleComponentDef("zen_mode", QT_TRANSLATE_NOOP("ThemeBundle", "Zen theme"),
+                               "", icon="preferences-desktop-theme", saved_only=True),
+            BundleComponentDef("obsidian_mode", QT_TRANSLATE_NOOP("ThemeBundle", "Obsidian color mode"),
+                               "", icon="preferences-desktop-theme", saved_only=True),
+            BundleComponentDef("obsidian_theme", QT_TRANSLATE_NOOP("ThemeBundle", "Obsidian theme"),
+                               "", icon="obsidian", saved_only=True),
+            BundleComponentDef("btop_theme", QT_TRANSLATE_NOOP("ThemeBundle", "btop theme"),
+                               "btop_theme", icon="utilities-system-monitor", saved_only=True),
+            BundleComponentDef("btop_rounded", QT_TRANSLATE_NOOP("ThemeBundle", "btop rounded corners"),
+                               "btop_rounded", kind="bool", icon="utilities-system-monitor", saved_only=True),
+        ),
+    ),
+    BundleGroupDef(
         "gtk", QT_TRANSLATE_NOOP("ThemeBundle", "GTK"), "gtk",
         QT_TRANSLATE_NOOP("ThemeBundle", "GTK 2, GTK 3 and GTK 4 application themes"),
         (
@@ -260,6 +313,7 @@ class ThemeBundleCore:
             "components": [
                 self._component_to_dict(component, scope)
                 for component in group.components
+                if scope != "live" or not component.saved_only
             ],
         }
 
@@ -272,10 +326,13 @@ class ThemeBundleCore:
         current = ""
         current_display = ""
         staged = False
+        installed: list[str] = []
 
         if component.kind == "wallpaper":
-            current = self._current_wallpaper()
+            pending = getattr(self._theme, "_wallpaper_draft", None) if scope == "live" else None
+            current = pending or self._current_wallpaper()
             current_display = Path(current).name if current else ""
+            staged = bool(pending)
             choices = []
         elif component.field_id:
             value = self._theme.get(component.field_id, scope) or {}
@@ -287,12 +344,12 @@ class ThemeBundleCore:
                 {"value": choice.value, "label": choice.label or choice.value}
                 for choice in raw_choices
             ]
+            installed = [str(item["value"]) for item in choices]
             if current and component.kind == "choice" and all(
                 str(item["value"]) != current for item in choices
             ):
                 choices.append({"value": current, "label": _tr(QT_TRANSLATE_NOOP("ThemeBundle", "Custom: %1")).replace("%1", current)})
             if component.kind == "choice":
-                installed = {str(item["value"]) for item in choices}
                 supported = bool(choices)
                 if current and installed and current not in installed:
                     status = "warning"
@@ -307,6 +364,7 @@ class ThemeBundleCore:
             "currentValue": current,
             "currentDisplay": _display_text(component, current_display),
             "choices": choices,
+            "installedChoices": installed,
             "minimum": value.get("min"),
             "maximum": value.get("max"),
             "step": value.get("step"),
@@ -342,7 +400,8 @@ class ThemeBundleCore:
     # ── changes ──────────────────────────────────────────────────────────
 
     def session_changes(self) -> int:
-        return self._theme.session_changes() + len(self._app_changes)
+        # The shared Inspector count already includes staged app selections.
+        return self._theme.session_changes() + len(self._app_changes) - self._theme._app_draft_count
 
     def undo_depth(self) -> int:
         return self._theme.undo_depth()
@@ -354,8 +413,14 @@ class ThemeBundleCore:
     def set_component(self, component_id: str, value: Any) -> Result:
         return self._theme._session_call("component", id=component_id, value=value)
 
-    def apply(self) -> Result:
-        return self._theme.apply()
+    def stage_application(self, app_id: str, theme: str) -> Result:
+        return self._theme._session_call("app", id=app_id, value=theme, stage=True)
+
+    def stage_wallpaper(self, path: str) -> Result:
+        return self._theme._session_call("wallpaper", value=path, stage=True)
+
+    def apply(self, *, check_live: bool = False) -> Result:
+        return self._theme.apply(check_live=check_live)
 
     def undo(self) -> Result:
         return self._theme.undo()
@@ -375,8 +440,10 @@ class ThemeBundleCore:
                 "active": profile.is_active,
                 "description": profile.description,
                 "createdAt": profile.created_at,
-                "hasBundle": (profile_dir(profile.name) / "theme.json").is_file()
-                or self._bundle_path(profile.name).is_file(),
+                "hasBundle": any(
+                    (profile_dir(profile.name) / filename).is_file()
+                    for filename in ("theme.json", "theme-bundle.json")
+                ),
             }
             for profile in profiles
         ]
@@ -385,6 +452,28 @@ class ThemeBundleCore:
         from .cli_core import core_request
         try:
             return Result.ok(data=core_request("bundle.metadata", name=name))
+        except (ValueError, RuntimeError) as exc:
+            return Result.err(str(exc))
+
+    def profile_editor(self, name: str) -> Result:
+        from .cli_core import core_request
+        try:
+            return Result.ok(data=core_request("bundle.editor", name=name))
+        except (ValueError, RuntimeError) as exc:
+            return Result.err(str(exc))
+
+    def migrate_profile(self, name: str) -> Result:
+        from .cli_core import core_request
+        try:
+            return Result.ok(data=core_request("profile.migrate", name=name))
+        except (ValueError, RuntimeError) as exc:
+            return Result.err(str(exc))
+
+    def save_profile_edits(self, name: str, revision: str, changes: dict) -> Result:
+        from .cli_core import core_request
+        try:
+            return Result.ok(data=core_request("bundle.save_edits", name=name,
+                                               revision=revision, changes=changes))
         except (ValueError, RuntimeError) as exc:
             return Result.err(str(exc))
 

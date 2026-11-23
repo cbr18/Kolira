@@ -174,7 +174,7 @@ pub(crate) fn locate_all(kind: &str, name: &str) -> Vec<PathBuf> {
     out
 }
 
-fn decoration_plugin(library: &str) -> Option<PathBuf> {
+pub(crate) fn decoration_plugin(library: &str) -> Option<PathBuf> {
     let short = library.rsplit('.').next()?.to_lowercase();
     for dir in [
         "/usr/lib/qt6/plugins/org.kde.kdecoration3",
@@ -182,8 +182,16 @@ fn decoration_plugin(library: &str) -> Option<PathBuf> {
     ] {
         if let Ok(it) = fs::read_dir(dir) {
             if let Some(p) = it.flatten().map(|e| e.path()).find(|p| {
-                p.file_name()
-                    .is_some_and(|n| n.to_string_lossy().to_lowercase().contains(&short))
+                p.extension().is_some_and(|ext| ext == "so")
+                    && p.file_stem()
+                        .and_then(|stem| stem.to_str())
+                        .is_some_and(|stem| {
+                            stem.eq_ignore_ascii_case(library)
+                                || stem.eq_ignore_ascii_case(&short)
+                                || stem
+                                    .strip_prefix("lib")
+                                    .is_some_and(|id| id.eq_ignore_ascii_case(&short))
+                        })
             }) {
                 return Some(p);
             }
@@ -489,6 +497,10 @@ fn match_score(name: &str, title: &str) -> i32 {
 /// A dependency for asset `name` of `kind` installed at `paths` (any copy
 /// may reveal the source; none when not installed here).
 fn describe(kind: &str, name: &str, paths: &[PathBuf]) -> Dependency {
+    describe_asset(kind, name, paths, true)
+}
+
+fn describe_asset(kind: &str, name: &str, paths: &[PathBuf], search_online: bool) -> Dependency {
     let mut d = Dependency {
         kind: kind.into(),
         name: name.into(),
@@ -517,16 +529,69 @@ fn describe(kind: &str, name: &str, paths: &[PathBuf]) -> Dependency {
             return d;
         }
     }
-    if let Some((id, title, exact)) = store_lookup(kind, name) {
-        d.source = "kde-store".into();
-        d.url = store_page(&id);
-        d.id = id;
-        d.title = title;
-        d.exact = exact;
-        return d;
+    if search_online {
+        if let Some((id, title, exact)) = store_lookup(kind, name) {
+            d.source = "kde-store".into();
+            d.url = store_page(&id);
+            d.id = id;
+            d.title = title;
+            d.exact = exact;
+            return d;
+        }
     }
     d.url = store_search(name);
     d
+}
+
+pub(crate) fn reference_kind(field_id: &str) -> Option<&'static str> {
+    if field_id == "widget_style" {
+        return Some("widget-style");
+    }
+    ASSET_FIELDS
+        .iter()
+        .find(|(id, _)| *id == field_id)
+        .map(|(_, kind)| *kind)
+}
+
+pub(crate) fn editor_reference(kind: &str, name: &str) -> Option<Dependency> {
+    if !safe_name(name) || builtin(kind, name) {
+        return None;
+    }
+    if kind == "widget-style" {
+        return widget_style_dependency(name, false);
+    }
+    if kind == "decoration" {
+        return decoration_dependency(name, false);
+    }
+    Some(describe_asset(kind, name, &locate_all(kind, name), false))
+}
+
+pub(crate) fn editor_theme_dependency(
+    kind: &str,
+    name: String,
+    source: &crate::theme::Source,
+) -> Dependency {
+    let url = match source.store.as_str() {
+        "vscode-marketplace" => format!(
+            "https://marketplace.visualstudio.com/items?itemName={}",
+            source.id
+        ),
+        "open-vsx" => format!(
+            "https://open-vsx.org/extension/{}",
+            source.id.replacen('.', "/", 1)
+        ),
+        "zed" => format!("https://zed.dev/extensions?query={}", source.id),
+        _ => source.url.clone(),
+    };
+    Dependency {
+        kind: kind.into(),
+        name,
+        source: source.store.clone(),
+        id: source.id.clone(),
+        url,
+        exact: true,
+        ..Default::default()
+    }
 }
 
 /// The dependency a theme asset becomes when it is not shipped (`export
@@ -588,6 +653,48 @@ fn builtin(kind: &str, name: &str) -> bool {
         "gtk" => matches!(n.as_str(), "breeze" | "breeze-dark" | "adwaita" | "default"),
         _ => false,
     }
+}
+
+fn widget_style_dependency(style: &str, search_online: bool) -> Option<Dependency> {
+    if let Some(plugin) = widget_style_plugin(style) {
+        let mut d = describe_asset("widget-style", style, &[plugin], search_online);
+        if d.source == "kde-store" && !d.exact {
+            d.source = "none".into();
+        }
+        Some(d)
+    } else if style.eq_ignore_ascii_case("kvantum") {
+        Some(Dependency {
+            kind: "widget-style".into(),
+            name: "kvantum".into(),
+            source: "package".into(),
+            id: "kvantum".into(),
+            title: "Kvantum (Qt widget style engine)".into(),
+            url: "https://archlinux.org/packages/?q=kvantum".into(),
+            exact: true,
+            optional: false,
+        })
+    } else {
+        None
+    }
+}
+
+fn decoration_dependency(library: &str, search_online: bool) -> Option<Dependency> {
+    if matches!(
+        library,
+        "" | "org.kde.breeze" | "org.kde.oxygen" | "org.kde.kwin.aurorae"
+    ) {
+        return None;
+    }
+    let plugin: Vec<PathBuf> = decoration_plugin(library).into_iter().collect();
+    let mut d = describe_asset("decoration", library, &plugin, search_online);
+    if d.source == "none" || (d.source == "kde-store" && !d.exact) {
+        d.source = "none".into();
+        d.url = format!(
+            "https://aur.archlinux.org/packages?K={}",
+            library.rsplit('.').next().unwrap_or(library)
+        );
+    }
+    Some(d)
 }
 
 /// Dependencies of the theme stored in `dir` (its `values` already read).
@@ -653,41 +760,16 @@ pub fn detect(
                 add(describe("aurorae", name, &paths));
             }
         }
-    } else if !library.is_empty() && library != "org.kde.breeze" && library != "org.kde.oxygen" {
-        let plugin: Vec<PathBuf> = decoration_plugin(&library).into_iter().collect();
-        let mut d = describe("decoration", &library, &plugin);
-        if d.source == "kde-store" && !d.exact {
-            d.source = "none".into(); // a compiled plugin is never a store archive
-            d.url = format!(
-                "https://aur.archlinux.org/packages?K={}",
-                library.rsplit('.').next().unwrap_or(&library)
-            );
-        }
-        add(d);
+    } else if let Some(dependency) = decoration_dependency(&library, true) {
+        add(dependency);
     }
     // A Qt widget style that is a plugin of its own (Kvantum): its package.
     let style = values
         .get("widget_style")
         .map(crate::field::value_str)
         .unwrap_or_default();
-    if let Some(plugin) = widget_style_plugin(&style) {
-        let mut d = describe("widget-style", &style, &[plugin]);
-        if d.source == "kde-store" && !d.exact {
-            d.source = "none".into();
-        }
-        add(d);
-    } else if style.eq_ignore_ascii_case("kvantum") {
-        // Not installed here: Kvantum is a package everywhere.
-        add(Dependency {
-            kind: "widget-style".into(),
-            name: "kvantum".into(),
-            source: "package".into(),
-            id: "kvantum".into(),
-            title: "Kvantum (Qt widget style engine)".into(),
-            url: "https://archlinux.org/packages/?q=kvantum".into(),
-            exact: true,
-            optional: false,
-        });
+    if let Some(dependency) = widget_style_dependency(&style, true) {
+        add(dependency);
     }
     // Third-party KWin effects the theme switches on (Better Blur DX, Rounded
     // Corners…): their package, or the store item of a scripted effect.
@@ -796,27 +878,7 @@ pub fn detect(
             sources.get(field),
             values.get(field).map(crate::field::value_str),
         ) {
-            let url = match src.store.as_str() {
-                "vscode-marketplace" => format!(
-                    "https://marketplace.visualstudio.com/items?itemName={}",
-                    src.id
-                ),
-                "open-vsx" => format!(
-                    "https://open-vsx.org/extension/{}",
-                    src.id.replacen('.', "/", 1)
-                ),
-                "zed" => format!("https://zed.dev/extensions?query={}", src.id),
-                _ => src.url.clone(),
-            };
-            add(Dependency {
-                kind: kind.into(),
-                name,
-                source: src.store.clone(),
-                id: src.id.clone(),
-                url,
-                exact: true,
-                ..Default::default()
-            });
+            add(editor_theme_dependency(kind, name, src));
         }
     }
     // Font fields from the theme: UI, fixed, menu, toolbar, title, GTK fonts.

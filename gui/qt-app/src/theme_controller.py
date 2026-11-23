@@ -1,8 +1,4 @@
-"""
-Theme Controller — Dogfooding: применяет активный профиль к самому приложению.
-
-Поддерживает: glass (прозрачность + KWin blur), paper, dark, light, system.
-"""
+"""Keep the application's palette and style in sync with the desktop."""
 
 import os
 import sys
@@ -40,6 +36,7 @@ class ThemeController(QObject):
         self._is_glass = False
         self._blur_enabled = False
         self._colors: dict = {}
+        self._palette_overridden = False
         self._window = None
         self._update_timer = QTimer(self)
         self._update_timer.setSingleShot(True)
@@ -262,17 +259,6 @@ class ThemeController(QObject):
             highlighted_text = colors["highlighted_text"]
             disabled = colors["disabled"]
 
-        self._colors = {
-            "dark": dark,
-            "window": window.name(),
-            "view": base.name(),
-            "text": text.name(),
-            "textRgb": [text.redF(), text.greenF(), text.blueF()],
-            "highlight": highlight.name(),
-            "disabled": disabled.name(),
-        }
-        self.colorsChanged.emit()
-
         placeholder = QColor(text)
         placeholder.setAlpha(128)
 
@@ -297,11 +283,30 @@ class ThemeController(QObject):
         }
         for role, color in mapping.items():
             palette.setColor(QPalette.ColorGroup.All, role, color)
+        for role in (QPalette.ColorRole.WindowText, QPalette.ColorRole.Text,
+                     QPalette.ColorRole.ButtonText):
             palette.setColor(QPalette.ColorGroup.Disabled, role, disabled)
-            if role == QPalette.ColorRole.Window:
-                palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, disabled)
 
         app.setPalette(palette)
+        self._palette_overridden = True
+        self._publish_palette(palette)
+
+    def _publish_palette(self, palette: QPalette) -> None:
+        roles = QPalette.ColorRole
+        window = palette.color(roles.Window)
+        text = palette.color(roles.WindowText)
+        colors = {
+            "dark": _luminance(window) < 0.5,
+            "window": window.name(),
+            "view": palette.color(roles.Base).name(),
+            "text": text.name(),
+            "textRgb": [text.redF(), text.greenF(), text.blueF()],
+            "highlight": palette.color(roles.Highlight).name(),
+            "disabled": palette.color(QPalette.ColorGroup.Disabled, roles.WindowText).name(),
+        }
+        if colors != self._colors:
+            self._colors = colors
+            self.colorsChanged.emit()
 
     def _apply_glass_theme(self) -> None:
         """Glass theme: прозрачность окна + KWin blur + тёмная палитра."""
@@ -350,7 +355,18 @@ class ThemeController(QObject):
         if kde is not None:
             self._apply_flags(glass=False, dark=_luminance(kde["window"]) < 0.5, colors=kde)
             return
-        self._apply_flags(glass=False, dark=self._system_is_dark())
+        app = QGuiApplication.instance()
+        if not isinstance(app, QGuiApplication):
+            return
+        if self._palette_overridden:
+            app.setPalette(QPalette())
+            self._palette_overridden = False
+        if self._is_glass:
+            self._is_glass = False
+            self._blur_enabled = False
+            self.glassEffectChanged.emit(False)
+            self.windowBlurChanged.emit(False)
+        self._publish_palette(app.palette())
 
     @staticmethod
     def _theme_for_profile(profile_name: str) -> str:

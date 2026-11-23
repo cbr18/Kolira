@@ -1,0 +1,34 @@
+element { background-color: transparent; }
+element { text-color: #493040; }
+element alternate.active { background-color: #fff0f6; }
+element alternate.active { text-color: #493040; }
+element alternate.normal { background-color: #fff0f6; }
+element alternate.normal { text-color: #493040; }
+element alternate.urgent { background-color: #fff0f6; }
+element alternate.urgent { text-color: #493040; }
+element normal.active { background-color: #fff0f6; }
+element normal.active { text-color: #493040; }
+element normal.normal { background-color: #fff0f6; }
+element normal.normal { text-color: #493040; }
+element normal.urgent { background-color: #fff0f6; }
+element normal.urgent { text-color: #493040; }
+element selected { background-color: #ff78ac; }
+element selected { text-color: #493040; }
+element selected.active { background-color: #ff78ac; }
+element selected.active { text-color: #493040; }
+element selected.normal { background-color: #ff78ac; }
+element selected.normal { text-color: #493040; }
+element selected.urgent { background-color: #ff78ac; }
+element selected.urgent { text-color: #493040; }
+element-icon { background-color: transparent; }
+element-text { background-color: transparent; }
+element-text { text-color: inherit; }
+entry { cursor-color: #ff78ac; }
+entry { text-color: #493040; }
+inputbar { background-color: #ffe4ef; }
+listview { background-color: transparent; }
+mainbox { background-color: transparent; }
+prompt { text-color: #ff78ac; }
+window { background-color: #fff0f6; }
+window { border-color: #fff8fc; }
+window { text-color: #493040; }

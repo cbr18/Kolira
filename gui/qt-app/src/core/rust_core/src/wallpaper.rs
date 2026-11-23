@@ -1,6 +1,8 @@
 //! Wallpaper Core Implementation
 
 use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -9,6 +11,255 @@ const THUMB_WIDTH: &str = "420";
 const THUMB_HEIGHT: &str = "260";
 const THUMB_RADIUS: u32 = 18;
 const THUMB_VERSION: &str = "rounded-v1";
+pub(crate) const IMAGE_PLUGIN: &str = "org.kde.image";
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub(crate) struct DesktopWallpaper {
+    pub plugin: String,
+    pub image: Option<String>,
+}
+
+pub(crate) type DesktopWallpapers = BTreeMap<String, DesktopWallpaper>;
+
+impl DesktopWallpaper {
+    fn image_path(&self) -> Option<String> {
+        self.image.as_deref().map(image_path)
+    }
+}
+
+pub(crate) fn image_path(value: &str) -> String {
+    percent_decode(value.strip_prefix("file://").unwrap_or(value))
+}
+
+pub(crate) fn draft_image(path: &str) -> Result<String> {
+    let path = Path::new(path);
+    anyhow::ensure!(
+        path.is_absolute() && path.is_file(),
+        "Wallpaper file is unavailable"
+    );
+    let canonical = fs::canonicalize(path).context("Could not read wallpaper")?;
+    // The file picker permits other formats supported by Plasma.
+    anyhow::ensure!(canonical.is_file(), "Wallpaper file is unavailable");
+    let path = canonical.to_str().context("Invalid wallpaper path")?;
+    anyhow::ensure!(
+        !path.chars().any(char::is_control),
+        "Invalid wallpaper path"
+    );
+    Ok(path.to_owned())
+}
+
+pub(crate) fn image_url(path: &str) -> String {
+    use std::fmt::Write;
+    let mut url = String::from("file://");
+    for byte in path.bytes() {
+        if byte.is_ascii_alphanumeric() || b"/-_.~".contains(&byte) {
+            url.push(char::from(byte));
+        } else {
+            write!(&mut url, "%{byte:02X}").expect("write into string");
+        }
+    }
+    url
+}
+
+pub(crate) fn draft_layout_path() -> Result<PathBuf> {
+    let path = crate::paths::live_path(APPLETSRC_REL);
+    crate::app_sync::validate_live(&path)?;
+    anyhow::ensure!(
+        fs::symlink_metadata(&path).is_ok_and(|meta| meta.is_file()),
+        "Plasma desktop settings are unavailable"
+    );
+    Ok(path)
+}
+
+fn stored_wallpapers(path: &Path) -> Result<DesktopWallpapers> {
+    Ok(crate::layout::desktop_wallpapers(&fs::read_to_string(
+        path,
+    )?))
+}
+
+fn plasma_script(script: &str) -> Result<Vec<u8>> {
+    let (status, output) = crate::paths::output_bounded_for(
+        Command::new("qdbus6")
+            .args([
+                "org.kde.plasmashell",
+                "/PlasmaShell",
+                "org.kde.PlasmaShell.evaluateScript",
+                script,
+            ])
+            .stderr(std::process::Stdio::null()),
+        std::time::Duration::from_secs(8),
+    )
+    .context("Plasma did not respond while changing wallpaper")?;
+    anyhow::ensure!(
+        status.success(),
+        "Plasma could not read or change the wallpaper"
+    );
+    Ok(output)
+}
+
+pub(crate) fn observe_draft() -> Result<DesktopWallpapers> {
+    let path = draft_layout_path()?;
+    let wallpapers = if crate::field::no_apply() {
+        stored_wallpapers(&path)?
+    } else {
+        let output = plasma_script(
+            r#"
+            const result = {};
+            for (const desktop of desktops()) {
+                const plugin = desktop.wallpaperPlugin || "org.kde.image";
+                desktop.currentConfigGroup = ["Wallpaper", "org.kde.image", "General"];
+                const image = plugin === "org.kde.image" ? desktop.readConfig("Image", "") : "";
+                result[String(desktop.id)] = { plugin: plugin, image: image || null };
+            }
+            print(JSON.stringify(result));
+        "#,
+        )?;
+        serde_json::from_slice(&output).context("Could not read the actual Plasma wallpaper")?
+    };
+    anyhow::ensure!(
+        !wallpapers.is_empty(),
+        "Plasma has no desktop available for wallpaper"
+    );
+    Ok(wallpapers)
+}
+
+pub(crate) fn matches_image(wallpapers: &DesktopWallpapers, path: &str) -> bool {
+    !wallpapers.is_empty()
+        && wallpapers.values().all(|wallpaper| {
+            wallpaper.plugin == IMAGE_PLUGIN && wallpaper.image_path().as_deref() == Some(path)
+        })
+}
+
+pub(crate) fn same_wallpapers(left: &DesktopWallpapers, right: &DesktopWallpapers) -> bool {
+    left.len() == right.len()
+        && left.iter().all(|(id, wallpaper)| {
+            right.get(id).is_some_and(|other| {
+                wallpaper.plugin == other.plugin && wallpaper.image_path() == other.image_path()
+            })
+        })
+}
+
+pub(crate) fn describe_wallpapers(wallpapers: &DesktopWallpapers) -> String {
+    wallpapers
+        .values()
+        .map(|wallpaper| {
+            wallpaper
+                .image_path()
+                .and_then(|path| {
+                    Path::new(&path)
+                        .file_name()
+                        .map(|name| name.to_string_lossy().into_owned())
+                })
+                .unwrap_or_else(|| wallpaper.plugin.clone())
+        })
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>()
+        .join(" · ")
+}
+
+pub(crate) fn wait_for_wallpaper_config(path: &Path, expected: &DesktopWallpapers) -> Result<()> {
+    use std::time::{Duration, Instant};
+    // Plasma coalesces configuration sync requests for up to ten seconds.
+    let deadline = Instant::now() + Duration::from_secs(12);
+    loop {
+        if stored_wallpapers(path).is_ok_and(|stored| {
+            expected.iter().all(|(id, wanted)| {
+                stored.get(id).is_some_and(|actual| {
+                    wanted.plugin == actual.plugin && wanted.image_path() == actual.image_path()
+                })
+            })
+        }) {
+            return Ok(());
+        }
+        anyhow::ensure!(
+            Instant::now() < deadline,
+            "Plasma did not save the wallpaper change"
+        );
+        std::thread::sleep(Duration::from_millis(100));
+    }
+}
+
+fn update_runtime(wallpapers: &DesktopWallpapers) -> Result<()> {
+    let selection = serde_json::to_string(wallpapers)?;
+    let script = format!(
+        r#"
+        const selection = {selection};
+        const applied = [];
+        for (const desktop of desktops()) {{
+            const id = String(desktop.id);
+            const next = selection[id];
+            if (!next) continue;
+            desktop.wallpaperPlugin = next.plugin;
+            if (next.plugin === "org.kde.image") {{
+                desktop.currentConfigGroup = ["Wallpaper", "org.kde.image", "General"];
+                desktop.writeConfig("Image", next.image || "");
+            }}
+            applied.push(id);
+        }}
+        print(JSON.stringify(applied));
+    "#
+    );
+    let ids: Vec<String> = serde_json::from_slice(&plasma_script(&script)?)
+        .context("Could not verify Plasma wallpaper targets")?;
+    anyhow::ensure!(
+        wallpapers.keys().all(|id| ids.contains(id)),
+        "Plasma desktops changed while applying wallpaper"
+    );
+    Ok(())
+}
+
+pub(crate) fn apply_draft_image(
+    path: &Path,
+    image: &str,
+    desktops: &DesktopWallpapers,
+) -> Result<()> {
+    let url = image_url(image);
+    if crate::field::no_apply() {
+        let text = crate::layout::with_wallpaper_image(&fs::read_to_string(path)?, &url);
+        crate::gui_api::write_bytes(path, text.as_bytes(), None)?;
+    } else {
+        let desired = desktops
+            .keys()
+            .map(|id| {
+                (
+                    id.clone(),
+                    DesktopWallpaper {
+                        plugin: IMAGE_PLUGIN.into(),
+                        image: Some(url.clone()),
+                    },
+                )
+            })
+            .collect();
+        update_runtime(&desired)?;
+        wait_for_wallpaper_config(path, &desired)?;
+    }
+    Ok(())
+}
+
+pub(crate) fn refresh_after_restore() -> Result<()> {
+    if crate::field::no_apply() {
+        return Ok(());
+    }
+    let path = crate::paths::live_path(APPLETSRC_REL);
+    if !path.is_file() {
+        return Ok(());
+    }
+    let current = observe_draft()?;
+    let mut restored = stored_wallpapers(&path)?;
+    restored.retain(|id, _| current.contains_key(id));
+    if !restored.is_empty() {
+        update_runtime(&restored)?;
+        let mut observed = observe_draft()?;
+        observed.retain(|id, _| restored.contains_key(id));
+        anyhow::ensure!(
+            same_wallpapers(&restored, &observed),
+            "Plasma did not restore the prior wallpaper"
+        );
+        wait_for_wallpaper_config(&path, &restored)?;
+    }
+    Ok(())
+}
 
 /// Deterministic 64-bit FNV-1a (cache keys don't leave the machine).
 fn fnv1a64(input: &[u8]) -> u64 {
@@ -363,11 +614,7 @@ pub fn plasma_wallpaper_from(config: &Path) -> Option<String> {
         .image
         .clone()?;
 
-    let path = if let Some(rest) = url.strip_prefix("file://") {
-        percent_decode(rest)
-    } else {
-        percent_decode(&url)
-    };
+    let path = image_path(&url);
     if path.is_empty() {
         None
     } else {

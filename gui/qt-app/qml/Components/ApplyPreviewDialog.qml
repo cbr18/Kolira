@@ -13,6 +13,7 @@ AppDialog {
     readonly property bool working: profileController.previewBusy || profileController.busy
     readonly property bool ready: !working && !!report.token
     readonly property bool glassMode: themeController.isGlass
+    property bool showTechnicalDiff: false
 
     signal dependenciesRequested(var report)
 
@@ -21,7 +22,10 @@ AppDialog {
     width: Math.min(760, absoluteMaximumWidth)
     height: Math.min(680, absoluteMaximumHeight)
     standardButtons: Kirigami.Dialog.Close
-    onAboutToHide: profileController.cancelPreview()
+    onAboutToHide: {
+        showTechnicalDiff = false;
+        profileController.cancelPreview();
+    }
     customFooterActions: [
         Kirigami.Action {
             text: (dialog.report.dependencies || []).length > 0 ? qsTr("Apply without installing") : qsTr("Apply")
@@ -51,7 +55,7 @@ AppDialog {
             clip: true
             spacing: Platform.Units.smallSpacing
             boundsBehavior: Flickable.StopAtBounds
-            model: dialog.report.files || []
+            model: dialog.showTechnicalDiff ? (dialog.report.files || []) : []
 
             ScrollBar.vertical: ScrollBar {
                 id: fileBar
@@ -156,6 +160,13 @@ AppDialog {
                     ToolTip.text: qsTr("Saved application settings still restore. Skip additional palette generation and cached editor installation.")
                 }
 
+                CheckBox {
+                    objectName: "applyTechnicalDiff"
+                    text: qsTr("Show technical diff")
+                    visible: (dialog.report.files || []).length > 0
+                    checked: dialog.showTechnicalDiff
+                    onToggled: dialog.showTechnicalDiff = checked
+                }
             }
 
             delegate: Frame {
@@ -261,9 +272,7 @@ AppDialog {
                     Label {
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
-                        text: qsTr("Missing dependencies: %1").arg((dialog.report.dependencies || []).length) + "\n" + (dialog.report.dependencies || []).map(function(item) {
-                            return "• " + (item.title || item.name);
-                        }).join("\n")
+                        text: qsTr("Missing dependencies: %1").arg((dialog.report.dependencies || []).length)
                         textFormat: Text.PlainText
                         wrapMode: Text.Wrap
                         color: ThemeColors.fgColor(dialog.glassMode)
@@ -286,7 +295,8 @@ AppDialog {
                     Layout.minimumWidth: 0
                     visible: (dialog.report.actions || []).length > 0
                     text: qsTr("Follow-up actions:") + "\n" + (dialog.report.actions || []).map(function(item) {
-                        return "• " + qsTranslate("Core", item.title);
+                        return ["• " + qsTranslate("Core", item.title)]
+                            .concat((item.programs || []).map(program => "  – " + program)).join("\n");
                     }).join("\n")
                     textFormat: Text.PlainText
                     wrapMode: Text.Wrap

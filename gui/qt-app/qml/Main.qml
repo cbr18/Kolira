@@ -16,21 +16,176 @@ Kirigami.ApplicationWindow {
     minimumWidth: 640
     minimumHeight: 480
 
-    // Dogfooding: follow the active profile (glass → translucent).
     readonly property bool glassMode: themeController.isGlass
 
     // True while the controller is applying/saving/deleting a profile.
     readonly property bool applying: profileController.busy || dependencyController.busy
 
+    footer: ToolBar {
+        visible: root.applying
+        leftPadding: Platform.Units.largeSpacing
+        rightPadding: Platform.Units.largeSpacing
+        contentItem: RowLayout {
+            ProgressBar {
+                indeterminate: root.applying
+                Layout.preferredWidth: Platform.Units.gridUnit * 5
+            }
+            Label {
+                Layout.fillWidth: true
+                text: root.operationMessage || qsTr("Working…")
+                textFormat: Text.PlainText
+                elide: Text.ElideRight
+            }
+        }
+    }
+
     // Close → hide to the tray when the user asked for it (Settings →
     // "Minimize to system tray"). Only when the tray icon really exists,
     // otherwise the window would become unreachable; the tray menu's Quit
     // action is the way out in that mode.
+    property bool quitAllowed: false
     onClosing: function(close) {
+        if (root.quitAllowed)
+            return
         if (typeof trayController !== "undefined" && trayController
                 && trayController.minimizeToTray && trayController.trayIconVisible) {
             close.accepted = false
             root.hide()
+        } else if (themeInspector.sessionChanges > 0 || themeBundle.hasProfileDrafts) {
+            close.accepted = false
+            root.requestQuit()
+        }
+    }
+
+    function requestQuit() {
+        if (themeInspector.sessionChanges === 0 && !themeBundle.hasProfileDrafts) {
+            root.quitNow()
+            return
+        }
+        root.show()
+        root.raise()
+        root.requestActivate()
+        quitDraftDialog.open()
+    }
+
+    function quitNow() {
+        root.quitAllowed = true
+        Qt.quit()
+    }
+
+    AppDialog {
+        id: quitDraftDialog
+        objectName: "quitDraftDialog"
+        title: qsTr("Discard draft and quit?")
+        standardButtons: Kirigami.Dialog.Cancel
+        Label {
+            text: qsTr("The unapplied appearance changes will be lost.")
+            wrapMode: Text.WordWrap
+        }
+        customFooterActions: Kirigami.Action {
+            text: qsTr("Discard and quit")
+            icon.name: "application-exit"
+            onTriggered: root.quitNow()
+        }
+    }
+
+    Connections {
+        target: themeInspector
+        function onDraftRefreshed() { themeBundle.refresh() }
+        function onLiveApplyFinished(success) {
+            themeBundle.refresh()
+            root.refreshAfterLiveApply()
+        }
+        function onConflictsFound(conflicts) {
+            liveConflictDialog.conflicts = conflicts
+            if (conflicts.length > 0)
+                liveConflictDialog.open()
+            else
+                liveConflictDialog.close()
+        }
+    }
+
+    AppDialog {
+        id: liveConflictDialog
+        objectName: "liveConflictDialog"
+        title: qsTr("Live settings changed")
+        preferredWidth: 590
+        preferredHeight: 420
+        standardButtons: Kirigami.Dialog.Close
+        property var conflicts: []
+
+        function display(value) {
+            if (value && typeof value === "object" && value.wallpapers !== undefined)
+                return value.display
+            if (value && typeof value === "object" && value.mode !== undefined && value.theme !== undefined) {
+                const mode = value.mode === "dark" ? qsTr("Dark")
+                    : value.mode === "light" ? qsTr("Light")
+                    : value.mode === "system" ? qsTr("System") : value.mode;
+                return value.theme ? qsTr("%1 (%2)").arg(value.theme).arg(mode) : mode;
+            }
+            return value === null || value === undefined ? qsTr("Not set") : String(value)
+        }
+
+        contentItem: InsetScrollView {
+            ColumnLayout {
+                width: liveConflictDialog.availableWidth
+                spacing: Kirigami.Units.largeSpacing
+
+                Repeater {
+                    model: liveConflictDialog.conflicts
+                    delegate: ColumnLayout {
+                        id: conflict
+                        required property var modelData
+                        Layout.fillWidth: true
+                        Kirigami.Heading {
+                            level: 3
+                            Layout.fillWidth: true
+                            text: conflict.modelData.label
+                            textFormat: Text.PlainText
+                            wrapMode: Text.WordWrap
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            visible: !!conflict.modelData.source
+                            text: conflict.modelData.source || ""
+                            textFormat: Text.PlainText
+                            wrapMode: Text.WrapAnywhere
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            text: qsTr("Live: %1").arg(liveConflictDialog.display(conflict.modelData.current))
+                            textFormat: Text.PlainText
+                            wrapMode: Text.WrapAnywhere
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            text: qsTr("Draft: %1").arg(liveConflictDialog.display(conflict.modelData.after))
+                            textFormat: Text.PlainText
+                            wrapMode: Text.WrapAnywhere
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            visible: !conflict.modelData.can_keep
+                            text: qsTr("The value type changed. Use Live and edit the field again.")
+                            wrapMode: Text.WordWrap
+                        }
+                        ActionFlow {
+                            Layout.fillWidth: true
+                            Button {
+                                text: qsTr("Use Live")
+                                enabled: !themeInspector.busy
+                                onClicked: themeInspector.resolveDraft(conflict.modelData.token, "live")
+                            }
+                            Button {
+                                objectName: "keepLiveDraft"
+                                text: qsTr("Keep draft")
+                                enabled: !themeInspector.busy && conflict.modelData.can_keep
+                                onClicked: themeInspector.resolveDraft(conflict.modelData.token, "draft")
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -92,10 +247,48 @@ Kirigami.ApplicationWindow {
     }
     property string auditOperationId: ""
     function openAuditPage() {
-        pageStack.layers.push(Qt.resolvedUrl("pages/AuditPage.qml"), { selectedId: root.auditOperationId })
+        const page = pageStack.layers.push(Qt.resolvedUrl("pages/AuditPage.qml"), {
+            selectedId: root.auditOperationId
+        })
+        page.reapplyRequested.connect(root.requestApply)
+    }
+
+    function openWallpapersPage() {
+        pageStack.layers.push(Qt.resolvedUrl("pages/WallpapersPage.qml"))
+    }
+
+    function openDuplicateTheme(name) {
+        duplicateDialog.sourceProfile = name
+        duplicateNameField.text = name + "-copy"
+        duplicateError.visible = false
+        duplicateDialog.open()
+    }
+
+    function openExportTheme(name) {
+        exportFileDialog.profileName = name
+        exportFileDialog.selectedFile = StandardPaths.writableLocation(StandardPaths.HomeLocation) + "/" + name + ".ktmtheme.zip"
+        exportFileDialog.open()
+    }
+
+    function openDeleteTheme(name) {
+        confirmDialog.targetProfile = name
+        confirmDialog.open()
+    }
+
+    function openSaveThemeDialog() {
+        nameField.text = ""
+        descriptionField.text = ""
+        saveError.visible = false
+        saveDialog.open()
     }
     Connections {
         target: historySchedule
+        function onRestored() {
+            root.refreshAfterLiveApply()
+            wallpaperController.refresh()
+            themeInspector.refresh()
+            themeBundle.refresh()
+        }
         function onErrorFound(id, message) {
             root.auditOperationId = id
             root.operationMessage = message
@@ -103,7 +296,20 @@ Kirigami.ApplicationWindow {
         }
     }
     function openDependenciesPage() {
-        pageStack.layers.push(Qt.resolvedUrl("pages/DependenciesPage.qml"))
+        openProfileDependencies("", null)
+    }
+
+    function openProfileDependencies(profileName, reviewOptions) {
+        const page = pageStack.layers.push(Qt.resolvedUrl("pages/DependenciesPage.qml"), {
+            themeFilter: profileName || "",
+            reviewOptions: reviewOptions || null
+        })
+        if (reviewOptions) {
+            page.reviewRequested.connect(function(options) {
+                profileController.previewApply(options.name, options.keep_wallpaper,
+                                               options.without_sync)
+            })
+        }
     }
 
     // Every manual application is reviewed against the live state first.
@@ -112,13 +318,39 @@ Kirigami.ApplicationWindow {
             profileController.previewApply(profileName, false)
     }
 
+    Connections {
+        target: pageStack.layers
+        function onCurrentItemChanged() {
+            if (pageStack.layers.depth === 1 && root.selectedProfile !== "") {
+                const row = mainPage.filteredProfiles.findIndex(function(profile) {
+                    return profile.name === root.selectedProfile
+                })
+                const card = themeRepeater.itemAt(row)
+                if (card)
+                    card.forceActiveFocus()
+            }
+        }
+    }
+
     function showThemeMessage(message, ok) {
         const current = pageStack.layers.currentItem
         if (current && typeof current.handleThemeMessage === "function" && current.handleThemeMessage(message, ok)) return
         if (ok) root.showPassiveNotification(message)
         else { feedbackDialog.message = message; feedbackDialog.open() }
     }
-    Connections { target: themeBundle; function onToast(message, ok) { root.showThemeMessage(message, ok) } }
+    function refreshAfterLiveApply() {
+        historySchedule.refreshHistory()
+        profileController.refresh()
+    }
+    Connections {
+        target: themeBundle
+        function onProfileEditsSaved() { profileController.refresh() }
+        function onLiveApplyFinished(success) {
+            themeInspector.refresh()
+            root.refreshAfterLiveApply()
+        }
+        function onToast(message, ok) { root.showThemeMessage(message, ok) }
+    }
     Connections { target: themeInspector; function onToast(message, ok) { root.showThemeMessage(message, ok) } }
     AppDialog {
         id: feedbackDialog
@@ -188,10 +420,14 @@ Kirigami.ApplicationWindow {
             root.operationMessage = success && root._lastOperation === "apply" ? "" : message
             if (root._lastOperation === "apply") {
                 historySchedule.refreshHistory()
-                if (!success) {
+                if (success) {
+                    root.showPassiveNotification(message)
+                } else {
                     root.auditOperationId = historySchedule.operationIdFromMessage(message)
                     applyErrorDialog.open()
                 }
+            } else if (root._lastOperation === "save" && pageStack.layers.depth > 1 && message !== "") {
+                root.showThemeMessage(message, success)
             }
             if (success) messageTimer.restart()
             else messageTimer.stop()
@@ -206,13 +442,16 @@ Kirigami.ApplicationWindow {
             }
         }
         function onDependenciesMissing(profile, missing) {
+            if (root._lastOperation !== "import")
+                return
             missingDialog.targetProfile = profile
             missingDialog.missing = missing
-            missingDialog.afterImport = root._lastOperation === "import"
+            missingDialog.afterImport = true
             missingDialog.beforeApply = false
             missingDialog.open()
         }
         function onPreviewRequested() {
+            root.operationMessage = ""
             root.visible = true
             root.raise()
             root.requestActivate()
@@ -303,42 +542,66 @@ Kirigami.ApplicationWindow {
         modal: true
         actions: [
             Kirigami.Action {
-                text: qsTr("Profiles")
+                text: qsTr("My Themes")
                 icon.name: "preferences-desktop-theme"
                 onTriggered: pageStack.layers.clear()
             },
             Kirigami.Action {
-                text: qsTr("Theme")
+                text: qsTr("Editor")
                 icon.name: "preferences-desktop-color"
                 onTriggered: {
+                    pageStack.layers.clear()
                     themeBundle.openLive()
-                    pageStack.layers.push(Qt.resolvedUrl("pages/ThemePage.qml"))
+                    root.openThemePage()
+                }
+            },
+            Kirigami.Action {
+                text: qsTr("Wallpapers")
+                icon.name: "preferences-desktop-wallpaper"
+                onTriggered: {
+                    pageStack.layers.clear()
+                    root.openWallpapersPage()
+                }
+            },
+            Kirigami.Action {
+                text: qsTr("Automation")
+                icon.name: "appointment-new"
+                onTriggered: {
+                    pageStack.layers.clear()
+                    pageStack.layers.push(Qt.resolvedUrl("pages/SchedulePage.qml"))
+                }
+            },
+            Kirigami.Action {
+                text: qsTr("History")
+                icon.name: "view-history"
+                onTriggered: {
+                    pageStack.layers.clear()
+                    root.openAuditPage()
+                }
+            },
+            Kirigami.Action {
+                text: qsTr("Dependencies")
+                icon.name: "package-x-generic"
+                onTriggered: {
+                    pageStack.layers.clear()
+                    root.openDependenciesPage()
                 }
             },
             Kirigami.Action {
                 text: qsTr("Applications")
                 icon.name: "preferences-desktop-apps"
-                onTriggered: pageStack.layers.push(Qt.resolvedUrl("pages/ApplicationsPage.qml"))
-            },
-            Kirigami.Action {
-                text: qsTr("Dependencies")
-                icon.name: "package-x-generic"
-                onTriggered: root.openDependenciesPage()
-            },
-            Kirigami.Action {
-                text: qsTr("Theme change history")
-                icon.name: "view-history"
-                onTriggered: root.openAuditPage()
-            },
-            Kirigami.Action {
-                text: qsTr("Theme schedule")
-                icon.name: "appointment-new"
-                onTriggered: pageStack.layers.push(Qt.resolvedUrl("pages/SchedulePage.qml"))
+                onTriggered: {
+                    pageStack.layers.clear()
+                    pageStack.layers.push(Qt.resolvedUrl("pages/ApplicationsPage.qml"))
+                }
             },
             Kirigami.Action {
                 text: qsTr("Settings")
                 icon.name: "settings-configure"
-                onTriggered: pageStack.layers.push(Qt.resolvedUrl("pages/SettingsPage.qml"))
+                onTriggered: {
+                    pageStack.layers.clear()
+                    pageStack.layers.push(Qt.resolvedUrl("pages/SettingsPage.qml"))
+                }
             }
         ]
     }
@@ -363,7 +626,22 @@ Kirigami.ApplicationWindow {
     pageStack.initialPage: Kirigami.ScrollablePage {
     padding: Platform.Units.gridUnit
         id: mainPage
-        title: qsTr("Theme Profiles")
+        readonly property var filteredProfiles: {
+            const query = themeSearch.text.trim().toLocaleLowerCase()
+            return profileController.profiles.filter(function(profile) {
+                return !query || [profile.name, profile.description].some(function(value) {
+                    return (value || "").toLocaleLowerCase().includes(query)
+                })
+            })
+        }
+        readonly property var liveAppearance: profileController.liveAppearance
+        Timer {
+            interval: 12000
+            running: root.visible && pageStack.layers.depth === 1
+            repeat: true
+            onTriggered: profileController.refreshLiveAppearance()
+        }
+        title: qsTr("My Themes")
 
         // Kirigami.Page paints Platform.Theme.backgroundColor behind its
         // content. In glass mode we paint a translucent dark "glass panel"
@@ -384,9 +662,7 @@ Kirigami.ApplicationWindow {
 
                 Kirigami.Heading {
                     level: 2
-                    text: profileController.activeProfile !== ""
-                        ? qsTr("Active: %1").arg(profileController.activeProfile)
-                        : qsTr("Theme Profiles")
+                    text: qsTr("Current appearance")
                     width: Math.min(implicitWidth, parent.width)
                     wrapMode: Text.Wrap
                     color: ThemeColors.fgColor(root.glassMode)
@@ -399,25 +675,68 @@ Kirigami.ApplicationWindow {
                         pageStack.layers.push(Qt.resolvedUrl("pages/ThemePage.qml"))
                     }
                 }
+                AppButton {
+                    text: qsTr("Save as theme…")
+                    icon.name: "list-add"
+                    enabled: !root.applying
+                    onClicked: root.openSaveThemeDialog()
+                }
                 BusyIndicator {
-                    running: root.applying
-                    visible: root.applying
+                    running: root.applying || profileController.refreshing
+                    visible: running
                     Layout.preferredHeight: Platform.Units.iconSizes.small
                 }
                 AppButton {
                     text: qsTr("Refresh")
                     icon.name: "view-refresh"
-                    enabled: !root.applying
+                    enabled: !root.applying && !profileController.refreshing
                     onClicked: profileController.refresh()
                 }
-                AppButton {
-                    text: qsTr("Apply")
-                    icon.name: "dialog-ok-apply"
-                    highlighted: true
-                    enabled: !root.applying && root.selectedProfile !== ""
-                        && root.selectedProfile !== profileController.activeProfile
-                    onClicked: root.requestApply(root.selectedProfile)
+            }
+
+            Label {
+                Layout.fillWidth: true
+                text: {
+                    const appearance = mainPage.liveAppearance
+                    const entries = []
+                    if (appearance.color_scheme)
+                        entries.push(qsTr("Color scheme: %1").arg(appearance.color_scheme))
+                    if (appearance.plasma_theme)
+                        entries.push(qsTr("Plasma style: %1").arg(appearance.plasma_theme))
+                    if (appearance.icon_theme)
+                        entries.push(qsTr("Icons: %1").arg(appearance.icon_theme))
+                    if (appearance.cursor_theme)
+                        entries.push(qsTr("Cursor: %1").arg(appearance.cursor_theme))
+                    if (entries.length)
+                        return entries.join(" · ")
+                    return profileController.refreshing ? qsTr("Reading current appearance…")
+                                                        : qsTr("Current appearance unavailable.")
                 }
+                textFormat: Text.PlainText
+                wrapMode: Text.WordWrap
+            }
+            Label {
+                Layout.fillWidth: true
+                visible: (mainPage.liveAppearance.matches || []).length > 0
+                         || (historySchedule.lastProfileApply !== ""
+                             && (mainPage.liveAppearance.profiles || {})[historySchedule.lastProfileApply] === "different")
+                text: {
+                    const matches = mainPage.liveAppearance.matches || []
+                    if (matches.length === 1)
+                        return qsTr("Matches saved theme: %1").arg(matches[0])
+                    if (matches.length > 1)
+                        return qsTr("Matching saved themes: %1").arg(matches.join(", "))
+                    return qsTr("Appearance has changed since the last theme was applied.")
+                }
+                textFormat: Text.PlainText
+                wrapMode: Text.Wrap
+            }
+            Label {
+                Layout.fillWidth: true
+                visible: historySchedule.lastProfileApply !== ""
+                text: qsTr("Last applied: %1").arg(historySchedule.lastProfileApply)
+                textFormat: Text.PlainText
+                wrapMode: Text.WordWrap
             }
 
             Kirigami.InlineMessage {
@@ -427,25 +746,6 @@ Kirigami.ApplicationWindow {
                 type: root._operationSucceeded
                     ? Kirigami.MessageType.Positive
                     : Kirigami.MessageType.Error
-            }
-
-            // Selection hint. Hidden while the selection is the active
-            // profile: the header already says "Active: <name>".
-            Label {
-                Layout.fillWidth: true
-                visible: text !== ""
-                wrapMode: Text.WordWrap
-                color: ThemeColors.dimColor(root.glassMode)
-                font.pointSize: TypeScale.caption
-                text: {
-                    if (root.selectedProfile === "")
-                        return qsTr("Click a profile card to select it, then press Apply.")
-                    if (root.selectedProfile === profileController.activeProfile)
-                        return ""
-                    return qsTr("Selected \"%1\" (not applied yet). Active: %2")
-                        .arg(root.selectedProfile)
-                        .arg(profileController.activeProfile)
-                }
             }
 
             // ─── Available Profiles ───
@@ -484,186 +784,114 @@ Kirigami.ApplicationWindow {
                             enabled: !root.applying && !profileController.busy
                             onClicked: newThemeDialog.open()
                         }
-                        AppButton {
-                            text: qsTr("Save current…")
-                            icon.name: "list-add"
-                            enabled: !root.applying
-                            onClicked: saveDialog.open()
-                        }
                     }
 
-                    Repeater {
-                        model: profileController.profiles.length
+                    TextField {
+                        id: themeSearch
+                        objectName: "themeSearch"
+                        Layout.fillWidth: true
+                        placeholderText: qsTr("Search themes")
+                        Accessible.name: placeholderText
+                    }
 
-                        delegate: ProfileCardDelegate {
-                            readonly property var entry: profileController.profiles[index]
-                            glassMode: root.glassMode
-                            profileName: entry ? entry.name : ""
-                            profileIsActive: entry ? entry.isActive : false
-                            profileSelected: entry ? root.selectedProfile === entry.name : false
-                            profileComponentCount: entry ? entry.componentCount : 0
-                            profileCreatedAt: entry ? entry.createdAt : ""
-                            profileDescription: entry ? entry.description : ""
+                    GridLayout {
+                        Layout.fillWidth: true
+                        columns: width >= Platform.Units.gridUnit * 72 ? 3
+                            : width >= Platform.Units.gridUnit * 36 ? 2 : 1
+                        columnSpacing: Platform.Units.mediumSpacing
+                        rowSpacing: Platform.Units.mediumSpacing
+                        Repeater {
+                            id: themeRepeater
+                            model: mainPage.filteredProfiles
 
-                            onSelectedClicked: function(profileName) {
-                                root.selectedProfile = profileName
-                            }
-                            onApplyClicked: function(profileName) {
-                                root.requestApply(profileName)
-                            }
-                            onPreviewClicked: function(profileName) {
-                                previewDialog.previewProfile = profileName
-                                previewDialog.open()
-                            }
-                            onDiffClicked: function(profileName) {
-                                diffDialog.profileA = profileName
-                                diffDialog.profileB = profileController.activeProfile
-                                diffDialog.open()
-                            }
-                            onInspectClicked: function(profileName) {
-                                pageStack.layers.push(
-                                    Qt.resolvedUrl("pages/ThemePage.qml"),
-                                    { profileName: profileName })
-                            }
-                            onDeleteClicked: function(profileName) {
-                                confirmDialog.targetProfile = profileName
-                                confirmDialog.open()
-                            }
-                            onExportClicked: function(profileName) {
-                                exportFileDialog.profileName = profileName
-                                exportFileDialog.selectedFile = StandardPaths.writableLocation(StandardPaths.HomeLocation) + "/" + profileName + ".ktmtheme.zip"
-                                exportFileDialog.open()
-                            }
-                            onDuplicateClicked: function(profileName) {
-                                duplicateDialog.sourceProfile = profileName
-                                duplicateNameField.text = profileName + "-copy"
-                                duplicateError.visible = false
-                                duplicateDialog.open()
-                            }
-                            onEditDescriptionClicked: function(profileName, description) {
-                                descriptionDialog.targetProfile = profileName
-                                descriptionEdit.text = description
-                                descriptionDialog.open()
+                            delegate: ProfileCardDelegate {
+                                id: themeCard
+                                required property var modelData
+                                readonly property var entry: modelData
+                                objectName: "themeCard-" + profileName
+                                glassMode: root.glassMode
+                                profileName: entry ? entry.name : ""
+                                profileIsActive: entry ? entry.isActive : false
+                                profileLastApplied: profileName === historySchedule.lastProfileApply
+                                profileMatchesLive: (mainPage.liveAppearance.profiles || {})[profileName] === "match"
+                                loadPreviewAssets: {
+                                    const viewport = mainPage.flickable
+                                    const point = themeCard.mapToItem(viewport.contentItem, 0, 0)
+                                    return point.y + height >= viewport.contentY
+                                        && point.y <= viewport.contentY + viewport.height
+                                }
+                                profileSelected: entry ? root.selectedProfile === entry.name : false
+                                profileComponentCount: entry ? entry.componentCount : 0
+                                profileCreatedAt: entry ? entry.createdAt : ""
+                                profileDescription: entry ? entry.description : ""
+
+                                onSelectedClicked: function(profileName) {
+                                    root.selectedProfile = profileName
+                                    const details = pageStack.layers.push(
+                                        Qt.resolvedUrl("pages/SavedThemeDetails.qml"), {
+                                            profileName: profileName,
+                                            description: entry.description || "",
+                                            savedAt: entry.createdAt || "",
+                                            allowDelete: !entry.isActive
+                                        })
+                                    details.applyRequested.connect(root.requestApply)
+                                    details.duplicateRequested.connect(root.openDuplicateTheme)
+                                    details.exportRequested.connect(root.openExportTheme)
+                                    details.deleteRequested.connect(root.openDeleteTheme)
+                                    details.returnFocus.connect(function() {
+                                        Qt.callLater(function() { if (themeCard) themeCard.forceActiveFocus() })
+                                    })
+                                    details.dependenciesRequested.connect(function(name) {
+                                        root.openProfileDependencies(name, null)
+                                    })
+                                    details.editRequested.connect(function(name) {
+                                        pageStack.layers.push(Qt.resolvedUrl("pages/ThemePage.qml"),
+                                                              { profileName: name })
+                                    })
+                                }
+                                onApplyClicked: function(profileName) {
+                                    root.requestApply(profileName)
+                                }
+                                onPreviewClicked: function(profileName) {
+                                    previewDialog.previewProfile = profileName
+                                    previewDialog.open()
+                                }
+                                onDiffClicked: function(profileName) {
+                                    diffDialog.profileA = profileName
+                                    diffDialog.profileB = profileController.activeProfile
+                                    diffDialog.open()
+                                }
+                                onInspectClicked: function(profileName) {
+                                    pageStack.layers.push(
+                                        Qt.resolvedUrl("pages/ThemePage.qml"),
+                                        { profileName: profileName })
+                                }
+                                onDeleteClicked: root.openDeleteTheme
+                                onExportClicked: root.openExportTheme
+                                onDuplicateClicked: root.openDuplicateTheme
+                                onEditDescriptionClicked: function(profileName, description) {
+                                    descriptionDialog.targetProfile = profileName
+                                    descriptionEdit.text = description
+                                    descriptionDialog.open()
+                                }
                             }
                         }
                     }
 
                     Label {
                         Layout.fillWidth: true
-                        visible: profileController.profiles.length === 0
-                        text: qsTr("No profiles found. Save the current theme to create one.")
+                        visible: mainPage.filteredProfiles.length === 0
+                        text: profileController.refreshing ? qsTr("Loading themes…")
+                            : profileController.libraryError ? qsTr("Could not read themes.")
+                            : profileController.profiles.length === 0
+                                ? qsTr("No profiles found. Save the current theme to create one.")
+                                : qsTr("No themes match your search.")
                         color: ThemeColors.dimColor(root.glassMode)
                         wrapMode: Text.WordWrap
                     }
                 }
             }
 
-            // ─── Wallpaper ───
-            Kirigami.Card {
-                Layout.fillWidth: true
-
-                background: Rectangle {
-                    color: ThemeColors.cardBg(root.glassMode)
-                    radius: Platform.Units.smallSpacing
-                    border.width: 1
-                    border.color: ThemeColors.cardBorder(root.glassMode)
-                }
-
-                contentItem: ColumnLayout {
-                    spacing: Platform.Units.mediumSpacing
-
-                    ActionFlow {
-                        Layout.fillWidth: true
-
-                        Kirigami.Heading {
-                            level: 2
-                            text: qsTr("Wallpaper")
-                            color: ThemeColors.fgColor(root.glassMode)
-                        }
-                                AppButton {
-                            text: qsTr("Refresh")
-                            icon.name: "view-refresh"
-                            onClicked: wallpaperController.refresh()
-                        }
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 160
-                        visible: wallpaperController.currentWallpaper !== ""
-
-                        Image {
-                            id: wallpaperPreview
-                            objectName: "wallpaperPreview"
-                            anchors.fill: parent
-                            source: wallpaperController.currentWallpaper
-                            fillMode: Image.PreserveAspectCrop
-                            // Big JPEGs decode off-thread; the indicator below
-                            // covers the gap instead of blocking the page.
-                            asynchronous: true
-                        }
-
-                        BusyIndicator {
-                            objectName: "wallpaperPreviewBusy"
-                            anchors.centerIn: parent
-                            running: wallpaperPreview.status === Image.Loading
-                            visible: running
-                        }
-
-                        Label {
-                            objectName: "wallpaperPreviewError"
-                            anchors.centerIn: parent
-                            visible: wallpaperPreview.status === Image.Error
-                            text: qsTr("Wallpaper unavailable")
-                            color: ThemeColors.dimColor(root.glassMode)
-                        }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            color: "transparent"
-                            radius: 8
-                            border.width: 1
-                            border.color: ThemeColors.cardBorder(root.glassMode)
-                        }
-                    }
-
-                    Label {
-                        Layout.fillWidth: true
-                        wrapMode: Text.WordWrap
-                        visible: wallpaperController.currentWallpaper === ""
-                        text: qsTr("No wallpaper information available.")
-                        color: ThemeColors.dimColor(root.glassMode)
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Platform.Units.mediumSpacing
-
-                        AppButton {
-                            Layout.fillWidth: true
-                            text: qsTr("Previous")
-                            icon.name: "go-previous-view"
-                            enabled: !wallpaperController.busy
-                            onClicked: wallpaperController.prevWallpaper()
-                        }
-                        AppButton {
-                            Layout.fillWidth: true
-                            text: qsTr("Pick Wallpaper…")
-                            icon.name: "image-x-generic"
-                            highlighted: true
-                            enabled: !wallpaperController.busy
-                            onClicked: wallpaperController.pickWallpaper()
-                        }
-                        AppButton {
-                            Layout.fillWidth: true
-                            text: qsTr("Next")
-                            icon.name: "go-next-view"
-                            enabled: !wallpaperController.busy
-                            onClicked: wallpaperController.nextWallpaper()
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -673,12 +901,11 @@ Kirigami.ApplicationWindow {
     ApplyPreviewDialog {
         id: applyDialog
         onDependenciesRequested: function(report) {
-            missingDialog.targetProfile = report.name
-            missingDialog.missing = report.dependencies || []
-            missingDialog.beforeApply = true
-            missingDialog.afterImport = false
-            missingDialog.keepWallpaper = report.keep_wallpaper || false
-            missingDialog.open()
+            root.openProfileDependencies(report.name, {
+                name: report.name,
+                keep_wallpaper: report.keep_wallpaper || false,
+                without_sync: report.without_sync || false
+            })
         }
     }
 
@@ -982,6 +1209,7 @@ Kirigami.ApplicationWindow {
     // runs without the user (a call or a game may be on).
     AppDialog {
         id: actionsDialog
+        objectName: "applyActionsDialog"
         title: qsTr("Finish Applying")
         preferredWidth: 600
         property string targetProfile: ""
@@ -1045,6 +1273,18 @@ Kirigami.ApplicationWindow {
                             font.bold: true
                             color: ThemeColors.fgColor(root.glassMode)
                             text: qsTranslate("Core", modelData.title)
+                        }
+                        Repeater {
+                            model: modelData.programs || []
+                            delegate: Label {
+                                required property string modelData
+                                objectName: "followupProgram-" + modelData
+                                Layout.fillWidth: true
+                                Layout.leftMargin: Kirigami.Units.largeSpacing
+                                textFormat: Text.PlainText
+                                wrapMode: Text.Wrap
+                                text: "• " + modelData
+                            }
                         }
                         Label {
                             Layout.fillWidth: true
@@ -1215,6 +1455,11 @@ Kirigami.ApplicationWindow {
         title: qsTr("Save Profile")
         standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
         preferredWidth: 420
+        property bool hasDraft: false
+        onAboutToShow: {
+            hasDraft = themeInspector.sessionChanges > 0
+            draftSource.currentIndex = 0
+        }
 
         background: Rectangle {
             color: ThemeColors.dialogBg(root.glassMode)
@@ -1247,6 +1492,14 @@ Kirigami.ApplicationWindow {
                 id: descriptionField
                 Layout.fillWidth: true
                 placeholderText: qsTr("Description (optional)")
+            }
+            ComboBox {
+                id: draftSource
+                objectName: "saveThemeSource"
+                Layout.fillWidth: true
+                visible: saveDialog.hasDraft
+                Accessible.name: qsTr("Save theme from")
+                model: [qsTr("Current appearance"), qsTr("Current appearance with draft")]
             }
             CheckBox {
                 id: includeWallpaperBox
@@ -1283,8 +1536,9 @@ Kirigami.ApplicationWindow {
                 saveDialog.open()
                 return
             }
-            profileController.saveProfileWithLookAndFeel(name, descriptionField.text.trim(),
-                                                         includeWallpaperBox.checked, makeLookAndFeelBox.checked)
+            profileController.captureLive(name, descriptionField.text.trim(),
+                                          includeWallpaperBox.checked, makeLookAndFeelBox.checked,
+                                          saveDialog.hasDraft && draftSource.currentIndex === 1)
             nameField.text = ""
             descriptionField.text = ""
             includeWallpaperBox.checked = true

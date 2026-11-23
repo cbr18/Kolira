@@ -1,4 +1,4 @@
-# kolira — Qt/QML Application (v0.7.0)
+# kolira — Qt/QML Application
 
 Application coverage: [app contracts](../../docs/APPLICATIONS.md) — colours, selection, safe return, Obsidian vault setup and runtime limits.
 
@@ -15,9 +15,8 @@ them or require Simple Application Launcher.
   with optional descriptions shown on the profile cards. Profile refresh runs in
   the background and coalesces repeated requests; failed reads show an error and
   preserve the last successful list and active profile
-- **Select, then Apply** — clicking a profile only *selects* it; an explicit
-  **Apply** button commits it (switching profiles is slow, so nothing happens
-  until you ask for it)
+- **My Themes** — search saved themes and open their details. **Apply** opens a
+  review before a theme changes the desktop.
 - **Preview & Diff** — see exactly which components a profile carries and how it
   differs from the active one *before* applying
 - **Granular Control** — Choose which components to apply per profile
@@ -36,14 +35,22 @@ them or require Simple Application Launcher.
 - **Export / import** — card menu → *Export…* (`.ktmtheme.zip`, optional
   wallpaper), *Import theme…* (name conflict → new name or replace); the
   missing-parts dialog follows an import too (`kolira import --json`)
-- **Palette page** — Theme → Palette: base16 + accent, gallery, from wallpaper
+- **Palette** in the theme editor stages the KDE color scheme, custom accent
+  and wallpaper accent for Live and saved themes. A saved theme also supports
+  Base16 presets, individual color edits and a draft preview.
+- **Base16 palette** in the Live editor supports gallery import and wallpaper
   (`Kirigami.ImageColors`) or k-means, colour editing, apply to KDE /
   terminals / Kvantum (`controllers/palette.py` → Rust CLI)
+- **Applications** stages Kitty and Alacritty opacity and blur. A saved
+  theme can also set VS Code, Cursor and btop themes, btop rounded corners,
+  Zed mode and light/dark themes, Zen accent and light/dark mode, Obsidian
+  color mode and theme, and the apps that use Base16 on Apply.
 - **Application detection** — by executable/Flatpak, not by a leftover config;
   **Find in store…** for Zed / VS Code / Cursor (search + install via the Rust
   CLI, off the GUI thread: `ThemeBundleController.storeSearch/storeInstall`)
 - **Application theme adapters** — Zed, VS Code, Cursor, Obsidian and btop can
-  expose current/installed themes (VS Code/Cursor map a theme `id` such as a
+  expose current/installed themes and stage selections in the Live draft
+  (VS Code/Cursor map a theme `id` such as a
   Doki UUID back to its label); Discord provides a safe partial
   integration; Kitty and Alacritty are config-only integrations with an “Open
   config” action via `xdg-open`
@@ -64,11 +71,8 @@ them or require Simple Application Launcher.
   local socket cannot be created at all (e.g. `$TMPDIR` so long that the path
   exceeds the 108-byte AF_UNIX limit), the app prints the reason and starts
   without single-instance protection instead of claiming it is "already running"
-- **Dogfooding** — App themes itself from the *active* profile: `glass` →
-  translucent dark, `paper` → light; any other profile/scheme (e.g.
-  `everforest`) uses **System** mode, which reads the live `kdeglobals`
-  `[Colors:*]` palette. `ThemeController.colors` publishes that palette to
-  `ThemeColors.qml`, so cards, borders and dim text follow dark schemes too
+- **System appearance** — the window follows the Qt platform palette and the
+  live KDE colours. It picks up desktop style changes while it is open.
 - **Single core** — a Python adapter (`core/cli_core.py`) shells out to the Rust
   `kolira` / `wallpaper-*` binaries; every selector (`--core core|auto`,
   `$KTM_CORE`, Settings → Core) names that one core
@@ -80,11 +84,11 @@ The tray icon offers:
 - **Profiles ▸** — every profile, the active one ticked and sorted first; a
   click opens the window with a pre-apply review; confirmation applies it, with
   the result reported as a desktop notification. Entries are disabled while an
-  operation runs, and clicking the active profile is a no-op.
+  operation runs. A profile can be reviewed and applied again.
 - **Wallpaper ▸** — Next / Previous / Pick (the current file name is shown
   below them).
 - **Show** — raise the window (a click on the icon does the same).
-- **Quit** — really quits. Needed because *Settings → Minimize to system tray*
+- **Quit** — exits after checking for a pending draft. Needed because *Settings → Minimize to system tray*
   makes the window's close button hide the app instead; hiding is only done
   when the tray icon actually exists, so the window can never become
   unreachable.
@@ -98,66 +102,30 @@ The icon is installed as `kolira-icon`: KDE's icon loader collapses
 `<existing-icon>-<suffix>` to the existing icon, so `kolira`
 resolved to the KDE logo (and `plasma-*` to the Plasma logo) instead of ours.
 
-## Theming (dogfooding)
+## System appearance
 
-The application styles itself from the active profile:
+The Qt platform supplies the application font and fallback palette.
+`ThemeController` reads the live KDE palette when available and updates the
+window's colour roles. It watches `kdeglobals` and the active Kvantum theme so
+changes from KDE System Settings, the CLI, or the GUI reach the open window.
+`QT_STYLE_OVERRIDE` keeps the widget style fixed.
 
-| Active profile | App look |
-|----------------|----------|
-| `glass` | Translucent dark "glass panel", dark controls, light text, KWin blur requested |
-| `paper` | Light panel, light controls, dark text |
-| `dark` / `light` | Plain dark / light palette |
-| `system` | Follows the system colour scheme |
+## Browse, review, and apply
 
-Implementation notes:
-
-- When the desktop's look changes, the **widget style is created anew**
-  (`ThemeController.reload_desktop_look`): Kvantum reads its theme once, when the
-  style is created, so buttons would keep the previous theme until a restart. An
-  apply from the app does it at once; everything else (CLI, `theme-menu`, the
-  Theme Inspector, System Settings) is noticed by a watcher on `kdeglobals` and the
-  active Kvantum theme (`watch_desktop_look`), which reloads only when the style or
-  colours really changed. `QT_STYLE_OVERRIDE` keeps the style fixed.
-- The whole **application palette** is switched (`ThemeController._apply_palette`)
-  so Qt Quick Controls (buttons, chips, check boxes…) match the custom QML
-  colours. Without this the window looked "half dark".
-- `Kirigami.Page` paints `Platform.Theme.backgroundColor` behind its content;
-  `Main.qml` overrides the page `background` so glass mode shows the translucent
-  glass panel instead of an opaque light rectangle.
-- **All colours live in one place**: `qml/Components/ThemeColors.qml`, a QML
-  singleton of `glass`-parameterised accessors (`ThemeColors.cardBg(glassMode)`,
-  `ThemeColors.fgColor(glassMode)`, …). It is the only file allowed to read
-  `Kirigami.Theme` directly — those colour roles can be *invalid* with PySide6's
-  bundled Qt, which is why it wraps every lookup in `safeColor(role, fallback)`.
-  Previously every component copy-pasted that helper and the palettes drifted
-  apart.
-- **All font sizes come from** `qml/Components/TypeScale.qml` (also a singleton:
-  `body`, `subtitle`, `title`, `caption`, derived from the platform font).
-  Never bind `font.pointSize` to `Platform.Units.*Spacing` — those are spacing
-  tokens (4 pt / 6 pt here) and rendered body text near-illegible.
-- Window transparency is owned by QML (`color:` binding) — the Python side must
-  **not** call `QWindow.setColor()`, as that overrides the QML binding.
-- The global drawer is `modal: true` (the default). A non-modal `GlobalDrawer` is
-  a *permanent* sidebar on desktop, which eats ~220 px and overlaps the header.
-
-## Select, then Apply
-
-Switching a profile runs `kolira apply`, which touches dozens of config
-files and takes seconds. Two consequences shape the UI:
-
-- Clicking a profile card (or pressing Space while it has focus) only sets
-  `selectedProfile`. The **Apply** button opens a review; files change only after its confirmation,
-  and the button is disabled while the selection already matches the active
-  profile. Secondary per-profile actions (Duplicate, Diff, Edit description,
-  Delete) live in the card's **⋯** menu.
-- Apply/save/delete run on a `QThreadPool` worker (`ProfileController.busy`,
-  `operationStarted` / `operationFinished`), so the window keeps repainting and
-  the busy indicator animates while the work happens. The result is shown in an
-  inline message that auto-clears after a few seconds.
-- The check-box `checked` state is model-driven. A Qt Quick control writes
-  to `checked` on click, which destroys a plain `checked:` binding, so the
-  component re-arms it with
-  `Binding { restoreMode: Binding.RestoreBindingOrValue }`.
+- Choose a card to see saved components and an approximate appearance preview.
+  Mouse and keyboard activation open the same details page. The header reads
+  Live through Rust and shows the last successful profile apply if it is in
+  history.
+- **Apply** opens the same review from a card, details, history, or the tray.
+  Expand the technical diff to see individual files. If a dependency needs
+  attention, open the filtered dependency page and review again after checking
+  it. The confirmation always applies the reviewed token through Rust.
+- **Save as theme** captures Live under a new name. With pending changes you
+  can choose the current appearance or include its draft. An optional
+  Look & Feel resource is written into the package. The current desktop,
+  active marker and draft stay intact.
+- **Wallpapers** has its own page for the current image, picker, and navigation.
+  Preview decoding and wallpaper operations run off the UI thread.
 
 ## Screenshots
 

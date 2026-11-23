@@ -77,6 +77,8 @@ pub const KITTY_INCLUDE: &str = "include kolira.conf";
 pub const ALACRITTY_HOST: &str = ".config/alacritty/alacritty.toml";
 pub const ALACRITTY_THEME: &str = ".config/alacritty/kolira.toml";
 pub const ALACRITTY_IMPORT: &str = "kolira.toml";
+pub(crate) const TERMINAL_CONFIGS: [(&str, &str); 2] =
+    [(KITTY_HOST, KITTY_THEME), (ALACRITTY_HOST, ALACRITTY_THEME)];
 
 /// Which keys of an INI group are appearance.
 #[derive(Debug, Clone, Copy)]
@@ -279,6 +281,13 @@ const VSCODE: &[&str] = &[
     "custom-ui-style.*",
     "vscode_custom_css.*",
 ];
+pub(crate) const EDITOR_SETTINGS: &[&str] = &[
+    ".config/Code/User/settings.json",
+    ".config/Code - OSS/User/settings.json",
+    ".config/Cursor/User/settings.json",
+];
+pub(crate) const BTOP_CONFIG: &str = ".config/btop/btop.conf";
+pub(crate) const ZED_CONFIG: &str = ".config/zed/settings.json";
 const ZED: &[&str] = &[
     "theme",
     "icon_theme",
@@ -318,7 +327,7 @@ pub fn policy(rel: &str) -> Policy {
     if rel.ends_with("/.obsidian/appearance.json")
         || (rel.starts_with(crate::obsidian::SNAPSHOT) && rel.ends_with("/appearance.json"))
     {
-        return Policy::Jsonc(&["theme", "cssTheme", "enabledCssSnippets"]);
+        return Policy::Jsonc(crate::obsidian::APPEARANCE_KEYS);
     }
     if rel.starts_with(".local/share/konsole/") && rel.ends_with(".profile") {
         return Policy::Ini(KONSOLE_PROFILE);
@@ -343,14 +352,12 @@ pub fn policy(rel: &str) -> Policy {
         ".config/gtk-3.0/settings.ini" | ".config/gtk-4.0/settings.ini" => {
             Policy::Ini(GTK_SETTINGS)
         }
-        ".config/btop/btop.conf" => Policy::Kv(BTOP),
-        ".config/Code/User/settings.json"
-        | ".config/Code - OSS/User/settings.json"
-        | ".config/Cursor/User/settings.json" => Policy::Jsonc(VSCODE),
+        BTOP_CONFIG => Policy::Kv(BTOP),
+        rel if EDITOR_SETTINGS.contains(&rel) => Policy::Jsonc(VSCODE),
         ".config/VSCodium/User/settings.json" => Policy::Jsonc(VSCODIUM_COLOURS),
         ".config/micro/settings.json" => Policy::Jsonc(&["colorscheme"]),
         ".local/share/PrismLauncher/prismlauncher.cfg" => Policy::Ini(PRISM),
-        ".config/zed/settings.json" => Policy::Jsonc(ZED),
+        ZED_CONFIG => Policy::Jsonc(ZED),
         KITTY_HOST => Policy::KittyHost,
         ALACRITTY_HOST => Policy::AlacrittyHost,
         _ => Policy::Whole,
@@ -632,13 +639,16 @@ pub fn unused_files_in(dir: &std::path::Path) -> Vec<&'static str> {
     }
 }
 
-/// `live` with its appearance keys replaced by the theme's: allowed keys the
-/// theme lacks are removed, every other key is kept as it is; fonts keep the
-/// live size.
+pub(crate) fn kde_palette_group(group: &str) -> bool {
+    group.starts_with("Colors:") || group.starts_with("ColorEffects:") || group == "WM"
+}
+
+/// `live` with its appearance keys replaced by the theme's. Partial KDE and
+/// window decoration settings preserve omitted keys. Fonts keep the live size.
 pub fn ini_merge(theme: &str, live: &str, rules: &[Rule]) -> String {
     let theme = parse_ini(&ini_filter(theme, rules));
     let mut live = parse_ini(live);
-    let live_font = |sections: &[Section], group: &str, key: &str| -> Option<String> {
+    let ini_value = |sections: &[Section], group: &str, key: &str| -> Option<String> {
         sections
             .iter()
             .filter(|s| s.group() == group)
@@ -661,7 +671,7 @@ pub fn ini_merge(theme: &str, live: &str, rules: &[Rule]) -> String {
                     if FONT_KEYS.contains(&key.as_str()) {
                         *line = format!(
                             "{k}={}",
-                            keep_live_size(&key, v, live_font(&live, &group, &key).as_deref())
+                            keep_live_size(&key, v, ini_value(&live, &group, &key).as_deref())
                         );
                     }
                 }
@@ -669,9 +679,33 @@ pub fn ini_merge(theme: &str, live: &str, rules: &[Rule]) -> String {
             t
         })
         .collect();
+    let kdeglobals = rules.iter().any(|rule| rule.group == "Colors:*");
+    let has_palette = kdeglobals && theme.iter().any(|s| kde_palette_group(s.group()));
+    let has_scheme = kdeglobals && ini_value(&theme, "General", "ColorScheme").is_some();
     for s in live.iter_mut().filter(|s| s.header.is_some()) {
         let group = s.group().to_string();
-        s.lines.retain(|l| !allowed_line(rules, &group, l));
+        s.lines.retain(|line| {
+            if !allowed_line(rules, &group, line) {
+                return true;
+            }
+            if has_scheme && has_palette && kde_palette_group(&group) {
+                // A named palette replaces its role groups together. A theme
+                // that only lists individual roles leaves other roles intact.
+                return false;
+            }
+            let Some(key) = base_key(line) else {
+                return false;
+            };
+            if kdeglobals && has_scheme && group == "General" && key == "ColorSchemeHash" {
+                return false;
+            }
+            (kdeglobals || group == "org.kde.kdecoration2")
+                && !theme
+                    .iter()
+                    .filter(|section| section.group() == group)
+                    .flat_map(|section| &section.lines)
+                    .any(|line| base_key(line) == Some(key))
+        });
     }
     for t in theme.into_iter().filter(|s| s.header.is_some()) {
         let group = t.group().to_string();
@@ -779,6 +813,10 @@ pub fn kv_filter(text: &str, keys: &[&str]) -> String {
 
 /// Allowed lines replaced in place (order kept), new ones appended.
 pub fn kv_merge(theme: &str, live: &str, keys: &[&str]) -> String {
+    kv_merge_inner(theme, live, keys, false)
+}
+
+fn kv_merge_inner(theme: &str, live: &str, keys: &[&str], preserve_absent: bool) -> String {
     let theme_lines: Vec<&str> = theme.lines().filter(|l| kv_allowed(keys, l)).collect();
     let mut used = vec![false; theme_lines.len()];
     let mut out: Vec<String> = Vec::new();
@@ -791,6 +829,8 @@ pub fn kv_merge(theme: &str, live: &str, keys: &[&str]) -> String {
         if let Some(i) = theme_lines.iter().position(|t| kv_key(t) == key) {
             out.push(theme_lines[i].to_string());
             used[i] = true;
+        } else if preserve_absent {
+            out.push(line.to_string());
         }
     }
     for (i, line) in theme_lines.iter().enumerate() {
@@ -1020,12 +1060,99 @@ pub fn jsonc_filter(text: &str, keys: &[&str]) -> String {
 /// `live` with its appearance members replaced by the theme's — positional
 /// patches, the rest of the file (comments, order, other keys) untouched.
 pub fn jsonc_merge(theme: &str, live: &str, keys: &[&str]) -> String {
+    jsonc_merge_inner(theme, live, keys, false)
+}
+
+pub(crate) fn jsonc_overlay(theme: &str, live: &str, keys: &[&str]) -> String {
+    jsonc_merge_inner(theme, live, keys, true)
+}
+
+fn jsonc_member<'a>(text: &'a str, key: &str) -> Option<&'a str> {
+    let member = members(text)
+        .into_iter()
+        .rfind(|member| member.key == key)?;
+    Some(&text[member.value.0..member.value.1])
+}
+
+pub(crate) fn jsonc_empty_object(text: &str) -> bool {
+    text.chars().filter(|c| !c.is_whitespace()).eq("{}".chars())
+}
+
+fn zed_theme_object(settings: &str) -> std::borrow::Cow<'_, str> {
+    use std::borrow::Cow;
+    match jsonc_member(settings, "theme") {
+        Some(theme) if theme.starts_with('{') => Cow::Borrowed(theme),
+        // A legacy string selects the same appearance in any system mode.
+        Some(theme) if theme.starts_with('"') => {
+            Cow::Owned(format!(r#"{{"light": {theme}, "dark": {theme}}}"#))
+        }
+        _ => Cow::Borrowed("{}"),
+    }
+}
+
+pub(crate) fn zed_theme_value(settings: &str, key: &str) -> Option<serde_json::Value> {
+    let theme = zed_theme_object(settings);
+    let value: String = serde_json::from_str(jsonc_member(&theme, key)?).ok()?;
+    (!value.is_empty()).then(|| serde_json::Value::String(value))
+}
+
+pub(crate) fn patch_zed_theme(
+    settings: &str,
+    key: &str,
+    value: Option<&serde_json::Value>,
+) -> String {
+    let theme = zed_theme_object(settings);
+    let next = match value {
+        Some(value) => jsonc_overlay(&format!(r#"{{"{key}":{value}}}"#), &theme, &[key]),
+        None => jsonc_remove_member(&theme, key),
+    };
+    if next == theme {
+        settings.to_string()
+    } else if jsonc_empty_object(&next) {
+        jsonc_remove_member(settings, "theme")
+    } else {
+        jsonc_overlay(&format!(r#"{{"theme":{next}}}"#), settings, &["theme"])
+    }
+}
+
+fn zed_apply(theme: &str, live: &str) -> String {
+    let Some(theme_value) = jsonc_member(theme, "theme").filter(|value| value.starts_with('{'))
+    else {
+        return jsonc_overlay(theme, live, ZED);
+    };
+    let other = jsonc_remove_member(theme, "theme");
+    let live = jsonc_overlay(&other, live, ZED);
+    if members(theme_value).is_empty() {
+        return live;
+    }
+    let next = jsonc_overlay(theme_value, &zed_theme_object(&live), &["*"]);
+    jsonc_overlay(&format!(r#"{{"theme":{next}}}"#), &live, &["theme"])
+}
+
+fn restore_zed(before: &str, after: &str, current: &str) -> String {
+    // When a newer setting is still present, keep the expanded representation
+    // of the former fixed theme so the two sides can be restored independently.
+    if let std::borrow::Cow::Owned(original) = zed_theme_object(before) {
+        if let (Some(written), Some(live)) =
+            (jsonc_member(after, "theme"), jsonc_member(current, "theme"))
+        {
+            if written.starts_with('{') && live.starts_with('{') && !json_equal(written, live) {
+                let before =
+                    jsonc_overlay(&format!(r#"{{"theme":{original}}}"#), before, &["theme"]);
+                return restore_json(&before, after, current);
+            }
+        }
+    }
+    restore_json(before, after, current)
+}
+
+fn jsonc_merge_inner(theme: &str, live: &str, keys: &[&str], preserve_absent: bool) -> String {
     let theme_members: Vec<(String, String)> = members(theme)
         .into_iter()
         .filter(|m| json_allowed(keys, &m.key))
         .map(|m| (m.key.clone(), theme[m.value.0..m.value.1].to_string()))
         .collect();
-    if members(live).is_empty() && !live.trim_start().starts_with('{') {
+    if members(live).is_empty() && live.as_bytes().get(skip_ws(live.as_bytes(), 0)) != Some(&b'{') {
         return jsonc_filter(theme, keys);
     }
     let mut text = live.to_string();
@@ -1040,6 +1167,9 @@ pub fn jsonc_merge(theme: &str, live: &str, keys: &[&str]) -> String {
         if let Some((_, value)) = theme_members.iter().find(|(k, _)| *k == m.key) {
             text.replace_range(m.value.0..m.value.1, value);
             done.push(m.key);
+            continue;
+        }
+        if preserve_absent {
             continue;
         }
         // Remove the member and one adjacent comma.
@@ -1061,6 +1191,22 @@ pub fn jsonc_merge(theme: &str, live: &str, keys: &[&str]) -> String {
         .iter()
         .filter(|(k, _)| !done.contains(k))
         .collect();
+    if preserve_absent && !missing.is_empty() {
+        let body = missing
+            .into_iter()
+            .map(|(key, value)| {
+                format!(
+                    "  {}: {value}",
+                    serde_json::to_string(key).unwrap_or_default()
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",\n");
+        let open = skip_ws(text.as_bytes(), 0);
+        let separator = if members(&text).is_empty() { "" } else { "," };
+        text.insert_str(open + 1, &format!("\n{body}{separator}\n"));
+        return text;
+    }
     if !missing.is_empty() {
         if let Some(close) = text.rfind('}') {
             let body = text[..close].trim_end().to_string();
@@ -1081,6 +1227,38 @@ pub fn jsonc_merge(theme: &str, live: &str, keys: &[&str]) -> String {
         }
     }
     text
+}
+
+/// Remove a root setting while leaving comments around its separators intact.
+pub(crate) fn jsonc_remove_member(text: &str, key: &str) -> String {
+    let mut text = text.to_string();
+    loop {
+        let entries = members(&text);
+        let Some((index, entry)) = entries
+            .iter()
+            .enumerate()
+            .rfind(|(_, entry)| entry.key == key)
+        else {
+            return text;
+        };
+        let bytes = text.as_bytes();
+        let after = skip_ws(bytes, entry.value.1);
+        let comma = if bytes.get(after) == Some(&b',') {
+            Some(after)
+        } else {
+            index
+                .checked_sub(1)
+                .map(|i| skip_ws(bytes, entries[i].value.1))
+                .filter(|i| bytes.get(*i) == Some(&b','))
+        };
+        if let Some(i) = comma.filter(|i| *i >= entry.value.1) {
+            text.remove(i);
+        }
+        text.replace_range(entry.start..entry.value.1, "");
+        if let Some(i) = comma.filter(|i| *i < entry.start) {
+            text.remove(i);
+        }
+    }
 }
 
 /// Reverse only values still equal to what Apply wrote. An unrelated user edit
@@ -1134,6 +1312,7 @@ pub(crate) fn restore_changed(
     }
     Ok(match policy(rel) {
         Policy::Native => crate::native_appearance::restore(rel, before, after, current)?,
+        Policy::Jsonc(_) if rel == ZED_CONFIG => restore_zed(before, after, current),
         Policy::Jsonc(_) => restore_json(before, after, current),
         Policy::Ini(_)
         | Policy::Kv(_)
@@ -1721,7 +1900,7 @@ pub fn applied(rel: &str, theme_text: &str, live_text: Option<&str>) -> Result<S
         Policy::KwinRules => kwinrules_merge(&crate::layout::kwinrules_for_theme(theme_text), live),
         Policy::Appletsrc => crate::layout::appletsrc_merge(theme_text, live),
         Policy::PanelViews => crate::layout::panel_views_merge(theme_text, live, None, None),
-        Policy::Kv(keys) => kv_merge(theme_text, live, keys),
+        Policy::Kv(keys) => kv_merge_inner(theme_text, live, keys, rel == BTOP_CONFIG),
         Policy::Jsonc(keys) if rel == ".claude/settings.json" => {
             let current = crate::field::json_get(live, &["theme".into()]);
             let incoming = crate::field::json_get(theme_text, &["theme".into()]);
@@ -1754,7 +1933,10 @@ pub fn applied(rel: &str, theme_text: &str, live_text: Option<&str>) -> Result<S
             };
             jsonc_merge(&adjusted, live, keys)
         }
-        Policy::Jsonc(keys) => jsonc_merge(theme_text, live, keys),
+        Policy::Jsonc(_) if rel == ZED_CONFIG => zed_apply(theme_text, live),
+        Policy::Jsonc(keys) => {
+            jsonc_merge_inner(theme_text, live, keys, EDITOR_SETTINGS.contains(&rel))
+        }
         Policy::Prefs(keys) => {
             let filtered = theme_text
                 .lines()
@@ -1768,18 +1950,20 @@ pub fn applied(rel: &str, theme_text: &str, live_text: Option<&str>) -> Result<S
                 .copied()
                 .filter(|k| *k != "toolkit.legacyUserProfileCustomizations.stylesheets")
                 .collect();
-            let merged = prefs_merge(&filtered, live, &keys);
-            let key = if crate::browser_appearance::is_zen(rel) {
-                "zen.view.window.scheme"
+            let zen = crate::browser_appearance::is_zen(rel);
+            let (merged, key) = if zen {
+                (
+                    crate::browser_appearance::overlay_prefs(&filtered, live, &keys),
+                    crate::browser_appearance::ZEN_MODE,
+                )
             } else {
-                "browser.theme.toolbar-theme"
+                (
+                    prefs_merge(&filtered, live, &keys),
+                    "browser.theme.toolbar-theme",
+                )
             };
             match crate::field::userjs_get(theme_text, key).and_then(|v| v.as_u64()) {
-                Some(mode @ 0..=1) => crate::browser_appearance::mode(
-                    &merged,
-                    mode == 0,
-                    crate::browser_appearance::is_zen(rel),
-                ),
+                Some(mode @ 0..=1) => crate::browser_appearance::mode(&merged, mode == 0, zen),
                 _ => merged,
             }
         }
@@ -1910,14 +2094,14 @@ mod tests {
                 && m.contains("ScreenScaleFactors=eDP-2=1.25;")
                 && m.contains("SingleClick=false")
         );
-        // Look: from the theme; the theme's absent accent / colour group are removed.
+        // The selected scheme replaces the palette. The unrelated accent stays.
         assert!(
             m.contains("ColorScheme=Dracula")
                 && m.contains("widgetStyle=kvantum")
                 && m.contains("[Colors:Window]")
         );
         assert!(
-            !m.contains("AccentColor=1,2,3")
+            m.contains("AccentColor=1,2,3")
                 && !m.contains("[Colors:View]")
                 && !m.contains("ColorScheme=Mine")
         );

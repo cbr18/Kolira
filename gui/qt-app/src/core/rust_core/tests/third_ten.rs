@@ -322,6 +322,7 @@ fn bundled_wallpaper_accent_metadata_stays_consistent() {
         "glass",
         "material-you",
         "minecraft-overworld-dark",
+        "sakura-dream",
     ] {
         let root = repo.join("themes").join(name);
         let expected = matches!(name, "glass" | "material-you");
@@ -358,6 +359,76 @@ fn bundled_wallpaper_accent_metadata_stays_consistent() {
             vec![format!("accentColorFromWallpaper={expected}").as_str()],
             "{name}"
         );
+    }
+}
+
+#[test]
+fn bundled_zed_text_and_git_status_colors_read_on_all_surfaces() {
+    use kolira_core::palette::{contrast, Rgb, MIN_TEXT_CONTRAST};
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../../themes");
+    for entry in fs::read_dir(root).unwrap().flatten() {
+        let dir = entry.path();
+        if !dir.join("theme.json").is_file() {
+            continue;
+        }
+        let name = entry.file_name().into_string().unwrap();
+        let file = dir.join(format!(".config/zed/themes/kolira-{name}.json"));
+        let theme: Value = serde_json::from_slice(&fs::read(file).unwrap()).unwrap();
+        let style = &theme["themes"][0]["style"];
+        let color = |value: &Value| Rgb::parse(value.as_str().unwrap()).unwrap();
+        let ui = [
+            "background",
+            "panel.background",
+            "surface.background",
+            "ghost_element.hover",
+            "ghost_element.selected",
+        ]
+        .map(|role| color(&style[role]));
+        let editor = [
+            color(&style["editor.background"]),
+            color(&style["editor.active_line.background"]),
+            color(&style["search.match_background"]),
+            color(&style["players"][0]["selection"]),
+        ];
+        let verify = |role: &str, value: &Value, backgrounds: &[Rgb]| {
+            let foreground = color(value);
+            for background in backgrounds {
+                let ratio = contrast(foreground, *background);
+                assert!(
+                    ratio >= MIN_TEXT_CONTRAST,
+                    "{name} {role} {foreground:?} on {background:?}: {ratio:.2}"
+                );
+            }
+        };
+        for role in [
+            "text",
+            "text.muted",
+            "text.accent",
+            "icon.accent",
+            "link_text.hover",
+            "border.focused",
+            "created",
+            "modified",
+            "deleted",
+            "renamed",
+            "conflict",
+            "warning",
+            "error",
+            "success",
+        ] {
+            verify(role, &style[role], &ui);
+        }
+        for role in [
+            "editor.foreground",
+            "editor.line_number",
+            "editor.active_line_number",
+            "terminal.foreground",
+        ] {
+            verify(role, &style[role], &editor);
+        }
+        for (token, style) in style["syntax"].as_object().unwrap() {
+            verify(token, &style["color"], &editor);
+        }
     }
 }
 

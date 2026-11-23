@@ -12,7 +12,7 @@
 //!   (key only — the look is already live) and a save carries it as the
 //!   theme's own asset.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Result};
 use serde_json::{json, Value};
@@ -113,9 +113,13 @@ pub fn laf_id(name: &str) -> String {
 
 /// `contents/defaults` from the live look.
 pub fn laf_defaults() -> String {
+    laf_defaults_for(&Base::Live)
+}
+
+fn laf_defaults_for(base: &Base) -> String {
     let get = |id: &str| {
         field::field(id)
-            .and_then(|f| field::read(f, &Base::Live))
+            .and_then(|f| field::read(f, base))
             .map(|v| field::value_str(&v))
             .unwrap_or_default()
     };
@@ -163,6 +167,41 @@ pub fn look_and_feel(name: &str) -> Result<PathBuf> {
     validate_profile_name(name)?;
     let id = laf_id(name);
     let dir = data_home().join("plasma/look-and-feel").join(&id);
+    write_look_and_feel(name, &id, &dir, &laf_defaults())?;
+    // The look is live already: write only the key (no plasma-apply-lookandfeel).
+    let report = field::apply_with(
+        &[("look_and_feel".into(), Value::from(id.clone()))],
+        &["look_and_feel"],
+    );
+    if let Some(e) = report.errors.first() {
+        bail!("{e}");
+    }
+    Ok(dir)
+}
+
+pub(crate) fn snapshot_look_and_feel(name: &str, snapshot: &Path) -> Result<()> {
+    let id = laf_id(name);
+    let dir = snapshot.join(".local/share/plasma/look-and-feel").join(&id);
+    for path in dir
+        .join("contents")
+        .ancestors()
+        .take_while(|path| *path != snapshot)
+    {
+        anyhow::ensure!(!path.is_symlink(), "Symlink in the stored Look & Feel path");
+    }
+    let base = Base::Snapshot(snapshot.into());
+    write_look_and_feel(name, &id, &dir, &laf_defaults_for(&base))?;
+    let file = base.resolve(".config/kdeglobals");
+    let text = match std::fs::read_to_string(&file) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(e) => return Err(e.into()),
+    };
+    let text = field::set_ini_text(&text, "KDE", "LookAndFeelPackage", &id);
+    crate::gui_api::write_bytes(&file, text.as_bytes(), None)
+}
+
+fn write_look_and_feel(name: &str, id: &str, dir: &Path, defaults: &str) -> Result<()> {
     let contents = dir.join("contents");
     std::fs::create_dir_all(&contents)?;
     let metadata = json!({
@@ -181,16 +220,8 @@ pub fn look_and_feel(name: &str) -> Result<PathBuf> {
         dir.join("metadata.json"),
         serde_json::to_string_pretty(&metadata)? + "\n",
     )?;
-    std::fs::write(contents.join("defaults"), laf_defaults()).context("cannot write defaults")?;
-    // The look is live already: write only the key (no plasma-apply-lookandfeel).
-    let report = field::apply_with(
-        &[("look_and_feel".into(), Value::from(id.clone()))],
-        &["look_and_feel"],
-    );
-    if let Some(e) = report.errors.first() {
-        bail!("{e}");
-    }
-    Ok(dir)
+    std::fs::write(contents.join("defaults"), defaults).context("cannot write defaults")?;
+    Ok(())
 }
 
 #[cfg(test)]

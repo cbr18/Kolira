@@ -52,6 +52,36 @@
         "null"
       ]
     },
+    "zen_overrides": {
+      "type": "object",
+      "description": "Zen fields supplied or explicitly excluded by the saved-profile editor",
+      "properties": {
+        "accent": { "type": "boolean" },
+        "mode": { "type": "boolean" }
+      }
+    },
+    "obsidian_overrides": {
+      "type": "object",
+      "description": "Explicit profile-wide Obsidian selections or exclusions",
+      "properties": {
+        "mode": {
+          "oneOf": [
+            { "const": "exclude" },
+            { "type": "object", "required": ["value"], "properties": {
+              "value": { "enum": ["light", "dark"] }
+            } }
+          ]
+        },
+        "theme": {
+          "oneOf": [
+            { "const": "exclude" },
+            { "type": "object", "required": ["value"], "properties": {
+              "value": { "type": "string" }
+            } }
+          ]
+        }
+      }
+    },
     "assets": {
       "type": "array",
       "items": {

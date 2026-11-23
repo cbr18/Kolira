@@ -22,8 +22,19 @@ def finished(success, message):
     QTimer.singleShot(1500, app.quit)
 
 
+def review_preview():
+    preview = controller.applyPreview
+    if controller.previewBusy or controller.busy:
+        return
+    if preview.get("error"):
+        finished(False, preview["error"])
+    elif token := preview.get("token"):
+        controller.confirmPreview(token)
+
+
 controller.operationFinished.connect(finished)
-QTimer.singleShot(0, lambda: controller.applyProfile(sys.argv[1]))
+controller.previewChanged.connect(review_preview)
+QTimer.singleShot(0, lambda: controller.previewApply(sys.argv[1]))
 QTimer.singleShot(150000, app.quit)
 app.exec()
 print(f"gui apply {sys.argv[1]}: {outcome}")

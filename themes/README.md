@@ -3,7 +3,7 @@
 Themes exclude fastfetch and preserve the user's Plasma application launcher,
 including its button icon/image. Simple Application Launcher is not required.
 
-Eight themes come with kolira, including `material-you`. The installer adds new ones and replaces
+Nine themes come with Kolira, including `sakura-dream`. The installer adds new ones and replaces
 ones the kit changed, unless you changed them (nothing is applied);
 `install-kolira.sh --no-themes` skips them. By hand:
 
@@ -13,13 +13,12 @@ kolira import themes/glass        # then: kolira apply glass
 
 Themes style the user's own panels and never bring a layout (`docs/THEMES.md`).
 
-Each folder is a public export (`kolira export NAME --dir=themes/NAME --public`):
-only the look (see `docs/THEMES.md`), the home folder written as `$HOME`, no desktop
-icon positions, no Look & Feel preview screenshots. Assets that may not be
-redistributed are **not** included — they are *dependencies* with their official
-source; after importing, kolira's *This Theme Needs* dialog (or
-`kolira deps NAME --install`) fetches them. System packages open in a
-terminal with one install command — you type your own password there.
+Each folder uses Kolira's export format. It holds appearance settings (see
+`docs/THEMES.md`) and uses `$HOME` for home paths. Desktop icon positions and
+Look & Feel screenshots are omitted. A public export includes only assets
+marked redistributable. After importing, Kolira's *This Theme Needs* dialog or
+`kolira deps NAME --install` can fetch missing assets from their sources.
+System packages open in a terminal with one install command.
 
 The code of this repository is MIT; every asset below keeps its own licence. The
 other files are configuration written for these themes (colours, fonts, CSS,
@@ -204,7 +203,24 @@ from an editor store for this theme. Font sizes stay the user's on apply.
 The bundled `export.json` covers the files with SHA-256, so the installer and
 `kolira import themes/minecraft-overworld-dark` use the same verified package.
 
-## Application coverage (all eight themes)
+## sakura-dream
+
+Light pastel pink Plasma theme with a fixed sakura accent, rounded Klassy
+windows, translucent surfaces and a matching application palette.
+
+| Included asset | Licence and source |
+|---|---|
+| KoliraSakura KDE and Konsole colour schemes, Sakura Dream Look & Feel, generated app palettes | MIT, Kolira |
+| SakuraOrchis Kvantum style | GPL-3.0-or-later, Sakura Dream recolour of [Orchis KDE](https://github.com/vinceliuice/Orchis-kde) |
+| Mignon pastel light pink icons | GPL-3.0-only, Sakura Dream adaptation of [Mignon by Igor Moraes and contributors](https://github.com/igorfmoraes/Mignon-icon-theme) |
+| `sakura-dream-wall-1.png` | Original 3840 × 2160 wallpaper. The Kolira maintainer confirmed redistribution permission on 2026-11-24. [Source](https://wallhaven.cc/w/o3x3qm). |
+
+The theme uses Klassy, Better Blur DX, Oh My Posh and `Fluent-pink-Light` when
+available. This repository package includes the original desktop wallpaper.
+The other original images are listed for reference.
+[Second](https://wallhaven.cc/w/o3kw6p), [third](https://wallhaven.cc/w/2y7dy9).
+
+## Application coverage
 
 All packages have a base16 palette, explicit `app_targets[]` and offline resources
 for the first ten application groups from [APPLICATIONS.md](../docs/APPLICATIONS.md).

@@ -197,29 +197,12 @@ Kirigami.ScrollablePage {
 
                 Kirigami.Heading {
                     level: 2
-                    text: qsTr("Appearance")
+                    text: qsTr("Application")
                     color: ThemeColors.fgColor(page.glassMode)
                 }
 
                 Kirigami.FormLayout {
                     Layout.fillWidth: true
-
-                    ComboBox {
-                        id: themeCombo
-                        Layout.fillWidth: true
-                        Kirigami.FormData.label: qsTr("Application theme")
-                        model: [{value:"system",label:qsTr("System")},{value:"glass",label:qsTr("Glass")},
-                            {value:"paper",label:qsTr("Paper")},{value:"dark",label:qsTr("Dark")},{value:"light",label:qsTr("Light")}]
-                        textRole: "label"
-                        valueRole: "value"
-                        onActivated: settingsController.theme = currentValue
-                        Binding {
-                            target: themeCombo
-                            property: "currentIndex"
-                            value: themeCombo.model.findIndex(function(item) { return item.value === settingsController.theme })
-                            restoreMode: Binding.RestoreBindingOrValue
-                        }
-                    }
 
                     // Which core implementation to use. Applied on restart:
                     // controllers build their core once at startup.

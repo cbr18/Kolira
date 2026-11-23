@@ -65,6 +65,10 @@ for pattern, template in (
     (r"^Removed (.+)$", "Removed %1"), (r"^Reinstalled (.+)$", "Reinstalled %1"),
     (r"^Installed (.+) in (.+)$", "Installed %1 in %2"),
     (r"^Could not parse Discord settings.json: (.+)$", "Could not parse Discord settings.json: %1"),
+    (r"^Cannot convert legacy component: (.+)$", "Cannot convert legacy component: %1"),
+    (r"^Cannot convert legacy application choice: (.+)$", "Cannot convert legacy application choice: %1"),
+    (r"^Legacy global theme was not captured: (.+)$", "Legacy global theme was not captured: %1"),
+    (r"^Legacy wallpaper is unavailable: (.+)$", "Legacy wallpaper is unavailable: %1"),
 ):
     _PATTERNS.append((re.compile(pattern), lambda m, template=template: render_message(template, m.groups())))
 

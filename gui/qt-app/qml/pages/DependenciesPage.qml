@@ -9,31 +9,57 @@ Kirigami.Page {
     id: page
 
     readonly property bool glassMode: themeController.isGlass
-    readonly property real rowPadding: Platform.Units.largeSpacing
-    readonly property real selectWidth: Platform.Units.gridUnit * 2.2
-    readonly property real nameWidth: Platform.Units.gridUnit * 12
-    readonly property real categoryWidth: Platform.Units.gridUnit * 8
-    readonly property real statusWidth: Platform.Units.gridUnit * 7
-    readonly property real sourceWidth: Platform.Units.gridUnit * 9
-    readonly property real usedWidth: Platform.Units.gridUnit * 11
     property var chosen: ({
     })
     property string themeFilter: ""
+    property var reviewOptions: null
+    signal reviewRequested(var options)
     readonly property var visibleRows: dependencyController.rows.filter(function(row) {
         return (!missingOnly.checked || !row.installed) && (scope.currentIndex !== 1 || row.application) && (themeFilter === "" || row.themes.indexOf(themeFilter) >= 0) && (search.text === "" || (row.dependency.title + " " + row.dependency.name).toLowerCase().indexOf(search.text.toLowerCase()) >= 0);
     })
 
+    readonly property var groups: {
+        const groups = []
+        const common = visibleRows.filter(row => row.application)
+        if (themeFilter === "" && common.length)
+            groups.push({title: qsTr("Common dependencies"), rows: common})
+        if (scope.currentIndex === 1)
+            return groups
+        const themes = new Map()
+        const unused = []
+        for (const row of visibleRows) {
+            if (themeFilter === "" && row.application)
+                continue
+            const names = themeFilter ? [themeFilter] : row.themes
+            if (!names.length) {
+                unused.push(row)
+                continue
+            }
+            for (const name of names) {
+                if (!themes.has(name))
+                    themes.set(name, [])
+                themes.get(name).push(row)
+            }
+        }
+        for (const name of [...themes.keys()].sort((a, b) => a.localeCompare(b)))
+            groups.push({title: name, rows: themes.get(name)})
+        if (unused.length)
+            groups.push({title: qsTr("Unused dependencies"), rows: unused})
+        return groups
+    }
+
     function selection() {
-        return visibleRows.filter(function(row) {
-            return chosen[row.id] === true;
-        });
+        return visibleRows.filter(row => chosen[row.id] === true);
+    }
+
+    function installSelection() {
+        return selection().filter(row => !row.installed && row.can_install)
     }
 
     function eligible(action) {
-        const selected = selection();
-        return selected.length > 0 && selected.every(function(row) {
-            return action === "install" ? row.can_install : action === "remove" ? row.can_remove : row.can_install && row.can_remove;
-        });
+        const selected = selection()
+        return selected.length > 0 && selected.every(row => action === "remove"
+            ? row.can_remove : row.can_install && row.can_remove)
     }
 
     function select(id, checked) {
@@ -124,10 +150,18 @@ Kirigami.Page {
             spacing: Platform.Units.smallSpacing
 
             AppButton {
+                text: qsTr("Review theme changes")
+                icon.name: "dialog-ok-apply"
+                visible: page.reviewOptions !== null
+                enabled: !dependencyController.busy && !profileController.busy
+                onClicked: page.reviewRequested(page.reviewOptions)
+            }
+
+            AppButton {
                 text: qsTr("Install selected")
                 icon.name: "download"
-                enabled: !dependencyController.busy && !profileController.busy && page.eligible("install")
-                onClicked: dependencyController.operate(page.selection().map(function(row) {
+                enabled: !dependencyController.busy && !profileController.busy && page.installSelection().length > 0
+                onClicked: dependencyController.operate(page.installSelection().map(function(row) {
                     return row.id;
                 }), "install", false)
             }
@@ -174,6 +208,10 @@ Kirigami.Page {
 
                 width: Math.min(filterBar.width, Math.max(implicitWidth, Platform.Units.gridUnit * 11))
                 model: [qsTr("All dependencies"), qsTr("Application"), qsTr("Theme")]
+                Component.onCompleted: {
+                    if (page.themeFilter !== "")
+                        currentIndex = 2
+                }
                 onActivated: page.themeFilter = currentIndex === 2 ? themeChoice.currentText : ""
                 Accessible.name: qsTr("Show dependencies for")
             }
@@ -186,6 +224,7 @@ Kirigami.Page {
                 model: profileController.profiles.map(function(p) {
                     return p.name;
                 })
+                currentIndex: page.themeFilter === "" ? 0 : find(page.themeFilter)
                 onActivated: page.themeFilter = currentText
                 Accessible.name: qsTr("Theme")
             }
@@ -230,280 +269,109 @@ Kirigami.Page {
 
         }
 
-        Label {
-            Layout.fillWidth: true
-            text: qsTr("Select resources with the checkboxes. Existing external resources and modified files are protected from deletion.")
-            wrapMode: Text.WordWrap
-            color: ThemeColors.dimColor(page.glassMode)
-        }
-
-        Item {
-            id: tableViewport
-
+        InsetScrollView {
+            id: table
+            objectName: "dependenciesTable"
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.minimumWidth: 0
+            contentWidth: availableWidth
+            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+            ScrollBar.vertical: ScrollBar {
+                objectName: "dependenciesVerticalBar"
+                parent: table
+                anchors.top: table.top
+                anchors.right: table.right
+                anchors.bottom: table.bottom
+                policy: ScrollBar.AsNeeded
+            }
 
-            Flickable {
-                id: table
+            ColumnLayout {
+                width: table.availableWidth
+                spacing: Kirigami.Units.largeSpacing
 
-                objectName: "dependenciesTable"
-                anchors.fill: parent
-                anchors.rightMargin: tableBar.implicitWidth + Platform.Units.smallSpacing
-                contentWidth: Math.max(width, page.selectWidth + page.nameWidth + page.categoryWidth + page.statusWidth + page.sourceWidth + page.usedWidth + 5 * Platform.Units.smallSpacing + 2 * page.rowPadding)
-                contentHeight: height
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-                flickableDirection: Flickable.HorizontalFlick
-
-                ColumnLayout {
-                    width: table.contentWidth
-                    height: Math.max(0, table.height - (horizontalBar.visible ? horizontalBar.implicitHeight + Platform.Units.smallSpacing : 0))
-                    spacing: Platform.Units.smallSpacing
-
-                    RowLayout {
-                        id: tableHeader
-
+                Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    visible: page.groups.length === 0 && !dependencyController.busy
+                    text: qsTr("No dependencies to show.")
+                }
+                Repeater {
+                    model: page.groups
+                    delegate: ColumnLayout {
+                        id: dependencyGroup
+                        required property var modelData
                         Layout.fillWidth: true
-                        Layout.leftMargin: page.rowPadding
-                        Layout.rightMargin: page.rowPadding
-                        Layout.fillHeight: false
-                        spacing: Platform.Units.smallSpacing
+                        Layout.minimumWidth: 0
+                        spacing: Kirigami.Units.smallSpacing
 
-                        CheckBox {
-                            id: selectAll
-
-                            objectName: "selectAllDependencies"
-                            Layout.preferredWidth: page.selectWidth
-                            Layout.minimumWidth: page.selectWidth
-                            Layout.maximumWidth: page.selectWidth
-                            tristate: true
-                            checkState: page.selection().length === 0 ? Qt.Unchecked : page.selection().length === page.visibleRows.length ? Qt.Checked : Qt.PartiallyChecked
-                            nextCheckState: function() {
-                                return checkState === Qt.Checked ? Qt.Unchecked : Qt.Checked;
-                            }
-                            onClicked: {
-                                const next = Object.assign({
-                                }, page.chosen);
-                                const check = page.selection().length !== page.visibleRows.length;
-                                page.visibleRows.forEach(function(row) {
-                                    next[row.id] = check;
-                                });
-                                page.chosen = next;
-                            }
-                            Accessible.name: qsTr("Select all visible dependencies")
-
-                            Binding {
-                                target: selectAll
-                                property: "checkState"
-                                value: page.selection().length === 0 ? Qt.Unchecked : page.selection().length === page.visibleRows.length ? Qt.Checked : Qt.PartiallyChecked
-                            }
-
-                        }
-
-                        Label {
-                            wrapMode: Text.Wrap
-                            text: qsTr("Name")
-                            Layout.preferredWidth: page.nameWidth
-                            Layout.minimumWidth: page.nameWidth
-                            Layout.maximumWidth: page.nameWidth
-                            color: ThemeColors.fgColor(page.glassMode)
-                        }
-
-                        Label {
-                            wrapMode: Text.Wrap
-                            text: qsTr("Category")
-                            Layout.preferredWidth: page.categoryWidth
-                            Layout.minimumWidth: page.categoryWidth
-                            Layout.maximumWidth: page.categoryWidth
-                            color: ThemeColors.fgColor(page.glassMode)
-                        }
-
-                        Label {
-                            wrapMode: Text.Wrap
-                            text: qsTr("Status")
-                            Layout.preferredWidth: page.statusWidth
-                            Layout.minimumWidth: page.statusWidth
-                            Layout.maximumWidth: page.statusWidth
-                            color: ThemeColors.fgColor(page.glassMode)
-                        }
-
-                        Label {
-                            wrapMode: Text.Wrap
-                            text: qsTr("Source")
-                            Layout.preferredWidth: page.sourceWidth
-                            Layout.minimumWidth: page.sourceWidth
-                            Layout.maximumWidth: page.sourceWidth
-                            color: ThemeColors.fgColor(page.glassMode)
-                        }
-
-                        Label {
-                            wrapMode: Text.Wrap
-                            text: qsTr("Used by")
+                        Kirigami.Heading {
                             Layout.fillWidth: true
-                            color: ThemeColors.fgColor(page.glassMode)
+                            Layout.minimumWidth: 0
+                            level: 3
+                            text: dependencyGroup.modelData.title
+                            textFormat: Text.PlainText
+                            wrapMode: Text.Wrap
                         }
-
-                    }
-
-                    ListView {
-                        id: list
-
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        model: page.visibleRows
-                        clip: true
-                        spacing: Platform.Units.smallSpacing
-
-                        Label {
-                            anchors.centerIn: parent
-                            visible: list.count === 0 && !dependencyController.busy
-                            text: qsTr("No dependencies match these filters")
-                            color: ThemeColors.dimColor(page.glassMode)
-                        }
-
-                        ScrollBar.vertical: ScrollBar {
-                            id: tableBar
-
-                            objectName: "dependenciesVerticalBar"
-                            parent: tableViewport
-                            anchors.right: parent.right
-                            anchors.top: parent.top
-                            anchors.topMargin: tableHeader.height + Platform.Units.smallSpacing
-                            anchors.bottom: parent.bottom
-                            anchors.bottomMargin: horizontalBar.visible ? horizontalBar.implicitHeight + Platform.Units.smallSpacing : 0
-                        }
-
-                        delegate: Rectangle {
-                            id: row
-
-                            required property var modelData
-
-                            width: list.width
-                            implicitHeight: rowContent.implicitHeight + 2 * Platform.Units.smallSpacing
-                            color: ThemeColors.cardBg(page.glassMode)
-                            radius: Platform.Units.smallSpacing
-
-                            RowLayout {
-                                id: rowContent
-
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.leftMargin: page.rowPadding
-                                anchors.rightMargin: page.rowPadding
-                                spacing: Platform.Units.smallSpacing
+                        Repeater {
+                            model: dependencyGroup.modelData.rows
+                            delegate: RowLayout {
+                                id: resourceRow
+                                required property var modelData
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
 
                                 CheckBox {
-                                    id: selected
-
-                                    objectName: "dependencySelect_" + row.modelData.id
-                                    Layout.preferredWidth: page.selectWidth
-                                    Layout.minimumWidth: page.selectWidth
-                                    Layout.maximumWidth: page.selectWidth
-                                    checked: page.chosen[row.modelData.id] === true
-                                    onToggled: page.select(row.modelData.id, checked)
-                                    Accessible.name: qsTr("Select %1").arg(row.modelData.dependency.title || row.modelData.dependency.name)
-
-                                    Binding {
-                                        target: selected
-                                        property: "checked"
-                                        value: page.chosen[row.modelData.id] === true
-                                    }
-
+                                    objectName: "dependencySelect_" + resourceRow.modelData.id
+                                    checked: page.chosen[resourceRow.modelData.id] === true
+                                    onToggled: page.select(resourceRow.modelData.id, checked)
+                                    Accessible.name: qsTr("Select %1").arg(resourceRow.modelData.dependency.name)
                                 }
-
                                 ColumnLayout {
-                                    Layout.preferredWidth: page.nameWidth
-                                    Layout.minimumWidth: page.nameWidth
-                                    Layout.maximumWidth: page.nameWidth
-                                    Layout.fillWidth: false
-
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
+                                    spacing: 0
                                     Label {
-                                        text: row.modelData.dependency.title || row.modelData.dependency.name
                                         Layout.fillWidth: true
-                                        wrapMode: Text.Wrap
+                                        Layout.minimumWidth: 0
                                         textFormat: Text.PlainText
-                                        color: ThemeColors.fgColor(page.glassMode)
+                                        wrapMode: Text.Wrap
+                                        text: resourceRow.modelData.dependency.title || resourceRow.modelData.dependency.name
                                     }
-
                                     Label {
-                                        text: row.modelData.dependency.name
-                                        visible: text !== (row.modelData.dependency.title || text)
                                         Layout.fillWidth: true
+                                        Layout.minimumWidth: 0
                                         wrapMode: Text.Wrap
                                         textFormat: Text.PlainText
                                         color: ThemeColors.dimColor(page.glassMode)
-                                    }
-
-                                    AppButton {
-                                        text: qsTr("Details")
-                                        flat: true
-                                        onClicked: {
-                                            details.resource = row.modelData;
-                                            details.open();
+                                        text: {
+                                            const row = resourceRow.modelData
+                                            const parts = [row.installed ? qsTr("Installed") : qsTr("Missing"),
+                                                           page.sourceLabel(row.dependency.source)]
+                                            if (row.dependency.id)
+                                                parts.push(row.dependency.id)
+                                            if (row.version)
+                                                parts.push(row.version)
+                                            return parts.filter(part => part).join(" · ")
                                         }
                                     }
-
                                 }
-
-                                Label {
-                                    Layout.preferredWidth: page.categoryWidth
-                                    Layout.minimumWidth: page.categoryWidth
-                                    Layout.maximumWidth: page.categoryWidth
-                                    wrapMode: Text.Wrap
-                                    text: page.category(row.modelData.dependency.kind)
-                                    color: ThemeColors.fgColor(page.glassMode)
+                                ToolButton {
+                                    text: qsTr("Details")
+                                    icon.name: "dialog-information"
+                                    Accessible.name: text
+                                    ToolTip.text: text
+                                    ToolTip.visible: hovered
+                                    onClicked: {
+                                        details.resource = resourceRow.modelData
+                                        details.open()
+                                    }
                                 }
-
-                                Label {
-                                    Layout.preferredWidth: page.statusWidth
-                                    Layout.minimumWidth: page.statusWidth
-                                    Layout.maximumWidth: page.statusWidth
-                                    wrapMode: Text.Wrap
-                                    text: row.modelData.installed ? qsTr("Installed") : qsTr("Missing")
-                                    color: ThemeColors.fgColor(page.glassMode)
-                                }
-
-                                Label {
-                                    Layout.preferredWidth: page.sourceWidth
-                                    Layout.minimumWidth: page.sourceWidth
-                                    Layout.maximumWidth: page.sourceWidth
-                                    wrapMode: Text.Wrap
-                                    textFormat: Text.PlainText
-                                    text: page.sourceLabel(row.modelData.dependency.source)
-                                    color: ThemeColors.fgColor(page.glassMode)
-                                }
-
-                                Label {
-                                    Layout.fillWidth: true
-                                    wrapMode: Text.Wrap
-                                    textFormat: Text.PlainText
-                                    text: (row.modelData.application ? [qsTr("Application")] : []).concat(row.modelData.themes).join(", ")
-                                    color: ThemeColors.fgColor(page.glassMode)
-                                }
-
                             }
-
                         }
-
                     }
-
                 }
-
-                ScrollBar.horizontal: ScrollBar {
-                    id: horizontalBar
-
-                    parent: tableViewport
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.rightMargin: tableBar.implicitWidth + Platform.Units.smallSpacing
-                    anchors.bottom: parent.bottom
-                    policy: table.contentWidth > table.width ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
-                }
-
             }
-
         }
 
         InsetScrollView {
@@ -579,6 +447,15 @@ Kirigami.Page {
         ColumnLayout {
             Label {
                 Layout.fillWidth: true
+                text: details.resource ? [page.category(details.resource.dependency.kind),
+                    page.sourceLabel(details.resource.dependency.source), details.resource.dependency.id,
+                    details.resource.version].filter(part => part).join(" · ") : ""
+                wrapMode: Text.Wrap
+                textFormat: Text.PlainText
+            }
+            Label {
+                Layout.fillWidth: true
+                visible: text !== ""
                 text: details.resource ? page.removalReason(details.resource.removal_reason) : ""
                 wrapMode: Text.WordWrap
                 textFormat: Text.PlainText

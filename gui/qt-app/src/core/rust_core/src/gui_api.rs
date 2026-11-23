@@ -143,7 +143,26 @@ pub fn request(method: &str, args: &Value) -> Result<Value> {
                 )
             })
         }
+        "operation.list" if args.get("limit").is_some() => {
+            let limit = args["limit"]
+                .as_u64()
+                .context("limit must be a positive integer")?;
+            anyhow::ensure!(
+                (1..=100).contains(&limit),
+                "limit must be between 1 and 100"
+            );
+            let offset = args["offset"].as_u64().unwrap_or(0);
+            crate::operation::list_page(offset.try_into()?, limit as usize, false)
+        }
         "operation.list" => crate::operation::list(),
+        "restore_point.list"
+        | "restore_point.create"
+        | "restore_point.rename"
+        | "restore_point.pin"
+        | "restore_point.delete"
+        | "restore_point.restore" => {
+            crate::restore_points::rpc(method.strip_prefix("restore_point.").unwrap(), args)
+        }
         "operation.recover" => Ok(serde_json::to_value(crate::operation::recover(
             str_arg(args, "id")?,
             args["force"].as_bool().unwrap_or(false),
@@ -193,9 +212,28 @@ pub fn request(method: &str, args: &Value) -> Result<Value> {
         "wallpaper.directory" => Ok(json!(wallpaper::gui_wallpaper_dir())),
 
         "profile.summaries" => crate::bundle_view::summaries(args),
+        "profile.live_summary" => Ok(crate::bundle_view::live_summary()),
+        "profile.live_matches" => crate::bundle_view::live_matches(args),
         "bundle.components" => Ok(json!(crate::bundle_view::components())),
+        "bundle.resource_previews" => crate::bundle_view::resource_previews(args),
         "bundle.metadata" => crate::bundle_view::metadata(str_arg(args, "name")?),
+        "bundle.editor" => crate::profile_edit::editor(str_arg(args, "name")?),
+        "bundle.save_edits" => crate::profile_edit::save(args),
         "bundle.validate" => crate::bundle_view::validate(str_arg(args, "name")?),
+        "profile.capture_live" => {
+            let name = str_arg(args, "name")?;
+            let options = crate::theme::SaveOptions {
+                description: args["description"].as_str().map(str::to_owned),
+                include_wallpaper: args["include_wallpaper"].as_bool().unwrap_or(true),
+            };
+            crate::theme::capture_live(
+                name,
+                &options,
+                args["make_look_and_feel"].as_bool().unwrap_or(false),
+                args["draft_session"].as_str(),
+            )?;
+            Ok(json!({"name":name}))
+        }
         "profile.save_before_apply" => {
             let _lock = crate::operation::MutationGuard::acquire()?;
             let name = str_arg(args, "name")?;
@@ -213,6 +251,25 @@ pub fn request(method: &str, args: &Value) -> Result<Value> {
             Ok(json!({"name":name}))
         }
         "profile.preview" => crate::preview::build(args),
+        "profile.prepare_apply" => {
+            let _lock = crate::operation::MutationGuard::acquire()?;
+            let name = str_arg(args, "name")?;
+            anyhow::ensure!(
+                args["components"].is_null(),
+                "Apply review uses the whole theme"
+            );
+            let backup = crate::theme::prepare_legacy(name)?;
+            let mut report = crate::preview::build(args)?;
+            if let Some(backup) = backup {
+                report["migration_backup"] = json!(backup);
+            }
+            Ok(report)
+        }
+        "profile.migrate" => {
+            let name = str_arg(args, "name")?;
+            let (_, backup) = crate::theme::migrate_with_backup(name)?;
+            Ok(json!({"name":name,"migrated":backup.is_some(),"backup":backup}))
+        }
         "profile.apply" => crate::bundle_view::apply(args),
         "profile.is_package" => Ok(json!(crate::theme::is_package(&paths::profile_dir(
             str_arg(args, "name")?

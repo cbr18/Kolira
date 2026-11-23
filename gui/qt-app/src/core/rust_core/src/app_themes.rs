@@ -177,6 +177,90 @@ fn unique(values: Vec<Value>) -> Vec<Value> {
     }
     out
 }
+
+pub(crate) fn cached_color_themes(
+    directory: &Path,
+    package: &crate::theme::Package,
+    editor: &str,
+) -> Vec<Value> {
+    let mut choices = Vec::new();
+    for entry in package
+        .editor_themes
+        .iter()
+        .filter(|entry| entry.enabled && entry.editor == editor && !entry.local_path.is_empty())
+    {
+        if editor == "zed" {
+            for name in cached_zed_theme_names(directory, &entry.local_path) {
+                choices.push(theme(&name, &name, "cached"));
+            }
+            continue;
+        }
+        let file = directory.join(&entry.local_path).join("package.json");
+        if !file.is_file()
+            || file
+                .ancestors()
+                .take_while(|part| *part != directory)
+                .any(Path::is_symlink)
+        {
+            continue;
+        }
+        let Ok(manifest) = serde_json::from_str::<Value>(&text(&file)) else {
+            continue;
+        };
+        for item in manifest["contributes"]["themes"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            let label = item["label"].as_str();
+            if let Some(id) = item["id"].as_str().or(label) {
+                choices.push(theme(id, label.unwrap_or(id), "cached"));
+            }
+        }
+    }
+    unique(choices)
+}
+
+pub(crate) fn zed_family_names(path: &Path) -> Vec<String> {
+    let source = text(path);
+    let clean =
+        crate::config_edit::strip_trailing_commas(&crate::config_edit::strip_jsonc(&source));
+    let value: Value = serde_json::from_str(&clean).unwrap_or_default();
+    value["themes"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|entry| entry["name"].as_str().map(str::to_owned))
+        .collect()
+}
+
+pub(crate) fn zed_builtin_theme(name: &str) -> bool {
+    definition("zed").ok().is_some_and(|app| {
+        app["built_in_themes"]
+            .as_array()
+            .is_some_and(|themes| themes.iter().any(|theme| theme == name))
+    })
+}
+
+fn cached_zed_theme_names(directory: &Path, relative: &str) -> Vec<String> {
+    let themes = directory.join(relative).join("themes");
+    if themes
+        .ancestors()
+        .take_while(|path| *path != directory)
+        .any(Path::is_symlink)
+    {
+        return Vec::new();
+    }
+    files(&themes, ".json")
+        .into_iter()
+        .filter(|file| !file.is_symlink())
+        .flat_map(|file| zed_family_names(&file))
+        .collect()
+}
+
+pub(crate) fn color_theme_matches(choice: &Value, name: &str) -> bool {
+    choice["id"] == name || choice["label"] == name
+}
 pub fn backup(path: &Path) -> Result<Option<PathBuf>> {
     if !path.is_file() {
         return Ok(None);
@@ -277,16 +361,11 @@ fn installed(a: &Value) -> Result<Value> {
                 all.extend(files(&dir.join("themes"), ".json"));
             }
             for file in all {
-                let value: Value =
-                    serde_json::from_str(&crate::config_edit::strip_jsonc(&text(&file)))
-                        .unwrap_or(Value::Null);
-                let mut names: Vec<String> = value["themes"]
-                    .as_array()
-                    .into_iter()
-                    .flatten()
-                    .filter_map(|v| v["name"].as_str().map(str::to_string))
-                    .collect();
+                let mut names = zed_family_names(&file);
                 if names.is_empty() {
+                    let value: Value =
+                        serde_json::from_str(&crate::config_edit::strip_jsonc(&text(&file)))
+                            .unwrap_or(Value::Null);
                     if let Some(name) = value["name"].as_str() {
                         names.push(name.into());
                     }
@@ -636,34 +715,199 @@ fn rows() -> Result<Value> {
 }
 
 fn patch_theme(id: &str, content: &str, theme_id: &str) -> Result<String> {
-    Ok(match id {
-        "btop" => field::set_ini_text(
+    if id == "btop" {
+        return Ok(field::set_ini_text(
             content,
             "",
             "color_theme",
             &serde_json::to_string(theme_id)?,
+        ));
+    }
+    let content = if content.trim().is_empty() {
+        "{}"
+    } else {
+        content
+    };
+    let clean =
+        crate::config_edit::strip_trailing_commas(&crate::config_edit::strip_jsonc(content));
+    anyhow::ensure!(
+        serde_json::from_str::<Value>(&clean)?.is_object(),
+        "Application settings must be a JSON object"
+    );
+    if id == "zed" {
+        let mode = crate::appearance::patch_zed_theme(content, "mode", Some(&json!("dark")));
+        return Ok(crate::appearance::patch_zed_theme(
+            &mode,
+            "dark",
+            Some(&json!(theme_id)),
+        ));
+    }
+    let (key, value) = match id {
+        "obsidian" => (
+            "cssTheme",
+            if theme_id == "obsidian" { "" } else { theme_id },
         ),
-        "zed" => {
-            let mode = field::json_set(content, &path_parts(&["theme", "mode"]), &json!("dark"))?;
-            field::json_set(&mode, &path_parts(&["theme", "dark"]), &json!(theme_id))?
+        _ => ("workbench.colorTheme", theme_id),
+    };
+    Ok(crate::appearance::jsonc_overlay(
+        &json!({(key):value}).to_string(),
+        content,
+        &[key],
+    ))
+}
+
+pub(crate) fn theme_label(id: &str) -> Result<&'static str> {
+    definition(id)?["name"]
+        .as_str()
+        .context("Unnamed application")
+}
+
+fn theme_target(id: &str) -> Result<PathBuf> {
+    let app = definition(id)?;
+    if id == "btop" {
+        return Ok(paths::live_path(crate::appearance::BTOP_CONFIG));
+    }
+    settings(app).context("Application settings not found")
+}
+
+fn draft_target(id: &str) -> Result<PathBuf> {
+    let path = theme_target(id)?;
+    crate::app_sync::validate_live(&path)?;
+    if path.is_symlink() {
+        let resolved = fs::canonicalize(&path)?;
+        crate::app_sync::validate_live(&resolved)?;
+        Ok(resolved)
+    } else {
+        Ok(path)
+    }
+}
+
+pub(crate) fn validate_draft_theme(id: &str, value: &str) -> Result<()> {
+    let app = definition(id)?;
+    let name = theme_label(id)?;
+    anyhow::ensure!(executable(app).is_some(), "{name} is not installed");
+    let listed = installed(app)?["themes"]
+        .as_array()
+        .is_some_and(|items| items.iter().any(|choice| choice["id"] == value));
+    anyhow::ensure!(
+        listed || id == "btop" && value == "Default",
+        "Theme is unavailable for {name}: {value}"
+    );
+    Ok(())
+}
+
+fn selector(id: &str, content: &str) -> Value {
+    match id {
+        "btop" => {
+            json!(field::ini_get(content, "", "color_theme").map(|v| v.trim_matches('"').to_owned()))
         }
-        "obsidian" => field::json_set(
-            content,
-            &path_parts(&["cssTheme"]),
-            &json!(if theme_id == "obsidian" { "" } else { theme_id }),
-        )?,
-        _ => field::json_set(
-            content,
-            &path_parts(&["workbench.colorTheme"]),
-            &json!(theme_id),
-        )?,
-    })
+        "obsidian" => json!(get(content, &["cssTheme"])
+            .as_str()
+            .filter(|value| !value.is_empty())
+            .unwrap_or("obsidian")),
+        "zed" => {
+            let fixed = get(content, &["theme"]);
+            let mode = if fixed.is_string() {
+                json!("dark")
+            } else {
+                crate::appearance::zed_theme_value(content, "mode")
+                    .unwrap_or_else(|| json!("system"))
+            };
+            json!({"mode":mode,"theme":crate::appearance::zed_theme_value(content, "dark")})
+        }
+        _ => get(content, &["workbench.colorTheme"]),
+    }
+}
+
+pub(crate) fn observe_draft(id: &str, value: &str) -> Result<(PathBuf, Value, Value)> {
+    let path = draft_target(id)?;
+    let mut plan = crate::change_plan::Plan::default();
+    let text = plan.text(&path)?.unwrap_or_default();
+    let patched = patch_theme(id, &text, value)?;
+    Ok((path, selector(id, &text), selector(id, &patched)))
+}
+
+pub(crate) fn capture_draft(id: &str, value: &str, target: &Path, snapshot: &Path) -> Result<()> {
+    validate_draft_theme(id, value)?;
+    anyhow::ensure!(
+        draft_target(id)? == target,
+        "Application config changed: {}",
+        theme_label(id)?
+    );
+    let relative = if id == "obsidian" {
+        let logical_target = theme_target(id)?;
+        let relative = logical_target
+            .strip_prefix(paths::home_dir())?
+            .to_str()
+            .context("Invalid vault path")?;
+        crate::obsidian::snapshot_rel(relative).context("Obsidian vault is no longer selected")?
+    } else {
+        definition(id)?["settings_rel"]
+            .as_str()
+            .context("Application settings path")?
+            .into()
+    };
+    let mut plan = crate::change_plan::Plan::default();
+    let dest = plan_snapshot_theme(id, value, snapshot, &relative, &mut plan)?;
+    if id == "obsidian" {
+        crate::obsidian::capture_draft_theme(value, &theme_target(id)?, &dest, &mut plan)?;
+    }
+    plan.commit()
+}
+
+fn plan_snapshot_theme(
+    id: &str,
+    value: &str,
+    snapshot: &Path,
+    relative: &str,
+    plan: &mut crate::change_plan::Plan,
+) -> Result<PathBuf> {
+    let dest = snapshot.join(relative);
+    crate::profile::snapshot_relative(snapshot, &dest)?;
+    let old = plan.text(&dest)?.unwrap_or_default();
+    let patched = patch_theme(id, &old, value)?;
+    let stored = crate::appearance::for_theme(relative, &patched)
+        .context("App theme is outside appearance policy")?;
+    anyhow::ensure!(
+        selector(id, &stored) == selector(id, &patched),
+        "App theme did not survive appearance filtering"
+    );
+    plan.write_text(&dest, stored, "capture")?;
+    Ok(dest)
+}
+
+pub(crate) fn migrate_selection(id: &str, value: &str, snapshot: &Path) -> Result<()> {
+    let app = definition(id)?;
+    anyhow::ensure!(
+        app["capabilities"]["apply_theme"] == true && !value.trim().is_empty(),
+        "Application theme cannot be converted: {id}"
+    );
+    let relative = match id {
+        "btop" => crate::appearance::BTOP_CONFIG.into(),
+        // Old bundles selected the first vault only. Other saved slots stay as they are.
+        "obsidian" => format!("{}/0/appearance.json", crate::obsidian::SNAPSHOT),
+        _ => app["settings_rel"]
+            .as_str()
+            .context("Application settings path")?
+            .into(),
+    };
+    let mut plan = crate::change_plan::Plan::default();
+    if id == "obsidian" && !plan.is_file(&snapshot.join(&relative))? {
+        let old = snapshot.join("obsidian/vault/.obsidian/appearance.json");
+        crate::profile::snapshot_relative(snapshot, &old)?;
+        if let Some(text) = plan.text(&old)? {
+            crate::profile::snapshot_relative(snapshot, &snapshot.join(&relative))?;
+            plan.write_text(&snapshot.join(&relative), text, "capture")?;
+        }
+    }
+    plan_snapshot_theme(id, value, snapshot, &relative, &mut plan)?;
+    plan.commit()
 }
 pub(crate) fn plan_apply(
     id: &str,
     theme_id: &str,
     plan: &mut crate::change_plan::Plan,
-) -> Result<()> {
+) -> Result<PathBuf> {
     let a = definitions()
         .iter()
         .find(|a| a["id"] == id)
@@ -671,18 +915,11 @@ pub(crate) fn plan_apply(
     if theme_id.is_empty() || a["capabilities"]["apply_theme"] != true {
         anyhow::bail!("Application theme cannot be applied: {id}");
     }
-    let path = if id == "btop" {
-        paths::live_path(".config/btop/btop.conf")
-    } else {
-        settings(a).context("Application settings not found")?
-    };
+    let path = draft_target(id)?;
     if id == "btop" && !plan.is_file(&path)? {
         anyhow::bail!("btop config not found");
     }
     let text = plan.text(&path)?.unwrap_or_default();
-    plan.write_text(
-        &path,
-        patch_theme(id, if text.is_empty() { "{}" } else { &text }, theme_id)?,
-        "application",
-    )
+    plan.write_text(&path, patch_theme(id, &text, theme_id)?, "application")?;
+    Ok(path)
 }

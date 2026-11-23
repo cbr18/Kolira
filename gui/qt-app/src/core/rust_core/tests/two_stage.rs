@@ -384,6 +384,18 @@ fn palette_save_validates_live_colors_and_rejects_stale_gui_state() {
 #[test]
 fn followup_write_failure_rolls_back_desktop_and_extension_files() {
     let h = Home::new();
+    h.write(
+        ".config/kolira/themes/first/theme.json",
+        r#"{"schema":"kolira/theme@2","name":"first"}"#,
+    );
+    h.write(
+        ".config/kolira/themes/first/.config/kdeglobals",
+        "[General]\nColorScheme=First\n",
+    );
+    assert!(h
+        .run(&["apply", "first", "--without-dependencies"])
+        .status
+        .success());
     h.cache();
     h.manifest(json!({"editor_themes":[h.editor("assets/editor-themes/vscodium/example.night")]}));
     h.write(
@@ -410,6 +422,17 @@ fn followup_write_failure_rolls_back_desktop_and_extension_files() {
     assert!(!extensions
         .join("kolira-cache.example-night-kolira")
         .exists());
+    assert_eq!(
+        fs::read_to_string(h.path(".config/kolira/active-profile"))
+            .unwrap()
+            .trim(),
+        "first"
+    );
+    assert!(h
+        .run(&["apply", "first", "--without-dependencies"])
+        .status
+        .success());
+    assert_eq!(fs::read(h.path(".config/kdeglobals")).unwrap(), old);
 }
 
 #[test]

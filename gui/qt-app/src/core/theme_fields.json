@@ -67,6 +67,20 @@
    "file": ".config/kdeglobals",
    "group": "General",
    "key": "accentColorFromWallpaper",
+   "apply": "cmd_config",
+   "command": [
+    "kwriteconfig6",
+    "--notify",
+    "--file",
+    "kdeglobals",
+    "--group",
+    "General",
+    "--key",
+    "accentColorFromWallpaper",
+    "--type",
+    "bool",
+    "{value}"
+   ],
    "description": "Let Plasma derive the accent color from the wallpaper",
    "keywords": [
     "wallpaper",
@@ -461,6 +475,18 @@
     "тема",
     "окна"
    ]
+  },
+  {
+   "id": "decoration_disabled",
+   "section": "windows",
+   "label": "Disable window decoration",
+   "type": "bool",
+   "source": "ini",
+   "file": ".config/kwinrc",
+   "group": "org.kde.kdecoration2",
+   "key": "NoPlugin",
+   "hook": "kwin",
+   "description": "Run KWin without a window decoration"
   },
   {
    "id": "border_size",

@@ -23,6 +23,8 @@ pub struct Action {
     pub title: String,
     pub reason: String,
     pub warning: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub programs: Vec<&'static str>,
 }
 
 /// A program that reads its look at start: (id, title, process names, launch
@@ -133,6 +135,7 @@ pub fn for_theme_since(dir: &Path, before: Option<&Path>) -> Vec<Action> {
                 title: format!("Restart {}", app.title),
                 reason: format!("{} reads the theme's look only when it starts", app.title),
                 warning: app.warning.into(),
+                programs: vec![],
             });
         }
     }
@@ -151,34 +154,39 @@ pub(crate) fn for_changes(dir: &Path, changes: &[std::path::PathBuf]) -> Vec<Act
                 title: format!("Restart {}", app.title),
                 reason: format!("{} reads the theme's look only when it starts", app.title),
                 warning: app.warning.into(),
+                programs: vec![],
             });
         }
     }
-    // Одно короткое сообщение вместо карточки на каждое приложение, чьё
-    // оформление читается только при запуске (Micro, Glow, GIMP, Heroic,
-    // Prism Launcher, Vim, mpv, Cliamp): существующие сессии оставляют свои
-    // настройки, новые читают обновлённую палитру. Приложения и документы не
-    // закрываются, перезапуск не выполняется автоматически.
+    // Group the applications that read these settings only on startup.
     let appearance_markers = [
-        ".config/micro",
-        ".config/glow",
-        ".config/GIMP/3.0",
-        ".config/heroic",
-        ".local/share/PrismLauncher",
-        ".vim",
-        ".config/mpv",
-        ".config/cliamp",
+        (".config/micro", "Micro"),
+        (".config/glow", "Glow"),
+        (".config/GIMP/3.0", "GIMP"),
+        (".config/heroic", "Heroic"),
+        (".local/share/PrismLauncher", "Prism Launcher"),
+        (".vim", "Vim"),
+        (".config/mpv", "mpv"),
+        (".config/cliamp", "Cliamp"),
     ];
-    if appearance_markers.iter().any(|marker| {
-        let root = crate::paths::live_path(marker);
-        changes.iter().any(|path| path.starts_with(&root))
-    }) {
+    let programs: Vec<_> = appearance_markers
+        .into_iter()
+        .filter_map(|(marker, name)| {
+            let root = crate::paths::live_path(marker);
+            changes
+                .iter()
+                .any(|path| path.starts_with(&root))
+                .then_some(name)
+        })
+        .collect();
+    if !programs.is_empty() {
         out.push(Action {
             id: "appearance_reload".into(),
             kind: "manual".into(),
             title: "It is recommended to restart these programs.".into(),
             reason: "".into(),
             warning: "".into(),
+            programs,
         });
     }
     let konsole = crate::paths::data_home().join("konsole");
@@ -186,7 +194,7 @@ pub(crate) fn for_changes(dir: &Path, changes: &[std::path::PathBuf]) -> Vec<Act
         && (running(&["konsole", "yakuake"]).is_some())
     {
         out.push(Action{id:"konsole_appearance".into(),kind:"manual".into(),title:"Konsole / Yakuake: refresh the colour scheme in the profile settings".into(),
-            reason:"Existing sessions keep their own profile; choose the updated colour scheme in Appearance".into(),warning:"Terminal sessions are kept running".into()});
+            reason:"Existing sessions keep their own profile; choose the updated colour scheme in Appearance".into(),warning:"Terminal sessions are kept running".into(),programs:vec![]});
     }
     out.extend(
         for_theme(dir)
@@ -271,6 +279,29 @@ mod tests {
         std::fs::write(backup.join(".config/vesktop/themes/t.css"), "b").unwrap();
         assert!(changed(&theme, ".config/vesktop/themes", Some(&backup)));
         assert!(changed(&theme, ".config/vesktop/themes", None));
+    }
+
+    #[test]
+    fn manual_reload_lists_only_the_programs_whose_files_changed() {
+        let tmp = tempfile::tempdir().unwrap();
+        let changes = [
+            crate::paths::live_path(".config/micro/colorschemes/kolira.micro"),
+            crate::paths::live_path(".config/micro/settings.json"),
+            crate::paths::live_path(".config/mpv/mpv.conf"),
+            crate::paths::live_path(".config/mpv-unrelated/settings"),
+        ];
+        let actions = for_changes(tmp.path(), &changes);
+        assert_eq!(
+            actions
+                .iter()
+                .find(|action| action.id == "appearance_reload")
+                .unwrap()
+                .programs,
+            ["Micro", "mpv"]
+        );
+        assert!(for_changes(tmp.path(), &changes[3..])
+            .iter()
+            .all(|action| action.id != "appearance_reload"));
     }
 
     #[test]

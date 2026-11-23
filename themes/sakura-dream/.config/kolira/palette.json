@@ -1,0 +1,25 @@
+{
+  "name": "sakura-dream",
+  "author": "Kolira contributors (Sakura Dream palette)",
+  "variant": "light",
+  "base": [
+    "#FFF0F6",
+    "#FFE4EF",
+    "#FFF8FC",
+    "#7A5B6C",
+    "#69465B",
+    "#493040",
+    "#69465B",
+    "#FFFFFF",
+    "#A62D60",
+    "#805018",
+    "#704412",
+    "#286653",
+    "#23664F",
+    "#7045A0",
+    "#873C55",
+    "#A62D60"
+  ],
+  "accent": "#FF78AC",
+  "source": "theme:sakura-dream"
+}

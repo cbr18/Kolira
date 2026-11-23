@@ -1,0 +1,241 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-11-20T00:00:00+10:00",
+  "tool_version": "0.5.0",
+  "name": "sakura-dream",
+  "description": "Sakura Dream (桜の夢) — pastel kawaii anime + sakura glass theme",
+  "wallpaper": "wallpaper/sakura-dream-wall-1.png",
+  "accent_from_wallpaper": false,
+  "components": [
+    {
+      "id": "kwin",
+      "paths": [
+        ".config/kwinrc"
+      ]
+    },
+    {
+      "id": "plasma_shell",
+      "paths": [
+        ".config/plasmarc",
+        ".config/plasmashellrc",
+        ".config/plasma-org.kde.plasma.desktop-appletsrc"
+      ]
+    },
+    {
+      "id": "kdeglobals",
+      "paths": [
+        ".config/kdeglobals",
+        ".config/kcminputrc"
+      ]
+    },
+    {
+      "id": "gtk3",
+      "paths": [
+        ".config/gtk-3.0/settings.ini",
+        ".config/gtk-3.0/gtk.css",
+        ".config/gtk-3.0/colors.css"
+      ]
+    },
+    {
+      "id": "gtk4",
+      "paths": [
+        ".config/gtk-4.0/settings.ini",
+        ".config/gtk-4.0/gtk.css",
+        ".config/gtk-4.0/colors.css"
+      ]
+    },
+    {
+      "id": "qt5ct",
+      "paths": [
+        ".config/Trolltech.conf"
+      ]
+    },
+    {
+      "id": "icons",
+      "paths": [
+        ".local/share/icons/Mignon-pastel-light"
+      ]
+    },
+    {
+      "id": "klassy",
+      "paths": [
+        ".config/klassy/klassyrc",
+        ".config/klassy/windecopresetsrc"
+      ]
+    },
+    {
+      "id": "kvantum",
+      "paths": [
+        ".config/Kvantum/kvantum.kvconfig",
+        ".config/Kvantum/SakuraOrchis/SakuraOrchis.kvconfig",
+        ".config/Kvantum/SakuraOrchis/SakuraOrchis.svg"
+      ]
+    },
+    {
+      "id": "kitty",
+      "paths": [
+        ".config/kitty/kolira.conf"
+      ]
+    },
+    {
+      "id": "alacritty",
+      "paths": [
+        ".config/alacritty/kolira.toml"
+      ]
+    },
+    {
+      "id": "wofi",
+      "paths": [
+        ".config/wofi/style.css",
+        ".config/wofi/wallpaper.css",
+        ".config/wofi/kolira.css"
+      ]
+    },
+    {
+      "id": "btop",
+      "paths": [
+        ".config/btop/btop.conf",
+        ".config/btop/themes/kolira.theme"
+      ]
+    },
+    {
+      "id": "zed",
+      "paths": [
+        ".config/zed/settings.json",
+        ".config/zed/themes/kolira-sakura.json"
+      ]
+    },
+    {
+      "id": "vscode",
+      "paths": [
+        ".config/Code/User/settings.json"
+      ]
+    },
+    {
+      "id": "cursor",
+      "paths": [
+        ".config/Cursor/User/settings.json"
+      ]
+    },
+    {
+      "id": "oh-my-posh",
+      "paths": [
+        ".config/oh-my-posh/kolira.omp.json"
+      ]
+    },
+    {
+      "id": "fish",
+      "paths": [
+        ".config/fish/fish_variables"
+      ]
+    },
+    {
+      "id": "ghostty",
+      "paths": [
+        ".config/ghostty/kolira"
+      ]
+    },
+    {
+      "id": "cava",
+      "paths": [
+        ".config/cava/config"
+      ]
+    },
+    {
+      "id": "bat",
+      "paths": [
+        ".config/bat/config",
+        ".config/bat/themes"
+      ]
+    },
+    {
+      "id": "konsole",
+      "paths": [
+        ".local/share/konsole/Theme Profile.profile"
+      ]
+    },
+    {
+      "id": "color_schemes",
+      "paths": [
+        ".local/share/color-schemes/KoliraSakura.colors"
+      ]
+    },
+    {
+      "id": "palette",
+      "paths": [
+        ".config/kolira/palette.json"
+      ]
+    },
+    {
+      "id": "look_and_feel",
+      "paths": [
+        ".local/share/plasma/look-and-feel/sakura"
+      ]
+    },
+    {
+      "id": "zen",
+      "paths": [
+        ".zen/kolira.default/user.js"
+      ]
+    },
+    {
+      "id": "firefox",
+      "paths": [
+        ".mozilla/firefox/kolira.default/user.js"
+      ]
+    },
+    {
+      "id": "neovim",
+      "paths": [
+        ".config/nvim/kolira-palette.json"
+      ]
+    },
+    {
+      "id": "obsidian",
+      "paths": []
+    },
+    {
+      "id": "terminal-colours",
+      "paths": [
+        ".claude/settings.json",
+        ".codex/config.toml",
+        ".codex/themes/kolira.tmTheme",
+        ".config/GIMP/3.0/gimprc",
+        ".config/GIMP/3.0/themes/Kolira/gimp.css",
+        ".config/bat/config",
+        ".config/bat/themes/kolira.tmTheme",
+        ".config/btop/btop.conf",
+        ".config/btop/themes/kolira.theme",
+        ".config/cava/config",
+        ".config/cliamp/config.toml",
+        ".config/cliamp/themes/kolira.toml",
+        ".config/fish/fish_variables",
+        ".config/foot/foot.ini",
+        ".config/fuzzel/fuzzel.ini",
+        ".config/fzf/kolira.opts",
+        ".config/glow/glow.yml",
+        ".config/glow/kolira.json",
+        ".config/heroic/config.json",
+        ".config/lazygit/config.yml",
+        ".config/lsd/config.yaml",
+        ".config/lsd/themes/kolira.yaml",
+        ".config/micro/colorschemes/kolira.micro",
+        ".config/micro/settings.json",
+        ".config/mpv/mpv.conf",
+        ".config/opencode/cli.json",
+        ".config/rofi/themes/kolira.rasi",
+        ".config/starship.toml",
+        ".config/tmux/kolira.json",
+        ".config/walker/kolira.css",
+        ".config/wezterm/kolira.toml",
+        ".config/wofi/kolira.css",
+        ".config/yazi/theme.toml",
+        ".config/zellij/config.kdl",
+        ".config/zellij/themes/kolira.kdl",
+        ".local/share/PrismLauncher/prismlauncher.cfg",
+        ".local/share/PrismLauncher/themes/kolira/theme.json",
+        ".vim/kolira-palette.json"
+      ]
+    }
+  ]
+}

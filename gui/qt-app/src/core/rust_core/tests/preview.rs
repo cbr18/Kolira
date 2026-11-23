@@ -298,6 +298,50 @@ fn save_current_first_never_overwrites_an_existing_theme() {
 }
 
 #[test]
+fn capture_live_publishes_package_without_editing_the_desktop() {
+    let h = Home::new();
+    let host = ".config/kitty/kitty.conf";
+    let include = ".config/kitty/kolira.conf";
+    let marker = ".config/kolira/active-profile";
+    h.write(host, "include kolira.conf\nbackground #102030\n");
+    h.write(include, "background #000000\n");
+    h.write(marker, "next\n");
+    let before = [host, include, marker, ".config/kdeglobals"]
+        .map(|rel| (rel, fs::read(h.path(rel)).unwrap()));
+
+    h.rpc(
+        "profile.capture_live",
+        json!({"name":"Captured","description":"snapshot",
+        "include_wallpaper":false,"make_look_and_feel":true}),
+    );
+
+    let target = h.path(".config/kolira/themes/Captured");
+    let package: Value =
+        serde_json::from_slice(&fs::read(target.join("theme.json")).unwrap()).unwrap();
+    assert_eq!(package["description"], "snapshot");
+    assert_eq!(package["values"]["look_and_feel"], "kolira-captured");
+    assert!(target
+        .join(".local/share/plasma/look-and-feel/kolira-captured/contents/defaults")
+        .is_file());
+    assert!(fs::read_to_string(target.join(include))
+        .unwrap()
+        .trim_end()
+        .ends_with("background #102030"));
+    for (rel, expected) in before {
+        assert_eq!(fs::read(h.path(rel)).unwrap(), expected, "{rel}");
+    }
+    assert!(!h
+        .path(".local/share/plasma/look-and-feel/kolira-captured")
+        .exists());
+    for name in ["Captured", "captured", "../escape"] {
+        assert_eq!(
+            h.rpc_raw("profile.capture_live", json!({"name":name}))["ok"],
+            false
+        );
+    }
+}
+
+#[test]
 fn malicious_resource_symlink_is_rejected_by_preview_without_any_write() {
     let h = Home::new();
     h.write("private", "secret");
@@ -336,7 +380,7 @@ fn all_bundled_previews_match_the_applied_files() {
         h.assert_files(&report);
         count += 1;
     }
-    assert_eq!(count, 8);
+    assert_eq!(count, 9);
 }
 
 #[test]
@@ -428,6 +472,100 @@ fn returning_to_theme_without_configs_restores_user_baseline() {
             );
         }
         h.apply_reviewed(&h.preview("next", false));
+    }
+}
+
+#[test]
+fn partial_profiles_round_trip_across_review_and_schedule() {
+    use chrono::{Datelike, Local};
+
+    let h = Home::new();
+    h.theme("first", true);
+    h.write(
+        ".config/kolira/themes/third/theme.json",
+        r#"{"schema":"kolira/theme@2","name":"third"}"#,
+    );
+    let fixtures = [
+        (
+            ".config/kcminputrc",
+            "[Mouse]\ncursorTheme=OriginalCursor\n",
+            "next",
+            "[Mouse]\ncursorTheme=SecondCursor\n",
+        ),
+        (
+            ".config/kwinrc",
+            "[Plugins]\nblurEnabled=false\n",
+            "next",
+            "[Plugins]\nblurEnabled=true\n",
+        ),
+        (
+            ".config/gtk-3.0/settings.ini",
+            "[Settings]\ngtk-theme-name=MyGTK\ngtk-font-name=MyFont 12\n",
+            "next",
+            "[Settings]\ngtk-theme-name=OtherGTK\n",
+        ),
+        (
+            ".config/Code/User/settings.json",
+            "{\"workbench.colorTheme\":\"Original\",\"editor.fontSize\":17}",
+            "third",
+            "{\"workbench.colorTheme\":\"Third\"}",
+        ),
+    ];
+    for (rel, before, name, theme_value) in fixtures {
+        h.write(rel, before);
+        h.write(&format!(".config/kolira/themes/{name}/{rel}"), theme_value);
+    }
+    h.write(
+        ".config/kolira/themes/next/.config/kdeglobals",
+        "[General]\nColorScheme=Second\n[KDE]\nwidgetStyle=Fusion\n",
+    );
+
+    h.apply_reviewed(&h.preview("first", false));
+    let initial = [
+        ".config/kdeglobals",
+        ".config/kcminputrc",
+        ".config/kwinrc",
+        ".config/gtk-3.0/settings.ini",
+        ".config/Code/User/settings.json",
+    ]
+    .map(|rel| (rel, fs::read(h.path(rel)).unwrap()));
+
+    let now = Local::now();
+    h.rpc(
+        "schedule.put",
+        json!({"rule":{"id":"switch","theme":"next","time":now.format("%H:%M").to_string(),
+            "days":[now.weekday().number_from_monday()],"enabled":true}}),
+    );
+    h.rpc("schedule.enable", json!({"enabled":true}));
+    let tick = h.run(&["schedule", "tick"]);
+    assert!(
+        tick.status.success(),
+        "{}",
+        String::from_utf8_lossy(&tick.stderr)
+    );
+    let events: Value = serde_json::from_slice(&tick.stdout).unwrap();
+    assert_eq!(events[0]["state"], "succeeded", "{events}");
+    for (rel, expected) in [
+        (".config/kdeglobals", "widgetStyle=Fusion"),
+        (".config/kcminputrc", "cursorTheme=SecondCursor"),
+        (".config/kwinrc", "blurEnabled=true"),
+        (".config/gtk-3.0/settings.ini", "gtk-theme-name=OtherGTK"),
+    ] {
+        assert!(
+            fs::read_to_string(h.path(rel)).unwrap().contains(expected),
+            "{rel}"
+        );
+    }
+
+    h.apply_reviewed(&h.preview("third", false));
+    assert!(
+        fs::read_to_string(h.path(".config/Code/User/settings.json"))
+            .unwrap()
+            .contains("\"Third\"")
+    );
+    h.apply_reviewed(&h.preview("first", false));
+    for (rel, expected) in initial {
+        assert_eq!(fs::read(h.path(rel)).unwrap(), expected, "{rel}");
     }
 }
 

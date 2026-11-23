@@ -1,0 +1,4 @@
+/* Sakura Dream GTK3 overrides — gentle pastel pink accents */
+* {
+    -GtkWidget-window-decoration: none;
+}

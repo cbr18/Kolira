@@ -475,10 +475,11 @@ def test_qml_wiring() -> None:
 
     # Новый главный экран — ThemeBundle, а не сырой инспектор полей.
     assert "themeBundle.groups" in page
-    assert "themeBundle.applications" in page
+    assert "themeBundle.applications" in apps_page
     assert "themeBundle.applyChanges()" in page
     assert "ThemeComponentsPage.qml" in page
-    assert "ThemeApplicationsPage.qml" in page
+    assert "ThemeApplicationsPage.qml" in components_page
+    assert "themeBundle.profileAppTargets" in components_page
 
     # Группы открывают выбор установленных тем; fallback-поля живут в SectionPage.
     assert "themeBundle.setComponent" in components_page

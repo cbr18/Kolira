@@ -53,9 +53,30 @@ takes the family from the theme and keeps the live size.
 | Konsole / Yakuake | the default profile's `[Appearance]` (`ColorScheme`, font family — live size kept) + its `.colorscheme` (whole: colours, opacity, blur; travels as an asset) | the profile's command, scrolling, keys…; without a profile a `Theme Profile` (`Parent=FALLBACK/`) is created and made default |
 | Zen / Firefox (default profile from `installs.ini`/`profiles.ini`) | Native palette accent and day/night in `user.js`; native on-accent contrast pair; no userChrome changes or stylesheet enable | personal CSS, userContent, transparency/density/layout, privacy, addons and selected browser theme; `prefs.js` never edited |
 | Neovim | Data-only `nvim/kolira-palette.json`, fixed Kolira colorscheme + after/plugin loader | init.lua/init.vim, plugin specs, personal Lua |
-| Obsidian | Selected vaults: `theme`, `cssTheme`, `enabledCssSnippets`, own snippet, active custom theme; portable numbered snapshot slots | font sizes, notes, vault index, Preferences, plugins, unselected vaults |
+| Obsidian | Selected vaults: `baseTheme` / legacy `theme`, `cssTheme`, `enabledCssSnippets`, own snippet, active custom theme; portable numbered snapshot slots | font sizes, notes, vault index, Preferences, plugins, unselected vaults |
 | Alacritty | `alacritty/kolira.toml` (`[colors.*]`, `[font]` faces, window opacity/blur/padding/decorations, cursor style) | `[font] size`/offsets; `alacritty.toml` gains `general.import` |
 | everything else (Klassy, Breeze, GTK CSS, wofi CSS, Trolltech palette, Kvantum, colour schemes, L&F) | whole file (a Look & Feel package without its `contents/layouts/` scripts). `breezerc` only when the widget style or window decoration is Breeze (absent keys mean Breeze), `klassy/` only when either is Klassy | when not stored: the user's own `breezerc` / `klassy/` |
+
+A partial `kdeglobals` is merged into the baseline restored by the previous
+theme's journal. Omitted individual settings such as `AccentColor`, fonts or
+icons keep their baseline values. A saved color scheme with color groups
+replaces those groups together. A profile with individual color roles and no
+scheme changes only the supplied roles.
+
+VS Code, Code - OSS, Cursor, btop and Zed also overlay their supplied appearance
+keys on the restored baseline. A profile that sets only the app's theme
+preserves other appearance choices in the same settings file.
+Zed's object-valued `theme` can provide any of `mode`, `light` and `dark`.
+Each is merged independently. Applying a legacy string selects a fixed theme.
+Zen overlays the supplied browser appearance preferences on the restored
+baseline. An optional `zen_overrides` object has `accent` and `mode` flags.
+Each flag marks an explicit value or deliberate omission in `user.js` and
+suppresses Base16 generation for that field.
+An optional `obsidian_overrides` object applies an explicit `mode` or `theme`
+to the locally selected vaults. Each field contains `{"value":"…"}` or
+`"exclude"`. Vault-local values are taken from portable snapshot slots when
+the field has no override. A missing community theme leaves the vault's
+current theme selector in place.
 
 Browser colour files and day/night prefs survive export even when the snapshot
 profile name differs from the exporter’s current profile.
@@ -243,7 +264,7 @@ kolira look-and-feel NAME           # the live look as a Global Theme (no layout
 kolira apply NAME [--keep-wallpaper] [--install-missing] [--json]
 kolira check NAME [--json]          # what the theme references but this machine lacks
 kolira lint NAME [--json]           # authoring problems check cannot see (see below)
-kolira migrate NAME|--all           # add theme.json to a snapshot profile (files untouched)
+kolira migrate NAME|--all           # convert a snapshot into a package, keeping the original
 kolira prune NAME|--all             # drop what is not part of the theme, incl. layouts (backup first)
 kolira export NAME [--out=FILE.zip | --dir=DIR] [--no-wallpaper] [--public]
 kolira license NAME ASSET --license=SPDX [--source=URL] [--no-redistribute]
@@ -313,11 +334,16 @@ kolira automation [--json] | set KEY=ask|always|never … | ask   # the user's c
   `LookAndFeelPackage` key; the look is already live). The next save carries it
   as the theme's own generated asset (MIT).
 - **check** lists what the theme references but this machine lacks; exit code 0.
-- **migrate** adds `theme.json` to snapshot profiles and reduces stored files
-  to the look (kitty.conf/alacritty.toml → their theme files); the theme is
-  copied to `backups/pre-normalize-<name>-…` first. Runs once per theme
-  (`appearance_only`). A values-only `theme@1` package cannot be migrated:
-  apply its look and save it again.
+- **migrate** normalizes a private copy of the snapshot and adds `theme.json`.
+  Recognized appearance and application overrides from `theme-bundle.json`
+  take precedence over the snapshot. An available wallpaper referenced only
+  by its original path is copied into the package. Kolira keeps the name and
+  original metadata and retains the old snapshot under
+  `backups/pre-normalize-<name>-…/snapshot`. The original stays readable if
+  conversion fails. An unsupported explicit override, a global theme selection
+  whose appearance was never captured, or a missing wallpaper stops conversion
+  with a diagnostic. Repeating migration on a converted theme
+  reuses the package. Save a new snapshot to replace a values-only `theme@1` theme.
 
 `kolira field set` (interactive edits from the GUI's Theme page) applies
 single values: command first (`plasma-apply-colorscheme`,
@@ -334,13 +360,16 @@ and written directly if the tool did not store it
 - **New theme…** (profiles toolbar): name and base — *Neutral, light/dark*
   or *Copy of "X"* for each theme — then `kolira new`; a warning says
   that starting replaces the current look (a backup is made).
-- **Apply** (confirmation dialog): *Keep the current wallpaper*.
+- **Apply** prepares legacy snapshots as packages before showing the
+  confirmation. The confirmation offers *Keep the current wallpaper*.
 - After applying or importing, a **This Theme Needs** dialog lists the missing
   dependencies with their source: store items have a checkbox (exact matches
   ticked, search results unticked until confirmed), system packages show the
   command; **Install selected** installs them and (optionally) applies the
   theme again.
-- The Theme page's profile scope reads the theme values (read-only).
+- The Theme page opens saved packages for editing. For older snapshots,
+  **Convert theme** prepares the package and opens it for editing without
+  applying changes to the desktop.
 
 ## MCP
 
@@ -536,16 +565,17 @@ Kvantum's KvArc); everything else the author marks with `kolira license
 NAME ASSET --license=… --source=…` (`kind:name` when two assets share a name;
 marks survive re-saves and `prune`).
 
-`export --public` (the themes in `themes/`) ships only redistributable assets:
+`export --public` ships only redistributable assets:
 the others (third-party Kvantum like Orchis/Sandstone, Zed theme files from
 the store, an unmarked wallpaper or logo) become dependencies with their source
 (KNewStuff registry, package, or a KDE Store search — a bare name retries with
 the category word, e.g. "Orchis kvantum"), and Look & Feel preview screenshots
 (a picture of the author's desktop) are dropped.
 
-The ready themes in `themes/` (glass, Paper, everforest, dracula, frutiger-aero, frutiger-aero-light; licences and
-sources in `themes/README.md`) are added by the installer when a theme of that
-name does not exist yet (`--no-themes` skips; nothing is applied or replaced).
+The installer synchronizes the ready themes in `themes/`, including `sakura-dream`.
+It adds missing themes, updates unmodified copies, and keeps locally edited copies.
+Use `--no-themes` to skip synchronization. Installation preserves the current
+desktop appearance. See [theme licences and sources](../themes/README.md).
 
 Downloads that a store rate-limits (HTTP 429) are retried twice (Retry-After,
 at most 30 s; else 5 → 15 s), then reported as "rate-limiting — try again in a

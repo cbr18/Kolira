@@ -367,6 +367,9 @@ fn export_files(name: &str, dir: &Path, options: &ExportOptions) -> Result<Vec<(
     // theme.json last, adjusted: name, and no wallpaper when it is left out.
     let mut json: serde_json::Value =
         serde_json::from_slice(&fs::read(dir.join(theme::MANIFEST))?)?;
+    if let Some(manifest) = json.as_object_mut() {
+        manifest.remove("inactive_assets");
+    }
     json["name"] = serde_json::Value::from(name);
     json["assets"] = serde_json::to_value(&package.assets)?;
     json["dependencies"] = serde_json::to_value(&package.dependencies)?;

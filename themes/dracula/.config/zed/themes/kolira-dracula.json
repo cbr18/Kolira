@@ -10,15 +10,32 @@
         "background": "#282a36",
         "surface.background": "#21222c",
         "elevated_surface.background": "#21222c",
+        "panel.background": "#21222c",
         "text": "#f8f8f2",
-        "text.muted": "#6272a4",
-        "text.accent": "#bd93f9",
+        "text.muted": "#d0d5e4",
+        "text.accent": "#e0ccfc",
+        "icon.accent": "#e0ccfc",
+        "link_text.hover": "#e0ccfc",
         "border": "#44475a",
-        "border.focused": "#bd93f9",
+        "border.focused": "#e0ccfc",
+        "panel.focused_border": "#e0ccfc",
+        "pane.focused_border": "#e0ccfc",
+        "element.hover": "#2d2b3c",
+        "element.selected": "#3a344d",
+        "ghost_element.hover": "#2d2b3c",
+        "ghost_element.selected": "#3a344d",
+        "created": "#50fa7b",
+        "modified": "#f1fa8c",
+        "warning": "#f1fa8c",
+        "deleted": "#ffc7c7",
+        "conflict": "#ffcb94",
+        "renamed": "#e0ccfc",
+        "error": "#ffc7c7",
+        "success": "#50fa7b",
         "editor.background": "#282a36",
         "editor.foreground": "#f8f8f2",
         "editor.gutter.background": "#282a36",
-        "editor.line_number": "#6272a4",
+        "editor.line_number": "#d0d5e4",
         "editor.active_line_number": "#f8f8f2",
         "editor.active_line.background": "#21222c",
         "tab.active_background": "#282a36",
@@ -27,28 +44,29 @@
         "status_bar.background": "#21222c",
         "terminal.background": "#282a36",
         "terminal.foreground": "#f8f8f2",
+        "search.match_background": "#5a5e4c",
         "players": [
           {
-            "cursor": "#bd93f9",
-            "background": "#bd93f9",
-            "selection": "#bd93f950"
+            "cursor": "#e0ccfc",
+            "background": "#e0ccfc",
+            "selection": "#433d59"
           }
         ],
         "syntax": {
           "comment": {
-            "color": "#6272a4"
+            "color": "#d0d5e4"
           },
           "string": {
             "color": "#50fa7b"
           },
           "keyword": {
-            "color": "#ff79c6"
+            "color": "#ffc3e5"
           },
           "number": {
-            "color": "#ffb86c"
+            "color": "#ffcb94"
           },
           "function": {
-            "color": "#bd93f9"
+            "color": "#e0ccfc"
           },
           "type": {
             "color": "#f1fa8c"

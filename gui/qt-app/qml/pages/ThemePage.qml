@@ -14,14 +14,15 @@ Kirigami.ScrollablePage {
 
     title: qsTr("Theme")
     property string profileName: ""
-    property string selectedScope: "live"
+    readonly property string selectedScope: themeBundle.scope
+    readonly property string selectedProfile: selectedScope === "live" ? "" : selectedScope.slice(8)
 
     readonly property bool glassMode: themeController.isGlass
     readonly property bool compact: width < Platform.Units.gridUnit * 36
     readonly property var scopeChoices: {
-        const values = ["live"]
+        const values = [{ scope: "live", label: qsTr("Live system") }]
         for (let i = 0; i < themeBundle.profiles.length; ++i)
-            values.push(themeBundle.profiles[i].name)
+            values.push({ scope: "profile:" + themeBundle.profiles[i].name, label: themeBundle.profiles[i].name })
         return values
     }
 
@@ -36,7 +37,7 @@ Kirigami.ScrollablePage {
     function scopeLabel() {
         if (page.selectedScope === "live")
             return qsTr("Live system")
-        return qsTr("Profile: %1").arg(page.selectedScope)
+        return qsTr("Profile: %1").arg(page.selectedProfile)
     }
 
     function groupSummary(group) {
@@ -49,27 +50,18 @@ Kirigami.ScrollablePage {
         return values.join(" · ")
     }
 
-    function switchScope(name) {
-        page.selectedScope = name
-        if (name === "live")
+    function switchScope(scope) {
+        if (scope === "live")
             themeBundle.openLive()
         else
-            themeBundle.openProfile(name)
+            themeBundle.openProfile(scope.slice(8))
     }
 
     Component.onCompleted: {
         if (page.profileName !== "")
-            page.switchScope(page.profileName)
+            page.switchScope("profile:" + page.profileName)
         else
             page.switchScope("live")
-    }
-
-    Connections {
-        target: themeBundle
-        function onScopeChanged() {
-            page.selectedScope = themeBundle.scope === "live"
-                ? "live" : themeBundle.scope.replace("profile:", "")
-        }
     }
 
     background: Rectangle {
@@ -79,60 +71,45 @@ Kirigami.ScrollablePage {
 
 
     AppDialog {
-        id: saveProfileDialog
-        title: qsTr("Save theme bundle as profile")
-        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
-        preferredWidth: 460
+        id: draftDialog
+        title: qsTr("Draft changes")
+        standardButtons: Kirigami.Dialog.Close
+        preferredWidth: 520
+        preferredHeight: 420
 
-        ColumnLayout {
+        InsetScrollView {
             Layout.fillWidth: true
-            spacing: Platform.Units.smallSpacing
-            Label {
-                Layout.fillWidth: true
-                wrapMode: Text.WordWrap
-                text: qsTr("The current component choices, application themes and wallpaper will be saved as a v2 theme bundle.")
-                color: ThemeColors.fgColor(page.glassMode)
-            }
-            TextField {
-                id: profileNameField
-                Layout.fillWidth: true
-                placeholderText: qsTr("Profile name")
-            }
-            Label {
-                Layout.fillWidth: true
-                readonly property string clash: applicationWindow().caseDuplicateOf(profileNameField.text.trim())
-                visible: clash !== ""
-                wrapMode: Text.WordWrap
-                color: ThemeColors.negative()
-                text: qsTr("Profile \"%1\" already exists — names may not differ only by case.").arg(clash)
-            }
-            TextField {
-                id: profileDescriptionField
-                Layout.fillWidth: true
-                placeholderText: qsTr("Description (optional)")
-            }
-            Label {
-                id: profileNameError
-                Layout.fillWidth: true
-                visible: false
-                wrapMode: Text.WordWrap
-                color: ThemeColors.negative()
-                text: qsTr("Use letters, digits, dots, dashes or underscores; the first character must not be a dot.")
+            Layout.fillHeight: true
+            ColumnLayout {
+                width: draftDialog.availableWidth
+                Repeater {
+                    model: page.selectedScope === "live" ? themeInspector.draft : themeBundle.profileDraft
+                    delegate: Label {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        text: {
+                            const heading = modelData.source
+                                ? modelData.label + " · " + modelData.source : modelData.label
+                            const before = modelData.before ?? qsTr("Not set")
+                            const after = modelData.after ?? qsTr("Not set")
+                            return heading + "\n" + String(before) + " → " + String(after)
+                        }
+                        textFormat: Text.PlainText
+                        wrapMode: Text.WrapAnywhere
+                    }
+                }
             }
         }
+    }
 
-        onAccepted: {
-            const name = profileNameField.text.trim()
-            if (applicationWindow().caseDuplicateOf(name) !== "") {
-                saveProfileDialog.open()
-                return
-            }
-            if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(name)) {
-                profileNameError.visible = true
-                saveProfileDialog.open()
-                return
-            }
-            themeBundle.saveProfile(name, profileDescriptionField.text.trim())
+    AppDialog {
+        id: discardDraftDialog
+        title: qsTr("Discard the Live draft?")
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+        onAccepted: themeInspector.discardDraft()
+        Label {
+            text: qsTr("Discard all unapplied changes in this draft.")
+            wrapMode: Text.WordWrap
         }
     }
 
@@ -207,23 +184,32 @@ Kirigami.ScrollablePage {
             ComboBox {
                 id: scopeCombo
                 model: page.scopeChoices
-                currentIndex: page.selectedScope === "live"
-                    ? 0 : page.scopeChoices.indexOf(page.selectedScope)
-                displayText: currentIndex === 0 ? qsTr("Live system") : currentText
+                textRole: "label"
+                valueRole: "scope"
+                currentIndex: page.scopeChoices.findIndex(choice => choice.scope === page.selectedScope)
+                displayText: page.selectedScope === "live" ? qsTr("Live system") : page.selectedProfile
                 enabled: !themeBundle.busy
                 width: Math.min(implicitWidth, parent.width)
                 onActivated: function(index) {
-                    if (index >= 0 && index < page.scopeChoices.length)
-                        page.switchScope(page.scopeChoices[index])
+                    if (index >= 0 && index < page.scopeChoices.length) {
+                        page.switchScope(page.scopeChoices[index].scope)
+                        if (currentValue !== page.selectedScope)
+                            currentIndex = Qt.binding(() => page.scopeChoices.findIndex(choice => choice.scope === page.selectedScope))
+                    }
                 }
                 Accessible.name: qsTr("Theme scope")
             }
 
             AppButton {
-                text: qsTr("Refresh")
+                text: page.selectedScope === "live" ? qsTr("Refresh Live") : qsTr("Refresh")
                 icon.name: "view-refresh"
-                enabled: !themeBundle.busy
-                onClicked: themeBundle.refresh()
+                enabled: !themeBundle.busy && !themeInspector.busy && !profileController.busy
+                onClicked: {
+                    if (page.selectedScope === "live")
+                        themeInspector.refreshDraft()
+                    else
+                        themeBundle.refresh()
+                }
             }
         }
 
@@ -264,7 +250,7 @@ Kirigami.ScrollablePage {
                     Kirigami.Chip {
                         text: page.selectedScope === "live"
                             ? qsTr("Active")
-                            : qsTr("Read-only")
+                            : themeBundle.canEditProfile ? qsTr("Saved theme") : qsTr("Read-only")
                         icon.name: page.selectedScope === "live"
                             ? "dialog-ok" : "document-preview"
                         closable: false
@@ -276,8 +262,8 @@ Kirigami.ScrollablePage {
                         icon.name: "dialog-ok-apply"
                         highlighted: true
                         visible: page.selectedScope !== "live"
-                        enabled: !themeBundle.busy
-                        onClicked: profileController.previewApply(page.selectedScope, false)
+                        enabled: !themeBundle.busy && themeBundle.profileDraftSize === 0
+                        onClicked: profileController.previewApply(page.selectedProfile, false)
                     }
                 }
 
@@ -285,7 +271,11 @@ Kirigami.ScrollablePage {
                     Layout.fillWidth: true
                     text: page.selectedScope === "live"
                         ? qsTr("Active profile: %1 · %n change(s)", "", themeBundle.sessionChanges).arg(themeBundle.activeProfile || "—")
-                        : qsTr("This profile is a saved theme bundle. Apply it to make it active.")
+                        : themeBundle.canEditProfile
+                            ? qsTr("Save changes to this theme, then apply it when you are ready.")
+                            : themeBundle.profileBundle.legacy
+                                ? qsTr("Convert this snapshot to edit it. Kolira keeps a copy of the original.")
+                                : qsTr("This profile is a saved theme bundle. Apply it to make it active.")
                     wrapMode: Text.WordWrap
                     color: ThemeColors.dimColor(page.glassMode)
                 }
@@ -295,15 +285,43 @@ Kirigami.ScrollablePage {
                     spacing: Platform.Units.smallSpacing
 
                     AppButton {
+                        objectName: "convertLegacyTheme"
+                        text: qsTr("Convert theme")
+                        icon.name: "document-save"
+                        visible: page.selectedScope !== "live" && !!themeBundle.profileBundle.legacy
+                        enabled: !themeBundle.busy && !profileController.busy && !profileController.previewBusy
+                        onClicked: themeBundle.migrateProfile()
+                    }
+
+                    AppButton {
+                        text: qsTr("Save theme changes")
+                        icon.name: "document-save"
+                        visible: themeBundle.profileDraftSize > 0
+                        enabled: !themeBundle.busy
+                        onClicked: themeBundle.saveProfileDraft()
+                    }
+
+                    AppButton {
+                        text: qsTr("Review draft")
+                        icon.name: "document-preview"
+                        visible: themeBundle.profileDraftSize > 0
+                        onClicked: draftDialog.open()
+                    }
+
+                    AppButton {
+                        text: qsTr("Discard theme changes")
+                        icon.name: "edit-clear"
+                        visible: themeBundle.profileDraftSize > 0
+                        enabled: !themeBundle.busy
+                        onClicked: themeBundle.discardProfileDraft()
+                    }
+
+                    AppButton {
                         text: qsTr("Save as profile…")
                         icon.name: "document-save-as"
                         enabled: page.selectedScope === "live" && !themeBundle.busy
-                        onClicked: {
-                            profileNameField.text = ""
-                            profileDescriptionField.text = ""
-                            profileNameError.visible = false
-                            saveProfileDialog.open()
-                        }
+                            && !profileController.busy
+                        onClicked: applicationWindow().openSaveThemeDialog()
                     }
 
                     AppButton {
@@ -323,8 +341,22 @@ Kirigami.ScrollablePage {
                         highlighted: true
                         visible: themeBundle.sessionChanges > 0
                         enabled: page.selectedScope === "live"
-                            && themeBundle.sessionChanges > 0 && !themeBundle.busy
+                            && themeBundle.sessionChanges > 0 && !themeBundle.busy && !themeInspector.busy
                         onClicked: themeBundle.applyChanges()
+                    }
+
+                    AppButton {
+                        text: qsTr("Review draft")
+                        icon.name: "document-preview"
+                        visible: page.selectedScope === "live" && themeInspector.sessionChanges > 0
+                        onClicked: draftDialog.open()
+                    }
+                    AppButton {
+                        text: qsTr("Discard draft…")
+                        icon.name: "edit-clear"
+                        visible: page.selectedScope === "live" && themeInspector.sessionChanges > 0
+                        enabled: !themeBundle.busy && !themeInspector.busy
+                        onClicked: discardDraftDialog.open()
                     }
 
                     AppButton {
@@ -435,10 +467,11 @@ Kirigami.ScrollablePage {
 
             Kirigami.Card {
                 id: paletteCard
+                visible: !themeBundle.readOnly
                 Layout.fillWidth: true
                 activeFocusOnTab: true
                 Accessible.role: Accessible.Button
-                Accessible.name: qsTr("Palette")
+                Accessible.name: qsTr("Base16 palette")
                 Accessible.description: qsTr("One base16 palette for the colour scheme, terminals and Kvantum")
                 Accessible.onPressAction: paletteCard.openPalette()
 
@@ -482,7 +515,7 @@ Kirigami.ScrollablePage {
                         Kirigami.Heading {
                             Layout.fillWidth: true
                             level: 3
-                            text: qsTr("Palette")
+                            text: qsTr("Base16 palette")
                             color: ThemeColors.fgColor(page.glassMode)
                         }
                     }
@@ -519,80 +552,6 @@ Kirigami.ScrollablePage {
                         text: qsTr("Open palette")
                         icon.name: "go-next"
                         onClicked: paletteCard.openPalette()
-                    }
-                }
-            }
-
-            Kirigami.Card {
-                id: appsCard
-                Layout.fillWidth: true
-                activeFocusOnTab: true
-                Accessible.role: Accessible.Button
-                Accessible.name: qsTr("Application themes")
-                Accessible.description: qsTr("Choose themes for supported applications")
-                Accessible.onPressAction: appsCard.openApps()
-
-                background: Rectangle {
-                    radius: Platform.Units.smallSpacing
-                    border.width: appsCard.activeFocus ? 2 : 1
-                    color: appsHover.hovered || appsCard.activeFocus
-                        ? ThemeColors.cardHoverBg(page.glassMode)
-                        : ThemeColors.cardBg(page.glassMode)
-                    border.color: appsCard.activeFocus
-                        ? ThemeColors.accent()
-                        : ThemeColors.cardBorder(page.glassMode)
-                }
-
-                HoverHandler { id: appsHover }
-                function openApps() {
-                    pageStack.layers.push(Qt.resolvedUrl("ThemeApplicationsPage.qml"))
-                }
-                TapHandler { onTapped: appsCard.openApps() }
-                Keys.onPressed: function(event) {
-                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
-                            || event.key === Qt.Key_Space) {
-                        appsCard.openApps()
-                        event.accepted = true
-                    }
-                }
-
-                contentItem: ColumnLayout {
-                    id: appsTile
-                    spacing: Platform.Units.smallSpacing
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Platform.Units.smallSpacing
-                        Kirigami.Icon {
-                            source: "applications-other"
-                            color: ThemeColors.accent()
-                            Layout.preferredWidth: Platform.Units.iconSizes.small
-                            Layout.preferredHeight: Platform.Units.iconSizes.small
-                        }
-                        Kirigami.Heading {
-                            Layout.fillWidth: true
-                            level: 3
-                            text: qsTr("Applications")
-                            color: ThemeColors.fgColor(page.glassMode)
-                        }
-                    }
-
-                    Label {
-                        Layout.fillWidth: true
-                        text: {
-                            const installed = themeBundle.applications.filter(
-                                app => app.installed).length
-                            return qsTr("%1 supported · %2 installed").arg(themeBundle.applications.length).arg(installed)
-                        }
-                        wrapMode: Text.WordWrap
-                        color: ThemeColors.dimColor(page.glassMode)
-                    }
-
-                    AppButton {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Choose app themes")
-                        icon.name: "go-next"
-                        onClicked: appsCard.openApps()
                     }
                 }
             }

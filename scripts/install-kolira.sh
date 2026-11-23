@@ -280,8 +280,8 @@ install_gui() {
   mkdir -p "$APPDIR"
   if command -v rsync >/dev/null 2>&1; then
     rsync -a --delete \
-      --exclude '.venv/' --exclude '__pycache__/' --exclude '*.egg-info/' \
-      --exclude 'target/' --exclude 'tests/' \
+      --exclude '.venv' --exclude '__pycache__' --exclude '*.egg-info' \
+      --exclude 'target' --exclude 'tests' \
       "$APP_SRC/" "$APPDIR/"
   else
     find "$APPDIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} +

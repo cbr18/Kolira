@@ -8,10 +8,6 @@ files/bin/wallpaper-picker text eol=lf
 files/bin/wallpaper-next   text eol=lf
 files/bin/wallpaper-prev   text eol=lf
 
-# Don't include docs/scripts in source release archives if we ever do `git archive`
-scripts/install-kolira.sh  export-ignore
-scripts/uninstall-kolira.sh export-ignore
-scripts/update-kolira.sh  export-ignore
-docs/  export-ignore
+# Keep installation scripts and documentation in source archives.
 tests/ export-ignore
 .gitignore export-ignore

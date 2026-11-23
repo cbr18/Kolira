@@ -1,12 +1,14 @@
 """
 Kolira — Qt/QML Application Entry Point.
 
-v0.7.0 — Native KDE UI with Kirigami, Clean Architecture, Rust core + CLI.
+Native KDE UI with Kirigami and a Rust core.
 """
 
 import enum
 import os
 import sys
+import tomllib
+from importlib.metadata import version
 from pathlib import Path
 from typing import Optional
 
@@ -16,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtCore import QDir, QUrl, QCoreApplication, QTimer, QThreadPool, Qt
-from PySide6.QtGui import QPalette, QColor
+from PySide6.QtGui import QPalette
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 
 # Importing QtQuick ensures the QML root window is typed as QQuickWindow
@@ -29,11 +31,17 @@ from controllers import register_controllers
 from theme_controller import register_theme_controller
 from system_tray import register_system_tray
 
+try:
+    with (Path(__file__).resolve().parents[1] / "pyproject.toml").open("rb") as metadata:
+        APP_VERSION = tomllib.load(metadata)["project"]["version"]
+except FileNotFoundError:
+    APP_VERSION = version("kolira")
+
 
 def _show_help() -> int:
     """Print help to stdout (avoids QWidget/QApplication dependency)."""
     print(
-        """Kolira v0.7.0
+        f"""Kolira v{APP_VERSION}
 A Qt/QML-based theme profile manager for KDE Plasma.
 
 Usage: kolira-gui [options]
@@ -216,25 +224,9 @@ def _find_system_qml_paths() -> list[str]:
 
 
 def _setup_palette(app: QApplication) -> None:
-    """Ensure valid palette colors for Kirigami.Theme.
-
-    PySide6 bundles its own Qt; the Kirigami QML singleton reads colors
-    from the QApplication palette. Without this, Kirigami.Theme may return
-    invalid QColor (QVariant(Invalid)), producing QQuickColorValueType warnings.
-    """
-    palette = app.palette()
-    palette.setColor(QPalette.ColorRole.Window, QColor(239, 240, 243))
-    palette.setColor(QPalette.ColorRole.WindowText, QColor(31, 31, 31))
-    palette.setColor(QPalette.ColorRole.Base, QColor(255, 255, 255))
-    palette.setColor(QPalette.ColorRole.AlternateBase, QColor(245, 245, 245))
-    palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(255, 255, 255))
-    palette.setColor(QPalette.ColorRole.Text, QColor(31, 31, 31))
-    palette.setColor(QPalette.ColorRole.Button, QColor(239, 240, 243))
-    palette.setColor(QPalette.ColorRole.ButtonText, QColor(31, 31, 31))
-    palette.setColor(QPalette.ColorRole.Highlight, QColor(41, 128, 185))
-    palette.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
-    palette.setColor(QPalette.ColorRole.Link, QColor(41, 128, 185))
-    app.setPalette(palette)
+    """Use the Qt style's palette if the platform did not supply one."""
+    if not app.palette().color(QPalette.ColorRole.Window).isValid():
+        app.setPalette(app.style().standardPalette())
 
 
 def _maybe_setup_screenshot(app: QApplication, main_window: object) -> None:
@@ -277,7 +269,7 @@ def main() -> int:
 
     # Handle --version
     if "--version" in sys.argv:
-        print("kolira 0.7.0")
+        print(f"kolira {APP_VERSION}")
         return 0
 
     if "--list-cores" in sys.argv:
@@ -288,7 +280,7 @@ def main() -> int:
 
     # Настройка приложения
     QCoreApplication.setApplicationName("kolira")
-    QCoreApplication.setApplicationVersion("0.7.0")
+    QCoreApplication.setApplicationVersion(APP_VERSION)
     QCoreApplication.setOrganizationName("cbr")
     QCoreApplication.setOrganizationDomain("github.com/cbr18/Kolira")
 
@@ -345,16 +337,8 @@ def main() -> int:
     # Регистрация контроллеров
     main_controller = register_controllers(engine)
 
-    # Регистрация ThemeController (dogfooding)
     theme_controller = register_theme_controller(engine)
-
-    # Синхронизировать тему с активным профилем
-    def sync_theme():
-        active = main_controller.profile.activeProfile
-        if active:
-            theme_controller.sync_with_active_profile(active)
-
-    main_controller.profile.activeProfileChanged.connect(sync_theme)
+    theme_controller._apply_theme()
 
     # Инициализация контроллеров ДО загрузки QML.
     # Python — единственный источник истины: initialize() идемпотентен
@@ -402,11 +386,6 @@ def main() -> int:
             0,
             lambda: QMetaObject.invokeMethod(main_window, function),
         )
-
-    # Apply theme synchronously before showing (avoid light flash)
-    # sync_theme was triggered during initialize(); force-apply now
-    # to ensure glass/paper theme is active before the window appears
-    theme_controller._apply_theme()
 
     main_window.show()
 

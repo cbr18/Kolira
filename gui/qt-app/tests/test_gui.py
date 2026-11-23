@@ -1588,21 +1588,14 @@ def test_main_has_help_flag() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 # 13. SettingsController._apply_theme integration
 # ─────────────────────────────────────────────────────────────────────────────
-def test_settings_controller_apply_theme_not_empty() -> None:
-    """SettingsController._apply_theme must not be a TODO stub."""
-    import inspect
+def test_settings_keep_legacy_theme_value_without_overriding_the_desktop() -> None:
     from controllers import SettingsController
+    from core.protocol import AppSettings
 
-    source = inspect.getsource(SettingsController._apply_theme)
-    assert "pass" not in source.replace("pass", "", 0) or "TODO" not in source, (
-        "SettingsController._apply_theme is still a TODO stub"
-    )
-    assert "TODO" not in source, (
-        "SettingsController._apply_theme still contains TODO"
-    )
-    assert "ThemeController" in source, (
-        "SettingsController._apply_theme must reference ThemeController"
-    )
+    assert AppSettings.from_dict({"theme": "glass"}).to_dict()["theme"] == "glass"
+    assert SettingsController.staticMetaObject.indexOfProperty("theme") == -1
+    page = (PROJECT_ROOT / "qml" / "pages" / "SettingsPage.qml").read_text()
+    assert "themeCombo" not in page
 
 
 def test_settings_controller_has_backup_and_notify_properties() -> None:
@@ -1795,28 +1788,6 @@ def test_main_has_glass_styling() -> None:
     )
     assert "glassPanel" in theme_colors, (
         "ThemeColors.qml must expose the glass panel colour"
-    )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 22b. Selection and application are separate actions
-# ─────────────────────────────────────────────────────────────────────────────
-def test_selection_is_separate_from_apply() -> None:
-    """Clicking a profile selects it; applying requires the explicit Apply button."""
-    main_qml = (PROJECT_ROOT / "qml" / "Main.qml").read_text()
-    assert "property string selectedProfile" in main_qml, (
-        "Main.qml must track a pending selectedProfile"
-    )
-    # The radio tiles are gone: selection happens via the card delegate...
-    assert "ProfileRadioButton" not in main_qml, (
-        "Radio tiles were removed; cards select, they must not come back"
-    )
-    assert "root.selectedProfile = profileName" in main_qml, (
-        "Clicking a profile card must only assign the pending selection"
-    )
-    # ...and a dedicated Apply button performs the (slow) application.
-    assert "root.requestApply(root.selectedProfile)" in main_qml, (
-        "An explicit Apply button must trigger profile application"
     )
 
 
@@ -2068,9 +2039,9 @@ def test_wallpaper_dir_picker_and_async_preview() -> None:
     assert "settingsController.setWallpaperDirectoryUrl(selectedFolder)" in settings_qml
     assert "Not implemented yet" not in settings_qml
 
-    main_qml = (PROJECT_ROOT / "qml" / "Main.qml").read_text()
-    assert "asynchronous: true" in main_qml
-    assert "BusyIndicator" in main_qml
+    wallpaper_page = (PROJECT_ROOT / "qml" / "pages" / "WallpapersPage.qml").read_text()
+    assert "asynchronous: true" in wallpaper_page
+    assert "BusyIndicator" in wallpaper_page
 
 
 def test_duplicate_and_edit_live_qml_wiring() -> None:
@@ -2094,22 +2065,21 @@ def test_duplicate_and_edit_live_qml_wiring() -> None:
 
 
 def test_main_page_thin_header_and_overflow_menu() -> None:
-    """M1: радио-плитки убраны; карточка — 3 кнопки + меню «⋯»."""
+    """Apply stays on the card and secondary actions stay in its menu."""
     main_qml = (PROJECT_ROOT / "qml" / "Main.qml").read_text()
-    # Тонкая шапка: «Active: %1» вместо карточки с плитками.
-    assert 'qsTr("Active: %1")' in main_qml
+    # The last-apply label comes from recorded operations.
+    assert 'qsTr("Last applied: %1")' in main_qml
+    assert 'arg(historySchedule.lastProfileApply)' in main_qml
     assert "ProfileRadioButton" not in main_qml
 
     card_qml = (PROJECT_ROOT / "qml" / "Components" / "ProfileCardDelegate.qml").read_text()
     assert "overflowMenu" in card_qml
     assert "overflow-menu" in card_qml
-    # Видимых кнопок ровно три: Apply, Preview, Inspect.
-    for signal in ("applyClicked", "previewClicked", "inspectClicked"):
-        assert signal in card_qml
-    # Вторичные действия живут в меню.
-    for signal in ("duplicateClicked", "diffClicked", "deleteClicked",
+    actions, menu = card_qml.split("id: overflowMenu", 1)
+    assert "onClicked: card.applyClicked" in actions
+    for signal in ("previewClicked", "inspectClicked", "duplicateClicked", "diffClicked", "deleteClicked",
                    "editDescriptionClicked"):
-        assert signal in card_qml
+        assert f"onTriggered: card.{signal}" in menu
     assert "MenuSeparator" in card_qml
 
 
@@ -2117,10 +2087,10 @@ def test_theme_overview_drill_in_and_save_as() -> None:
     """Обзор theme bundle → страница группы; live-режим — «Save as profile…»."""
     qml = (PROJECT_ROOT / "qml" / "pages" / "ThemePage.qml").read_text()
     assert "ThemeComponentsPage.qml" in qml
-    assert "ThemeApplicationsPage.qml" in qml
+    group = (PROJECT_ROOT / "qml" / "pages" / "ThemeComponentsPage.qml").read_text()
+    assert "openLiveApplicationThemes" in group and "ThemeApplicationsPage.qml" in group
     assert "Save as profile…" in qml
-    assert "saveProfileDialog" in qml
-    assert "themeBundle.saveProfile" in qml
+    assert "applicationWindow().openSaveThemeDialog()" in qml
     assert "themeBundle.groups" in qml
 
     section = (PROJECT_ROOT / "qml" / "pages" / "SectionPage.qml").read_text()
@@ -2520,10 +2490,9 @@ def test_wallpaper_controller_operations_are_async() -> None:
 
 
 def test_qml_disables_wallpaper_buttons_while_busy() -> None:
-    main_qml = (PROJECT_ROOT / "qml" / "Main.qml").read_text()
-    assert main_qml.count("enabled: !wallpaperController.busy") == 3, (
-        "Previous/Pick/Next must all be disabled while an operation runs"
-    )
+    page = (PROJECT_ROOT / "qml" / "pages" / "WallpapersPage.qml").read_text()
+    for method in ("nextWallpaper", "prevWallpaper", "pickWallpaper"):
+        assert f"enabled: !wallpaperController.busy\n                onClicked: wallpaperController.{method}()" in page
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2783,12 +2752,17 @@ def test_list_cores_reports_availability(capsys) -> None:
     assert ("available" in out) or ("NOT AVAILABLE" in out)
 
 
-def test_help_mentions_the_core_flag(capsys) -> None:
+def test_help_mentions_the_core_flag(capsys, monkeypatch) -> None:
     main_module = _load_main_module()
     assert main_module._show_help() == 0
 
     out = capsys.readouterr().out
     assert "--core" in out and "--list-cores" in out
+    version = (PROJECT_ROOT.parents[1] / "VERSION").read_text().strip()
+    assert out.startswith(f"Kolira v{version}\n")
+    monkeypatch.setattr(sys, "argv", ["kolira-gui", "--version"])
+    assert main_module.main() == 0
+    assert capsys.readouterr().out.strip() == f"kolira {version}"
 
 
 def test_single_instance_second_launch_is_rejected() -> None:
@@ -3056,7 +3030,9 @@ def test_fresh_plasma_without_colours_does_not_crash(tmp_path) -> None:
         "c._current_theme = 'system'\n"
         "assert c._system_is_dark() in (True, False)\n"
         "assert c._resolve_theme() in ('dark', 'light')\n"
+        "before = app.palette()\n"
         "c._apply_theme()\n"
+        "assert app.palette() == before and not c.isGlass\n"
         "print('opened')\n"
     )
     env = {
@@ -3071,6 +3047,52 @@ def test_fresh_plasma_without_colours_does_not_crash(tmp_path) -> None:
     )
     assert done.returncode == 0 and "opened" in done.stdout, done.stderr
     assert "Qt.ColorMode" not in (SRC_DIR / "theme_controller.py").read_text()  # no such enum
+
+
+def test_open_window_follows_external_kde_palette_change(tmp_path) -> None:
+    config = tmp_path / ".config"
+    config.mkdir()
+    filename = config / "kdeglobals"
+    filename.write_text(
+        "[Colors:Window]\nBackgroundNormal=245,245,245\nForegroundNormal=17,17,17\n"
+        "ForegroundInactive=110,110,110\n[Colors:View]\nBackgroundNormal=245,245,245\n"
+        "BackgroundAlternate=242,242,242\n[Colors:Button]\nBackgroundNormal=245,245,245\n"
+        "[Colors:Selection]\nBackgroundNormal=29,99,199\nForegroundNormal=255,255,255\n"
+    )
+    script = """
+from pathlib import Path
+import sys
+from PySide6.QtGui import QPalette
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QApplication, QWidget
+sys.path.insert(0, sys.argv[1])
+from theme_controller import ThemeController
+
+app = QApplication([])
+controller = ThemeController.instance()
+controller._apply_theme()
+controller.watch_desktop_look()
+window = QWidget()
+window.show()
+assert window.palette().color(QPalette.Window).name() == '#f5f5f5'
+target = Path(sys.argv[2])
+replacement = target.with_suffix('.new')
+replacement.write_text(target.read_text().replace('245,245,245', '24,28,32'))
+replacement.replace(target)
+for _ in range(60):
+    QTest.qWait(50)
+    if window.palette().color(QPalette.Window).name() == '#181c20':
+        break
+assert window.palette().color(QPalette.Window).name() == '#181c20'
+assert controller.colors['window'] == '#181c20' and not controller.isGlass
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script, str(SRC_DIR), str(filename)],
+        env={**os.environ, "HOME": str(tmp_path), "XDG_CONFIG_HOME": str(config),
+             "QT_QPA_PLATFORM": "offscreen"},
+        capture_output=True, text=True, timeout=10,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_apply_asks_first_and_downloads_before_applying(monkeypatch, qtbot) -> None:

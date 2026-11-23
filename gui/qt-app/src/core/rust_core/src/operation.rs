@@ -39,6 +39,11 @@ pub struct Record {
 fn default_source() -> String {
     "cli".into()
 }
+impl Record {
+    fn is_live(&self) -> bool {
+        self.report["kind"] == "live"
+    }
+}
 thread_local! {
     static SOURCE: RefCell<String> = RefCell::new(default_source());
 }
@@ -61,21 +66,6 @@ pub fn note_report(report: serde_json::Value) -> Result<()> {
         }
         Ok(())
     })
-}
-fn prune() -> Result<()> {
-    let _lock = crate::gui_api::lock_file(&paths::theme_root().join("operation-history.lock"))?;
-    for record in records_unlocked()?
-        .into_iter()
-        .filter(|r| !pending(r))
-        .skip(10)
-    {
-        match fs::remove_file(records_dir().join(format!("{}.json", record.id))) {
-            Ok(()) => {}
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-            Err(e) => return Err(e.into()),
-        }
-    }
-    Ok(())
 }
 fn records_dir() -> PathBuf {
     paths::theme_root().join("operations")
@@ -178,11 +168,17 @@ struct Snapshot {
     #[serde(default)]
     tmux_after: Option<crate::tmux_runtime::State>,
     roots: Vec<PathBuf>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    missing_parents: Vec<PathBuf>,
     #[serde(default)]
     gsettings: BTreeMap<String, String>,
     before: BTreeMap<PathBuf, Node>,
     #[serde(default)]
     after: Option<BTreeMap<PathBuf, Node>>,
+    #[serde(default)]
+    gsettings_after: BTreeMap<String, String>,
+    #[serde(default)]
+    exact_paths: bool,
 }
 fn hash(bytes: &[u8]) -> String {
     use sha2::{Digest, Sha256};
@@ -191,7 +187,12 @@ fn hash(bytes: &[u8]) -> String {
         .map(|b| format!("{b:02x}"))
         .collect()
 }
-fn collect(path: &Path, nodes: &mut BTreeMap<PathBuf, Node>, files: Option<&Path>) -> Result<()> {
+fn collect(
+    path: &Path,
+    nodes: &mut BTreeMap<PathBuf, Node>,
+    files: Option<&Path>,
+    recurse: bool,
+) -> Result<()> {
     let meta = match fs::symlink_metadata(path) {
         Ok(m) => m,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
@@ -227,9 +228,9 @@ fn collect(path: &Path, nodes: &mut BTreeMap<PathBuf, Node>, files: Option<&Path
     }
     let directory = node.kind == "directory";
     nodes.insert(path.into(), node);
-    if directory {
+    if directory && recurse {
         for entry in fs::read_dir(path)? {
-            collect(&entry?.path(), nodes, files)?;
+            collect(&entry?.path(), nodes, files, true)?;
         }
     }
     Ok(())
@@ -237,7 +238,18 @@ fn collect(path: &Path, nodes: &mut BTreeMap<PathBuf, Node>, files: Option<&Path
 fn collect_all(roots: &[PathBuf], files: Option<&Path>) -> Result<BTreeMap<PathBuf, Node>> {
     let mut nodes = BTreeMap::new();
     for root in roots {
-        collect(root, &mut nodes, files)?;
+        collect(root, &mut nodes, files, true)?;
+    }
+    Ok(nodes)
+}
+fn current_nodes(snapshot: &Snapshot) -> Result<BTreeMap<PathBuf, Node>> {
+    if !snapshot.exact_paths {
+        return collect_all(&snapshot.roots, None);
+    }
+    let journal = paths::theme_root().join("apply-journal");
+    let mut nodes = BTreeMap::new();
+    for root in &snapshot.roots {
+        collect(root, &mut nodes, None, *root == journal)?;
     }
     Ok(nodes)
 }
@@ -286,6 +298,28 @@ fn normalize_roots(roots: Vec<PathBuf>) -> Vec<PathBuf> {
 }
 /// Called after preparation, immediately before any live mutation.
 pub fn prepare(backup: &Path, roots: Vec<PathBuf>) -> Result<()> {
+    prepare_inner(
+        backup,
+        roots,
+        ["gtk-theme", "color-scheme", "icon-theme", "cursor-theme"],
+        false,
+    )
+}
+
+pub(crate) fn prepare_live<'a>(
+    backup: &Path,
+    roots: Vec<PathBuf>,
+    settings: impl IntoIterator<Item = &'a str>,
+) -> Result<()> {
+    prepare_inner(backup, roots, settings, true)
+}
+
+fn prepare_inner<'a>(
+    backup: &Path,
+    roots: Vec<PathBuf>,
+    settings: impl IntoIterator<Item = &'a str>,
+    track_new_parents: bool,
+) -> Result<()> {
     if CURRENT.with(|c| c.borrow().as_ref().is_none_or(|r| r.backup.is_some())) {
         return Ok(());
     }
@@ -299,10 +333,32 @@ pub fn prepare(backup: &Path, roots: Vec<PathBuf>) -> Result<()> {
         }
     }
     let before = collect_all(&roots, Some(&backup.join("transaction/files")))?;
-    let gsettings = ["gtk-theme", "color-scheme", "icon-theme", "cursor-theme"]
+    let gsettings = settings
         .into_iter()
         .filter_map(|key| crate::undo::gsettings_get(key).map(|value| (key.into(), value)))
         .collect();
+    // A file write may create parent directories. Don't snapshot their other
+    // contents or remove files that appear there after Apply.
+    let missing_parents = if track_new_parents {
+        let mut missing: Vec<_> = roots
+            .iter()
+            .flat_map(|path| {
+                path.ancestors()
+                    .skip(1)
+                    .take_while(|parent| {
+                        fs::symlink_metadata(parent)
+                            .is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound)
+                    })
+                    .map(Path::to_path_buf)
+            })
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        missing.sort_by_key(|path| std::cmp::Reverse(path.components().count()));
+        missing
+    } else {
+        vec![]
+    };
     save_snapshot(
         backup,
         &Snapshot {
@@ -318,9 +374,12 @@ pub fn prepare(backup: &Path, roots: Vec<PathBuf>) -> Result<()> {
             },
             tmux_after: None,
             roots,
+            missing_parents,
             before,
             after: None,
             gsettings,
+            gsettings_after: BTreeMap::new(),
+            exact_paths: false,
         },
     )?;
     CURRENT.with(|c| -> Result<()> {
@@ -353,13 +412,103 @@ fn read_snapshot(backup: &Path) -> Result<Snapshot> {
 }
 fn checkpoint(backup: &Path) -> Result<()> {
     let mut snapshot = read_snapshot(backup)?;
-    snapshot.after = Some(collect_all(&snapshot.roots, None)?);
+    snapshot.after = Some(current_nodes(&snapshot)?);
+    snapshot.gsettings_after = gtk_values(snapshot.gsettings.keys().map(String::as_str));
     snapshot.tmux_after = Some(if snapshot.tmux_before.is_empty() {
         crate::tmux_runtime::State::new()
     } else {
         crate::tmux_runtime::capture()?
     });
     save_snapshot(backup, &snapshot)
+}
+
+pub(crate) fn gtk_values<'a>(keys: impl IntoIterator<Item = &'a str>) -> BTreeMap<String, String> {
+    keys.into_iter()
+        .filter_map(|key| crate::undo::gsettings_get(key).map(|value| (key.into(), value)))
+        .collect()
+}
+
+pub(crate) fn copy_changed_backup(backup: &Path, target: &Path) -> Result<bool> {
+    let original = read_snapshot(backup)?;
+    let after = original
+        .after
+        .as_ref()
+        .context("Missing operation checkpoint")?;
+    let journal = paths::theme_root().join("apply-journal");
+    let mut roots = BTreeSet::new();
+    let mut missing_parents: BTreeSet<_> = original.missing_parents.into_iter().collect();
+    for path in original.before.keys().chain(after.keys()) {
+        if original.before.get(path) == after.get(path) {
+            continue;
+        }
+        if path.starts_with(&journal) {
+            roots.insert(journal.clone());
+        } else if !original.before.contains_key(path)
+            && after.get(path).is_some_and(|node| node.kind == "directory")
+        {
+            missing_parents.insert(path.clone());
+        } else {
+            roots.insert(path.clone());
+        }
+    }
+    let mut missing_parents: Vec<_> = missing_parents.into_iter().collect();
+    missing_parents.sort_by_key(|path| std::cmp::Reverse(path.components().count()));
+    let before: BTreeMap<_, _> = original
+        .before
+        .into_iter()
+        .filter(|(path, _)| {
+            roots.contains(path) || (roots.contains(&journal) && path.starts_with(&journal))
+        })
+        .collect();
+    let gsettings: BTreeMap<_, _> = original
+        .gsettings
+        .into_iter()
+        .filter(|(key, value)| {
+            original
+                .gsettings_after
+                .get(key)
+                .is_some_and(|after| after != value)
+        })
+        .collect();
+    let tmux_changed = original.tmux_after.as_ref().is_some_and(|after| {
+        !crate::tmux_runtime::changes(&original.tmux_before, after).is_empty()
+    });
+    if roots.is_empty() && gsettings.is_empty() && !tmux_changed {
+        return Ok(false);
+    }
+    let files = target.join("transaction/files");
+    private_dir(&files)?;
+    for (path, node) in &before {
+        if node.kind != "file" {
+            continue;
+        }
+        let file = hash(path.as_os_str().as_encoded_bytes());
+        let source = backup.join("transaction/files").join(&file);
+        let target = files.join(&file);
+        if fs::hard_link(&source, &target).is_err() {
+            fs::copy(&source, &target)?;
+        }
+    }
+    save_snapshot(
+        target,
+        &Snapshot {
+            roots: roots.into_iter().collect(),
+            before,
+            after: None,
+            gsettings,
+            gsettings_after: BTreeMap::new(),
+            tmux_before: if tmux_changed {
+                original.tmux_before
+            } else {
+                Default::default()
+            },
+            tmux_after: None,
+            missing_parents,
+            exact_paths: true,
+        },
+    )?;
+    verify_backup(target)?;
+    Ok(true)
 }
 fn remove_node(path: &Path) -> Result<()> {
     let Ok(meta) = fs::symlink_metadata(path) else {
@@ -372,7 +521,7 @@ fn remove_node(path: &Path) -> Result<()> {
     }
     Ok(())
 }
-fn restore_desktop(backup: &Path, force: bool) -> Result<()> {
+fn restore_desktop(backup: &Path, force: bool, live: bool, wallpaper: bool) -> Result<()> {
     let snapshot = read_snapshot(backup)?;
     let expected = if snapshot.tmux_before.is_empty() {
         crate::tmux_runtime::State::new()
@@ -388,28 +537,40 @@ fn restore_desktop(backup: &Path, force: bool) -> Result<()> {
         &snapshot.tmux_before,
         &expected,
     ))?;
-    for (key, value) in snapshot.gsettings {
+    restore_gtk(&snapshot.gsettings)?;
+    if live {
+        if wallpaper {
+            crate::wallpaper::refresh_after_restore()?;
+        }
+        crate::profile::refresh_live_after_rollback(&snapshot.roots);
+        Ok(())
+    } else {
+        crate::profile::recover_after_rollback()
+    }
+}
+pub(crate) fn restore_gtk(settings: &BTreeMap<String, String>) -> Result<()> {
+    for (key, value) in settings {
         if !crate::field::no_apply() {
             let status = paths::status_bounded(std::process::Command::new("gsettings").args([
                 "set",
                 "org.gnome.desktop.interface",
-                &key,
-                &value,
+                key,
+                value,
             ]));
             if !status.is_some_and(|s| s.success()) {
                 bail!("Could not restore GSettings {key}");
             }
-            if crate::undo::gsettings_get(&key).as_deref() != Some(value.as_str()) {
+            if crate::undo::gsettings_get(key).as_deref() != Some(value.as_str()) {
                 bail!("GSettings verification failed: {key}");
             }
         }
     }
-    crate::profile::recover_after_rollback()
+    Ok(())
 }
 fn restore(backup: &Path, force: bool, pause: bool) -> Vec<String> {
     let result = (|| -> Result<Vec<String>> {
         let snapshot = read_snapshot(backup)?;
-        let current = collect_all(&snapshot.roots, None)?;
+        let current = current_nodes(&snapshot)?;
         let expected = snapshot.after.as_ref().unwrap_or(&snapshot.before);
         let mut keys: BTreeSet<PathBuf> = snapshot
             .before
@@ -507,7 +668,24 @@ fn restore(backup: &Path, force: bool, pause: bool) -> Vec<String> {
                 _ => bail!("Invalid backup node"),
             }
         }
-        let actual = collect_all(&snapshot.roots, None)?;
+        for path in &snapshot.missing_parents {
+            // An empty directory created for this write can be cleaned up.
+            // Keep any other files created there since the operation.
+            match fs::remove_dir(path) {
+                Ok(()) => {}
+                Err(e)
+                    if matches!(
+                        e.kind(),
+                        std::io::ErrorKind::NotFound
+                            | std::io::ErrorKind::DirectoryNotEmpty
+                            | std::io::ErrorKind::NotADirectory
+                    ) => {}
+                Err(e) => {
+                    return Err(e).with_context(|| format!("Cannot clean up {}", path.display()))
+                }
+            }
+        }
+        let actual = current_nodes(&snapshot)?;
         let all: BTreeSet<_> = snapshot.before.keys().chain(actual.keys()).collect();
         let errors = all
             .into_iter()
@@ -605,8 +783,15 @@ pub fn run<T>(profile: &str, work: impl FnOnce() -> Result<T>) -> Result<T> {
             }
             .into();
             record.updated = now();
+            if record.state == "succeeded" {
+                if let Err(error) = crate::restore_points::record_automatic(&record) {
+                    if !record.report.is_object() {
+                        record.report = serde_json::json!({});
+                    }
+                    record.report["restore_point_error"] = format!("{error:#}").into();
+                }
+            }
             save(&record)?;
-            prune()?;
             Ok(value)
         }
         Err(error) => {
@@ -614,16 +799,19 @@ pub fn run<T>(profile: &str, work: impl FnOnce() -> Result<T>) -> Result<T> {
             if let Some(backup) = &record.backup {
                 record.state = "recovering".into();
                 save(&record)?;
-                record.recovery_errors = restore(backup, false, true);
+                let live = record.is_live();
+                record.recovery_errors = restore(backup, false, !live);
                 if record.recovery_errors.is_empty() {
-                    if let Err(e) = restore_desktop(backup, false) {
+                    if let Err(e) =
+                        restore_desktop(backup, false, live, record.report["wallpaper"] == true)
+                    {
                         record
                             .recovery_errors
                             .push(format!("Desktop recovery: {e:#}"));
                     }
                     // Restore bytes again if a live tool normalized its config.
                     record.recovery_errors.extend(restore(backup, true, false));
-                } else {
+                } else if !live {
                     crate::profile::recover_desktop_shell();
                 }
                 record.state = if record.recovery_errors.is_empty() {
@@ -637,7 +825,6 @@ pub fn run<T>(profile: &str, work: impl FnOnce() -> Result<T>) -> Result<T> {
             }
             record.updated = now();
             save(&record)?;
-            prune()?;
             bail!(
                 "Apply failed: {error:#}; operation {}; {}; backup {}; recovery errors: {}",
                 record.id,
@@ -691,20 +878,49 @@ pub fn rejected_attempt(
         restored_operation: None,
     };
     save(&record)?;
-    prune()?;
     Ok(id)
 }
 
 pub fn list() -> Result<serde_json::Value> {
+    list_page(0, 10, true)
+}
+
+pub(crate) fn list_page(offset: usize, limit: usize, verify: bool) -> Result<serde_json::Value> {
     let file = lock_path().exists().then(open_lock).transpose()?;
     let busy = file.as_ref().is_some_and(|file| file.try_lock().is_err());
     let mut values = vec![];
-    for record in records()? {
+    let records = records()?;
+    let last_profile_apply = records
+        .iter()
+        .find(|record| {
+            record.state == "succeeded" && record.restored_operation.is_none() && !record.is_live()
+        })
+        .map(|record| record.profile.clone());
+    let completed = records.iter().filter(|record| !pending(record)).count();
+    let mut index = 0;
+    for record in records {
+        if pending(&record) {
+            if offset != 0 {
+                continue;
+            }
+        } else {
+            let include = index >= offset && index < offset.saturating_add(limit);
+            index += 1;
+            if !include {
+                continue;
+            }
+        }
         let interrupted = pending(&record) && !busy;
         let mut value = serde_json::to_value(record)?;
         value["interrupted"] = interrupted.into();
         let backup = value["backup"].as_str().map(PathBuf::from);
-        let health = backup.as_deref().map(verify_backup);
+        let health = backup.as_deref().map(|path| {
+            if verify {
+                verify_backup(path)
+            } else {
+                fs::metadata(manifest(path)).map(|_| ()).map_err(Into::into)
+            }
+        });
         value["backup_status"] = match &health {
             None => "not_created",
             Some(Ok(())) => "available",
@@ -718,7 +934,11 @@ pub fn list() -> Result<serde_json::Value> {
         value["can_restore"] = (!busy && value["backup_status"] == "available").into();
         values.push(value);
     }
-    Ok(serde_json::json!({"busy":busy,"operations":values}))
+    let next = offset.saturating_add(limit);
+    Ok(
+        serde_json::json!({"busy":busy,"operations":values,"last_profile_apply":last_profile_apply,
+        "next_offset":(next < completed).then_some(next)}),
+    )
 }
 
 fn verify_backup(backup: &Path) -> Result<()> {
@@ -754,22 +974,60 @@ pub fn restore_completed(id: &str, confirmed: bool) -> Result<serde_json::Value>
         .backup
         .as_deref()
         .context("Operation has no backup")?;
+    restore_saved_backup(
+        backup,
+        id,
+        &source.previous_profile,
+        source.is_live(),
+        source.report["wallpaper"] == true,
+    )
+}
+
+pub(crate) fn note_restored(id: &str) {
+    CURRENT.with(|c| c.borrow_mut().as_mut().unwrap().restored_operation = Some(id.into()));
+}
+
+pub(crate) fn restore_saved_backup(
+    backup: &Path,
+    id: &str,
+    profile: &str,
+    live: bool,
+    wallpaper: bool,
+) -> Result<serde_json::Value> {
+    let _lock = MutationGuard::acquire()?;
     verify_backup(backup)?;
     let snapshot = read_snapshot(backup)?;
-    run(&source.previous_profile, || {
-        CURRENT.with(|c| c.borrow_mut().as_mut().unwrap().restored_operation = Some(id.into()));
+    run(profile, || {
+        note_restored(id);
         let safety = crate::profile::unique_dir(&paths::backups_dir(), "pre-restore")?;
-        prepare(&safety, snapshot.roots)?;
-        let errors = restore(backup, true, true);
+        if live {
+            note_report(serde_json::json!({"kind":"live","wallpaper":wallpaper}))?;
+            prepare_live(
+                &safety,
+                snapshot.roots,
+                snapshot.gsettings.keys().map(String::as_str),
+            )?;
+        } else {
+            prepare_live(
+                &safety,
+                snapshot.roots,
+                snapshot.gsettings.keys().map(String::as_str),
+            )?;
+        }
+        let errors = restore(backup, true, !live);
         if !errors.is_empty() {
             bail!("Restoration failed: {}", errors.join("; "));
         }
-        restore_desktop(backup, true)?;
+        restore_desktop(backup, true, live, wallpaper)?;
         let errors = restore(backup, true, false);
         if !errors.is_empty() {
             bail!("Restoration verification: {}", errors.join("; "));
         }
-        let result = serde_json::json!({"operation_id":current_id(),"restored_operation":id,"backup":safety});
+        let mut result = serde_json::json!({"operation_id":current_id(),"restored_operation":id,"backup":safety});
+        if live {
+            result["kind"] = "live".into();
+            result["wallpaper"] = wallpaper.into();
+        }
         note_report(result.clone())?;
         Ok(result)
     })
@@ -786,21 +1044,21 @@ pub fn recover(id: &str, force: bool) -> Result<Record> {
         record.state = "cancelled_preparation".into();
         record.updated = now();
         save(&record)?;
-        prune()?;
         return Ok(record);
     }
     let backup = record.backup.as_ref().context("Operation has no backup")?;
     record.state = "recovering".into();
     save(&record)?;
-    record.recovery_errors = restore(backup, force, true);
+    let live = record.is_live();
+    record.recovery_errors = restore(backup, force, !live);
     if record.recovery_errors.is_empty() {
-        if let Err(e) = restore_desktop(backup, force) {
+        if let Err(e) = restore_desktop(backup, force, live, record.report["wallpaper"] == true) {
             record
                 .recovery_errors
                 .push(format!("Desktop recovery: {e:#}"));
         }
         record.recovery_errors.extend(restore(backup, true, false));
-    } else {
+    } else if !live {
         crate::profile::recover_desktop_shell();
     }
     record.state = if record.recovery_errors.is_empty() {
@@ -811,7 +1069,6 @@ pub fn recover(id: &str, force: bool) -> Result<Record> {
     .into();
     record.updated = now();
     save(&record)?;
-    prune()?;
     Ok(record)
 }
 

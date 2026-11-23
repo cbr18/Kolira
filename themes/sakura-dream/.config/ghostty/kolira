@@ -1,0 +1,47 @@
+# BEGIN kolira Sakura Dream palette (generated)
+background = #FFF0F6
+foreground = #69465B
+cursor-color = #B53F72
+selection-background = #FFB7D5
+selection-foreground = #493040
+palette = 0=#69465B
+palette = 1=#A62D60
+palette = 2=#286653
+palette = 3=#805018
+palette = 4=#7045A0
+palette = 5=#A14B63
+palette = 6=#23664F
+palette = 7=#69465B
+palette = 8=#7A5B6C
+palette = 9=#87234E
+palette = 10=#205040
+palette = 11=#704412
+palette = 12=#5F358D
+palette = 13=#752F49
+palette = 14=#174F3C
+palette = 15=#493040
+# END kolira Sakura Dream palette
+
+# BEGIN kolira palette (generated)
+background = #fff0f6
+foreground = #493040
+cursor-color = #493040
+selection-background = #ff78ac
+selection-foreground = #493040
+palette = 0=#fff8fc
+palette = 1=#a62d60
+palette = 2=#286653
+palette = 3=#704412
+palette = 4=#7045a0
+palette = 5=#873c55
+palette = 6=#23664f
+palette = 7=#493040
+palette = 8=#7a5b6c
+palette = 9=#a62d60
+palette = 10=#286653
+palette = 11=#704412
+palette = 12=#7045a0
+palette = 13=#873c55
+palette = 14=#23664f
+palette = 15=#ffffff
+# END kolira palette

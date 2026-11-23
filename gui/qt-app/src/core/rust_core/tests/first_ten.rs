@@ -413,10 +413,28 @@ fn cached_zed_dark_light_and_mode_are_selected_without_reserializing_settings() 
     let cache = "assets/editor-themes/zed/example";
     h.write(&format!(".config/kolira/themes/next/{cache}/themes/night.json"),&json!({"name":"Example","themes":[{"name":"Night","appearance":"dark","style":{}},{"name":"Day","appearance":"light","style":{}}]}).to_string());
     h.write(".config/kolira/themes/next/theme.json",&json!({"schema":"kolira/theme@2","name":"next","values":{"zed_dark":"Night","zed_light":"Day","zed_mode":"dark"},"editor_themes":[{"editor":"zed","id":"example","store":"local","local_path":cache}]}).to_string());
+    let editor = h.rpc("bundle.editor", json!({"name":"next"}));
+    assert_eq!(editor["data"]["values"]["zed_dark"], "Night");
+    assert!(editor["data"]["choices"]["zed_light"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|choice| choice["value"] == "Day" && choice["available"] == true));
+    let saved = h.rpc(
+        "bundle.save_edits",
+        json!({"name":"next","revision":editor["data"]["revision"],"changes":{"zed_mode":"light"}}),
+    );
+    assert_eq!(saved["data"]["values"]["zed_light"], "Day");
+    assert_eq!(saved["data"]["values"]["zed_dark"], "Night");
+    assert_eq!(h.text(".config/zed/settings.json"), old);
     h.apply("next");
     let text = h.text(".config/zed/settings.json");
     assert!(text.contains("// personal") && text.contains("\"buffer_font_size\":19"));
     assert!(text.contains("Night") && text.contains("Day"));
+    assert_eq!(
+        kolira_core::field::json_get(&text, &["theme".into(), "mode".into()]),
+        Some(json!("light"))
+    );
     h.apply("neutral");
     assert_eq!(h.text(".config/zed/settings.json"), old);
     assert!(!h.path(".config/zed/themes/night.json").exists());
@@ -726,7 +744,7 @@ fn pref(text: &str, key: &str) -> Option<Value> {
 fn assert_palette_resources(h: &Home, name: &str, package: &Value) {
     use kolira_core::{
         field,
-        palette::{kde_roles, Palette},
+        palette::{kde_roles, Palette, Rgb},
     };
     let p: Palette = serde_json::from_value(package["palette"].clone()).unwrap();
     let r = kde_roles(&p);
@@ -885,8 +903,14 @@ fn assert_palette_resources(h: &Home, name: &str, package: &Value) {
     let zed: Value =
         serde_json::from_str(&h.text(&format!(".config/zed/themes/kolira-{name}.json"))).unwrap();
     assert_eq!(
-        zed["themes"][0]["style"]["text.accent"], p.accent,
-        "{name} Zed"
+        Rgb::parse(
+            zed["themes"][0]["style"]["editor.background"]
+                .as_str()
+                .unwrap()
+        )
+        .unwrap(),
+        p.slot(0x00),
+        "{name} Zed editor background"
     );
     let obsidian = h.text("Documents/Notes/.obsidian/snippets/kolira.css");
     assert!(obsidian.contains(&p.accent), "{name} Obsidian");

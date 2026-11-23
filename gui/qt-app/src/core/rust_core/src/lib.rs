@@ -33,6 +33,7 @@ pub mod oklab;
 pub mod palette;
 pub mod paths;
 pub mod profile;
+mod profile_edit;
 pub mod share;
 pub mod spicetify;
 pub mod status;
@@ -59,6 +60,7 @@ pub mod resource_clone;
 
 pub mod obsidian;
 pub mod operation;
+mod restore_points;
 
 pub mod change_plan;
 

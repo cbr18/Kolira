@@ -10,6 +10,7 @@ Kirigami.ScrollablePage {
 
     readonly property bool glassMode: themeController.isGlass
     property string selectedId: ""
+    signal reapplyRequested(string profileName)
     readonly property var selected: historySchedule.history.find(function(row) {
         return row.id === page.selectedId;
     }) || null
@@ -19,27 +20,40 @@ Kirigami.ScrollablePage {
     title: qsTr("Theme change history")
     Component.onCompleted: historySchedule.refreshHistory()
 
-    Timer {
-        interval: 15000
-        running: page.visible
-        repeat: true
-        onTriggered: historySchedule.refreshHistory()
+    function pointTitle(point) {
+        return point.name || qsTr("Before Live changes")
     }
 
     ColumnLayout {
         spacing: Kirigami.Units.largeSpacing
 
-        Label {
-            color: ThemeColors.fgColor(page.glassMode)
+        TabBar {
+            id: historyTabs
+            objectName: "historyTabs"
             Layout.fillWidth: true
-            text: qsTr("Last 10 completed changes and all interrupted operations. Backups are kept when older history entries are removed.")
-            wrapMode: Text.WordWrap
+            onCurrentIndexChanged: {
+                if (currentIndex === 1)
+                    historySchedule.refreshPoints()
+            }
+            TabButton { text: qsTr("Applications") }
+            TabButton { text: qsTr("Restore points") }
         }
 
-        AppButton {
-            text: qsTr("Refresh")
-            enabled: !historySchedule.busy
-            onClicked: historySchedule.refreshHistory()
+        ActionFlow {
+            AppButton {
+                text: qsTr("Refresh")
+                enabled: !historySchedule.busy
+                onClicked: historyTabs.currentIndex === 0
+                    ? historySchedule.refreshHistory() : historySchedule.refreshPoints()
+            }
+            AppButton {
+                objectName: "createRestorePoint"
+                visible: historyTabs.currentIndex === 1
+                text: qsTr("Create restore point…")
+                icon.name: "list-add"
+                enabled: !historySchedule.busy && !profileController.busy
+                onClicked: nameDialog.edit("", "")
+            }
         }
 
         BusyIndicator {
@@ -60,11 +74,13 @@ Kirigami.ScrollablePage {
         Label {
             color: ThemeColors.fgColor(page.glassMode)
             text: qsTr("No theme changes recorded")
-            visible: historySchedule.history.length === 0
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            visible: historyTabs.currentIndex === 0 && historySchedule.history.length === 0 && !historySchedule.busy
         }
 
         Repeater {
-            model: historySchedule.history
+            model: historyTabs.currentIndex === 0 ? historySchedule.history : []
 
             delegate: Frame {
                 id: entry
@@ -79,7 +95,9 @@ Kirigami.ScrollablePage {
                     Label {
                         color: ThemeColors.fgColor(page.glassMode)
                         Layout.fillWidth: true
-                        text: (entry.modelData.previous_profile || qsTr("Unknown")) + " → " + entry.modelData.profile
+                        text: entry.modelData.restored_operation ? qsTr("Restore appearance")
+                            : entry.modelData.report?.kind === "live" ? qsTr("Apply Live draft")
+                            : (entry.modelData.previous_profile || qsTr("Unknown")) + " → " + entry.modelData.profile
                         font.bold: true
                         wrapMode: Text.Wrap
                         textFormat: Text.PlainText
@@ -91,6 +109,13 @@ Kirigami.ScrollablePage {
                         text: new Date(entry.modelData.started).toLocaleString(Qt.locale(), Locale.ShortFormat) + " · " + entry.modelData.sourceText + " · " + entry.modelData.stateText
                         wrapMode: Text.Wrap
                         textFormat: Text.PlainText
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
+                        visible: !!entry.modelData.report?.restore_point_error
+                        text: qsTr("An automatic restore point could not be saved.")
+                        wrapMode: Text.Wrap
                     }
 
                     Label {
@@ -151,6 +176,16 @@ Kirigami.ScrollablePage {
                             spacing: Kirigami.Units.smallSpacing
 
                             AppButton {
+                                text: qsTr("Re-apply")
+                                icon.name: "dialog-ok-apply"
+                                visible: profileController.profiles.some(function(profile) {
+                                    return profile.name === entry.modelData.profile
+                                })
+                                enabled: !profileController.busy && !historySchedule.busy
+                                onClicked: page.reapplyRequested(entry.modelData.profile)
+                            }
+
+                            AppButton {
                                 text: qsTr("Open backup")
                                 enabled: entry.modelData.backup_status === "available"
                                 onClicked: historySchedule.openBackup(entry.modelData.id)
@@ -158,7 +193,8 @@ Kirigami.ScrollablePage {
 
                             AppButton {
                                 text: qsTr("Restore…")
-                                enabled: !historySchedule.busy && !profileController.busy && (entry.modelData.can_restore || (entry.modelData.interrupted && !entry.modelData.backup))
+                                visible: entry.modelData.interrupted === true
+                                enabled: !historySchedule.busy && !profileController.busy
                                 onClicked: {
                                     confirmation.operationId = entry.modelData.id;
                                     confirmation.interrupted = entry.modelData.interrupted;
@@ -183,6 +219,154 @@ Kirigami.ScrollablePage {
 
         }
 
+        AppButton {
+            visible: historyTabs.currentIndex === 0 && historySchedule.moreHistory
+            text: qsTr("Load older operations")
+            enabled: !historySchedule.busy
+            onClicked: historySchedule.loadMoreHistory()
+        }
+
+        Label {
+            Layout.fillWidth: true
+            visible: historyTabs.currentIndex === 1 && historySchedule.points.length === 0 && !historySchedule.busy
+            text: qsTr("No restore points yet")
+            wrapMode: Text.Wrap
+        }
+
+        Repeater {
+            model: historyTabs.currentIndex === 1 ? ["manual", "automatic"] : []
+            delegate: ColumnLayout {
+                id: pointGroup
+                required property string modelData
+                readonly property var rows: historySchedule.points.filter(point => point.kind === modelData)
+                Layout.fillWidth: true
+                visible: rows.length > 0
+                Kirigami.Heading {
+                    Layout.fillWidth: true
+                    level: 3
+                    text: pointGroup.modelData === "manual" ? qsTr("Manual points") : qsTr("Automatic points")
+                    wrapMode: Text.Wrap
+                }
+                Repeater {
+                    model: pointGroup.rows
+                    delegate: Frame {
+                        id: pointRow
+                        required property var modelData
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        ColumnLayout {
+                            anchors.fill: parent
+                            Label {
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                textFormat: Text.PlainText
+                                font.bold: true
+                                wrapMode: Text.Wrap
+                                text: page.pointTitle(pointRow.modelData)
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                wrapMode: Text.Wrap
+                                text: new Date(pointRow.modelData.created).toLocaleString(Qt.locale(), Locale.ShortFormat)
+                                    + (pointRow.modelData.pinned ? " · " + qsTr("Pinned") : "")
+                            }
+                            ActionFlow {
+                                AppButton {
+                                    objectName: "restorePoint-" + pointRow.modelData.id
+                                    text: qsTr("Restore…")
+                                    enabled: !historySchedule.busy && !profileController.busy
+                                    onClicked: pointConfirmation.ask(pointRow.modelData, true)
+                                }
+                                AppButton {
+                                    text: pointRow.modelData.pinned ? qsTr("Unpin") : qsTr("Pin")
+                                    enabled: !historySchedule.busy
+                                    onClicked: historySchedule.pinPoint(pointRow.modelData.id, !pointRow.modelData.pinned)
+                                }
+                                ToolButton {
+                                    text: qsTr("More actions")
+                                    icon.name: "overflow-menu"
+                                    onClicked: pointMenu.open()
+                                    Menu {
+                                        id: pointMenu
+                                        MenuItem {
+                                            text: qsTr("Rename…")
+                                            enabled: !historySchedule.busy
+                                            onTriggered: nameDialog.edit(pointRow.modelData.id, pointRow.modelData.name)
+                                        }
+                                        MenuItem {
+                                            text: qsTr("Delete…")
+                                            enabled: !historySchedule.busy
+                                            onTriggered: pointConfirmation.ask(pointRow.modelData, false)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    AppDialog {
+        id: nameDialog
+        objectName: "restorePointNameDialog"
+        property string pointId: ""
+        standardButtons: Dialog.Cancel
+        preferredWidth: 420
+        title: pointId ? qsTr("Rename restore point") : qsTr("Create restore point")
+        function edit(id, name) {
+            pointId = id
+            pointName.text = name
+            open()
+            pointName.forceActiveFocus()
+        }
+        TextField {
+            id: pointName
+            objectName: "restorePointName"
+            Layout.fillWidth: true
+            placeholderText: qsTr("Name")
+            maximumLength: 120
+            onAccepted: if (commitPoint.enabled) commitPoint.trigger()
+        }
+        customFooterActions: Kirigami.Action {
+            id: commitPoint
+            text: qsTr("Save")
+            enabled: pointName.text.trim() !== "" && !historySchedule.busy
+            onTriggered: {
+                historySchedule.savePoint(nameDialog.pointId, pointName.text)
+                nameDialog.close()
+            }
+        }
+    }
+
+    AppDialog {
+        id: pointConfirmation
+        property string pointId: ""
+        property bool restore: true
+        title: restore ? qsTr("Restore appearance?") : qsTr("Delete restore point?")
+        standardButtons: Dialog.Cancel
+        preferredWidth: 420
+        function ask(point, restore) {
+            pointId = point.id
+            pointTitle.text = page.pointTitle(point)
+            pointConfirmation.restore = restore
+            open()
+        }
+        Label {
+            id: pointTitle
+            Layout.fillWidth: true
+            textFormat: Text.PlainText
+            wrapMode: Text.Wrap
+        }
+        customFooterActions: Kirigami.Action {
+            text: pointConfirmation.restore ? qsTr("Restore") : qsTr("Delete")
+            enabled: !historySchedule.busy && !profileController.busy
+            onTriggered: {
+                historySchedule.confirmPoint(pointConfirmation.pointId, pointConfirmation.restore)
+                pointConfirmation.close()
+            }
+        }
     }
 
     AppDialog {

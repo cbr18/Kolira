@@ -501,14 +501,19 @@ pub fn plan(source: &Path, package: &Package, plan: &mut Plan) -> Result<()> {
             }
         }
     }
+    let btop_config = crate::appearance::BTOP_CONFIG;
     if wants("btop")
         && present("btop", ".config/btop")
         && !source.join(".config/btop/themes/kolira.theme").exists()
+        && plan
+            .text(&source.join(btop_config))?
+            .is_none_or(|text| crate::field::ini_get(&text, "", "color_theme").is_none())
     {
         write(plan, ".config/btop/themes/kolira.theme", btop(p))?;
-        let rel = ".config/btop/btop.conf";
-        let old = plan.text(&paths::live_path(rel))?.unwrap_or_default();
-        write(plan, rel, kv(&old, "color_theme", "\"kolira\""))?;
+        let old = plan
+            .text(&paths::live_path(btop_config))?
+            .unwrap_or_default();
+        write(plan, btop_config, kv(&old, "color_theme", "\"kolira\""))?;
     }
     if wants("yazi") && present("yazi", ".config/yazi") {
         selectors(plan, source, ".config/yazi/theme.toml", yazi(p))?;

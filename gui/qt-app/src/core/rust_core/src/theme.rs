@@ -115,6 +115,13 @@ pub struct Package {
     /// Explicit palette-generated follow-ups; absence preserves snapshot-only behavior.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub app_targets: Vec<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "crate::browser_appearance::ZenOverrides::is_empty"
+    )]
+    pub zen_overrides: crate::browser_appearance::ZenOverrides,
+    #[serde(default, skip_serializing_if = "crate::obsidian::Overrides::is_empty")]
+    pub obsidian_overrides: crate::obsidian::Overrides,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -385,9 +392,13 @@ pub fn is_package(dir: &Path) -> bool {
 }
 
 pub fn load(dir: &Path) -> Result<Package> {
-    let text = fs::read_to_string(dir.join(MANIFEST))
+    let bytes = fs::read(dir.join(MANIFEST))
         .with_context(|| format!("no {MANIFEST} in {}", dir.display()))?;
-    let mut package: Package = serde_json::from_str(&text).context("invalid theme.json")?;
+    parse_package(&bytes)
+}
+
+pub(crate) fn parse_package(bytes: &[u8]) -> Result<Package> {
+    let mut package: Package = serde_json::from_slice(bytes).context("invalid theme.json")?;
     if !supported_schema(&package.schema) {
         return Err(anyhow!("unsupported theme schema {:?}", package.schema));
     }
@@ -404,6 +415,7 @@ pub fn load(dir: &Path) -> Result<Package> {
         .retain(|dependency| dependency.kind != "fastfetch" && dependency.name != "fastfetch");
     drop_retired_targets(&mut package);
     validate_assets(&package)?;
+    package.obsidian_overrides.validate()?;
     Ok(package)
 }
 
@@ -752,6 +764,17 @@ fn asset_in(k: &AssetKind, root: &Path, name: &str) -> Option<PathBuf> {
     path.exists().then_some(path)
 }
 
+pub(crate) fn bundled_kind_for_field(field_id: &str) -> Option<&'static str> {
+    BUNDLED_KINDS
+        .iter()
+        .find(|k| k.field == field_id)
+        .map(|k| k.kind)
+}
+
+pub(crate) fn bundled_asset_present(dir: &Path, kind: &str, path: &str) -> bool {
+    normal_relative(path) && asset_root(kind, path).is_some() && dir.join(path).exists()
+}
+
 fn kind_available(k: &AssetKind, name: &str) -> bool {
     if !safe_name(name) {
         return false;
@@ -776,6 +799,10 @@ pub fn available(field_id: &str, value: &Value) -> bool {
     match field_id {
         "plasma_theme" if name == "default" => true,
         "btop_theme" if name.eq_ignore_ascii_case("Default") => true,
+        "decoration_library" => {
+            matches!(name.as_str(), "org.kde.breeze")
+                || crate::deps::decoration_plugin(&name).is_some()
+        }
         "icon_theme" => [
             data_home().join("icons"),
             home_dir().join(".icons"),
@@ -791,7 +818,8 @@ pub fn available(field_id: &str, value: &Value) -> bool {
         .iter()
         .any(|r| r.join(&name).is_dir()),
         "zed_dark" | "zed_light" => {
-            zed_theme_file(&name, &Base::Live).is_some() || ZED_BUILTIN.contains(&name.as_str())
+            crate::app_themes::zed_builtin_theme(&name)
+                || zed_theme_file(&name, &Base::Live).is_some()
         }
         "vscode_theme" => {
             vscode_theme_extension("vscode", &name).is_some()
@@ -809,20 +837,6 @@ pub fn available(field_id: &str, value: &Value) -> bool {
     }
 }
 
-const ZED_BUILTIN: &[&str] = &[
-    "Zed (Default)",
-    "One Dark",
-    "One Light",
-    "Ayu Dark",
-    "Ayu Light",
-    "Ayu Mirage",
-    "Gruvbox Dark",
-    "Gruvbox Dark Hard",
-    "Gruvbox Dark Soft",
-    "Gruvbox Light",
-    "Gruvbox Light Hard",
-    "Gruvbox Light Soft",
-];
 const VSCODE_BUILTIN: &[&str] = &[
     "Default Dark Modern",
     "Default Light Modern",
@@ -864,20 +878,11 @@ fn zed_theme_file(theme_name: &str, base: &Base) -> Option<PathBuf> {
             .collect();
         files.sort();
         for file in files {
-            let Ok(text) = fs::read_to_string(&file) else {
-                continue;
-            };
-            let Ok(json) = serde_json::from_str::<Value>(&text) else {
-                continue;
-            };
-            let declares = json
-                .get("themes")
-                .and_then(Value::as_array)
-                .is_some_and(|t| {
-                    t.iter()
-                        .any(|x| x.get("name").and_then(Value::as_str) == Some(theme_name))
-                });
-            if declares {
+            if file.is_file()
+                && crate::app_themes::zed_family_names(&file)
+                    .iter()
+                    .any(|name| name == theme_name)
+            {
                 return Some(file);
             }
         }
@@ -940,6 +945,44 @@ fn vscode_theme_extension(app: &str, theme: &str) -> Option<String> {
         }
     }
     None
+}
+
+pub(crate) fn editor_selector_kind(field: &str) -> Option<&'static str> {
+    match field {
+        "vscode_theme" => Some("vscode"),
+        "cursor_ide_theme" => Some("cursor"),
+        "zed_light" | "zed_dark" => Some("zed"),
+        _ => None,
+    }
+}
+
+pub(crate) fn installed_editor_source(field: &str, selected: &str) -> Option<Source> {
+    let app = editor_selector_kind(field)?;
+    if app == "zed" {
+        let file = zed_theme_file(selected, &Base::Live)?;
+        let id = zed_extension_of(&file, file.file_name()?.to_str()?)?;
+        if stores::valid_zed_id(&id) {
+            return Some(Source {
+                store: "zed".into(),
+                id,
+                url: String::new(),
+            });
+        }
+        return None;
+    }
+    let id = vscode_theme_extension(app, selected).filter(|id| stores::valid_vsx_id(id))?;
+    let store = if id.starts_with("kolira-cache.") {
+        "local"
+    } else if app == "cursor" {
+        "open-vsx"
+    } else {
+        "vscode-marketplace"
+    };
+    Some(Source {
+        store: store.into(),
+        id,
+        url: String::new(),
+    })
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1218,15 +1261,8 @@ pub fn build(name: &str, dir: &Path, options: &SaveOptions) -> Result<Package> {
     Ok(package)
 }
 
-/// Keep only the look in a stored theme (appearance.rs): mixed files are
-/// filtered, kitty.conf / alacritty.toml become their include files. The
-/// theme is copied to `backups/pre-normalize-<name>-…` first.
-fn normalize_dir(name: &str, dir: &Path) -> Result<()> {
-    let backups = crate::paths::backups_dir();
-    fs::create_dir_all(&backups)?;
-    let backup = crate::profile::unique_dir(&backups, &format!("pre-normalize-{name}"))?;
-    copy_tree(dir, &backup)
-        .with_context(|| format!("back up {} to {}", dir.display(), backup.display()))?;
+/// Keep only the look in a private snapshot before publication.
+fn normalize_snapshot(dir: &Path) -> Result<()> {
     for rel in crate::profile::resolve_cli_paths(None)? {
         let path = dir.join(&rel);
         if !path.is_file()
@@ -1237,19 +1273,21 @@ fn normalize_dir(name: &str, dir: &Path) -> Result<()> {
         {
             continue;
         }
-        let Ok(text) = fs::read_to_string(&path) else {
-            continue;
-        };
+        crate::profile::snapshot_relative(dir, &path)?;
+        let text = fs::read_to_string(&path)?;
         let has_include =
             crate::appearance::include_of(&rel).is_some_and(|inc| dir.join(inc).is_file());
         let entries = crate::appearance::normalize(&rel, &text, has_include)?;
-        fs::remove_file(&path)?;
+        let keeps_source = entries.iter().any(|(relative, _)| relative == &rel);
         for (k, t) in entries {
             let dst = dir.join(k);
-            if let Some(parent) = dst.parent() {
-                fs::create_dir_all(parent)?;
+            crate::profile::snapshot_relative(dir, &dst)?;
+            if dst != path || t != text {
+                crate::gui_api::write_bytes(&dst, t.as_bytes(), None)?;
             }
-            fs::write(dst, t)?;
+        }
+        if !keeps_source {
+            fs::remove_file(&path)?;
         }
     }
     Ok(())
@@ -1278,6 +1316,7 @@ pub fn save(name: &str, options: &SaveOptions) -> Result<Package> {
     let mut package = build(name, &target, &options)?;
     if let Some(prev) = previous {
         package.app_targets = prev.app_targets.clone();
+        package.zen_overrides = prev.zen_overrides.clone();
         for editor in &prev.editor_themes {
             if !package
                 .editor_themes
@@ -1300,6 +1339,58 @@ pub fn save(name: &str, options: &SaveOptions) -> Result<Package> {
     package.gsettings_gtk_theme =
         crate::undo::live_gtk_theme().filter(|live| ini.as_deref() != Some(live.as_str()));
     write_manifest(&target, &package)?;
+    Ok(package)
+}
+
+/// Publish a new package from Live without changing Live or its active marker.
+pub fn capture_live(
+    name: &str,
+    options: &SaveOptions,
+    make_look_and_feel: bool,
+    draft_session: Option<&str>,
+) -> Result<Package> {
+    let _lock = crate::operation::MutationGuard::acquire()?;
+    let destination = profile_dir(name)?;
+    anyhow::ensure!(
+        fs::symlink_metadata(&destination).is_err()
+            && crate::profile::case_duplicate_of(name).is_none(),
+        "A theme with this name already exists"
+    );
+    let profiles = crate::paths::profiles_dir();
+    fs::create_dir_all(&profiles)?;
+    let staging = tempfile::Builder::new()
+        .prefix(".capture-")
+        .tempdir_in(&profiles)?;
+    let snapshot = staging.path();
+    let paths = crate::profile::resolve_cli_paths(None)?;
+    crate::profile::capture_snapshot(snapshot, name, &paths, options.include_wallpaper, true)?;
+    if !options.include_wallpaper {
+        drop_stored_wallpaper(snapshot);
+    }
+    let gtk_ini = snapshot.join(".config/gtk-3.0/settings.ini");
+    let live_ini_gtk = crate::config_parser::ini_group_key(&gtk_ini, "Settings", "gtk-theme-name");
+    let staged = if let Some(session) = draft_session {
+        crate::inspector_session::capture_draft(session, snapshot, options.include_wallpaper)?
+    } else {
+        BTreeMap::new()
+    };
+    if make_look_and_feel {
+        crate::constructor::snapshot_look_and_feel(name, snapshot)?;
+    }
+    let mut package = build(name, snapshot, options)?;
+    for (id, value) in &staged {
+        anyhow::ensure!(
+            package.values.get(id) == Some(value),
+            "Draft field did not survive theme capture: {id}"
+        );
+    }
+    let ini = crate::config_parser::ini_group_key(&gtk_ini, "Settings", "gtk-theme-name");
+    if ini == live_ini_gtk && !staged.contains_key("gtk_theme") {
+        package.gsettings_gtk_theme =
+            crate::undo::live_gtk_theme().filter(|live| ini.as_deref() != Some(live.as_str()));
+    }
+    write_manifest(snapshot, &package)?;
+    fs::rename(snapshot, destination)?;
     Ok(package)
 }
 
@@ -1503,32 +1594,269 @@ pub fn prune(name: &str) -> Result<usize> {
     Ok(removed)
 }
 
-/// Add `theme.json` to a legacy snapshot profile. The snapshot itself is not
-/// changed (lossless). Packages of the old values-only format (`theme@1`)
-/// cannot be upgraded — re-save them from the live session.
+/// Convert a legacy snapshot under the same name and retain the original.
 pub fn migrate(name: &str) -> Result<Package> {
-    validate_profile_name(name)?;
+    migrate_with_backup(name).map(|(package, _)| package)
+}
+
+pub(crate) fn prepare_legacy(name: &str) -> Result<Option<PathBuf>> {
+    let _lock = crate::operation::MutationGuard::acquire()?;
+    let path = profile_dir(name)?;
+    anyhow::ensure!(!path.is_symlink(), "Profile is a symbolic link: {name}");
+    let manifest = path.join(MANIFEST);
+    crate::profile::snapshot_relative(&path, &manifest)?;
+    if is_package(&path) {
+        return Ok(None);
+    }
+    migrate_with_backup(name).map(|(_, backup)| backup)
+}
+
+pub(crate) fn migrate_with_backup(name: &str) -> Result<(Package, Option<PathBuf>)> {
+    use rustix::fs::{renameat_with, RenameFlags, CWD};
+    let _lock = crate::operation::MutationGuard::acquire()?;
     let target = profile_dir(name)?;
-    if !target.is_dir() {
-        return Err(anyhow!("Profile not found: {name}"));
-    }
-    if target.join(MANIFEST).is_file() {
-        let mut package = load(&target).map_err(|e| {
-            anyhow!("{name}: {e:#} (values-only theme@1 packages must be re-saved)")
+    anyhow::ensure!(
+        fs::symlink_metadata(&target).is_ok_and(|meta| meta.is_dir()),
+        "Profile not found or is a symbolic link: {name}"
+    );
+    let manifest = target.join(MANIFEST);
+    let package = if manifest.exists() || manifest.is_symlink() {
+        crate::profile::snapshot_relative(&target, &manifest)?;
+        let package = load(&target).with_context(|| {
+            format!("Cannot convert {name}. A values-only theme must be saved again.")
         })?;
-        if !package.appearance_only {
-            normalize_dir(name, &target)?;
-            package.appearance_only = true;
-            write_manifest(&target, &package)?;
+        if package.appearance_only {
+            return Ok((package, None));
         }
-        return Ok(package);
-    }
-    normalize_dir(name, &target).context("keep only the look")?;
-    let options = SaveOptions {
-        description: Some(crate::profile::get_profile_description(name).unwrap_or_default()),
-        include_wallpaper: true,
+        Some(package)
+    } else {
+        None
     };
-    build(name, &target, &options)
+    let revision = crate::preview::source_signature(&target)?;
+    let staging = tempfile::Builder::new()
+        .prefix(".migrate-")
+        .tempdir_in(crate::paths::profiles_dir())?;
+    let staged = staging.path().join("snapshot");
+    copy_tree(&target, &staged)?;
+    validate_migration_links(&staged, &staged)?;
+    normalize_snapshot(&staged).context("Could not normalize the saved appearance")?;
+    let mut package = match package {
+        Some(package) => package,
+        None => build_from_legacy(name, &staged)?,
+    };
+    package.appearance_only = true;
+    write_manifest(&staged, &package)?;
+    let package = load(&staged)?;
+    validate_migration_links(&staged, &staged)?;
+    for asset in package
+        .assets
+        .iter()
+        .filter(|asset| asset.kind != "wallpaper")
+    {
+        validate_asset_restore(&staged, &asset.path)?;
+    }
+    let backups = crate::paths::backups_dir();
+    fs::create_dir_all(&backups)?;
+    let backup = tempfile::Builder::new()
+        .prefix(&format!("pre-normalize-{name}-"))
+        .tempdir_in(backups)?;
+    copy_tree(&target, &backup.path().join("snapshot"))?;
+    anyhow::ensure!(
+        crate::preview::source_signature(&target)? == revision,
+        "Theme changed on disk during conversion. Try again."
+    );
+    // Keep the complete backup before atomically publishing the replacement.
+    let original = backup.keep().join("snapshot");
+    renameat_with(CWD, &staged, CWD, &target, RenameFlags::EXCHANGE)
+        .context("Could not replace the saved theme atomically")?;
+    Ok((package, Some(original)))
+}
+
+fn validate_migration_links(root: &Path, path: &Path) -> Result<()> {
+    let meta = fs::symlink_metadata(path)?;
+    if meta.is_dir() {
+        for child in fs::read_dir(path)? {
+            validate_migration_links(root, &child?.path())?;
+        }
+    } else if meta.is_symlink() {
+        reject_link(path, root)?;
+    }
+    Ok(())
+}
+
+#[derive(Default, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+struct LegacyBundle {
+    schema: String,
+    description: String,
+    created_at: String,
+    components: BTreeMap<String, Value>,
+    applications: BTreeMap<String, Option<String>>,
+    wallpaper: String,
+}
+
+fn build_from_legacy(name: &str, snapshot: &Path) -> Result<Package> {
+    use crate::profile::{snapshot_relative, snapshot_text};
+    let path = snapshot.join("theme-bundle.json");
+    snapshot_relative(snapshot, &path)?;
+    let bundle: LegacyBundle = if path.is_file() {
+        serde_json::from_str(&snapshot_text(&path)?).context("Invalid legacy bundle metadata")?
+    } else {
+        LegacyBundle::default()
+    };
+    anyhow::ensure!(
+        bundle.schema.is_empty() || bundle.schema == "theme-bundle/1",
+        "Unsupported legacy bundle schema: {}",
+        bundle.schema
+    );
+    let definitions = crate::bundle_view::components();
+    let mut fields = Vec::new();
+    let mut wallpaper = bundle.wallpaper.as_str();
+    for (component, value) in &bundle.components {
+        if value.is_null() || value.as_str() == Some("") {
+            continue;
+        }
+        if component == "wallpaper" {
+            if wallpaper.is_empty() {
+                wallpaper = value
+                    .as_str()
+                    .context("Invalid legacy wallpaper reference")?;
+            }
+            continue;
+        }
+        let definition = definitions
+            .get(component)
+            .and_then(|entry| entry["field"].as_str())
+            .and_then(field::field)
+            .with_context(|| format!("Cannot convert legacy component: {component}"))?;
+        anyhow::ensure!(
+            !value.is_array()
+                && !value.is_object()
+                && value
+                    .as_str()
+                    .is_none_or(|text| !text.chars().any(char::is_control)),
+            "Cannot convert legacy component: {component}"
+        );
+        let raw = field::normalize_input(definition, value)
+            .filter(|raw| !raw.is_null())
+            .with_context(|| format!("Invalid legacy component: {component}"))?;
+        fields.push((definition, raw));
+    }
+    fields.sort_by_key(|(definition, _)| {
+        field::APPLY_FIRST
+            .iter()
+            .position(|id| *id == definition.id)
+            .unwrap_or(field::APPLY_FIRST.len())
+    });
+    let base = Base::Snapshot(snapshot.into());
+    for (definition, raw) in fields {
+        // A legacy override could run Plasma's global theme installer. The
+        // package can reproduce that selection only if the look was captured.
+        if definition.id == "look_and_feel" {
+            anyhow::ensure!(
+                field::read(definition, &base).as_ref() == Some(&raw),
+                "Legacy global theme was not captured: {}",
+                field::value_str(&raw)
+            );
+        }
+        field::write_snapshot_value(snapshot, &definition.id, &raw)
+            .with_context(|| format!("Cannot convert legacy field: {}", definition.id))?;
+        anyhow::ensure!(
+            field::read(definition, &base) == field::coerce(definition, raw),
+            "Legacy field is missing after conversion: {}",
+            definition.id
+        );
+    }
+    for (id, value) in bundle.applications {
+        if let Some(value) = value.filter(|value| !value.is_empty()) {
+            crate::app_themes::migrate_selection(&id, &value, snapshot)
+                .with_context(|| format!("Cannot convert legacy application choice: {id}"))?;
+        }
+    }
+    migrate_wallpaper(snapshot, wallpaper)?;
+    let old = crate::profile::read_manifest(snapshot);
+    let description = if old.description.is_empty() {
+        bundle.description
+    } else {
+        old.description
+    };
+    let mut package = build(
+        name,
+        snapshot,
+        &SaveOptions {
+            description: Some(description),
+            include_wallpaper: true,
+        },
+    )?;
+    let created = if old.created_at.is_empty() {
+        bundle.created_at
+    } else {
+        old.created_at
+    };
+    if !created.is_empty() {
+        package.created = created;
+    }
+    // Package apply must use the converted fields and assets. The original
+    // metadata remains in the migration backup.
+    if path.is_file() {
+        fs::remove_file(path)?;
+    }
+    Ok(package)
+}
+
+fn migrate_wallpaper(snapshot: &Path, reference: &str) -> Result<()> {
+    let directory = snapshot.join(WALLPAPER_DIR);
+    crate::profile::snapshot_relative(snapshot, &directory)?;
+    if directory.is_dir() {
+        for entry in fs::read_dir(&directory)? {
+            let entry = entry?;
+            if entry.file_name() != "source" && entry.path().is_file() {
+                return Ok(());
+            }
+        }
+    }
+    let source = directory.join("source");
+    crate::profile::snapshot_relative(snapshot, &source)?;
+    let original = crate::profile::snapshot_text(&source)?;
+    let layout = snapshot.join(APPLETSRC_REL);
+    crate::profile::snapshot_relative(snapshot, &layout)?;
+    let override_path = if Path::new(original.trim()).is_file() {
+        Some(original.trim().to_owned())
+    } else if reference.starts_with("file://") {
+        Some(crate::wallpaper::image_path(reference))
+    } else if !reference.is_empty() {
+        Some(reference.to_owned())
+    } else {
+        None
+    };
+    let overrides_layout = override_path.is_some();
+    let wanted = override_path.or_else(|| plasma_wallpaper_from(&layout));
+    if let Some(path) = wanted {
+        let path = Path::new(&path);
+        anyhow::ensure!(
+            path.is_absolute() && path.is_file(),
+            "Legacy wallpaper is unavailable: {}",
+            path.display()
+        );
+        let file_name = path.file_name().context("Wallpaper file name")?;
+        anyhow::ensure!(file_name != "source", "Reserved wallpaper file name");
+        crate::profile::snapshot_relative(snapshot, &directory.join(file_name))?;
+        crate::profile::capture_wallpaper_file(snapshot, path)?;
+        if layout.is_file() && overrides_layout {
+            let image =
+                crate::wallpaper::image_url(path.to_str().context("Invalid wallpaper path")?);
+            let text = crate::layout::with_wallpaper_image(&fs::read_to_string(&layout)?, &image);
+            crate::gui_api::write_bytes(&layout, text.as_bytes(), None)?;
+        }
+    } else if layout.is_file() {
+        anyhow::ensure!(
+            crate::layout::desktop_wallpapers(&fs::read_to_string(layout)?)
+                .values()
+                .all(|wallpaper| wallpaper.plugin == crate::wallpaper::IMAGE_PLUGIN),
+            "Cannot convert the legacy wallpaper plugin without an image"
+        );
+    }
+    Ok(())
 }
 
 /// Point a copied package at its new profile name (`clone`).
@@ -1599,6 +1927,7 @@ pub(crate) const KEPT_WHEN_MISSING: &[&str] = &[
     "cursor_theme",
     "gtk_theme",
     "plasma_theme",
+    "decoration_library",
     "decoration_theme",
     "widget_style",
 ];
@@ -1846,12 +2175,16 @@ pub fn check(name: &str) -> Result<Vec<Missing>> {
     validate_profile_name(name)?;
     let dir = profile_dir(name)?;
     let package = load(&dir)?;
+    Ok(missing_resources(&dir, &package))
+}
+
+pub(crate) fn missing_resources(dir: &Path, package: &Package) -> Vec<Missing> {
     let bundled: Vec<(&str, &str)> = package
         .assets
         .iter()
         .map(|a| (a.kind.as_str(), a.name.as_str()))
         .collect();
-    Ok(package
+    let mut missing: Vec<_> = package
         .values
         .iter()
         .filter(|(id, value)| {
@@ -1864,17 +2197,35 @@ pub fn check(name: &str) -> Result<Vec<Missing>> {
                 && bundled.iter().any(|(k, n)| *k == "zed" && *n == name));
             let editor_here =
                 crate::stores::editor_of(id).is_none_or(crate::stores::editor_installed);
-            editor_here && !in_package && !available(id, value)
+            editor_here
+                && !in_package
+                && !available(id, value)
+                && !editor_selector_kind(id).is_some_and(|editor| {
+                    crate::app_themes::cached_color_themes(dir, package, editor)
+                        .iter()
+                        .any(|theme| crate::app_themes::color_theme_matches(theme, &name))
+                })
         })
         .map(|(id, value)| {
             let name = field::value_str(value);
             Missing {
                 field: id.clone(),
-                source: source_hint(&package, id, &name),
+                source: source_hint(package, id, &name),
                 name,
             }
         })
-        .collect())
+        .collect();
+    missing.extend(
+        crate::obsidian::missing_themes(dir, &package.obsidian_overrides)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|name| Missing {
+                field: crate::obsidian::THEME_FIELD.into(),
+                name,
+                source: "Obsidian".into(),
+            }),
+    );
+    missing
 }
 
 /// VS Code and Cursor share the extension ecosystem: when one editor is not

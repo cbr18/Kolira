@@ -1,0 +1,8 @@
+[color]
+gradient=1
+gradient_count=4
+gradient_color_1='#7045a0'
+gradient_color_2='#ff78ac'
+gradient_color_3='#873c55'
+gradient_color_4='#a62d60'
+foreground='#ff78ac'

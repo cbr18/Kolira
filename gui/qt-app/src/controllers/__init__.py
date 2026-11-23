@@ -147,6 +147,7 @@ class ProfileController(QObject):
     previewBusyChanged = Signal()
     profilesChanged = Signal()
     summariesChanged = Signal()
+    liveAppearanceChanged = Signal()
     activeProfileChanged = Signal()
     operationStarted = Signal(str)      # operation name
     operationFinished = Signal(bool, str)  # success, message
@@ -182,6 +183,9 @@ class ProfileController(QObject):
         self._summary_pending = None
         self._profiles_model: list[dict] = []   # QML-ready cache (built once per refresh)
         self._active_profile: str = ""
+        self._live_appearance: dict = {}
+        self._live_refresh_running = False
+        self._library_error = ""
         self._components_for_active: list[str] = []
         self._busy: bool = False
         self._refresh_timer = QTimer(self)
@@ -218,7 +222,15 @@ class ProfileController(QObject):
         self._summary_running = True
         payload = {}
         def work():
-            payload["data"] = core_request("profile.summaries", names=names)
+            summaries = core_request("profile.summaries", names=names)
+            for summary in summaries.values():
+                for key in ("wallpaperPreview", "iconPreview"):
+                    asset = summary.get(key)
+                    if asset:
+                        url = QUrl.fromLocalFile(asset["path"])
+                        url.setQuery(f'rev={asset["revision"]}')
+                        summary[key + "Url"] = url
+            payload["data"] = summaries
             return True, ""
         def done(ok, message):
             self._summary_running = False
@@ -238,6 +250,34 @@ class ProfileController(QObject):
     @Property(str, notify=activeProfileChanged)
     def activeProfile(self) -> str:
         return self._active_profile
+
+    @Property("QVariantMap", notify=liveAppearanceChanged)
+    def liveAppearance(self):
+        return self._live_appearance
+
+    @Slot()
+    def refreshLiveAppearance(self) -> None:
+        if self._live_refresh_running or self._refresh_running or self._busy:
+            return
+        reader = getattr(self._core, "live_matches", None)
+        if reader is None:
+            return
+        names = [profile.name for profile in self._profiles]
+        payload = {}
+        def work():
+            payload.update(reader(names))
+            return True, ""
+        def done(ok, _message):
+            self._live_refresh_running = False
+            if not self._refresh_running and names == [profile.name for profile in self._profiles]:
+                self._live_appearance = payload if ok else {}
+                self.liveAppearanceChanged.emit()
+        self._live_refresh_running = True
+        _run_async(self, work, done)
+
+    @Property(str, notify=refreshBusyChanged)
+    def libraryError(self) -> str:
+        return self._library_error
 
     @Property(list, notify=componentsForProfileChanged)
     def componentsForActiveProfile(self) -> list:
@@ -273,6 +313,7 @@ class ProfileController(QObject):
             self._refresh_pending = True
             return
         self._refresh_running = True
+        self._library_error = ""
         self.refreshBusyChanged.emit()
         core = self._core
         payload = {}
@@ -295,8 +336,15 @@ class ProfileController(QObject):
                         profiles = core.list_profiles()
                         active = core.get_active_profile()
             components = next((list(p.components) for p in profiles if p.name == active), [])
+            matcher = getattr(core, "live_matches", None)
+            reader = getattr(core, "live_appearance", None)
+            try:
+                live_appearance = matcher([p.name for p in profiles]) if matcher else reader() if reader else {}
+            except (RuntimeError, ValueError):
+                # A failed Live read leaves the library usable and hides stale Live values.
+                live_appearance = {}
             payload.update(profiles=profiles, active=active, components=components,
-                           stale=stale)
+                           stale=stale, live_appearance=live_appearance)
             return True, ""
 
         def done(ok, message):
@@ -308,6 +356,8 @@ class ProfileController(QObject):
             if ok:
                 self._profiles = payload["profiles"]
                 self._active_profile = payload["active"]
+                self._live_appearance = payload["live_appearance"]
+                self.liveAppearanceChanged.emit()
                 self._components_for_active = payload["components"]
                 self._rebuild_profiles_model()
                 self.profilesChanged.emit()
@@ -318,6 +368,9 @@ class ProfileController(QObject):
                     self.operationFinished.emit(False,
                         f"Active profile “{payload['stale']}” is missing; the marker was reset")
             else:
+                self._live_appearance = {}
+                self.liveAppearanceChanged.emit()
+                self._library_error = localize(message)
                 self.operationFinished.emit(False, localize(message))
             self.refreshBusyChanged.emit()
             self.refreshFinished.emit(ok, message)
@@ -433,8 +486,8 @@ class ProfileController(QObject):
         self._preview_running = True
         self.previewBusyChanged.emit()
         def work():
-            result = (self._core.preview(profile, keep, without_sync=True) if without_sync
-                      else self._core.preview(profile, keep))
+            result = (self._core.prepare_apply_preview(profile, keep, without_sync=True) if without_sync
+                      else self._core.prepare_apply_preview(profile, keep))
             payload["report"] = result.data or {}
             return result.success, result.message
         def done(ok, message):
@@ -449,7 +502,9 @@ class ProfileController(QObject):
                 return
             self._preview_data = ({**payload["report"], "saved_as": self._preview_saved,
                                    "stale": self._preview_data.get("stale", False)}
-                                  if ok else {"name": profile, "keep_wallpaper": keep, "without_sync": without_sync, "error": message})
+                                  if ok else {"name": profile, "keep_wallpaper": keep, "without_sync": without_sync, "error": localize(message)})
+            if ok and payload["report"].get("migration_backup"):
+                self.refresh()
             self.previewChanged.emit()
         _run_async(self, work, done)
 
@@ -497,7 +552,6 @@ class ProfileController(QObject):
         def done(ok, message):
             if payload.get("stale"):
                 self._set_busy(False)
-                self.operationFinished.emit(False, self.tr("Theme or live settings changed. Review the updated changes."))
                 self.previewApply(report["name"], report.get("keep_wallpaper", False), report.get("without_sync", False))
                 self._preview_data["stale"] = True
                 self.previewChanged.emit()
@@ -604,6 +658,29 @@ class ProfileController(QObject):
             return result.success, result.message
 
         self._start_operation("new", _work)
+
+    @Slot(str, str, bool, bool, bool)
+    def captureLive(self, name: str, description: str, include_wallpaper: bool,
+                    make_look_and_feel: bool, include_draft: bool) -> None:
+        """Save a new theme package without applying it or changing Live."""
+        try:
+            name = validate_profile_name(name)
+        except ValueError as exc:
+            self.operationFinished.emit(False, str(exc))
+            return
+        session = CoreFactory.theme_core().session_id if include_draft else None
+        if include_draft and session is None:
+            self.operationFinished.emit(False, self.tr("The draft is unavailable"))
+            return
+
+        def work():
+            result = self._core.capture_live(
+                name, description.strip(), include_wallpaper, make_look_and_feel,
+                draft_session=session,
+            )
+            return result.success, f"Saved profile: {name}" if result.success else result.message
+
+        self._start_operation("save", work)
 
     @Slot(str, str, bool, bool)
     def saveProfileWithLookAndFeel(self, name: str, description: str,
@@ -838,6 +915,7 @@ class WallpaperController(QObject):
     operationStarted = Signal(str)
     operationFinished = Signal(bool, str)
     busyChanged = Signal()
+    refreshingChanged = Signal()
 
     def __init__(self, parent: Optional[QObject] = None):
         super().__init__(parent)
@@ -845,6 +923,8 @@ class WallpaperController(QObject):
         self._wallpapers: list[str] = []
         self._current_wallpaper: str = ""
         self._busy: bool = False
+        self._refresh_running = False
+        self._refresh_pending = False
         self._refresh_timer = QTimer(self)
         self._refresh_timer.setSingleShot(True)
         self._refresh_timer.timeout.connect(self._delayed_refresh)
@@ -867,6 +947,10 @@ class WallpaperController(QObject):
         """
         return self._busy
 
+    @Property(bool, notify=refreshingChanged)
+    def refreshing(self) -> bool:
+        return self._refresh_running
+
     def _set_busy(self, value: bool) -> None:
         if self._busy != value:
             self._busy = value
@@ -874,10 +958,34 @@ class WallpaperController(QObject):
 
     @Slot()
     def refresh(self) -> None:
-        self._wallpapers = self._core.list_wallpapers()
-        self._current_wallpaper = self._core.current() or ""
-        self.wallpapersChanged.emit()
-        self.currentWallpaperChanged.emit()
+        if self._refresh_running:
+            self._refresh_pending = True
+            return
+        self._refresh_running = True
+        self.refreshingChanged.emit()
+        payload = {}
+
+        def work():
+            payload["wallpapers"] = self._core.list_wallpapers()
+            payload["current"] = self._core.current() or ""
+            return True, ""
+
+        def done(ok, message):
+            self._refresh_running = False
+            if self._refresh_pending:
+                self._refresh_pending = False
+                self.refresh()
+                return
+            if ok:
+                self._wallpapers = payload["wallpapers"]
+                self._current_wallpaper = payload["current"]
+                self.wallpapersChanged.emit()
+                self.currentWallpaperChanged.emit()
+            else:
+                self.operationFinished.emit(False, localize(message))
+            self.refreshingChanged.emit()
+
+        _run_async(self, work, done)
 
     def _delayed_refresh(self) -> None:
         self.refresh()
@@ -1338,19 +1446,6 @@ class SettingsController(QObject):
         """Ядро, работающее прямо сейчас (переключение — рестартом)."""
         return CoreFactory.backend_label()
 
-    @Property(str, notify=settingsChanged)
-    def theme(self) -> str:
-        return self._settings.theme
-
-    @theme.setter
-    def theme(self, value: str) -> None:
-        if self._settings.theme != value:
-            self._settings = AppSettings(
-                **{**self._settings.to_dict(), "theme": value}
-            )
-            self.settingsChanged.emit()
-            self._apply_theme()
-
     @Property(bool, notify=settingsChanged)
     def showNotInstalledWarning(self) -> bool:
         return self._settings.show_not_installed_warning
@@ -1454,15 +1549,6 @@ class SettingsController(QObject):
         """Wire the tracked-apps controller so this cache never triggers a detection."""
         self._tracked_apps = controller
 
-    def _apply_theme(self) -> None:
-        """Применить тему к приложению (dogfooding)."""
-        try:
-            from theme_controller import ThemeController
-            controller = ThemeController.instance()
-            controller.currentTheme = self._settings.theme
-        except Exception as e:
-            print(f"ThemeController integration failed: {e}", file=sys.stderr)
-
     @Slot()
     def load(self) -> None:
         self._settings = self._core.load()
@@ -1497,6 +1583,9 @@ class MainController(QObject):
         self._settings = SettingsController(self)
         self._theme = ThemeInspectorController(self)
         self._bundle = ThemeBundleController(self)
+        self._theme.draftRefreshed.connect(self._bundle.refresh)
+        self._bundle.groupsChanged.connect(self._theme.sectionsChanged.emit)
+        self._bundle.conflictsFound.connect(self._theme.conflictsFound)
         self._palette = PaletteController(self)
         self._history_schedule = HistoryScheduleController(self)
         self._history_timer = QTimer(self)
@@ -1507,6 +1596,7 @@ class MainController(QObject):
         self._history_schedule.restored.connect(_reload_app_look)
         self._dependencies = DependencyController(self)
         self._dependencies.applyRequested.connect(self._profile.previewApply)
+        self._dependencies.availabilityChanged.connect(self._profile.refresh)
         self._dependencies.policySaved.connect(self._settings.automationChanged.emit)
         self._initialized = False
 
@@ -1549,6 +1639,7 @@ class MainController(QObject):
         self._initialized = True
         self._profile.refreshFinished.connect(self._startup_refresh_finished)
         self._profile.refresh()
+        self._history_schedule.refreshHistory()
         self._wallpaper.refresh()
         self._tracked_apps.refresh()
         self._settings.load()

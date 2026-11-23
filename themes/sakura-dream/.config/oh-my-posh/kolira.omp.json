@@ -1,0 +1,95 @@
+{
+  "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
+  "palette": {
+    "pink": "#ff78ac",
+    "primary": "#ff78ac",
+    "secondary": "#ffe4ef",
+    "tertiary": "#ffe4ef",
+    "text": "#69465b",
+    "dim": "#7a5b6c",
+    "surface": "#fff0f6"
+  },
+  "blocks": [
+    {
+      "alignment": "left",
+      "segments": [
+        {
+          "foreground": "#ff78ac",
+          "style": "plain",
+          "template": "🌸 ╭─",
+          "type": "text"
+        },
+        {
+          "background": "#ff78ac",
+          "foreground": "#69465b",
+          "leading_diamond": "",
+          "style": "diamond",
+          "template": " {{ .UserName }} ",
+          "trailing_diamond": "",
+          "type": "session"
+        },
+        {
+          "background": "#ffe4ef",
+          "foreground": "#69465b",
+          "powerline_symbol": "",
+          "options": {
+            "style": "full"
+          },
+          "style": "powerline",
+          "template": " {{ .Path }} ",
+          "type": "path"
+        },
+        {
+          "background": "#ffe4ef",
+          "foreground": "#69465b",
+          "powerline_symbol": "",
+          "options": {
+            "style": "full"
+          },
+          "style": "powerline",
+          "template": " {{ .HEAD }} ",
+          "type": "git"
+        },
+        {
+          "background": "#ff78ac",
+          "foreground": "#000000",
+          "leading_diamond": "<transparent,background></>",
+          "style": "diamond",
+          "template": " {{ if .Error }}{{ .Error }}{{ else }}{{ if .Venv }}{{ .Venv }} {{ end }}{{ .Full }}{{ end }} ",
+          "trailing_diamond": "",
+          "type": "python"
+        },
+        {
+          "foreground": "#7a5b6c",
+          "options": {
+            "time_format": "15:04"
+          },
+          "style": "plain",
+          "template": "  {{ .CurrentDate | date .Format }}",
+          "type": "time"
+        }
+      ],
+      "type": "prompt"
+    },
+    {
+      "alignment": "left",
+      "newline": true,
+      "segments": [
+        {
+          "foreground": "#ff78ac",
+          "style": "plain",
+          "template": "🌸 ╰─❯",
+          "type": "text"
+        }
+      ],
+      "type": "prompt"
+    }
+  ],
+  "transient_prompt": {
+    "background": "transparent",
+    "foreground": "#7a5b6c",
+    "template": "{{ .Segments.Time.CurrentDate | date \"15:04\" }} <#ff78ac>❯</> "
+  },
+  "final_space": true,
+  "version": 4
+}

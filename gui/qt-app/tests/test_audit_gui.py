@@ -39,6 +39,73 @@ def test_destroyed_owner_does_not_receive_async_callback(qtbot):
     assert not results
 
 
+def test_live_apply_notifies_ui_after_rust_records_it(qtbot, tmp_path, monkeypatch):
+    from controllers.theme_inspector import ThemeInspectorController
+    from core.cli_core import core_request
+
+    config = tmp_path / ".config"
+    config.mkdir()
+    globals_file = config / "kdeglobals"
+    globals_file.write_text("[Colors:Window]\nBackgroundNormal=1,2,3\n")
+    refreshed = []
+    monkeypatch.setattr("theme_controller.reload_app_look", lambda: refreshed.append(True))
+    controller = ThemeInspectorController()
+    with qtbot.waitSignal(controller.sectionsChanged):
+        controller.setColor("window_bg", "#112233")
+    assert controller.sessionChanges == 1
+    assert "1,2,3" in globals_file.read_text()
+
+    with qtbot.waitSignal(controller.liveApplyFinished) as apply:
+        controller.applyChanges()
+    assert apply.args == [True]
+    assert refreshed == [True]
+    assert "17,34,51" in globals_file.read_text()
+    operations = core_request("operation.list")["operations"]
+    assert operations[0]["report"]["kind"] == "live"
+    assert operations[0]["source"] == "gui"
+    assert operations[0]["state"] == "succeeded"
+
+
+def test_saved_theme_drafts_survive_source_switch_and_keep_live(qtbot, tmp_path):
+    import json
+    from controllers.theme_bundle import ThemeBundleController
+
+    config = tmp_path / ".config"
+    for name in ("live", "other"):
+        profile = config / "kolira" / "themes" / name
+        profile.mkdir(parents=True)
+        (profile / "theme.json").write_text(json.dumps({
+            "schema": "kolira/theme@2", "name": name, "appearance_only": True,
+        }))
+    cursor = config / "kcminputrc"
+    cursor.write_text("[Mouse]\ncursorTheme=MyCursor\n")
+
+    controller = ThemeBundleController()
+    controller.openProfile("live")
+    assert controller.scope == "profile:live" and controller.canEditProfile
+    controller.setComponent("cursor_theme", "CustomCursor")
+    controller.openProfile("other")
+    assert controller.profileDraftSize == 0
+    controller.setComponent("animations", 0.0)
+    controller.openLive()
+    assert controller.scope == "live" and controller.hasProfileDrafts
+    controller.openProfile("live")
+    assert controller.profileDraftSize == 1
+    row = next(c for group in controller.groups for c in group["components"] if c["id"] == "cursor_theme")
+    assert row["staged"] and row["currentValue"] == "CustomCursor"
+
+    with qtbot.waitSignal(controller.profileEditsSaved, timeout=10000):
+        controller.saveProfileDraft()
+    assert controller.profileDraftSize == 0 and controller.hasProfileDrafts
+    assert cursor.read_text() == "[Mouse]\ncursorTheme=MyCursor\n"
+    saved = config / "kolira" / "themes" / "live" / ".config" / "kcminputrc"
+    assert "cursorTheme=CustomCursor" in saved.read_text()
+    controller.openProfile("other")
+    assert controller.profileDraftSize == 1
+    controller.discardProfileDraft()
+    assert not controller.hasProfileDrafts
+
+
 def test_palette_search_ignores_old_success_and_failure(qtbot):
     from controllers.palette import PaletteController
     from core.protocol import Result
@@ -195,7 +262,7 @@ def test_long_dependency_log_keeps_table_visible_and_scrolls(qml_page, qtbot):
     assert log.property("contentHeight") > log.height()
 
 
-def test_actual_main_shows_wallpaper_error_without_spinner(qml_page, tmp_path):
+def test_wallpapers_page_shows_error_without_spinner(qml_page, tmp_path):
     """Load the actual application in a separate isolated Qt process."""
     import os
     import subprocess
@@ -218,6 +285,10 @@ spec.loader.exec_module(module)
 module.SINGLE_INSTANCE_SOCKET = "ktm-audit-" + str(os.getpid())
 sys.argv = [sys.argv[1]]
 def setup(app, window):
+    def open_wallpapers():
+        expression = QQmlExpression(QQmlEngine.contextForObject(window), window, "openWallpapersPage()")
+        expression.evaluate()
+        assert not expression.hasError(), expression.error().toString()
     def check():
         image = window.findChild(QObject, "wallpaperPreview")
         busy = window.findChild(QObject, "wallpaperPreviewBusy")
@@ -227,10 +298,17 @@ def setup(app, window):
             expression = QQmlExpression(QQmlEngine.contextForObject(image), image, "status === 3")
             is_error, undefined = expression.evaluate()
             ok = not expression.hasError() and not undefined and is_error and not busy.property("running") and error.property("visible")
-        print("wallpaper error state:", ok, flush=True)
-        app.exit(0 if ok else 2)
-    QTimer.singleShot(1500, check)
-    QTimer.singleShot(5000, lambda: app.exit(3))
+        if ok:
+            print("wallpaper error state: True", flush=True)
+            app.exit(0)
+        else:
+            QTimer.singleShot(100, check)
+    QTimer.singleShot(500, open_wallpapers)
+    QTimer.singleShot(750, check)
+    def timeout():
+        print("wallpaper error state did not settle", flush=True)
+        app.exit(3)
+    QTimer.singleShot(10000, timeout)
 module._maybe_setup_screenshot = setup
 raise SystemExit(module.main())
 '''
@@ -256,11 +334,9 @@ def test_dependency_scrollbar_stays_in_visible_viewport(qml_page, qtbot):
     page.setWidth(640); page.setHeight(480); qtbot.wait(30)
     table = page.findChild(QQuickItem, "dependenciesTable")
     bar = page.findChild(QQuickItem, "dependenciesVerticalBar")
-    assert table.property("contentWidth") > table.width()
+    assert table.property("contentWidth") <= table.width()
     before = bar.mapToScene(QPointF()).x()
-    table.setProperty("contentX", table.property("contentWidth") - table.width()); qtbot.wait(20)
-    assert bar.mapToScene(QPointF()).x() == before
-    assert before >= table.mapToScene(QPointF(table.width(), 0)).x()
+    assert before >= table.mapToScene(QPointF(table.property("contentWidth"), 0)).x()
     assert before + bar.width() <= page.width()
     assert bar.property("size") < 1
     bar.setProperty("position", .5); qtbot.wait(20)

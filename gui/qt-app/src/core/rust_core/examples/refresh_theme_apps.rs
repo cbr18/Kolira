@@ -2,7 +2,7 @@
 use anyhow::{Context, Result};
 use kolira_core::{
     appearance, browser_appearance, discord, field, four_apps, konsole,
-    palette::{self, Palette, Rgb, Variant},
+    palette::{self, contrast, Palette, Rgb, Variant, MIN_TEXT_CONTRAST},
     terminal_apps, third_apps,
 };
 use serde_json::{json, Value};
@@ -100,6 +100,108 @@ fn derive(root: &Path, package: &Value) -> Result<Palette> {
         source: format!("theme:{}", package["name"].as_str().unwrap()),
     })
 }
+
+fn zed_theme(p: &Palette, label: &str) -> Value {
+    let editor = p.slot(0x00);
+    let panel = p.slot(0x01);
+    let accent = p.accent_rgb();
+    let hover = panel.mix(accent, 0.08);
+    let selected = panel.mix(accent, 0.16);
+    let selection = editor.mix(accent, 0.18);
+    let search_match = editor.mix(p.slot(0x0a), 0.25);
+    let backgrounds = [editor, panel, hover, selected, selection, search_match];
+    let min_contrast = |color| {
+        backgrounds
+            .iter()
+            .map(|bg| contrast(color, *bg))
+            .fold(f64::INFINITY, f64::min)
+    };
+    let anchor = [Rgb(0, 0, 0), Rgb(255, 255, 255)]
+        .into_iter()
+        .max_by(|a, b| min_contrast(*a).total_cmp(&min_contrast(*b)))
+        .expect("black or white");
+    let readable = |color: Rgb| {
+        (0..=100)
+            .map(|step| color.mix(anchor, f64::from(step) / 100.0))
+            .find(|mixed| min_contrast(*mixed) >= MIN_TEXT_CONTRAST)
+            .unwrap_or(anchor)
+    };
+    let ink = |slot| readable(p.slot(slot));
+    let text = ink(0x05);
+    let muted = ink(0x03);
+    let accent_ink = readable(accent);
+    let warning = ink(0x0a);
+
+    let mut style: serde_json::Map<String, Value> = [
+        ("background", editor),
+        ("surface.background", panel),
+        ("elevated_surface.background", panel),
+        ("panel.background", panel),
+        ("text", text),
+        ("text.muted", muted),
+        ("text.accent", accent_ink),
+        ("icon.accent", accent_ink),
+        ("link_text.hover", accent_ink),
+        ("border", p.slot(0x02)),
+        ("border.focused", accent_ink),
+        ("panel.focused_border", accent_ink),
+        ("pane.focused_border", accent_ink),
+        ("element.hover", hover),
+        ("element.selected", selected),
+        ("ghost_element.hover", hover),
+        ("ghost_element.selected", selected),
+        ("created", ink(0x0b)),
+        ("modified", warning),
+        ("warning", warning),
+        ("deleted", ink(0x08)),
+        ("conflict", ink(0x09)),
+        ("renamed", ink(0x0d)),
+        ("error", ink(0x08)),
+        ("success", ink(0x0b)),
+        ("editor.background", editor),
+        ("editor.foreground", text),
+        ("editor.gutter.background", editor),
+        ("editor.line_number", muted),
+        ("editor.active_line_number", text),
+        ("editor.active_line.background", panel),
+        ("tab.active_background", editor),
+        ("tab.inactive_background", panel),
+        ("toolbar.background", panel),
+        ("status_bar.background", panel),
+        ("terminal.background", editor),
+        ("terminal.foreground", text),
+        ("search.match_background", search_match),
+    ]
+    .into_iter()
+    .map(|(role, color)| (role.into(), color.hex().into()))
+    .collect();
+    style.insert(
+        "players".into(),
+        json!([{"cursor": accent_ink.hex(), "background": accent_ink.hex(), "selection": selection.hex()}]),
+    );
+    style.insert(
+        "syntax".into(),
+        json!({
+            "comment": {"color": muted.hex()},
+            "string": {"color": ink(0x0b).hex()},
+            "keyword": {"color": ink(0x0e).hex()},
+            "number": {"color": ink(0x09).hex()},
+            "function": {"color": ink(0x0d).hex()},
+            "type": {"color": warning.hex()},
+        }),
+    );
+    json!({
+        "$schema": "https://zed.dev/schema/themes/v0.2.0.json",
+        "name": label,
+        "author": "Kolira contributors",
+        "themes": [{
+            "name": label,
+            "appearance": if p.variant == Variant::Dark { "dark" } else { "light" },
+            "style": style,
+        }],
+    })
+}
+
 fn refresh(root: &Path) -> Result<()> {
     let mut package: Value = serde_json::from_slice(&fs::read(root.join("theme.json"))?)?;
     let mut p = derive(root, &package)?;
@@ -305,22 +407,7 @@ fn refresh(root: &Path) -> Result<()> {
         package["values"][key] = builtin.into();
     }
     let zed_rel = format!(".config/zed/themes/kolira-{name}.json");
-    document(
-        root,
-        &zed_rel,
-        &json!({"$schema":"https://zed.dev/schema/themes/v0.2.0.json",
-        "name":label,"author":"Kolira contributors","themes":[{"name":label,
-        "appearance":if dark {"dark"} else {"light"},"style":{
-            "background":b[0],"surface.background":b[1],"elevated_surface.background":b[1],
-            "text":b[5],"text.muted":b[3],"text.accent":p.accent,"border":b[2],"border.focused":p.accent,
-            "editor.background":b[0],"editor.foreground":b[5],"editor.gutter.background":b[0],
-            "editor.line_number":b[3],"editor.active_line_number":b[5],"editor.active_line.background":b[1],
-            "tab.active_background":b[0],"tab.inactive_background":b[1],"toolbar.background":b[1],
-            "status_bar.background":b[1],"terminal.background":b[0],"terminal.foreground":b[5],
-            "players":[{"cursor":p.accent,"background":p.accent,"selection":format!("{}50",p.accent)}],
-            "syntax":{"comment":{"color":b[3]},"string":{"color":b[11]},"keyword":{"color":b[14]},
-                      "number":{"color":b[9]},"function":{"color":b[13]},"type":{"color":b[10]}}}}]}),
-    )?;
+    document(root, &zed_rel, &zed_theme(&p, &label))?;
     patch(
         root,
         ".config/zed/settings.json",

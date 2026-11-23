@@ -22,8 +22,9 @@ Kirigami.ScrollablePage {
     }
 
     function choiceIndex(app) {
+        const selected = app.changed || app.currentValue;
         for (let i = 0; i < app.themes.length; ++i) {
-            if (app.themes[i].id === app.currentValue)
+            if (app.themes[i].id === selected)
                 return i;
 
         }
@@ -41,6 +42,25 @@ Kirigami.ScrollablePage {
             text: qsTr("Installed themes are detected for each application. If automatic control is not available, open the application's native theme settings.")
             wrapMode: Text.WordWrap
             color: ThemeColors.dimColor(page.glassMode)
+        }
+
+        ActionFlow {
+            Layout.fillWidth: true
+            visible: page.apps.some(app => app.changed !== "")
+
+            AppButton {
+                objectName: "applyLiveAppDraft"
+                text: qsTr("Apply changes")
+                icon.name: "dialog-ok-apply"
+                enabled: !themeBundle.busy && !themeInspector.busy
+                onClicked: themeBundle.applyChanges()
+            }
+            AppButton {
+                text: qsTr("Discard application changes")
+                icon.name: "edit-undo"
+                enabled: !themeBundle.busy && !themeInspector.busy
+                onClicked: themeInspector.discardDraft("apps")
+            }
         }
 
         Repeater {
@@ -89,6 +109,13 @@ Kirigami.ScrollablePage {
                                 color: ThemeColors.dimColor(page.glassMode)
                                 elide: Text.ElideRight
                             }
+                            Label {
+                                visible: modelData.changed !== ""
+                                Layout.fillWidth: true
+                                text: qsTr("Staged — press Apply to write it")
+                                color: ThemeColors.dimColor(page.glassMode)
+                                wrapMode: Text.WordWrap
+                            }
 
                         }
 
@@ -104,6 +131,7 @@ Kirigami.ScrollablePage {
                     }
 
                     ComboBox {
+                        objectName: "liveAppTheme_" + modelData.id
                         id: themeChooser
 
                         Layout.fillWidth: true
@@ -114,11 +142,11 @@ Kirigami.ScrollablePage {
                         textRole: "label"
                         valueRole: "id"
                         currentIndex: page.choiceIndex(modelData)
-                        displayText: currentIndex >= 0 ? currentText : modelData.currentDisplay
+                        displayText: currentIndex >= 0 ? currentText : (modelData.changed || modelData.currentDisplay)
                         enabled: modelData.installed && modelData.capabilities.apply_theme === true && modelData.themes.length > 0 && !themeBundle.busy
                         onActivated: function(index) {
                             if (index >= 0 && index < modelData.themes.length)
-                                themeBundle.setComponent(modelData.id, modelData.themes[index].id);
+                                themeBundle.stageApplication(modelData.id, modelData.themes[index].id);
 
                         }
                         Accessible.name: qsTr("%1 theme").arg(modelData.name)

@@ -85,6 +85,13 @@ Kirigami.ScrollablePage {
         ActionFlow {
             Layout.fillWidth: true
 
+            AppButton {
+                text: qsTr("Discard category changes")
+                icon.name: "edit-clear"
+                visible: !themeInspector.readOnly && themeInspector.draft.some(change => change.section === page.sectionId)
+                enabled: !themeInspector.busy
+                onClicked: themeInspector.discardDraft(page.sectionId)
+            }
 
             AppButton {
                 text: qsTr("Apply")

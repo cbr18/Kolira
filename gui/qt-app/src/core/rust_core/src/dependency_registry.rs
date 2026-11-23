@@ -32,6 +32,8 @@ pub struct Resource {
     pub application: bool,
     pub instances: Vec<Instance>,
     pub installed: bool,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub version: String,
     pub checked_at: String,
     #[serde(default)]
     pub last_error: String,
@@ -375,6 +377,11 @@ fn update_resource(r: &mut Resource) {
             }
         }
     }
+    r.version = if r.installed {
+        known_version(r).unwrap_or_default()
+    } else {
+        String::new()
+    };
     r.can_install = !r.application
         && !r.dependency.id.is_empty()
         && matches!(
@@ -424,6 +431,39 @@ fn update_resource(r: &mut Resource) {
         "managed-files"
     }
     .into();
+}
+
+fn known_version(resource: &Resource) -> Option<String> {
+    let d = &resource.dependency;
+    if deps::needs_root(d) && safe_package(&d.id) {
+        if let Some((status, output)) = paths::output_bounded(
+            std::process::Command::new("pacman")
+                .args(["-Q", &d.id])
+                .stderr(std::process::Stdio::null()),
+        ) {
+            if status.success() {
+                if let Some(version) = String::from_utf8_lossy(&output).split_whitespace().nth(1) {
+                    return Some(version.to_owned());
+                }
+            }
+        }
+    }
+    resource.instances.iter().find_map(|instance| {
+        ["metadata.json", "package.json", "manifest.json"]
+            .into_iter()
+            .find_map(|name| {
+                let path = Path::new(&instance.path).join(name);
+                if fs::metadata(&path).ok()?.len() > 1024 * 1024 {
+                    return None;
+                }
+                let value: Value = serde_json::from_slice(&fs::read(path).ok()?).ok()?;
+                value["KPlugin"]["Version"]
+                    .as_str()
+                    .or_else(|| value["version"].as_str())
+                    .filter(|version| !version.is_empty())
+                    .map(str::to_owned)
+            })
+    })
 }
 
 pub fn refresh(python: Option<&str>) -> Result<Vec<Resource>> {

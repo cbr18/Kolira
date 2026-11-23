@@ -1,5 +1,10 @@
 //! Browser profiles are personal: manage only colours and day/night preferences.
-use crate::{field, palette::Palette};
+use crate::{
+    field,
+    palette::{contrast, Palette, Rgb},
+};
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 
 pub const ROOTS: &[&str] = &[
     ".zen",
@@ -11,17 +16,47 @@ pub const ROOTS: &[&str] = &[
 ];
 pub const COLORS: &str = "kolira-colors.css";
 pub const IMPORT: &str = "@import url(\"kolira-colors.css\");";
+pub(crate) const ZEN_ACCENT: &str = "zen.theme.accent-color";
+pub(crate) const ZEN_MODE: &str = "zen.view.window.scheme";
+const ACCENT_PREFS: &[&str] = &[ZEN_ACCENT, "ui.accentcolor", "ui.accentcolortext"];
+const MODE_PREFS: &[&str] = &[
+    ZEN_MODE,
+    "ui.systemUsesDarkTheme",
+    "browser.theme.toolbar-theme",
+    "browser.theme.content-theme",
+    "layout.css.prefers-color-scheme.content-override",
+];
 pub const PREFS: &[&str] = &[
-    "zen.theme.accent-color",
+    ZEN_ACCENT,
     "ui.systemUsesDarkTheme",
     "ui.accentcolor",
     "ui.accentcolortext",
-    "zen.view.window.scheme",
+    ZEN_MODE,
     "browser.theme.toolbar-theme",
     "browser.theme.content-theme",
     "layout.css.prefers-color-scheme.content-override",
     "toolkit.legacyUserProfileCustomizations.stylesheets",
 ];
+
+/// A field edited through the saved profile owns its saved value or its
+/// deliberate omission even when Base16 generation is enabled.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ZenOverrides {
+    #[serde(default)]
+    pub accent: bool,
+    #[serde(default)]
+    pub mode: bool,
+}
+
+impl ZenOverrides {
+    pub(crate) fn is_empty(&self) -> bool {
+        !self.accent && !self.mode
+    }
+}
+
+pub(crate) fn zen_roots() -> &'static [&'static str] {
+    &ROOTS[..3]
+}
 /// Remove obsolete INI-style assignments for owned prefs: these are invalid JS.
 /// Unknown lines and personal preferences remain untouched.
 pub(crate) fn clean_legacy_assignments(text: &str) -> String {
@@ -43,7 +78,7 @@ pub fn is_profile_file(rel: &str) -> bool {
         .any(|root| rel.strip_prefix(root).is_some_and(|s| s.starts_with('/')))
 }
 pub fn is_zen(rel: &str) -> bool {
-    ROOTS[..3]
+    zen_roots()
         .iter()
         .any(|root| rel.starts_with(&format!("{root}/")))
 }
@@ -56,28 +91,77 @@ pub fn host(live: &str) -> String {
 }
 /// Native LookAndFeel accent preferences; never enable or patch userChrome.
 pub fn accent(text: &str, p: &Palette, zen: bool) -> String {
-    let clean = clean_legacy_assignments(text);
-    let text = clean.as_str();
-    let roles = crate::palette::kde_roles(p);
-    let mut out = field::userjs_set(
+    accent_pair(
         text,
-        "ui.accentcolor",
-        &serde_json::json!(p.accent_rgb().hex()),
-    );
-    out = field::userjs_set(
-        &out,
-        "ui.accentcolortext",
-        &serde_json::json!(roles.selection_text.hex()),
-    );
-    if zen {
-        out = field::userjs_set(
-            &out,
-            "zen.theme.accent-color",
-            &serde_json::json!(p.accent_rgb().hex()),
-        );
-    }
-    out
+        p.accent_rgb(),
+        crate::palette::kde_roles(p).selection_text,
+        zen,
+    )
 }
+
+fn accent_pair(text: &str, accent: Rgb, on_accent: Rgb, zen: bool) -> String {
+    let clean = clean_legacy_assignments(text);
+    let color = json!(accent.hex());
+    let out = field::userjs_set(&clean, "ui.accentcolor", &color);
+    let out = field::userjs_set(&out, "ui.accentcolortext", &json!(on_accent.hex()));
+    if zen {
+        field::userjs_set(&out, ZEN_ACCENT, &color)
+    } else {
+        out
+    }
+}
+
+pub(crate) fn set_zen_accent(text: &str, accent: Option<Rgb>) -> String {
+    if let Some(accent) = accent {
+        let black = Rgb(0, 0, 0);
+        let white = Rgb(255, 255, 255);
+        let on_accent = if contrast(black, accent) >= contrast(white, accent) {
+            black
+        } else {
+            white
+        };
+        accent_pair(text, accent, on_accent, true)
+    } else {
+        remove_prefs(text, ACCENT_PREFS)
+    }
+}
+
+pub(crate) fn set_zen_mode(text: &str, dark: Option<bool>) -> String {
+    match dark {
+        Some(dark) => mode(text, dark, true),
+        None => remove_prefs(text, MODE_PREFS),
+    }
+}
+
+fn remove_prefs(text: &str, keys: &[&str]) -> String {
+    keys.iter()
+        .fold(clean_legacy_assignments(text), |text, key| {
+            field::userjs_remove(&text, key)
+        })
+}
+
+pub(crate) fn overlay_prefs(theme: &str, live: &str, keys: &[&str]) -> String {
+    keys.iter()
+        .filter_map(|key| field::userjs_get(theme, key).map(|value| (key, value)))
+        .fold(clean_legacy_assignments(live), |text, (key, value)| {
+            field::userjs_set(&text, key, &value)
+        })
+}
+
+pub(crate) fn zen_accent(text: &str) -> Option<Rgb> {
+    field::userjs_get(text, ZEN_ACCENT)
+        .or_else(|| field::userjs_get(text, "ui.accentcolor"))
+        .and_then(|value| Rgb::parse(value.as_str()?).ok())
+}
+
+pub(crate) fn zen_mode(text: &str) -> Option<bool> {
+    match field::userjs_get(text, ZEN_MODE).and_then(|value: Value| value.as_u64()) {
+        Some(0) => Some(true),
+        Some(1) => Some(false),
+        _ => None,
+    }
+}
+
 pub fn mode(text: &str, dark: bool, zen: bool) -> String {
     let mode = if dark { 0 } else { 1 };
     let mut out = field::userjs_set(
@@ -93,7 +177,7 @@ pub fn mode(text: &str, dark: bool, zen: bool) -> String {
         out = field::userjs_set(&out, key, &serde_json::json!(mode));
     }
     if zen {
-        out = field::userjs_set(&out, "zen.view.window.scheme", &serde_json::json!(mode));
+        out = field::userjs_set(&out, ZEN_MODE, &serde_json::json!(mode));
     }
     out
 }

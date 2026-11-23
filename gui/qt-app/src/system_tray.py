@@ -17,7 +17,7 @@ produced a working shortcut and the setting was dead.
 from __future__ import annotations
 
 import os
-from PySide6.QtCore import QObject, Signal, Slot, Property, QCoreApplication
+from PySide6.QtCore import QObject, Signal, Slot, Property, QCoreApplication, QMetaObject
 from PySide6.QtGui import QAction, QActionGroup, QWindow
 
 from app_icon import app_icon
@@ -87,6 +87,8 @@ class SystemTrayController(QObject):
         self._profile_controller = controller
         controller.profilesChanged.connect(self._rebuild_profiles_menu)
         controller.activeProfileChanged.connect(self._rebuild_profiles_menu)
+        if hasattr(controller, "liveAppearanceChanged"):
+            controller.liveAppearanceChanged.connect(self._rebuild_profiles_menu)
         controller.busyChanged.connect(self._rebuild_profiles_menu)
         controller.operationFinished.connect(self._on_profile_operation_finished)
         self._rebuild_profiles_menu()
@@ -231,7 +233,10 @@ class SystemTrayController(QObject):
             empty.setEnabled(False)
             return
 
-        entries = self._profile_entries(controller.profiles, controller.activeProfile)
+        appearance = getattr(controller, "liveAppearance", None)
+        matches = (appearance or {}).get("matches", [])
+        current = (matches[0] if len(matches) == 1 else "") if appearance is not None else controller.activeProfile
+        entries = self._profile_entries(controller.profiles, current)
         if not entries:
             empty = self._profiles_menu.addAction(
                 QCoreApplication.translate("SystemTray", "No profiles")
@@ -253,7 +258,7 @@ class SystemTrayController(QObject):
             group.addAction(action)
 
         if self._tray_icon is not None:
-            active = controller.activeProfile or "—"
+            active = current or "—"
             self._tray_icon.setToolTip(f"kolira — {active}")
 
     def _rebuild_wallpaper_menu(self) -> None:
@@ -304,7 +309,7 @@ class SystemTrayController(QObject):
         controller = self._profile_controller
         if controller is None or not name:
             return
-        if name == controller.activeProfile or controller.busy:
+        if controller.busy:
             self._rebuild_profiles_menu()
             return
         self._pending_profile = name
@@ -360,7 +365,10 @@ class SystemTrayController(QObject):
 
     def _quit_app(self) -> None:
         """Полностью выйти из приложения (из трея)."""
-        QCoreApplication.quit()
+        if self._main_window is None:
+            QCoreApplication.quit()
+        else:
+            QMetaObject.invokeMethod(self._main_window, "requestQuit")
 
     def _on_tray_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         """Обработка кликов по иконке трея.

@@ -160,6 +160,12 @@ class CliProfileCore(ProfileCore):
     def get_active_profile(self) -> str:
         return core_request("profile.active", _binary=self.bin)
 
+    def live_appearance(self) -> dict:
+        return core_request("profile.live_summary", _binary=self.bin)
+
+    def live_matches(self, names: list[str]) -> dict:
+        return core_request("profile.live_matches", _binary=self.bin, names=names)
+
     def pending_operations(self) -> list[dict]:
         return [record for record in core_request("operation.list", _binary=self.bin)["operations"]
                 if record["interrupted"]]
@@ -175,9 +181,17 @@ class CliProfileCore(ProfileCore):
         return ProfileInfo(**{**data, "is_active": is_active, "components": tuple(data["components"])})
 
     def preview(self, profile: str, keep_wallpaper: bool = False, *, use_settings: bool = True, without_sync: bool = False) -> Result:
+        return self._request_apply_preview("profile.preview", profile, keep_wallpaper,
+                                           use_settings=use_settings, without_sync=without_sync)
+
+    def prepare_apply_preview(self, profile: str, keep_wallpaper: bool = False, *, without_sync: bool = False) -> Result:
+        return self._request_apply_preview("profile.prepare_apply", profile, keep_wallpaper,
+                                           without_sync=without_sync)
+
+    def _request_apply_preview(self, method: str, profile: str, keep_wallpaper: bool, **options) -> Result:
         try:
-            report = core_request("profile.preview", _binary=self.bin,
-                name=profile, keep_wallpaper=keep_wallpaper, use_settings=use_settings, without_sync=without_sync)
+            report = core_request(method, _binary=self.bin, name=profile,
+                                  keep_wallpaper=keep_wallpaper, **options)
             from PySide6.QtCore import QCoreApplication
             for action in report.get("actions", []):
                 for key in ("title", "reason", "warning"):
@@ -188,8 +202,17 @@ class CliProfileCore(ProfileCore):
             return Result.err(str(exc))
 
     def save_before_apply(self, name: str) -> Result:
+        return self.capture_live(name)
+
+    def capture_live(self, name: str, description: str = "",
+                     include_wallpaper: bool = True, make_look_and_feel: bool = False,
+                     draft_session: str | None = None) -> Result:
         try:
-            return Result.ok(data=core_request("profile.save_before_apply", _binary=self.bin, name=name))
+            return Result.ok(data=core_request(
+                "profile.capture_live", _binary=self.bin, _timeout=180,
+                name=name, description=description, include_wallpaper=include_wallpaper,
+                make_look_and_feel=make_look_and_feel, draft_session=draft_session,
+            ))
         except (ValueError, RuntimeError) as exc:
             return Result.err(str(exc))
 

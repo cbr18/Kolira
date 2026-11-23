@@ -77,12 +77,14 @@ impl Home {
 fn history_restores_completed_change_with_safety_copy_and_full_report() {
     let h = Home::new();
     let before = fs::read(h.path(".config/kdeglobals")).unwrap();
+    assert!(h.ok("operation.list", json!({}))["last_profile_apply"].is_null());
     let preview = h.ok("profile.preview", json!({"name":"probe"}));
     let applied = h.ok(
         "profile.apply",
         json!({"name":"probe","source":"mcp","skip_dependencies":true,"preview_token":preview["token"]}),
     );
     let history = h.ok("operation.list", json!({}));
+    assert_eq!(history["last_profile_apply"], "probe");
     let row = &history["operations"][0];
     assert_eq!(row["id"], applied["operation_id"]);
     assert_eq!(row["source"], "mcp");
@@ -100,10 +102,9 @@ fn history_restores_completed_change_with_safety_copy_and_full_report() {
     assert!(PathBuf::from(restored["backup"].as_str().unwrap())
         .join("transaction/manifest.json")
         .is_file());
-    assert_eq!(
-        h.ok("operation.list", json!({}))["operations"][0]["restored_operation"],
-        id
-    );
+    let history = h.ok("operation.list", json!({}));
+    assert_eq!(history["operations"][0]["restored_operation"], id);
+    assert_eq!(history["last_profile_apply"], "probe");
 }
 #[test]
 fn corrupt_completed_backup_disables_restore_without_touching_live_files() {
