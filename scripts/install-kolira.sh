@@ -238,6 +238,7 @@ install_bundled_themes() {
 install_gui() {
   for required in "$APP_SRC/src/__main__.py" "$APP_SRC/kolira-manager.sh" \
     "$APP_SRC/resources/kolira.desktop" \
+    "$APP_SRC/resources/kolira-quick-switch.desktop" \
     "$APP_SRC/resources/icons/kolira-icon.svg"; do
     if [ ! -f "$required" ]; then
       warn "Missing source: $required"
@@ -274,7 +275,9 @@ install_gui() {
   backup "$APPDIR" "app" prune-dev
   backup "$LEGACY_APPDIR" "legacy-kolira-manager" prune-dev
   backup "${BINDIR}/kolira-gui" "bin/kolira-gui"
+  backup "${BINDIR}/kolira-quick-switch" "bin/kolira-quick-switch"
   backup "$APPSDIR/kolira.desktop" "applications/kolira.desktop"
+  backup "$APPSDIR/kolira-quick-switch.desktop" "applications/kolira-quick-switch.desktop"
 
   say "Copying application → $APPDIR"
   mkdir -p "$APPDIR"
@@ -318,7 +321,15 @@ install_gui() {
   fi
 
   say "Writing launcher → ${BINDIR}/kolira-gui"
-  cat > "${BINDIR}/kolira-gui" <<'LAUNCHER'
+  KIT_DIR_SED="${KIT_DIR//\\/\\\\}"
+  KIT_DIR_SED="${KIT_DIR_SED//&/\\&}"
+  KIT_DIR_SED="${KIT_DIR_SED//|/\\|}"
+
+  # One launcher body for both entry points: the Quick Switch one passes
+  # --quick-switch so the same app tree starts the overlay, not the GUI.
+  write_launcher() { # path [extra args]
+    local body
+    body=$(cat <<'LAUNCHER'
 #!/usr/bin/env bash
 # kolira — launcher written by kolira.
 set -euo pipefail
@@ -333,17 +344,24 @@ if [ ! -x "$APP_SH" ]; then
   exit 127
 fi
 
-exec "$APP_SH" "$@"
+exec "$APP_SH" @EXTRA@ "$@"
 LAUNCHER
-  KIT_DIR_SED="${KIT_DIR//\\/\\\\}"
-  KIT_DIR_SED="${KIT_DIR_SED//&/\\&}"
-  KIT_DIR_SED="${KIT_DIR_SED//|/\\|}"
-  sed -i "s|@KIT_DIR@|$KIT_DIR_SED|g" "${BINDIR}/kolira-gui"
-  chmod 755 "${BINDIR}/kolira-gui" "$APPDIR/kolira-manager.sh"
+)
+    body="${body//@KIT_DIR@/$KIT_DIR_SED}"
+    body="${body//@EXTRA@/${2:-}}"
+    printf '%s\n' "$body" > "$1"
+    chmod 755 "$1"
+  }
 
-  say "Installing desktop entry and icon"
+  write_launcher "${BINDIR}/kolira-gui"
+  write_launcher "${BINDIR}/kolira-quick-switch" "--quick-switch"
+  chmod 755 "$APPDIR/kolira-manager.sh"
+
+  say "Installing desktop entries and icon"
   install -m 644 "$APP_SRC/resources/kolira.desktop" \
     "$APPSDIR/kolira.desktop"
+  install -m 644 "$APP_SRC/resources/kolira-quick-switch.desktop" \
+    "$APPSDIR/kolira-quick-switch.desktop"
   install -m 644 "$APP_SRC/resources/icons/kolira-icon.svg" \
     "$ICONDIR/kolira-icon.svg"
   rm -f "$ICONDIR/kolira.svg"

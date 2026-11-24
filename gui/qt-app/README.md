@@ -285,6 +285,73 @@ qml/
     └── ComponentCheckbox.qml        # Single component toggle
 ```
 
+### Quick Switch (separate process)
+
+`kolira-quick-switch` → `kolira-manager.sh --quick-switch` → `python -m src
+--quick-switch` → `src/quick_switch_app.py`. It builds its own
+`QQmlApplicationEngine`, loads `qml/quick-switch/HostSurface.qml` once per screen
+and never touches the main window, the tray, the Inspector or `MainController`.
+
+The hotkey launches the desktop entry again, so the process is a **toggle**:
+a second launch connects to `QLocalServer("kolira-quick-switch")`, the running
+overlay closes and the new process exits. During `preparing`/`applying` the
+request is ignored — a hotkey must not hide a running transaction.
+
+```
+src/
+├── quick_switch_app.py         # QGuiApplication, one surface per monitor, watchdog, toggle
+├── quick_switch_controller.py  # phases, pre-flight, apply, real stages
+└── qml_runtime.py              # system QML import paths (shared with __main__.py)
+
+qml/quick-switch/
+├── HostSurface.qml        # layer-shell window (org.kde.layershell as LayerShell)
+├── QuickSwitchContent.qml # dim + carousel + transitions + panels
+├── ThemeCard.qml          # one card for every shape, masked content
+├── CardPreview.qml        # face: wallpaper, mock window, name and palette
+├── ApplyScreen.qml        # shader screen + real stage scale
+├── CardGeometry.js        # card outline as an SVG path (mask, border, hit area)
+└── shaders/apply.frag     # GLSL source; apply.qsb is the compiled artifact
+```
+
+- **Cards.** `ThemeCard` is only geometry (mask, border, glow, hit area);
+  `CardPreview` is the face: the wallpaper, a mock window about a third of
+  the card high centred a third from the top, and the name with the palette.
+  Colours, fonts, radius and opacity come from `quick_switch.cards`
+  (`previewColors`, `previewStyle`), the same values the gallery card uses.
+- **Masking.** `OpacityMask` (Qt5Compat) clips the card content. A visible
+  `MultiEffect` source paints itself unmasked and the preview spills outside
+  the outline; `content` must be `layer.enabled` + invisible to be a texture
+  provider, and the mask item is never drawn.
+- **Thumbnails.** The first open renders small JPEGs into
+  `$XDG_CACHE_HOME/kolira/quick-switch/thumbs` (Rust calls `magick`, the same
+  external tool the wallpaper picker uses); later opens read those. The card
+  also decodes with `sourceSize` and fades the image in, so a wallpaper never
+  pops into an empty rectangle.
+- **Parallelogram.** The shape is a sheared rectangle: its width is constant
+  but it slides sideways, so `CardPreview` keeps the mock window inside
+  `[skew·w, (1-skew)·w]` and the card leaves air inside its box.
+
+- **Layer-shell.** The attached type is `LayerShell.Window`, so the import must be
+  aliased (`import org.kde.layershell 1.0 as LayerShell`). Without the alias the
+  engine reports “Non-existent attached object”. The shell is what puts the
+  overlay above panels and normal windows; `keyboardInteractivity` is
+  `Exclusive` only on the screen with the carousel.
+- **Shaders.** Qt 6 needs precompiled `.qsb`: `qml/quick-switch/shaders/apply.frag`
+  is the source, `apply.qsb` is generated with
+  `/usr/lib/qt6/bin/qsb --qt6 --glsl 100es,120,150,330,440,450,460,300es -s -o apply.qsb apply.frag`.
+  The shader reads `gl_FragCoord`, not `qt_Texcoord0`: the vertex stage writes
+  `qt_TexCoord0` and the mismatch breaks linking. Uniforms live in one std140
+  block in the order the QML properties are declared.
+- **Stages.** `profile.apply` has no progress channel. The overlay polls
+  `operation.list` while the transaction runs and maps the real record state
+  (`preparing`, `applying`, `succeeded`, …) to the scale; the moving bar inside a
+  stage is an animation, not a measurement.
+- **Hotkey.** `~/.local/share/applications/kolira-quick-switch.desktop` carries
+  `X-KDE-GlobalAccel-CommandShortcut=true`; the key itself lives in
+  `[services][kolira-quick-switch.desktop]` in `~/.config/kglobalshortcutsrc` and
+  is written by `quick_switch.set_hotkey` through `kwriteconfig6` with a backup.
+  `Meta+K` is taken from `voxtype-toggle` once (moved to `Meta+Shift+K`).
+
 > Note: `ScrollablePage` must contain a **single layout** child — its children are
 > only anchored left/right, never laid out, so bare cards collapse to zero height.
 > `Kirigami.Card` needs an explicit `contentItem:` for the same reason.

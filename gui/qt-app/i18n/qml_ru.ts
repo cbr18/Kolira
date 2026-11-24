@@ -9,10 +9,6 @@
         <translation>Изменить значение</translation>
     </message>
     <message>
-        <source>truncated</source>
-        <translation type="vanished">обрезано</translation>
-    </message>
-    <message>
         <location filename="../qml/pages/AppConfigTree.qml" line="129"/>
         <source>Only the first 300 parameters are shown</source>
         <translation>Показаны только первые 300 параметров</translation>
@@ -205,10 +201,6 @@
         <source>Calculating changes…</source>
         <translation>Расчёт изменений…</translation>
     </message>
-    <message>
-        <source>%1 files will change</source>
-        <translation type="vanished">Изменится файлов: %1</translation>
-    </message>
     <message numerus="yes">
         <location filename="../qml/Components/ApplyPreviewDialog.qml" line="94"/>
         <source>%n files will change</source>
@@ -373,10 +365,6 @@
         <translation>История смены тем</translation>
     </message>
     <message>
-        <source>Last 10 completed changes and all interrupted operations. Backups are kept when older history entries are removed.</source>
-        <translation type="vanished">Последние 10 завершённых смен и все прерванные операции. При удалении старых записей резервные копии сохраняются.</translation>
-    </message>
-    <message>
         <location filename="../qml/pages/AuditPage.qml" line="44"/>
         <source>Refresh</source>
         <translation>Обновить</translation>
@@ -385,10 +373,6 @@
         <location filename="../qml/pages/AuditPage.qml" line="76"/>
         <source>No theme changes recorded</source>
         <translation>Смены тем ещё не записаны</translation>
-    </message>
-    <message>
-        <source>Restore Live settings</source>
-        <translation type="vanished">Восстановление настроек Live</translation>
     </message>
     <message>
         <location filename="../qml/pages/AuditPage.qml" line="24"/>
@@ -825,34 +809,6 @@
         <translation>Поиск зависимостей</translation>
     </message>
     <message>
-        <source>Select resources with the checkboxes. Existing external resources and modified files are protected from deletion.</source>
-        <translation type="vanished">Выберите ресурсы галочками. Существовавшие ранее внешние ресурсы и изменённые файлы защищены от удаления.</translation>
-    </message>
-    <message>
-        <source>Select all visible dependencies</source>
-        <translation type="vanished">Выбрать все видимые зависимости</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <translation type="vanished">Название</translation>
-    </message>
-    <message>
-        <source>Category</source>
-        <translation type="vanished">Категория</translation>
-    </message>
-    <message>
-        <source>Status</source>
-        <translation type="vanished">Состояние</translation>
-    </message>
-    <message>
-        <source>Source</source>
-        <translation type="vanished">Источник</translation>
-    </message>
-    <message>
-        <source>Used by</source>
-        <translation type="vanished">Используют</translation>
-    </message>
-    <message>
         <location filename="../qml/pages/DependenciesPage.qml" line="328"/>
         <source>Select %1</source>
         <translation>Выбрать %1</translation>
@@ -876,10 +832,6 @@
         <location filename="../qml/pages/DependenciesPage.qml" line="349"/>
         <source>Missing</source>
         <translation>Не установлено</translation>
-    </message>
-    <message>
-        <source>No dependencies match these filters</source>
-        <translation type="vanished">Нет зависимостей, соответствующих фильтрам</translation>
     </message>
     <message>
         <location filename="../qml/pages/DependenciesPage.qml" line="413"/>
@@ -1058,25 +1010,9 @@
         <translation>Зависимости</translation>
     </message>
     <message>
-        <source>Profiles</source>
-        <translation type="vanished">Профили</translation>
-    </message>
-    <message>
-        <source>Theme</source>
-        <translation type="vanished">Тема</translation>
-    </message>
-    <message>
         <location filename="../qml/Main.qml" line="591"/>
         <source>Applications</source>
         <translation>Приложения</translation>
-    </message>
-    <message>
-        <source>Theme change history</source>
-        <translation type="vanished">История смены тем</translation>
-    </message>
-    <message>
-        <source>Theme schedule</source>
-        <translation type="vanished">Расписание тем</translation>
     </message>
     <message>
         <location filename="../qml/Main.qml" line="599"/>
@@ -1094,38 +1030,14 @@
         <translation>Открыть историю</translation>
     </message>
     <message>
-        <source>Theme Profiles</source>
-        <translation type="vanished">Профили тем</translation>
-    </message>
-    <message>
-        <source>Active: %1</source>
-        <translation type="vanished">Активен: %1</translation>
-    </message>
-    <message>
         <location filename="../qml/Main.qml" line="671"/>
         <source>Edit live theme…</source>
-        <translation>Править живую тему…</translation>
+        <translation>Править текущую тему…</translation>
     </message>
     <message>
         <location filename="../qml/Main.qml" line="690"/>
         <source>Refresh</source>
         <translation>Обновить</translation>
-    </message>
-    <message>
-        <source>Apply</source>
-        <translation type="vanished">Применить</translation>
-    </message>
-    <message>
-        <source>Click a profile card to select it, then press Apply.</source>
-        <translation type="vanished">Кликните по карточке профиля, чтобы выбрать, затем нажмите «Применить».</translation>
-    </message>
-    <message>
-        <source>Active profile: %1</source>
-        <translation type="vanished">Активный профиль: %1</translation>
-    </message>
-    <message>
-        <source>Selected &quot;%1&quot; (not applied yet). Active: %2</source>
-        <translation type="vanished">Выбран «%1» (ещё не применён). Активен: %2</translation>
     </message>
     <message>
         <location filename="../qml/Main.qml" line="770"/>
@@ -1138,69 +1050,9 @@
         <translation>Импорт темы…</translation>
     </message>
     <message>
-        <source>Save current…</source>
-        <translation type="vanished">Сохранить текущее…</translation>
-    </message>
-    <message>
         <location filename="../qml/Main.qml" line="887"/>
         <source>No profiles found. Save the current theme to create one.</source>
         <translation>Профилей нет. Сохраните текущую тему, чтобы создать профиль.</translation>
-    </message>
-    <message>
-        <source>Wallpaper</source>
-        <translation type="vanished">Обои</translation>
-    </message>
-    <message>
-        <source>No wallpaper information available.</source>
-        <translation type="vanished">Нет сведений об обоях.</translation>
-    </message>
-    <message>
-        <source>Previous</source>
-        <translation type="vanished">Предыдущие</translation>
-    </message>
-    <message>
-        <source>Pick Wallpaper…</source>
-        <translation type="vanished">Выбрать обои…</translation>
-    </message>
-    <message>
-        <source>Next</source>
-        <translation type="vanished">Следующие</translation>
-    </message>
-    <message>
-        <source>Apply Profile</source>
-        <translation type="vanished">Применить профиль</translation>
-    </message>
-    <message>
-        <source>Apply profile &quot;%1&quot;? This can restart Plasma components and change the current desktop appearance.</source>
-        <translation type="vanished">Применить профиль «%1»? Это может перезапустить компоненты Plasma и изменить текущий вид рабочего стола.</translation>
-    </message>
-    <message>
-        <source>Apply theme &quot;%1&quot;? Only what the theme defines changes; a backup of the touched files is made first.</source>
-        <translation type="vanished">Применить тему «%1»? Изменится только то, что задано в теме; затронутые файлы сначала сохраняются в резервную копию.</translation>
-    </message>
-    <message>
-        <source>Apply theme &quot;%1&quot;? All its appearance files are restored (a backup is made first) and Plasma restarts.</source>
-        <translation type="vanished">Применить тему «%1»? Все её файлы оформления будут восстановлены (сначала делается резервная копия), Plasma перезапустится.</translation>
-    </message>
-    <message>
-        <source>Keep the current wallpaper</source>
-        <translation type="vanished">Оставить текущие обои</translation>
-    </message>
-    <message>
-        <source>Missing Theme Parts</source>
-        <translation type="vanished">Недостающие части темы</translation>
-    </message>
-    <message>
-        <source>Install from stores</source>
-        <translation type="vanished">Установить из магазинов</translation>
-    </message>
-    <message>
-        <source>Theme &quot;%1&quot; was imported. This machine lacks these parts — applying it will skip them until they are installed:</source>
-        <translation type="vanished">Тема «%1» импортирована. На этом компьютере нет этих частей — при применении они будут пропущены, пока их не установить:</translation>
-    </message>
-    <message>
-        <source>Theme &quot;%1&quot; was applied without these parts — install them and apply again:</source>
-        <translation type="vanished">Тема «%1» применена без этих частей — установите их и примените тему снова:</translation>
     </message>
     <message>
         <location filename="../qml/Main.qml" line="918"/>
@@ -1231,10 +1083,6 @@
         <location filename="../qml/Main.qml" line="1046"/>
         <source>Found by searching for &quot;%1&quot; — open the source to check it is the right one</source>
         <translation>Найдено поиском по «%1» — откройте источник и проверьте, то ли это</translation>
-    </message>
-    <message>
-        <source>A system package: run this in a terminal</source>
-        <translation type="vanished">Системный пакет: выполните это в терминале</translation>
     </message>
     <message>
         <location filename="../qml/Main.qml" line="1054"/>
@@ -1451,10 +1299,6 @@
         <translation>Новая тема…</translation>
     </message>
     <message>
-        <source>Download and apply</source>
-        <translation type="vanished">Скачать и применить</translation>
-    </message>
-    <message>
         <location filename="../qml/Main.qml" line="517"/>
         <location filename="../qml/Main.qml" line="982"/>
         <source>Apply without them</source>
@@ -1534,10 +1378,6 @@
         <location filename="../qml/Main.qml" line="885"/>
         <source>Could not read themes.</source>
         <translation>Не удалось прочитать темы.</translation>
-    </message>
-    <message>
-        <source>Wallpaper unavailable</source>
-        <translation type="vanished">Обои недоступны</translation>
     </message>
     <message>
         <location filename="../qml/Main.qml" line="969"/>
@@ -1770,70 +1610,6 @@
         <translation>Палитра</translation>
     </message>
     <message>
-        <source>Background</source>
-        <translation type="vanished">Фон</translation>
-    </message>
-    <message>
-        <source>Lighter background</source>
-        <translation type="vanished">Светлее фона</translation>
-    </message>
-    <message>
-        <source>Selection background</source>
-        <translation type="vanished">Фон выделения</translation>
-    </message>
-    <message>
-        <source>Comments, inactive</source>
-        <translation type="vanished">Комментарии, неактивное</translation>
-    </message>
-    <message>
-        <source>Dark foreground</source>
-        <translation type="vanished">Тёмный передний план</translation>
-    </message>
-    <message>
-        <source>Text</source>
-        <translation type="vanished">Текст</translation>
-    </message>
-    <message>
-        <source>Light foreground</source>
-        <translation type="vanished">Светлый передний план</translation>
-    </message>
-    <message>
-        <source>Lightest</source>
-        <translation type="vanished">Самый светлый</translation>
-    </message>
-    <message>
-        <source>Red</source>
-        <translation type="vanished">Красный</translation>
-    </message>
-    <message>
-        <source>Orange</source>
-        <translation type="vanished">Оранжевый</translation>
-    </message>
-    <message>
-        <source>Yellow</source>
-        <translation type="vanished">Жёлтый</translation>
-    </message>
-    <message>
-        <source>Green</source>
-        <translation type="vanished">Зелёный</translation>
-    </message>
-    <message>
-        <source>Cyan</source>
-        <translation type="vanished">Бирюзовый</translation>
-    </message>
-    <message>
-        <source>Blue</source>
-        <translation type="vanished">Синий</translation>
-    </message>
-    <message>
-        <source>Magenta</source>
-        <translation type="vanished">Пурпурный</translation>
-    </message>
-    <message>
-        <source>Brown</source>
-        <translation type="vanished">Коричневый</translation>
-    </message>
-    <message>
         <location filename="../qml/pages/PalettePage.qml" line="124"/>
         <source>Choose %1</source>
         <translation>Выбрать: %1</translation>
@@ -1919,22 +1695,6 @@
         <translation>Читаемость: %1</translation>
     </message>
     <message>
-        <source>%1 (%2): %3</source>
-        <translation type="vanished">%1 (%2): %3</translation>
-    </message>
-    <message>
-        <source>%1 — %2. Click to change</source>
-        <translation type="vanished">%1 — %2. Нажмите, чтобы изменить</translation>
-    </message>
-    <message>
-        <source>Accent: %1</source>
-        <translation type="vanished">Акцент: %1</translation>
-    </message>
-    <message>
-        <source>Accent %1 — selection, focus, active elements</source>
-        <translation type="vanished">Акцент %1 — выделение, фокус, активные элементы</translation>
-    </message>
-    <message>
         <location filename="../qml/pages/PalettePage.qml" line="268"/>
         <source>Preview</source>
         <translation>Предпросмотр</translation>
@@ -1963,10 +1723,6 @@
         <location filename="../qml/pages/PalettePage.qml" line="303"/>
         <source>Konsole</source>
         <translation>Konsole</translation>
-    </message>
-    <message>
-        <source>Neovim</source>
-        <translation type="vanished">Neovim</translation>
     </message>
     <message>
         <location filename="../qml/pages/PalettePage.qml" line="304"/>
@@ -2229,18 +1985,10 @@
         <translation>Некоторые ресурсы недоступны</translation>
     </message>
     <message>
-        <source>Active</source>
-        <translation type="vanished">Активен</translation>
-    </message>
-    <message>
         <location filename="../qml/Components/ProfileCardDelegate.qml" line="166"/>
         <location filename="../qml/Components/ProfileCardDelegate.qml" line="303"/>
         <source>Edit description</source>
         <translation>Изменить описание</translation>
-    </message>
-    <message>
-        <source>Re-apply</source>
-        <translation type="vanished">Применить заново</translation>
     </message>
     <message>
         <location filename="../qml/Components/ProfileCardDelegate.qml" line="254"/>
@@ -2286,6 +2034,59 @@
         <location filename="../qml/Components/ProfileCardDelegate.qml" line="132"/>
         <source>Last applied</source>
         <translation>Последняя применённая</translation>
+    </message>
+</context>
+<context>
+    <name>QuickSwitchContent</name>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="175"/>
+        <source>Поиск: %1</source>
+        <translation>Поиск: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="183"/>
+        <source>Предпросмотр — тема не применяется</source>
+        <translation>Предпросмотр — тема не применяется</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="184"/>
+        <source>← → выбор · Enter применить · Esc закрыть · печатайте для поиска</source>
+        <translation>← → выбор · Enter применить · Esc закрыть · печатайте для поиска</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="231"/>
+        <source>Подготовка…</source>
+        <translation>Подготовка…</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="232"/>
+        <source>Применение…</source>
+        <translation>Применение…</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="233"/>
+        <source>Готово</source>
+        <translation>Готово</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="256"/>
+        <source>Не удалось применить</source>
+        <translation>Не удалось применить</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="256"/>
+        <source>Тема требует внимания</source>
+        <translation>Тема требует внимания</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="293"/>
+        <source>Закрыть</source>
+        <translation>Закрыть</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="307"/>
+        <source>Открыть Kolira</source>
+        <translation>Открыть Kolira</translation>
     </message>
 </context>
 <context>
@@ -2376,54 +2177,14 @@
         <translation>KDE и Plasma</translation>
     </message>
     <message>
-        <source>Color scheme</source>
-        <translation type="vanished">Цветовая схема</translation>
-    </message>
-    <message>
-        <source>Plasma style</source>
-        <translation type="vanished">Стиль Plasma</translation>
-    </message>
-    <message>
-        <source>Icons</source>
-        <translation type="vanished">Значки</translation>
-    </message>
-    <message>
-        <source>Cursor</source>
-        <translation type="vanished">Курсор</translation>
-    </message>
-    <message>
         <location filename="../qml/pages/SavedThemeDetails.qml" line="151"/>
         <source>Windows and effects</source>
         <translation>Окна и эффекты</translation>
     </message>
     <message>
-        <source>Window decoration</source>
-        <translation type="vanished">Оформление окон</translation>
-    </message>
-    <message>
-        <source>No decoration</source>
-        <translation type="vanished">Без декораций</translation>
-    </message>
-    <message>
-        <source>Blur</source>
-        <translation type="vanished">Размытие</translation>
-    </message>
-    <message>
         <location filename="../qml/pages/SavedThemeDetails.qml" line="152"/>
         <source>Qt and GTK</source>
         <translation>Qt и GTK</translation>
-    </message>
-    <message>
-        <source>Widget style</source>
-        <translation type="vanished">Стиль элементов интерфейса</translation>
-    </message>
-    <message>
-        <source>Kvantum theme</source>
-        <translation type="vanished">Тема Kvantum</translation>
-    </message>
-    <message>
-        <source>GTK theme</source>
-        <translation type="vanished">Тема GTK</translation>
     </message>
     <message>
         <location filename="../qml/pages/SavedThemeDetails.qml" line="153"/>
@@ -2434,14 +2195,6 @@
         <location filename="../qml/pages/SavedThemeDetails.qml" line="154"/>
         <source>Base16 palette</source>
         <translation>Палитра Base16</translation>
-    </message>
-    <message>
-        <source>Accent color</source>
-        <translation type="vanished">Цвет акцента</translation>
-    </message>
-    <message>
-        <source>Accent from wallpaper</source>
-        <translation type="vanished">Акцент из обоев</translation>
     </message>
     <message>
         <location filename="../qml/pages/SavedThemeDetails.qml" line="30"/>
@@ -2457,10 +2210,6 @@
         <location filename="../qml/pages/SavedThemeDetails.qml" line="155"/>
         <source>Applications</source>
         <translation>Приложения</translation>
-    </message>
-    <message>
-        <source>Kitty opacity</source>
-        <translation type="vanished">Непрозрачность Kitty</translation>
     </message>
     <message>
         <location filename="../qml/pages/SavedThemeDetails.qml" line="156"/>
@@ -2724,34 +2473,6 @@
         <translation>Приложение</translation>
     </message>
     <message>
-        <source>Appearance</source>
-        <translation type="vanished">Внешний вид</translation>
-    </message>
-    <message>
-        <source>Application theme</source>
-        <translation type="vanished">Тема приложения</translation>
-    </message>
-    <message>
-        <source>System</source>
-        <translation type="vanished">Системная</translation>
-    </message>
-    <message>
-        <source>Glass</source>
-        <translation type="vanished">Стекло</translation>
-    </message>
-    <message>
-        <source>Paper</source>
-        <translation type="vanished">Бумага</translation>
-    </message>
-    <message>
-        <source>Dark</source>
-        <translation type="vanished">Тёмная</translation>
-    </message>
-    <message>
-        <source>Light</source>
-        <translation type="vanished">Светлая</translation>
-    </message>
-    <message>
         <location filename="../qml/pages/SettingsPage.qml" line="212"/>
         <source>Core</source>
         <translation>Ядро</translation>
@@ -2807,21 +2528,142 @@
         <translation>Сворачивать в системный трей</translation>
     </message>
     <message>
-        <source>Confirm before applying profile</source>
-        <translation type="vanished">Подтверждать применение профиля</translation>
-    </message>
-    <message>
         <location filename="../qml/pages/SettingsPage.qml" line="335"/>
         <source>Show notification on success</source>
         <translation>Показывать уведомление об успехе</translation>
     </message>
     <message>
         <location filename="../qml/pages/SettingsPage.qml" line="365"/>
+        <source>Quick Switch</source>
+        <translation>Быстрое переключение</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="371"/>
+        <source>Fullscreen theme switcher: a fast overlay with its own hotkey.</source>
+        <translation>Полноэкранный переключатель тем: быстрый оверлей с горячей клавишей.</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="381"/>
+        <source>Enable Quick Switch</source>
+        <translation>Включить быстрое переключение</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="393"/>
+        <source>Hotkey</source>
+        <translation>Горячая клавиша</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="395"/>
+        <source>e.g. Meta+K</source>
+        <translation>например, Meta+K</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="409"/>
+        <source>Card shape</source>
+        <translation>Форма карточек</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="411"/>
+        <source>Rectangle</source>
+        <translation>Прямоугольник</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="412"/>
+        <source>Rounded rectangle</source>
+        <translation>Скруглённый прямоугольник</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="413"/>
+        <source>Parallelogram</source>
+        <translation>Параллелограмм</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="423"/>
+        <source>Card size</source>
+        <translation>Размер карточек</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="424"/>
+        <source>Small</source>
+        <translation>Маленький</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="424"/>
+        <source>Normal</source>
+        <translation>Обычный</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="424"/>
+        <source>Large</source>
+        <translation>Большой</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="445"/>
+        <source>Background dimming</source>
+        <translation>Затемнение фона</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="450"/>
+        <source>Border glow</source>
+        <translation>Свечение рамок</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="462"/>
+        <source>Animation speed</source>
+        <translation>Скорость анимаций</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="463"/>
+        <source>Fast</source>
+        <translation>Быстро</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="463"/>
+        <source>Standard</source>
+        <translation>Стандартно</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="463"/>
+        <source>Smooth</source>
+        <translation>Плавно</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="472"/>
+        <source>Apply animation</source>
+        <translation>Анимация применения</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="484"/>
+        <source>Reduced motion</source>
+        <translation>Уменьшенное движение</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="485"/>
+        <source>Follow system</source>
+        <translation>Как в системе</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="485"/>
+        <source>On</source>
+        <translation>Включено</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="485"/>
+        <source>Off</source>
+        <translation>Выключено</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="496"/>
+        <source>Preview</source>
+        <translation>Предпросмотр</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="519"/>
         <source>Save Settings</source>
         <translation>Сохранить настройки</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="373"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="527"/>
         <source>Reset to Defaults</source>
         <translation>Сбросить настройки</translation>
     </message>
@@ -3258,61 +3100,9 @@
         <translation>Тема</translation>
     </message>
     <message>
-        <source>Save theme snapshot</source>
-        <translation type="vanished">Сохранить снимок темы</translation>
-    </message>
-    <message>
-        <source>JSON files (*.json)</source>
-        <translation type="vanished">Файлы JSON (*.json)</translation>
-    </message>
-    <message>
-        <source>All files (*)</source>
-        <translation type="vanished">Все файлы (*)</translation>
-    </message>
-    <message>
-        <source>Revert session changes?</source>
-        <translation type="vanished">Отменить изменения этой сессии?</translation>
-    </message>
-    <message>
-        <source>Discard staged edits and restore all applied changes from this session?</source>
-        <translation type="vanished">Отбросить подготовленные правки и восстановить все применённые изменения этой сессии?</translation>
-    </message>
-    <message>
-        <source>Save as Profile</source>
-        <translation type="vanished">Сохранить как профиль</translation>
-    </message>
-    <message>
-        <source>Save the current live theme as a new profile:</source>
-        <translation type="vanished">Сохранить текущую живую тему как новый профиль:</translation>
-    </message>
-    <message>
         <location filename="../qml/pages/ThemePage.qml" line="40"/>
         <source>Profile: %1</source>
         <translation>Профиль: %1</translation>
-    </message>
-    <message>
-        <source>Save theme bundle as profile</source>
-        <translation type="vanished">Сохранить комплект темы как профиль</translation>
-    </message>
-    <message>
-        <source>The current component choices, application themes and wallpaper will be saved as a v2 theme bundle.</source>
-        <translation type="vanished">Текущий выбор компонентов, темы приложений и обои будут сохранены как комплект темы v2.</translation>
-    </message>
-    <message>
-        <source>Profile name</source>
-        <translation type="vanished">Имя профиля</translation>
-    </message>
-    <message>
-        <source>Profile &quot;%1&quot; already exists — names may not differ only by case.</source>
-        <translation type="vanished">Профиль «%1» уже есть — имена не могут отличаться только регистром.</translation>
-    </message>
-    <message>
-        <source>Description (optional)</source>
-        <translation type="vanished">Описание (необязательно)</translation>
-    </message>
-    <message>
-        <source>Use letters, digits, dots, dashes or underscores; the first character must not be a dot.</source>
-        <translation type="vanished">Используйте буквы, цифры, точки, дефисы и подчёркивания; первым символом не может быть точка.</translation>
     </message>
     <message>
         <location filename="../qml/pages/ThemePage.qml" line="75"/>
@@ -3363,7 +3153,7 @@
     <message>
         <location filename="../qml/pages/ThemePage.qml" line="170"/>
         <source>Live theme bundle</source>
-        <translation>Комплект живой темы</translation>
+        <translation>Текущая тема</translation>
     </message>
     <message>
         <location filename="../qml/pages/ThemePage.qml" line="171"/>
@@ -3437,10 +3227,6 @@
         <translation>Палитра Base16</translation>
     </message>
     <message>
-        <source>Active profile: %1 · %2 change(s)</source>
-        <translation type="vanished">Активный профиль: %1 · изменений: %2</translation>
-    </message>
-    <message>
         <location filename="../qml/pages/ThemePage.qml" line="278"/>
         <source>This profile is a saved theme bundle. Apply it to make it active.</source>
         <translation>Этот профиль — сохранённый комплект темы. Примените его, чтобы сделать активным.</translation>
@@ -3492,10 +3278,6 @@
         <translation>Открыть</translation>
     </message>
     <message>
-        <source>Palette</source>
-        <translation type="vanished">Палитра</translation>
-    </message>
-    <message>
         <location filename="../qml/pages/ThemePage.qml" line="475"/>
         <source>One base16 palette for the colour scheme, terminals and Kvantum</source>
         <translation>Одна палитра base16 для цветовой схемы, терминалов и Kvantum</translation>
@@ -3516,30 +3298,6 @@
         <translation>Открыть палитру</translation>
     </message>
     <message>
-        <source>Application themes</source>
-        <translation type="vanished">Темы приложений</translation>
-    </message>
-    <message>
-        <source>Choose themes for supported applications</source>
-        <translation type="vanished">Выбрать темы для поддерживаемых приложений</translation>
-    </message>
-    <message>
-        <source>Applications</source>
-        <translation type="vanished">Приложения</translation>
-    </message>
-    <message>
-        <source>%1 supported · %2 installed</source>
-        <translation type="vanished">Поддерживается: %1 · установлено: %2</translation>
-    </message>
-    <message>
-        <source>Choose app themes</source>
-        <translation type="vanished">Выбрать темы приложений</translation>
-    </message>
-    <message>
-        <source>Applying…</source>
-        <translation type="vanished">Применение…</translation>
-    </message>
-    <message>
         <location filename="../qml/pages/ThemePage.qml" line="23"/>
         <location filename="../qml/pages/ThemePage.qml" line="39"/>
         <location filename="../qml/pages/ThemePage.qml" line="190"/>
@@ -3547,138 +3305,14 @@
         <translation>Живая система</translation>
     </message>
     <message>
-        <source>Profile: </source>
-        <translation type="vanished">Профиль: </translation>
-    </message>
-    <message>
-        <source>Re-read the configuration</source>
-        <translation type="vanished">Перечитать конфигурацию</translation>
-    </message>
-    <message>
-        <source>Profile snapshots are read-only. Switch to “Live system” to edit values.</source>
-        <translation type="vanished">Снимки профилей доступны только для чтения. Переключитесь в «Живую систему», чтобы править значения.</translation>
-    </message>
-    <message>
-        <source>Switch to Live</source>
-        <translation type="vanished">Перейти в Live</translation>
-    </message>
-    <message>
-        <source>Snapshot: %1</source>
-        <translation type="vanished">Снимок: %1</translation>
-    </message>
-    <message>
-        <source>Active profile: %1 · %2 difference(s)</source>
-        <translation type="vanished">Активный профиль: %1 · отличий: %2</translation>
-    </message>
-    <message>
-        <source>%1 change(s) in this session</source>
-        <translation type="vanished">Изменений в сессии: %1</translation>
-    </message>
-    <message>
         <location filename="../qml/pages/ThemePage.qml" line="320"/>
         <source>Save as profile…</source>
         <translation>Сохранить как профиль…</translation>
     </message>
     <message>
-        <source>Apply</source>
-        <translation type="vanished">Применить</translation>
-    </message>
-    <message>
         <location filename="../qml/pages/ThemePage.qml" line="363"/>
         <source>Undo</source>
         <translation>Отменить</translation>
-    </message>
-    <message>
-        <source>Revert all</source>
-        <translation type="vanished">Вернуть всё</translation>
-    </message>
-    <message>
-        <source>Open a section below to see and edit its settings.</source>
-        <translation type="vanished">Откройте раздел ниже, чтобы посмотреть и изменить его настройки.</translation>
-    </message>
-    <message>
-        <source>Tap a section below to see and edit its settings.</source>
-        <translation type="vanished">Нажмите на секцию ниже, чтобы посмотреть и изменить её настройки.</translation>
-    </message>
-    <message>
-        <source>Search settings… (accent, blur, kitty, шрифт)</source>
-        <translation type="vanished">Поиск настроек… (accent, blur, kitty, шрифт)</translation>
-    </message>
-    <message>
-        <source>Validation</source>
-        <translation type="vanished">Валидация</translation>
-    </message>
-    <message>
-        <source>%1 issue(s)</source>
-        <translation type="vanished">Проблем: %1</translation>
-    </message>
-    <message>
-        <source>Fix</source>
-        <translation type="vanished">Исправить</translation>
-    </message>
-    <message>
-        <source>Show</source>
-        <translation type="vanished">Показать</translation>
-    </message>
-    <message>
-        <source>%1 result(s) for “%2”</source>
-        <translation type="vanished">Результатов по «%2»: %1</translation>
-    </message>
-    <message>
-        <source>Nothing matches. Try “blur”, “font”, “cursor” or “kitty”.</source>
-        <translation type="vanished">Ничего не найдено. Попробуйте «blur», «font», «cursor» или «kitty».</translation>
-    </message>
-    <message>
-        <source>Advanced</source>
-        <translation type="vanished">Расширенные</translation>
-    </message>
-    <message>
-        <source>Show advanced fields</source>
-        <translation type="vanished">Показывать расширенные поля</translation>
-    </message>
-    <message>
-        <source>Deep settings stay in System Settings. These buttons open the right module instead of duplicating it.</source>
-        <translation type="vanished">Глубокие настройки остаются в «Параметрах системы». Эти кнопки открывают нужный модуль вместо его дублирования.</translation>
-    </message>
-    <message>
-        <source>Colors</source>
-        <translation type="vanished">Цвета</translation>
-    </message>
-    <message>
-        <source>Fonts</source>
-        <translation type="vanished">Шрифты</translation>
-    </message>
-    <message>
-        <source>Icons</source>
-        <translation type="vanished">Значки</translation>
-    </message>
-    <message>
-        <source>Cursors</source>
-        <translation type="vanished">Курсоры</translation>
-    </message>
-    <message>
-        <source>Window effects</source>
-        <translation type="vanished">Эффекты окон</translation>
-    </message>
-    <message>
-        <source>Kvantum</source>
-        <translation type="vanished">Kvantum</translation>
-    </message>
-    <message>
-        <source>Open config folder</source>
-        <translation type="vanished">Открыть папку конфигов</translation>
-    </message>
-    <message>
-        <source>Export JSON…</source>
-        <translation type="vanished">Экспорт JSON…</translation>
-    </message>
-    <message>
-        <source>Undo last change</source>
-        <translation type="vanished">Отменить последнее изменение</translation>
-    </message>
-    <message>
-        <source>Revert session</source>
-        <translation type="vanished">Вернуть сессию</translation>
     </message>
 </context>
 <context>

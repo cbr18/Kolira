@@ -74,9 +74,11 @@ fi
 remove_gui() {
   say "Removing GUI launcher"
   rm -f "$BINDIR/kolira-gui"
+  rm -f "$BINDIR/kolira-quick-switch"
 
-  say "Removing desktop entry and icon"
+  say "Removing desktop entries and icon"
   rm -f "$APPSDIR/kolira.desktop"
+  rm -f "$APPSDIR/kolira-quick-switch.desktop"
   rm -f "$ICON"
   rm -f "$LEGACY_ICON"
 

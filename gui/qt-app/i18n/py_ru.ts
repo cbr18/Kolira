@@ -771,38 +771,99 @@
 </context><context>
     <name>ProfileController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="464" />
-        <location filename="../src/controllers/__init__.py" line="396" />
+        <location filename="../src/controllers/__init__.py" line="465" />
+        <location filename="../src/controllers/__init__.py" line="397" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="529" />
+        <location filename="../src/controllers/__init__.py" line="530" />
         <source>Current appearance saved</source>
         <translation>Текущее оформление сохранено</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="673" />
+        <location filename="../src/controllers/__init__.py" line="674" />
         <source>The draft is unavailable</source>
         <translation>Черновик недоступен</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="814" />
+        <location filename="../src/controllers/__init__.py" line="815" />
         <source>System packages: see the terminal</source>
         <translation>Системные пакеты: смотрите терминал</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="827" />
+        <location filename="../src/controllers/__init__.py" line="828" />
         <source>Stopped: the theme was not applied</source>
         <translation>Остановлено: тема не применена</translation>
     </message>
+</context><context>
+    <name>QuickSwitchController</name>
     <message>
-        <source>Theme or live settings changed. Review the updated changes.</source>
-        <translation type="vanished">Тема или текущие настройки изменились. Проверьте обновлённые изменения.</translation>
+        <location filename="../src/quick_switch_controller.py" line="424" />
+        <source>Нет ресурса: {name} ({field})</source>
+        <translation>Нет ресурса: {name} ({field})</translation>
     </message>
     <message>
-        <source>Interrupted apply %1. Backup: %2. You can continue or restore it with: kolira operations recover %1</source>
-        <translation type="vanished">Прерванное применение %1. Резервная копия: %2. Можно продолжить работу или восстановить командой: kolira operations recover %1</translation>
+        <location filename="../src/quick_switch_controller.py" line="432" />
+        <source>Зависимость: {name}</source>
+        <translation>Зависимость: {name}</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="238" />
+        <source>Не удалось прочитать список тем: {error}</source>
+        <translation>Не удалось прочитать список тем: {error}</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="371" />
+        <source>Не выбрана тема</source>
+        <translation>Не выбрана тема</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="379" />
+        <source>Подготовка…</source>
+        <translation>Подготовка…</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="399" />
+        <location filename="../src/quick_switch_controller.py" line="394" />
+        <source>Не удалось подготовить применение. Попробуйте снова.</source>
+        <translation>Не удалось подготовить применение. Попробуйте снова.</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="408" />
+        <source>Тема требует внимания</source>
+        <translation>Тема требует внимания</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="441" />
+        <source>Применяю…</source>
+        <translation>Применяю…</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="469" />
+        <source>Не удалось запустить kolira: {error}</source>
+        <translation>Не удалось запустить kolira: {error}</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="472" />
+        <source>Применение не удалось</source>
+        <translation>Применение не удалось</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="477" />
+        <source>Ядро вернуло не JSON</source>
+        <translation>Ядро вернуло не JSON</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="509" />
+        <location filename="../src/quick_switch_controller.py" line="480" />
+        <source>Готово</source>
+        <translation>Готово</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="549" />
+        <source>Kolira не отвечает. Esc закроет оверлей.</source>
+        <translation>Kolira не отвечает. Esc закроет оверлей.</translation>
     </message>
 </context><context>
     <name>SystemTray</name>
@@ -1198,22 +1259,6 @@
         <location filename="../src/core/theme_bundle.py" line="356" />
         <source>Selected theme is not installed</source>
         <translation>Выбранная тема не установлена</translation>
-    </message>
-    <message>
-        <source>Global theme, Plasma Style, colors, decorations, icons, cursors and fonts</source>
-        <translation type="vanished">Глобальная тема, стиль Plasma, цвета, оформление окон, значки, курсоры и шрифты</translation>
-    </message>
-    <message>
-        <source>Installed KDE color scheme</source>
-        <translation type="vanished">Установленная цветовая схема KDE</translation>
-    </message>
-    <message>
-        <source>Not installed — only an old config was found</source>
-        <translation type="vanished">Не установлено — найден только старый конфиг</translation>
-    </message>
-    <message>
-        <source>Application not detected</source>
-        <translation type="vanished">Приложение не найдено</translation>
     </message>
 </context><context>
     <name>ThemeBundleController</name>
@@ -2025,22 +2070,6 @@
         <source>Obsidian CSS theme in the selected vault</source>
         <translation>CSS-тема Obsidian в выбранном хранилище</translation>
     </message>
-    <message>
-        <source>Zen transparency</source>
-        <translation type="vanished">Прозрачность Zen</translation>
-    </message>
-    <message>
-        <source>Allow transparent browser tabs in Zen</source>
-        <translation type="vanished">Разрешить прозрачные вкладки в Zen</translation>
-    </message>
-    <message>
-        <source>Zen background opacity</source>
-        <translation type="vanished">Непрозрачность фона Zen</translation>
-    </message>
-    <message>
-        <source>Obsidian base theme</source>
-        <translation type="vanished">Базовая тема Obsidian</translation>
-    </message>
 </context><context>
     <name>ThemeInspectorController</name>
     <message>
@@ -2346,47 +2375,27 @@
         <source>Walker 2.x existing theme CSS only; embedded defaults, SCSS and external themes are skipped</source>
         <translation>Только существующий CSS темы Walker 2.x; встроенное оформление, SCSS и внешние темы пропускаются</translation>
     </message>
-    <message>
-        <source>Manual native theme extension load/reload/reset; never edits browser Preferences or policies</source>
-        <translation type="vanished">Ручная загрузка, обновление и сброс нативной темы; Preferences и policies браузера не меняются</translation>
-    </message>
-    <message>
-        <source>Manual native frame-accent theme; selection and reset stay in browser UI</source>
-        <translation type="vanished">Нативный акцент рамки с ручным выбором и сбросом в браузере</translation>
-    </message>
-    <message>
-        <source>Firefox-based browser with user.js + userChrome.css theming</source>
-        <translation type="vanished">Браузер на основе Firefox, темы через user.js и userChrome.css</translation>
-    </message>
-    <message>
-        <source>System info tool with custom logo/config</source>
-        <translation type="vanished">Сведения о системе со своим логотипом и конфигурацией</translation>
-    </message>
-    <message>
-        <source>Colour scheme generated from the palette (lua/kolira.lua + colors/)</source>
-        <translation type="vanished">Цветовая схема из палитры (lua/kolira.lua и colors/)</translation>
-    </message>
 </context><context>
     <name>TrackedAppsController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="1091" />
+        <location filename="../src/controllers/__init__.py" line="1092" />
         <source>Installed</source>
         <translation>Установлено</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="1092" />
+        <location filename="../src/controllers/__init__.py" line="1093" />
         <source>Not installed</source>
         <translation>Не установлено</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="1093" />
+        <location filename="../src/controllers/__init__.py" line="1094" />
         <source>Partial</source>
         <translation>Частично</translation>
     </message>
 </context><context>
     <name>WallpaperController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="996" />
+        <location filename="../src/controllers/__init__.py" line="997" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>

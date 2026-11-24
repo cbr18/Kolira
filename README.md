@@ -21,6 +21,7 @@ Application coverage: [app contracts](docs/APPLICATIONS.md) — colours, selecti
 - [Dependencies](#dependencies--зависимости)
 - [Installation](#installation--установка)
 - [Usage](#usage--использование)
+- [Quick Switch](#quick-switch--быстрое-переключение)
 - [Profiles](#profiles--профили)
 - [Theme Inspector](#theme-inspector--инспектор-темы)
 - [Update](#update--обновление)
@@ -57,6 +58,7 @@ Kolira управляет темами оформления KDE Plasma. Можн
 | Component | Purpose |
 |-----------|---------|
 | `gui/qt-app/` | **kolira** — native Qt/QML + Kirigami desktop app with profile cards, wallpaper picker, settings and system tray; one core: a Python adapter over the Rust CLI binaries |
+| `kolira-quick-switch` | fullscreen animated theme switcher (its own process, layer-shell overlay, own hotkey) |
 
 Run from the source tree during development:
 
@@ -308,6 +310,36 @@ In the GUI: **Theme → Palette** (gallery, from wallpaper via Plasma's own
 `Kirigami.ImageColors`, colour editing, apply targets). The live palette is
 saved with profiles (component `palette`). Mapping, CLI and
 limits: [`docs/PALETTE.md`](docs/PALETTE.md).
+
+## Quick Switch / Быстрое переключение
+
+Полноэкранный оверлей для ежедневной смены оформления. Запускается как
+отдельный процесс, поэтому главное окно Kolira не поднимается.
+
+```bash
+kolira-quick-switch            # оверлей
+kolira-quick-switch --preview  # тот же интерфейс без применения темы
+```
+
+По умолчанию открывается по `Meta+K` (назначается в Kolira → Настройки →
+Быстрое переключение). Оверлей — слой `zwlr_layer_shell_v1` поверх окон и
+панелей; карусель показывается на мониторе под курсором, остальные мониторы
+только затемняются.
+
+Управление: `←` / `→` — выбор темы, `Enter` — применить, `Esc` — закрыть без
+изменений, колесо — перемотка, двойной клик — применить, набор текста — поиск
+по названию. Выбранная тема всегда находится в центре.
+
+Применение идёт через ту же транзакцию, что и в основном окне: проверка
+зависимостей и `preview_token`, резервная копия, журнал операций. Если теме
+чего-то не хватает, оверлей показывает список и предлагает открыть Kolira —
+системные запросы (polkit, sudo) не рисуются поверх оверлея. Перезапуски
+приложений из оверлея не выполняются. Во время применения `Esc` не прерывает
+транзакцию; при зависании ядро сообщает об этом, и `Esc` закрывает оверлей.
+
+Настройки: включение, горячая клавиша, форма карточек, размер, затемнение фона,
+свечение рамок, скорость анимаций, анимация применения, уменьшенное движение,
+предпросмотр.
 
 ## Profiles / Профили
 

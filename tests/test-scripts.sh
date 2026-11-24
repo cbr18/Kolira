@@ -836,8 +836,14 @@ check_installed "$FAKE_HOME/.local/share/kolira/qml/Main.qml" \
 check_installed "$FAKE_HOME/.local/share/kolira/.installed-by-kolira" \
   "app copy carries the install marker"
 check_installed "$FAKE_HOME/.local/bin/kolira-gui" "launcher installed"
+check_installed "$FAKE_HOME/.local/bin/kolira-quick-switch" \
+  "quick switch launcher installed"
 check_installed "$FAKE_HOME/.local/share/applications/kolira.desktop" \
   "desktop entry installed"
+check_installed "$FAKE_HOME/.local/share/applications/kolira-quick-switch.desktop" \
+  "quick switch desktop entry installed"
+check_installed "$FAKE_HOME/.local/share/kolira/qml/quick-switch/HostSurface.qml" \
+  "quick switch QML shipped with the copy"
 check_installed "$FAKE_HOME/.local/share/icons/hicolor/scalable/apps/kolira-icon.svg" \
   "app icon installed"
 
@@ -928,8 +934,12 @@ check_gone() { # path description
 
 check_gone "$FAKE_HOME/.local/share/kolira" "app copy removed"
 check_gone "$FAKE_HOME/.local/bin/kolira-gui" "launcher removed"
+check_gone "$FAKE_HOME/.local/bin/kolira-quick-switch" \
+  "quick switch launcher removed"
 check_gone "$FAKE_HOME/.local/share/applications/kolira.desktop" \
   "desktop entry removed"
+check_gone "$FAKE_HOME/.local/share/applications/kolira-quick-switch.desktop" \
+  "quick switch desktop entry removed"
 check_gone "$FAKE_HOME/.local/share/icons/hicolor/scalable/apps/kolira-icon.svg" \
   "app icon removed"
 
