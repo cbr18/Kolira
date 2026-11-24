@@ -14,11 +14,13 @@ from __future__ import annotations
 
 import json
 import threading
+from datetime import datetime
 from typing import Optional
 
 from PySide6.QtCore import Property, QObject, QProcess, QTimer, Signal, Slot
 
 from core.cli_core import core_cli_process, core_request, resolve_cli_bin
+from core.paths import cache_home
 
 # ── phases ────────────────────────────────────────────────────────────────────
 LOADING = "loading"
@@ -179,6 +181,20 @@ class QuickSwitchController(QObject):
 
     # ── helpers ───────────────────────────────────────────────────────────────
 
+    def _log(self, event: str, **fields: object) -> None:
+        """Append one line to the overlay log (the app has no terminal)."""
+        try:
+            path = cache_home() / "quick-switch.log"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            detail = " ".join(f"{key}={value}" for key, value in fields.items())
+            with path.open("a", encoding="utf-8") as handle:
+                handle.write(f"{datetime.now():%Y-%m-%d %H:%M:%S} {event} {detail}\n")
+            if path.stat().st_size > 256 * 1024:
+                lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+                path.write_text("\n".join(lines[-400:]) + "\n", encoding="utf-8")
+        except OSError:
+            pass  # logging must never break the overlay
+
     def _set_phase(self, phase: str) -> None:
         if phase != self._phase:
             self._phase = phase
@@ -254,6 +270,8 @@ class QuickSwitchController(QObject):
 
         Prepares may run in parallel: they are read-only, and waiting for the
         previously started one would delay the theme the user just picked.
+        Errors are not cached: a transient failure (a busy lock) must not
+        poison the rest of the session.
         """
         if not name or name in self._prepared:
             return
@@ -268,8 +286,12 @@ class QuickSwitchController(QObject):
             except (RuntimeError, ValueError) as exc:
                 prepared = {"error": str(exc)}
             with self._prepared_lock:
-                self._prepared[name] = prepared
                 self._inflight.discard(name)
+                if prepared.get("error"):
+                    self._prepared.pop(name, None)
+                else:
+                    self._prepared[name] = prepared
+            self._log("prepare", name=name, error=prepared.get("error", ""))
             self.preparedChanged.emit()
 
         threading.Thread(target=work, daemon=True).start()
@@ -370,20 +392,35 @@ class QuickSwitchController(QObject):
         self._set_phase(APPLYING)
         self._set_stage(1)
         self._set_status("Применяю…")
+        self._log("apply.start", name=name, token=(self._token or "")[:8])
         process = QProcess(self)
         process.setProgram(resolve_cli_bin())
         process.setArguments(
             ["apply", name, "--json", f"--preview-token={self._token}"]
         )
-        process.finished.connect(lambda code, _status: self._apply_finished(code, process))
+        process.finished.connect(
+            lambda code, status: self._apply_finished(code, status, process)
+        )
         self._apply_process = process
         self._poll.start()
         process.start()
 
-    def _apply_finished(self, code: int, process: QProcess) -> None:
+    def _apply_finished(self, code: int, status: QProcess.ExitStatus, process: QProcess) -> None:
         self._poll.stop()
         raw = bytes(process.readAllStandardOutput()).decode("utf-8", "replace").strip()
         errors = bytes(process.readAllStandardError()).decode("utf-8", "replace").strip()
+        self._log(
+            "apply.finished",
+            code=code,
+            status=status.name,
+            program=process.program(),
+            error=errors[:400],
+            stdout=raw[:400],
+        )
+        if status == QProcess.CrashExit and code == 0:
+            # The process could not be started at all (missing binary, ENOENT).
+            self._fail(f"Не удалось запустить kolira: {process.errorString()}")
+            return
         if code != 0:
             self._fail(errors or raw or "Применение не удалось")
             return
