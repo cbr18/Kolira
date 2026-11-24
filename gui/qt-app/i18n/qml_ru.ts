@@ -1104,7 +1104,7 @@
     <message>
         <location filename="../qml/Main.qml" line="671"/>
         <source>Edit live theme…</source>
-        <translation>Править живую тему…</translation>
+        <translation>Править текущую тему…</translation>
     </message>
     <message>
         <location filename="../qml/Main.qml" line="690"/>
@@ -2291,52 +2291,52 @@
 <context>
     <name>QuickSwitchContent</name>
     <message>
-        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="174"/>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="175"/>
         <source>Поиск: %1</source>
         <translation>Поиск: %1</translation>
     </message>
     <message>
-        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="182"/>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="183"/>
         <source>Предпросмотр — тема не применяется</source>
         <translation>Предпросмотр — тема не применяется</translation>
     </message>
     <message>
-        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="183"/>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="184"/>
         <source>← → выбор · Enter применить · Esc закрыть · печатайте для поиска</source>
         <translation>← → выбор · Enter применить · Esc закрыть · печатайте для поиска</translation>
     </message>
     <message>
-        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="230"/>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="231"/>
         <source>Подготовка…</source>
         <translation>Подготовка…</translation>
     </message>
     <message>
-        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="231"/>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="232"/>
         <source>Применение…</source>
         <translation>Применение…</translation>
     </message>
     <message>
-        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="232"/>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="233"/>
         <source>Готово</source>
         <translation>Готово</translation>
     </message>
     <message>
-        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="255"/>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="256"/>
         <source>Не удалось применить</source>
         <translation>Не удалось применить</translation>
     </message>
     <message>
-        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="255"/>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="256"/>
         <source>Тема требует внимания</source>
         <translation>Тема требует внимания</translation>
     </message>
     <message>
-        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="292"/>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="293"/>
         <source>Закрыть</source>
         <translation>Закрыть</translation>
     </message>
     <message>
-        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="306"/>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="307"/>
         <source>Открыть Kolira</source>
         <translation>Открыть Kolira</translation>
     </message>
@@ -3461,7 +3461,7 @@
     </message>
     <message>
         <source>Save the current live theme as a new profile:</source>
-        <translation type="vanished">Сохранить текущую живую тему как новый профиль:</translation>
+        <translation type="vanished">Сохранить текущую тему как новый профиль:</translation>
     </message>
     <message>
         <location filename="../qml/pages/ThemePage.qml" line="40"/>
@@ -3541,7 +3541,7 @@
     <message>
         <location filename="../qml/pages/ThemePage.qml" line="170"/>
         <source>Live theme bundle</source>
-        <translation>Комплект живой темы</translation>
+        <translation>Текущая тема</translation>
     </message>
     <message>
         <location filename="../qml/pages/ThemePage.qml" line="171"/>

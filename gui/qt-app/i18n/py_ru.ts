@@ -805,6 +805,91 @@
         <translation type="vanished">Прерванное применение %1. Резервная копия: %2. Можно продолжить работу или восстановить командой: kolira operations recover %1</translation>
     </message>
 </context><context>
+    <name>QuickSwitchController</name>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="424" />
+        <source>Нет ресурса: {name} ({field})</source>
+        <translation>Нет ресурса: {name} ({field})</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="432" />
+        <source>Зависимость: {name}</source>
+        <translation>Зависимость: {name}</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="238" />
+        <source>Не удалось прочитать список тем: {error}</source>
+        <translation>Не удалось прочитать список тем: {error}</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="371" />
+        <source>Не выбрана тема</source>
+        <translation>Не выбрана тема</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="379" />
+        <source>Подготовка…</source>
+        <translation>Подготовка…</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="399" />
+        <location filename="../src/quick_switch_controller.py" line="394" />
+        <source>Не удалось подготовить применение. Попробуйте снова.</source>
+        <translation>Не удалось подготовить применение. Попробуйте снова.</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="408" />
+        <source>Тема требует внимания</source>
+        <translation>Тема требует внимания</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="441" />
+        <source>Применяю…</source>
+        <translation>Применяю…</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="469" />
+        <source>Не удалось запустить kolira: {error}</source>
+        <translation>Не удалось запустить kolira: {error}</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="472" />
+        <source>Применение не удалось</source>
+        <translation>Применение не удалось</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="477" />
+        <source>Ядро вернуло не JSON</source>
+        <translation>Ядро вернуло не JSON</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="509" />
+        <location filename="../src/quick_switch_controller.py" line="480" />
+        <source>Готово</source>
+        <translation>Готово</translation>
+    </message>
+    <message>
+        <location filename="../src/quick_switch_controller.py" line="549" />
+        <source>Kolira не отвечает. Esc закроет оверлей.</source>
+        <translation>Kolira не отвечает. Esc закроет оверлей.</translation>
+    </message>
+    <message>
+        <source>Нет ресурса: %1 (%2)</source>
+        <translation type="vanished">Нет ресурса: %1 (%2)</translation>
+    </message>
+    <message>
+        <source>Зависимость: %1</source>
+        <translation type="vanished">Зависимость: %1</translation>
+    </message>
+    <message>
+        <source>Не удалось прочитать список тем: %1</source>
+        <translation type="vanished">Не удалось прочитать список тем: %1</translation>
+    </message>
+    <message>
+        <source>Не удалось запустить kolira: %1</source>
+        <translation type="vanished">Не удалось запустить kolira: %1</translation>
+    </message>
+</context><context>
     <name>SystemTray</name>
     <message>
         <location filename="../src/system_tray.py" line="160" />

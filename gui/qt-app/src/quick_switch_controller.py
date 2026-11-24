@@ -18,7 +18,15 @@ import threading
 from datetime import datetime
 from typing import Optional
 
-from PySide6.QtCore import Property, QObject, QProcess, QTimer, Signal, Slot
+from PySide6.QtCore import (
+    Property,
+    QCoreApplication,
+    QObject,
+    QProcess,
+    QTimer,
+    Signal,
+    Slot,
+)
 
 from core.cli_core import core_cli_process, core_request, resolve_cli_bin
 
@@ -227,7 +235,7 @@ class QuickSwitchController(QObject):
         try:
             data = core_request("quick_switch.cards") or {}
         except (RuntimeError, ValueError) as exc:
-            self._fail(f"Не удалось прочитать список тем: {exc}")
+            self._fail(self.tr("Не удалось прочитать список тем: {error}").format(error=exc))
             return
         self._themes = list(data.get("themes") or [])
         self._active_name = data.get("active") or ""
@@ -360,7 +368,7 @@ class QuickSwitchController(QObject):
             return
         name = self._name_at(self._index)
         if not name:
-            self._fail("Не выбрана тема")
+            self._fail(self.tr("Не выбрана тема"))
             return
         self._pending_name = name
         self._prefetch(name)
@@ -368,7 +376,7 @@ class QuickSwitchController(QObject):
         if prepared is None or prepared.get("error"):
             self._prepare_attempts = 0
             self._set_stage(0)
-            self._set_status("Подготовка…")
+            self._set_status(self.tr("Подготовка…"))
             self._set_phase(PREPARING)
             self._prepare_timer.start()
             return
@@ -383,12 +391,12 @@ class QuickSwitchController(QObject):
         if prepared is None:
             self._prepare_attempts += 1
             if self._prepare_attempts > 60:
-                self._fail("Не удалось подготовить применение. Попробуйте снова.")
+                self._fail(self.tr("Не удалось подготовить применение. Попробуйте снова."))
                 return
             self._prepare_timer.start()
             return
         if prepared.get("error"):
-            self._fail("Не удалось подготовить применение. Попробуйте снова.")
+            self._fail(self.tr("Не удалось подготовить применение. Попробуйте снова."))
             return
         self._apply_prepared(name, prepared)
 
@@ -397,7 +405,7 @@ class QuickSwitchController(QObject):
         blocking = self._blocking_lines(prepared)
         if blocking:
             self._attention = blocking
-            self._set_status("Тема требует внимания")
+            self._set_status(self.tr("Тема требует внимания"))
             self._set_phase(ATTENTION)
             return
         self._set_stage(0)
@@ -413,18 +421,24 @@ class QuickSwitchController(QObject):
         lines: list[str] = []
         for item in prepared.get("missing") or []:
             lines.append(
-                "Нет ресурса: {name} ({field})".format(
+                QCoreApplication.translate(
+                    "QuickSwitchController", "Нет ресурса: {name} ({field})"
+                ).format(
                     name=item.get("name", "?"), field=item.get("field", "?")
                 )
             )
         for item in prepared.get("dependencies") or []:
-            lines.append("Зависимость: {name}".format(name=item.get("name", "?")))
+            lines.append(
+                QCoreApplication.translate(
+                    "QuickSwitchController", "Зависимость: {name}"
+                ).format(name=item.get("name", "?"))
+            )
         return lines
 
     def _start_apply(self, name: str) -> None:
         self._set_phase(APPLYING)
         self._set_stage(1)
-        self._set_status("Применяю…")
+        self._set_status(self.tr("Применяю…"))
         self._log("apply.start", name=name, token=(self._token or "")[:8])
         process = QProcess(self)
         process.setProgram(resolve_cli_bin())
@@ -452,18 +466,18 @@ class QuickSwitchController(QObject):
         )
         if status == QProcess.CrashExit and code == 0:
             # The process could not be started at all (missing binary, ENOENT).
-            self._fail(f"Не удалось запустить kolira: {process.errorString()}")
+            self._fail(self.tr("Не удалось запустить kolira: {error}").format(error=process.errorString()))
             return
         if code != 0:
-            self._fail(errors or raw or "Применение не удалось")
+            self._fail(errors or raw or self.tr("Применение не удалось"))
             return
         try:
             report = json.loads(raw)
         except ValueError:
-            self._fail(raw or "Ядро вернуло не JSON")
+            self._fail(raw or self.tr("Ядро вернуло не JSON"))
             return
         self._set_stage(2)
-        self._set_status("Готово")
+        self._set_status(self.tr("Готово"))
         self._set_phase(REVEALING)
 
     def _poll_operation(self) -> None:
@@ -492,7 +506,7 @@ class QuickSwitchController(QObject):
             if stage is not None:
                 self._set_stage(stage)
             if state == "succeeded":
-                self._set_status("Готово")
+                self._set_status(self.tr("Готово"))
             return
 
     def _fail(self, message: str) -> None:
@@ -532,7 +546,7 @@ class QuickSwitchController(QObject):
         if self._phase != APPLYING:
             return
         self._hung = True
-        self._message = "Kolira не отвечает. Esc закроет оверлей."
+        self._message = self.tr("Kolira не отвечает. Esc закроет оверлей.")
         self._set_status(self._message)
 
     @Slot()
