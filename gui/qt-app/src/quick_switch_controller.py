@@ -92,7 +92,13 @@ class QuickSwitchController(QObject):
         self._system_reduced_motion = _detect_system_reduced_motion()
         self._prepared: dict[str, dict] = {}
         self._prepared_lock = threading.Lock()
-        self._worker: Optional[threading.Thread] = None
+        self._inflight: set[str] = set()
+        self._pending_name = ""
+        self._prepare_attempts = 0
+        self._prepare_timer = QTimer(self)
+        self._prepare_timer.setInterval(120)
+        self._prepare_timer.setSingleShot(True)
+        self._prepare_timer.timeout.connect(self._check_prepared)
         self._token = ""
         self._apply_process: Optional[QProcess] = None
         self._hung = False
@@ -244,33 +250,33 @@ class QuickSwitchController(QObject):
         self.selectIndex((self._index + delta) % len(self._themes))
 
     def _prefetch(self, name: str) -> None:
-        """Warm the pre-flight for a card while the user is still browsing."""
+        """Warm the pre-flight for a card while the user is still browsing.
+
+        Prepares may run in parallel: they are read-only, and waiting for the
+        previously started one would delay the theme the user just picked.
+        """
         if not name or name in self._prepared:
             return
-        if self._worker is not None and self._worker.is_alive():
-            return
+        with self._prepared_lock:
+            if name in self._inflight:
+                return
+            self._inflight.add(name)
 
         def work() -> None:
             try:
                 prepared = core_request("quick_switch.prepare", name=name)
-            except (RuntimeError, ValueError):
-                prepared = {"error": "prepare failed"}
+            except (RuntimeError, ValueError) as exc:
+                prepared = {"error": str(exc)}
             with self._prepared_lock:
                 self._prepared[name] = prepared
+                self._inflight.discard(name)
             self.preparedChanged.emit()
 
-        self._worker = threading.Thread(target=work, daemon=True)
-        self._worker.start()
+        threading.Thread(target=work, daemon=True).start()
 
     def _prepared_for(self, name: str) -> Optional[dict]:
         with self._prepared_lock:
             return self._prepared.get(name)
-
-    def _wait_prepared(self, name: str, timeout_ms: int = 4000) -> Optional[dict]:
-        worker = self._worker
-        if worker is not None:
-            worker.join(timeout_ms / 1000)
-        return self._prepared_for(name)
 
     # ── flow ──────────────────────────────────────────────────────────────────
 
@@ -289,15 +295,49 @@ class QuickSwitchController(QObject):
 
     @Slot()
     def beginApply(self) -> None:
-        """QML calls this when the closing animation has finished."""
+        """QML calls this when the closing animation has finished.
+
+        The pre-flight usually finished while the user was browsing. If it did
+        not, wait without blocking the GUI thread: joining the worker here
+        would freeze the animation on a black screen.
+        """
         if self._phase != CLOSING:
             return
         name = self._name_at(self._index)
-        prepared = self._wait_prepared(name)
+        if not name:
+            self._fail("Не выбрана тема")
+            return
+        self._pending_name = name
+        self._prefetch(name)
+        prepared = self._prepared_for(name)
         if prepared is None or prepared.get("error"):
-            # Never keep the user in front of a black screen.
+            self._prepare_attempts = 0
+            self._set_stage(0)
+            self._set_status("Подготовка…")
+            self._set_phase(PREPARING)
+            self._prepare_timer.start()
+            return
+        self._apply_prepared(name, prepared)
+
+    def _check_prepared(self) -> None:
+        """Poll for the pre-flight result; never block the event loop."""
+        if self._phase != PREPARING:
+            return
+        name = self._pending_name
+        prepared = self._prepared_for(name)
+        if prepared is None:
+            self._prepare_attempts += 1
+            if self._prepare_attempts > 60:
+                self._fail("Не удалось подготовить применение. Попробуйте снова.")
+                return
+            self._prepare_timer.start()
+            return
+        if prepared.get("error"):
             self._fail("Не удалось подготовить применение. Попробуйте снова.")
             return
+        self._apply_prepared(name, prepared)
+
+    def _apply_prepared(self, name: str, prepared: dict) -> None:
         self._token = prepared.get("token") or ""
         blocking = self._blocking_lines(prepared)
         if blocking:

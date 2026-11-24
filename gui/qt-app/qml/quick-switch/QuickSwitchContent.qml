@@ -216,7 +216,7 @@ Item {
         current: root.current
         accent: root.accent
         swatches: (root.current && root.current.swatches) ? root.current.swatches : []
-        running: root.phase === "applying"
+        running: (root.phase === "applying" || root.phase === "preparing")
                  && quickSwitch.settings.apply_animation !== false
                  && !quickSwitch.reducedMotion
         stage: quickSwitch.stage
@@ -328,8 +328,10 @@ Item {
             revealAnimation.start()
             return
         }
-        if (phase === "applying") {
-            // The closing animation already reached full black; keep it.
+        if (phase === "applying" || phase === "preparing") {
+            // The closing animation already reached full black; keep it and
+            // show the apply screen for the whole transaction.
+            applyScreen.opacity = 1
             return
         }
         // attention, error and select: drop the blackout.

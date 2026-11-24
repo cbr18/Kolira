@@ -16,6 +16,17 @@ Item {
     readonly property string name: (current && current.name) ? current.name : ""
     readonly property real intensity: 1.0
 
+    // The first draw of a shader pipeline is expensive. Warm it up while the
+    // user is still choosing, so the transaction is not preceded by a frozen
+    // black screen.
+    property bool warmup: true
+
+    Timer {
+        interval: 800
+        running: root.warmup
+        onTriggered: root.warmup = false
+    }
+
     Rectangle {
         anchors.fill: parent
         color: "black"
@@ -39,7 +50,7 @@ Item {
         property real u_intensity: root.intensity
 
         SequentialAnimation on u_time {
-            running: root.running
+            running: root.running || root.warmup
             loops: Animation.Infinite
             NumberAnimation { from: 0; to: 400; duration: 40000 }
         }
