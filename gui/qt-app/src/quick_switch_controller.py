@@ -310,7 +310,11 @@ class QuickSwitchController(QObject):
 
     @staticmethod
     def _blocking_lines(prepared: dict) -> list[str]:
-        """What the overlay cannot decide or install for the user."""
+        """What the overlay cannot decide or install for the user.
+
+        `actions` (restart prompts) are deliberately not here: Quick Switch
+        never restarts applications and does not ask about them (Q16).
+        """
         lines: list[str] = []
         for item in prepared.get("missing") or []:
             lines.append(
@@ -320,8 +324,6 @@ class QuickSwitchController(QObject):
             )
         for item in prepared.get("dependencies") or []:
             lines.append("Зависимость: {name}".format(name=item.get("name", "?")))
-        for item in prepared.get("actions") or []:
-            lines.append("Нужно действие: {title}".format(title=item.get("title", "?")))
         return lines
 
     def _start_apply(self, name: str) -> None:

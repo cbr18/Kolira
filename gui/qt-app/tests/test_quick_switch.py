@@ -108,18 +108,16 @@ def test_prepare_blockers_are_shown_instead_of_applying(controller, monkeypatch)
     assert any("Papirus" in line for line in controller.attention)
 
 
-def test_blocking_lines_cover_missing_dependencies_and_actions() -> None:
+def test_blocking_lines_cover_missing_and_dependencies_only() -> None:
     lines = qs.QuickSwitchController._blocking_lines(
         {
             "missing": [{"field": "icon_theme", "name": "Papirus"}],
             "dependencies": [{"name": "kvantum"}],
-            "actions": [{"title": "Restart Zen"}],
+            "actions": [{"title": "It is recommended to restart these programs."}],
         }
     )
-    assert len(lines) == 3
-    assert "Papirus" in lines[0]
-    assert "kvantum" in lines[1]
-    assert "Restart Zen" in lines[2]
+    # Restart prompts never block: Quick Switch does not restart applications.
+    assert lines == ["Нет ресурса: Papirus (icon_theme)", "Зависимость: kvantum"]
     assert qs.QuickSwitchController._blocking_lines({}) == []
 
 
