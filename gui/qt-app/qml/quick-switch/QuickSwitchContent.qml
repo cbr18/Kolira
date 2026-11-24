@@ -318,15 +318,21 @@ Item {
 
     function runPhase(phase) {
         if (phase === "closing") {
-            root.closeAnimation.start()
+            // `closeAnimation` is an id, not a property: `root.closeAnimation`
+            // is undefined and the animation would never start.
+            closeAnimation.start()
             return
         }
         if (phase === "revealing") {
             applyScreen.opacity = 1
-            root.revealAnimation.start()
+            revealAnimation.start()
             return
         }
-        // Anything else (attention, error, select) drops the blackout.
+        if (phase === "applying") {
+            // The closing animation already reached full black; keep it.
+            return
+        }
+        // attention, error and select: drop the blackout.
         wave.visible = false
         blackout.opacity = 0
         applyScreen.opacity = 0
