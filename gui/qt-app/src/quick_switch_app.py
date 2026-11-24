@@ -57,7 +57,10 @@ def main(argv: list[str] | None = None) -> int:
     engine = QQmlApplicationEngine()
     add_system_import_paths(engine)
 
-    controller = QuickSwitchController(preview_only=preview_only)
+    # Parent the controller to the engine: it must outlive the QML bindings,
+    # otherwise interpreter shutdown destroys it first and every binding
+    # re-evaluation logs "Cannot read property ... of null".
+    controller = QuickSwitchController(engine, preview_only=preview_only)
     engine.rootContext().setContextProperty("quickSwitch", controller)
 
     component = QQmlComponent(engine, QUrl.fromLocalFile(str(HOST_SURFACE)))

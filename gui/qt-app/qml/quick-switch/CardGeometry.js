@@ -22,7 +22,17 @@ function outline(shape, w, h, radius, skew) {
 }
 
 // Width of a card relative to its height. One box for every shape keeps the
-// carousel's snapping exact; the parallelogram leaves more air inside it.
+// carousel's snapping exact; the parallelogram leaves air inside its box.
 function widthFactor(shape) {
     return 0.74
+}
+
+// Horizontal gap between two cards, as a fraction of card height. The
+// parallelogram is inset by skew/2 on each visible side, so its gap is
+// reduced by exactly that much: neighbours then sit as close as the
+// rectangular ones instead of leaving empty corners between them.
+function spacingFactor(shape) {
+    var base = 0.07
+    if (shape !== "parallelogram") return base
+    return base - 0.18 * widthFactor(shape)
 }

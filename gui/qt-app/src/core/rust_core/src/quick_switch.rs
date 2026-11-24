@@ -205,6 +205,64 @@ pub fn set(update: &Value) -> Result<Value> {
     Ok(result)
 }
 
+/// Where the cached, downscaled wallpaper for a card lives.
+fn thumb_path(name: &str, source: &Path) -> Option<std::path::PathBuf> {
+    let metadata = fs::metadata(source).ok()?;
+    let stamp = metadata
+        .modified()
+        .ok()?
+        .duration_since(UNIX_EPOCH)
+        .ok()?
+        .as_nanos();
+    let dir = crate::paths::cache_home()
+        .join("kolira")
+        .join("quick-switch")
+        .join("thumbs");
+    Some(dir.join(format!("{}-{}-{}.jpg", name, metadata.len(), stamp)))
+}
+
+/// Downscaled wallpaper for one card, cached on disk.
+///
+/// Cards only paint ~640×520, so decoding a 4K wallpaper on every open is
+/// what made the overlay feel slow. The first call renders a small JPEG with
+/// ImageMagick (the same external tool the wallpaper picker uses); later
+/// calls and later processes just read it.
+pub fn thumbnail(name: &str) -> Result<Value> {
+    let dir = crate::paths::profile_dir(name)?;
+    let package = crate::theme::load(&dir)?;
+    let relative = package
+        .wallpaper
+        .as_deref()
+        .ok_or_else(|| anyhow::anyhow!("theme {name:?} has no wallpaper"))?;
+    let preview = crate::bundle_view::preview_image(&dir, &dir.join(relative))
+        .ok_or_else(|| anyhow::anyhow!("wallpaper of {name:?} is not readable"))?;
+    let source = std::path::PathBuf::from(preview["path"].as_str().unwrap_or_default());
+    let cached = thumb_path(name, &source)
+        .ok_or_else(|| anyhow::anyhow!("cannot read the wallpaper metadata"))?;
+    if cached.is_file() {
+        return Ok(json!({"path": cached, "revision": preview["revision"]}));
+    }
+    if let Some(parent) = cached.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let temporary = cached.with_extension("tmp.jpg");
+    let output = std::process::Command::new("magick")
+        .arg(&source)
+        .args(["-auto-orient", "-resize", "720x", "-quality", "82"])
+        .arg(&temporary)
+        .output()
+        .context("cannot run magick for the card thumbnail")?;
+    if !output.status.success() {
+        let _ = fs::remove_file(&temporary);
+        bail!(
+            "magick failed for {name:?}: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
+    fs::rename(&temporary, &cached).context("cannot store the card thumbnail")?;
+    Ok(json!({"path": cached, "revision": preview["revision"]}))
+}
+
 /// One carousel card: palette, wallpaper and nothing that needs a probe.
 fn card(name: &str, dir: &Path, active: &str) -> Result<Value> {
     let package = if crate::theme::is_package(dir) {
@@ -242,13 +300,46 @@ fn card(name: &str, dir: &Path, active: &str) -> Result<Value> {
             accent
         }
     };
+    // What the card actually paints: with an accent taken from the wallpaper
+    // the selection colour is the effective one (same rule as the gallery).
+    let preview_accent = if read("accent_from_wallpaper") == Value::Bool(true) || accent.is_empty()
+    {
+        display("selection_bg")
+    } else {
+        accent.clone()
+    };
     let window_bg = display("window_bg");
     let view_bg = display("view_bg");
     let text_color = display("text_color");
-    let swatches: Vec<String> = [window_bg, view_bg, accent.clone(), text_color]
-        .into_iter()
-        .filter(|colour| !colour.is_empty())
-        .collect();
+    let window_opacity = (read("translucency_enabled") == Value::Bool(true))
+        .then(|| {
+            read("translucency_inactive")
+                .as_f64()
+                .map(|n| n.clamp(0.0, 100.0) / 100.0)
+        })
+        .flatten();
+    let radius = (display("decoration_library") == "org.kde.klassy")
+        .then(|| read("klassy_radius").as_f64().map(|n| n.clamp(0.0, 48.0)))
+        .flatten();
+    let font = |id: &str| {
+        let spec = display(id);
+        let mut values = spec.split(',');
+        let family = values.next().filter(|item| !item.is_empty());
+        let points = values
+            .next()
+            .and_then(|item| item.parse::<f64>().ok())
+            .filter(|size| (4.0..=72.0).contains(size));
+        json!({"family":family,"points":points})
+    };
+    let swatches: Vec<String> = [
+        window_bg.clone(),
+        view_bg.clone(),
+        preview_accent.clone(),
+        text_color.clone(),
+    ]
+    .into_iter()
+    .filter(|colour| !colour.is_empty())
+    .collect();
     let palette = package
         .as_ref()
         .and_then(|package| package.palette.as_ref());
@@ -256,11 +347,32 @@ fn card(name: &str, dir: &Path, active: &str) -> Result<Value> {
         .as_ref()
         .and_then(|package| package.wallpaper.as_deref())
         .and_then(|relative| crate::bundle_view::preview_image(dir, &dir.join(relative)));
+    // Already rendered and cached: free. Missing → the controller asks for it
+    // once, in the background.
+    let thumb_path = preview
+        .as_ref()
+        .and_then(|preview| preview["path"].as_str())
+        .and_then(|path| thumb_path(name, Path::new(path)))
+        .filter(|path| path.is_file());
     Ok(json!({
         "name": name,
         "active": name == active,
-        "accent": accent,
+        "accent": preview_accent.clone(),
         "swatches": swatches,
+        "previewColors": {
+            "window": window_bg,
+            "view": view_bg,
+            "accent": preview_accent,
+            "text": text_color,
+        },
+        "previewStyle": {
+            "windowOpacity": window_opacity,
+            "terminalOpacity": read("kitty_opacity").as_f64().map(|n| n.clamp(0.0, 1.0)),
+            "radius": radius,
+            "font": font("ui_font"),
+            "titleFont": font("title_font"),
+        },
+        "iconTheme": display("icon_theme"),
         "variant": palette
             .map(|palette| match palette.variant {
                 crate::palette::Variant::Dark => "dark",
@@ -276,6 +388,7 @@ fn card(name: &str, dir: &Path, active: &str) -> Result<Value> {
                     .file_name()
                     .map(|name| name.to_string_lossy().to_string())
             }),
+        "thumbPath": thumb_path.map(|path| path.to_string_lossy().to_string()),
         "preview": preview,
         "hasPreview": preview.is_some(),
     }))

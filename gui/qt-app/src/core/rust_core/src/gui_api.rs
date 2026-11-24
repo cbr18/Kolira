@@ -360,6 +360,7 @@ pub fn request(method: &str, args: &Value) -> Result<Value> {
         "quick_switch.get" => Ok(crate::quick_switch::get()),
         "quick_switch.cards" => crate::quick_switch::cards(),
         "quick_switch.prepare" => crate::preview::prepare(args),
+        "quick_switch.thumbnail" => crate::quick_switch::thumbnail(str_arg(args, "name")?),
         "quick_switch.set" => {
             let update = args
                 .get("settings")

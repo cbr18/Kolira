@@ -13,6 +13,7 @@ being an animation, not a measurement.
 from __future__ import annotations
 
 import json
+import sys
 import threading
 from datetime import datetime
 from typing import Optional
@@ -20,7 +21,6 @@ from typing import Optional
 from PySide6.QtCore import Property, QObject, QProcess, QTimer, Signal, Slot
 
 from core.cli_core import core_cli_process, core_request, resolve_cli_bin
-from core.paths import cache_home
 
 # ── phases ────────────────────────────────────────────────────────────────────
 LOADING = "loading"
@@ -182,18 +182,18 @@ class QuickSwitchController(QObject):
     # ── helpers ───────────────────────────────────────────────────────────────
 
     def _log(self, event: str, **fields: object) -> None:
-        """Append one line to the overlay log (the app has no terminal)."""
-        try:
-            path = cache_home() / "quick-switch.log"
-            path.parent.mkdir(parents=True, exist_ok=True)
-            detail = " ".join(f"{key}={value}" for key, value in fields.items())
-            with path.open("a", encoding="utf-8") as handle:
-                handle.write(f"{datetime.now():%Y-%m-%d %H:%M:%S} {event} {detail}\n")
-            if path.stat().st_size > 256 * 1024:
-                lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-                path.write_text("\n".join(lines[-400:]) + "\n", encoding="utf-8")
-        except OSError:
-            pass  # logging must never break the overlay
+        """One stderr line.
+
+        The overlay usually starts from KDE's launcher, which puts its stderr
+        in the journal: `journalctl --user | grep quick-switch`. Python must
+        not write files itself (all file writes belong to the Rust core).
+        """
+        detail = " ".join(f"{key}={value}" for key, value in fields.items())
+        print(
+            f"{datetime.now():%Y-%m-%d %H:%M:%S} quick-switch {event} {detail}",
+            file=sys.stderr,
+            flush=True,
+        )
 
     def _set_phase(self, phase: str) -> None:
         if phase != self._phase:
@@ -248,6 +248,7 @@ class QuickSwitchController(QObject):
         self.themesChanged.emit()
         self.indexChanged.emit()
         self._prefetch(self._name_at(self._index))
+        self._warm_thumbnails()
 
     @Slot(int)
     def selectIndex(self, index: int) -> None:
@@ -264,6 +265,38 @@ class QuickSwitchController(QObject):
         if not self._themes:
             return
         self.selectIndex((self._index + delta) % len(self._themes))
+
+    def _warm_thumbnails(self) -> None:
+        """Render and cache the small card wallpapers in the background.
+
+        The first ever open pays for it; after that the overlay reads tiny
+        JPEGs from `$XDG_CACHE_HOME/kolira/quick-switch/thumbs` and cards
+        appear immediately.
+        """
+        pending = [
+            theme["name"]
+            for theme in self._themes
+            if theme.get("preview") and not theme.get("thumbPath")
+        ]
+        if not pending:
+            return
+
+        def work() -> None:
+            for name in pending:
+                try:
+                    thumb = core_request("quick_switch.thumbnail", name=name)
+                except Exception:  # noqa: BLE001 - a background warm-up must never crash
+                    continue
+                path = (thumb or {}).get("path")
+                if not path:
+                    continue
+                with self._prepared_lock:
+                    for theme in self._themes:
+                        if theme.get("name") == name:
+                            theme["thumbPath"] = path
+                self.themesChanged.emit()
+
+        threading.Thread(target=work, daemon=True).start()
 
     def _prefetch(self, name: str) -> None:
         """Warm the pre-flight for a card while the user is still browsing.
@@ -283,7 +316,7 @@ class QuickSwitchController(QObject):
         def work() -> None:
             try:
                 prepared = core_request("quick_switch.prepare", name=name)
-            except (RuntimeError, ValueError) as exc:
+            except Exception as exc:  # noqa: BLE001 - reported to the user, never raised
                 prepared = {"error": str(exc)}
             with self._prepared_lock:
                 self._inflight.discard(name)

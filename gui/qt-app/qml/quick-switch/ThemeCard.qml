@@ -1,11 +1,13 @@
 import QtQuick
 import QtQuick.Shapes
 import QtQuick.Effects
+import Qt5Compat.GraphicalEffects
 
 import "CardGeometry.js" as Geometry
 
 // One card. The same component serves every shape: the geometry decides the
-// mask, the border and the hit area; the content is never skewed.
+// mask, the border and the hit area; the content is never skewed. The face
+// itself lives in CardPreview.
 Item {
     id: card
 
@@ -48,88 +50,26 @@ Item {
     }
 
     // ── content ──────────────────────────────────────────────────────────────
+    // Clipped by the geometry, so it must be a texture provider and must not
+    // draw itself: `layer.enabled` + invisible. A visible source would paint
+    // unmasked and the preview would spill outside the outline.
     Item {
         id: content
         anchors.fill: parent
+        visible: false
+        layer.enabled: true
 
-        Rectangle {
+        CardPreview {
             anchors.fill: parent
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: card.accent }
-                GradientStop { position: 1.0; color: "#0d0d11" }
-            }
-            opacity: 0.30
-        }
-
-        Image {
-            id: preview
-            anchors.fill: parent
-            fillMode: Image.PreserveAspectCrop
-            asynchronous: true
-            cache: true
-            smooth: true
-            source: (card.theme && card.theme.preview && card.theme.preview.path)
-                    ? "file://" + card.theme.preview.path + "?rev=" + card.theme.preview.revision
-                    : ""
-            visible: status === Image.Ready
-        }
-
-        Rectangle {
-            anchors.fill: parent
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: "#00000000" }
-                GradientStop { position: 0.45; color: "#00000000" }
-                GradientStop { position: 1.0; color: "#d0000000" }
-            }
-        }
-
-        Column {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.leftMargin: 18
-            anchors.rightMargin: 18
-            anchors.bottomMargin: 20
-            spacing: 10
-
-            Text {
-                width: parent.width
-                text: (card.theme && card.theme.name) ? card.theme.name : ""
-                color: "#f2f2f4"
-                font.pixelSize: 20
-                font.weight: card.active ? Font.DemiBold : Font.Normal
-                elide: Text.ElideRight
-                maximumLineCount: 2
-                wrapMode: Text.WordWrap
-            }
-
-            Row {
-                spacing: 6
-                Repeater {
-                    model: (card.theme && card.theme.swatches)
-                           ? card.theme.swatches.slice(0, 6) : []
-                    delegate: Rectangle {
-                        required property var modelData
-                        width: 22
-                        height: 6
-                        radius: 3
-                        color: modelData
-                        opacity: 0.9
-                    }
-                }
-            }
-
-            Rectangle {
-                width: 64
-                height: 3
-                radius: 2
-                color: card.accent
-                opacity: card.active ? 0.95 : 0.35
-            }
+            theme: card.theme
+            active: card.active
+            shape: card.shape
+            skew: card.skew
         }
     }
 
     // ── geometry mask ────────────────────────────────────────────────────────
+    // maskSource samples this item's alpha; it is never drawn itself.
     Item {
         id: mask
         anchors.fill: parent
@@ -148,12 +88,10 @@ Item {
         }
     }
 
-    MultiEffect {
-        source: content
-        maskEnabled: true
-        maskSource: mask
+    OpacityMask {
         anchors.fill: content
-        autoPaddingEnabled: false
+        source: content
+        maskSource: mask
     }
 
     // ── border ───────────────────────────────────────────────────────────────

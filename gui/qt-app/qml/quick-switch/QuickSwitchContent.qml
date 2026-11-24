@@ -18,7 +18,8 @@ Item {
     readonly property real cardHeight: Math.round(root.height * 0.60 * root.cardScale)
     readonly property real cardWidth: Math.round(root.cardHeight * Geometry.widthFactor(
         quickSwitch.settings.card_shape))
-    readonly property real spacing: Math.round(root.cardHeight * 0.07)
+    readonly property real spacing: Math.round(
+        root.cardHeight * Geometry.spacingFactor(root.shape))
     // Space before the first card so it can reach the centre, and after the
     // last one for the same reason.
     readonly property real edgeInset: Math.max(

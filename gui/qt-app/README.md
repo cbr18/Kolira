@@ -302,10 +302,29 @@ qml/quick-switch/
 ├── HostSurface.qml        # layer-shell window (org.kde.layershell as LayerShell)
 ├── QuickSwitchContent.qml # dim + carousel + transitions + panels
 ├── ThemeCard.qml          # one card for every shape, masked content
+├── CardPreview.qml        # face: wallpaper, mock window, name and palette
 ├── ApplyScreen.qml        # shader screen + real stage scale
 ├── CardGeometry.js        # card outline as an SVG path (mask, border, hit area)
 └── shaders/apply.frag     # GLSL source; apply.qsb is the compiled artifact
 ```
+
+- **Cards.** `ThemeCard` is only geometry (mask, border, glow, hit area);
+  `CardPreview` is the face: the wallpaper, a mock window about a third of
+  the card high centred a third from the top, and the name with the palette.
+  Colours, fonts, radius and opacity come from `quick_switch.cards`
+  (`previewColors`, `previewStyle`), the same values the gallery card uses.
+- **Masking.** `OpacityMask` (Qt5Compat) clips the card content. A visible
+  `MultiEffect` source paints itself unmasked and the preview spills outside
+  the outline; `content` must be `layer.enabled` + invisible to be a texture
+  provider, and the mask item is never drawn.
+- **Thumbnails.** The first open renders small JPEGs into
+  `$XDG_CACHE_HOME/kolira/quick-switch/thumbs` (Rust calls `magick`, the same
+  external tool the wallpaper picker uses); later opens read those. The card
+  also decodes with `sourceSize` and fades the image in, so a wallpaper never
+  pops into an empty rectangle.
+- **Parallelogram.** The shape is a sheared rectangle: its width is constant
+  but it slides sideways, so `CardPreview` keeps the mock window inside
+  `[skew·w, (1-skew)·w]` and the card leaves air inside its box.
 
 - **Layer-shell.** The attached type is `LayerShell.Window`, so the import must be
   aliased (`import org.kde.layershell 1.0 as LayerShell`). Without the alias the
