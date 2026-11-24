@@ -346,6 +346,160 @@ Kirigami.ScrollablePage {
             }
         }
 
+        // ─── Quick Switch ───
+        Kirigami.Card {
+            Layout.fillWidth: true
+
+            background: Rectangle {
+                radius: Platform.Units.smallSpacing
+                border.width: 1
+                color: ThemeColors.cardBg(page.glassMode)
+                border.color: ThemeColors.cardBorder(page.glassMode)
+            }
+
+            contentItem: ColumnLayout {
+                spacing: Platform.Units.mediumSpacing
+
+                Kirigami.Heading {
+                    level: 2
+                    text: qsTr("Quick Switch")
+                    color: ThemeColors.fgColor(page.glassMode)
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: qsTr("Fullscreen theme switcher: a fast overlay with its own hotkey.")
+                    color: ThemeColors.dimColorSoft(page.glassMode)
+                    wrapMode: Text.WordWrap
+                }
+
+                Kirigami.FormLayout {
+                    Layout.fillWidth: true
+
+                    Switch {
+                        id: quickSwitchEnabled
+                        Kirigami.FormData.label: qsTr("Enable Quick Switch")
+                        onToggled: settingsController.quickSwitchEnabled = checked
+                        Binding {
+                            target: quickSwitchEnabled
+                            property: "checked"
+                            value: settingsController.quickSwitchEnabled
+                            restoreMode: Binding.RestoreBindingOrValue
+                        }
+                    }
+
+                    TextField {
+                        id: quickSwitchHotkey
+                        Kirigami.FormData.label: qsTr("Hotkey")
+                        text: settingsController.quickSwitchHotkey
+                        placeholderText: qsTr("e.g. Meta+K")
+                        onEditingFinished: settingsController.quickSwitchHotkey = text
+                        Binding {
+                            target: quickSwitchHotkey
+                            property: "text"
+                            value: settingsController.quickSwitchHotkey
+                            restoreMode: Binding.RestoreBindingOrValue
+                            when: !quickSwitchHotkey.activeFocus
+                        }
+                        enabled: quickSwitchEnabled.checked
+                    }
+
+                    ComboBox {
+                        id: quickSwitchShape
+                        Kirigami.FormData.label: qsTr("Card shape")
+                        model: [
+                            qsTr("Rectangle"),
+                            qsTr("Rounded rectangle"),
+                            qsTr("Parallelogram"),
+                        ]
+                        currentIndex: ["rectangle", "rounded", "parallelogram"]
+                                      .indexOf(settingsController.quickSwitchCardShape)
+                        onActivated: settingsController.quickSwitchCardShape =
+                            ["rectangle", "rounded", "parallelogram"][currentIndex]
+                    }
+
+                    ComboBox {
+                        id: quickSwitchScale
+                        Kirigami.FormData.label: qsTr("Card size")
+                        model: [qsTr("Small"), qsTr("Normal"), qsTr("Large")]
+                        currentIndex: settingsController.quickSwitchCardScale < 0.9 ? 0
+                                      : settingsController.quickSwitchCardScale > 1.1 ? 2 : 1
+                        onActivated: settingsController.quickSwitchCardScale =
+                            [0.8, 1.0, 1.2][currentIndex]
+                    }
+
+                    Slider {
+                        id: quickSwitchDim
+                        Layout.fillWidth: true
+                        from: 0.0
+                        to: 1.0
+                        stepSize: 0.05
+                        value: settingsController.quickSwitchDim
+                        onMoved: settingsController.quickSwitchDim = value
+                        Binding {
+                            target: quickSwitchDim
+                            property: "value"
+                            value: settingsController.quickSwitchDim
+                            restoreMode: Binding.RestoreBindingOrValue
+                        }
+                        Kirigami.FormData.label: qsTr("Background dimming")
+                    }
+
+                    Switch {
+                        id: quickSwitchGlow
+                        Kirigami.FormData.label: qsTr("Border glow")
+                        onToggled: settingsController.quickSwitchGlow = checked
+                        Binding {
+                            target: quickSwitchGlow
+                            property: "checked"
+                            value: settingsController.quickSwitchGlow
+                            restoreMode: Binding.RestoreBindingOrValue
+                        }
+                    }
+
+                    ComboBox {
+                        id: quickSwitchSpeed
+                        Kirigami.FormData.label: qsTr("Animation speed")
+                        model: [qsTr("Fast"), qsTr("Standard"), qsTr("Smooth")]
+                        currentIndex: ["fast", "standard", "smooth"]
+                                      .indexOf(settingsController.quickSwitchAnimationSpeed)
+                        onActivated: settingsController.quickSwitchAnimationSpeed =
+                            ["fast", "standard", "smooth"][currentIndex]
+                    }
+
+                    Switch {
+                        id: quickSwitchApplyAnimation
+                        Kirigami.FormData.label: qsTr("Apply animation")
+                        onToggled: settingsController.quickSwitchApplyAnimation = checked
+                        Binding {
+                            target: quickSwitchApplyAnimation
+                            property: "checked"
+                            value: settingsController.quickSwitchApplyAnimation
+                            restoreMode: Binding.RestoreBindingOrValue
+                        }
+                    }
+
+                    ComboBox {
+                        id: quickSwitchReducedMotion
+                        Kirigami.FormData.label: qsTr("Reduced motion")
+                        model: [qsTr("Follow system"), qsTr("On"), qsTr("Off")]
+                        currentIndex: ["system", "on", "off"]
+                                      .indexOf(settingsController.quickSwitchReducedMotion)
+                        onActivated: settingsController.quickSwitchReducedMotion =
+                            ["system", "on", "off"][currentIndex]
+                    }
+
+                }
+
+                AppButton {
+                    Layout.fillWidth: true
+                    text: qsTr("Preview")
+                    icon.name: "view-preview"
+                    onClicked: settingsController.previewQuickSwitch()
+                }
+            }
+        }
+
         // ─── Actions ───
         Kirigami.Card {
             Layout.fillWidth: true

@@ -26,6 +26,10 @@ QUrl/QColor/QJSValue преобразуются в обычные JSON-знач�
 ```bash
 printf '%s' '{}' | kolira core settings.get
 printf '%s' '{"settings":{"theme":"paper"}}' | kolira core settings.set
+printf '%s' '{}' | kolira core quick_switch.get
+printf '%s' '{}' | kolira core quick_switch.cards
+printf '%s' '{"name":"glass"}' | kolira core quick_switch.prepare
+printf '%s' '{"hotkey":"Meta+K"}' | kolira core quick_switch.set_hotkey
 printf '%s' '{"id":"window_bg"}' | kolira core field.read
 ```
 
@@ -39,6 +43,7 @@ printf '%s' '{"id":"window_bg"}' | kolira core field.read
 | `profile.migrate/prepare_apply` | Конвертация старого снимка с копией оригинала и подготовка GUI-сводки |
 | `profile.live_matches` | `names`: список тем. Возвращает текущий вид KDE, `profiles` со статусами `match`, `different`, `unknown` и массив `matches`. Сравнивает заданные в профиле параметры с читаемым Live. Маркер последнего применения учитывается отдельно. |
 | `settings.defaults/get/set` | Предпочтения, проверка типов, сохранение неизвестных ключей и политик automation |
+| `quick_switch.get/set/cards/prepare/set_hotkey` | Настройки и быстрый путь для полноэкранного оверлея: `quick_switch` живёт отдельным объектом в `app-preferences.json` (как `automation`), `cards` читает только `theme.json` и обои темы, `prepare` возвращает план и `preview_token` без построчного diff (в 5–6 раз быстрее `profile.preview`), `set_hotkey` пишет сочетание в `kglobalshortcutsrc` через `kwriteconfig6` с бэкапом и уводит `voxtype-toggle` с `Meta+K` на `Meta+Shift+K` |
 | `registry.*`, `paths.migrate` | Встроенные/пользовательские компоненты, обнаружение приложений, XDG-миграция |
 | `field.read/reads/file/kvantum_file/choices/fonts/validate` | Значения, расположения, установленные варианты и диагностика |
 | `config.*` | Парсинг, список параметров и подготовка точечного изменения |

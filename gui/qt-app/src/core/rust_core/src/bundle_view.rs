@@ -670,12 +670,12 @@ fn preview_icon(dir: Option<&Path>, theme: &str) -> Option<Value> {
     })
 }
 
-fn local_resource(root: &Path, path: &Path) -> Option<PathBuf> {
+pub(crate) fn local_resource(root: &Path, path: &Path) -> Option<PathBuf> {
     let file = path.canonicalize().ok()?;
     file.starts_with(root.canonicalize().ok()?).then_some(file)
 }
 
-fn preview_image(dir: &Path, path: &Path) -> Option<Value> {
+pub(crate) fn preview_image(dir: &Path, path: &Path) -> Option<Value> {
     let file = local_resource(dir, path)?;
     if !file
         .extension()

@@ -572,6 +572,25 @@ class CliSettingsCore(SettingsCore):
     def get_defaults(self) -> AppSettings:
         return AppSettings.from_dict(core_request("settings.defaults"))
 
+    # ── Quick Switch (owned by the Rust core: `quick_switch.*`)
+
+    def quick_switch_get(self) -> dict:
+        try:
+            data = core_request("quick_switch.get")
+            return data if isinstance(data, dict) else {}
+        except (ValueError, RuntimeError):
+            return {}
+
+    def quick_switch_set(self, values: dict) -> dict:
+        data = core_request("quick_switch.set", settings=dict(values))
+        return data if isinstance(data, dict) else {}
+
+    def quick_switch_set_hotkey(self, key: str) -> str:
+        """Write KDE's shortcut, then remember it in app-preferences.json."""
+        core_request("quick_switch.set_hotkey", hotkey=key)
+        self.quick_switch_set({"hotkey": key})
+        return key
+
     # ── automation choices (owned by the Rust core: `kolira automation`)
 
     def automation(self) -> dict:

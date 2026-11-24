@@ -285,6 +285,49 @@ qml/
     └── ComponentCheckbox.qml        # Single component toggle
 ```
 
+### Quick Switch (separate process)
+
+`kolira-quick-switch` → `kolira-manager.sh --quick-switch` → `python -m src
+--quick-switch` → `src/quick_switch_app.py`. It builds its own
+`QQmlApplicationEngine`, loads `qml/quick-switch/HostSurface.qml` once per screen
+and never touches the main window, the tray, the Inspector or `MainController`.
+
+```
+src/
+├── quick_switch_app.py         # QGuiApplication, one surface per monitor, watchdog
+├── quick_switch_controller.py  # phases, pre-flight, apply, real stages
+└── qml_runtime.py              # system QML import paths (shared with __main__.py)
+
+qml/quick-switch/
+├── HostSurface.qml        # layer-shell window (org.kde.layershell as LayerShell)
+├── QuickSwitchContent.qml # dim + carousel + transitions + panels
+├── ThemeCard.qml          # one card for every shape, masked content
+├── ApplyScreen.qml        # shader screen + real stage scale
+├── CardGeometry.js        # card outline as an SVG path (mask, border, hit area)
+└── shaders/apply.frag     # GLSL source; apply.qsb is the compiled artifact
+```
+
+- **Layer-shell.** The attached type is `LayerShell.Window`, so the import must be
+  aliased (`import org.kde.layershell 1.0 as LayerShell`). Without the alias the
+  engine reports “Non-existent attached object”. The shell is what puts the
+  overlay above panels and normal windows; `keyboardInteractivity` is
+  `Exclusive` only on the screen with the carousel.
+- **Shaders.** Qt 6 needs precompiled `.qsb`: `qml/quick-switch/shaders/apply.frag`
+  is the source, `apply.qsb` is generated with
+  `/usr/lib/qt6/bin/qsb --qt6 --glsl 100es,120,150,330,440,450,460,300es -s -o apply.qsb apply.frag`.
+  The shader reads `gl_FragCoord`, not `qt_Texcoord0`: the vertex stage writes
+  `qt_TexCoord0` and the mismatch breaks linking. Uniforms live in one std140
+  block in the order the QML properties are declared.
+- **Stages.** `profile.apply` has no progress channel. The overlay polls
+  `operation.list` while the transaction runs and maps the real record state
+  (`preparing`, `applying`, `succeeded`, …) to the scale; the moving bar inside a
+  stage is an animation, not a measurement.
+- **Hotkey.** `~/.local/share/applications/kolira-quick-switch.desktop` carries
+  `X-KDE-GlobalAccel-CommandShortcut=true`; the key itself lives in
+  `[services][kolira-quick-switch.desktop]` in `~/.config/kglobalshortcutsrc` and
+  is written by `quick_switch.set_hotkey` through `kwriteconfig6` with a backup.
+  `Meta+K` is taken from `voxtype-toggle` once (moved to `Meta+Shift+K`).
+
 > Note: `ScrollablePage` must contain a **single layout** child — its children are
 > only anchored left/right, never laid out, so bare cards collapse to zero height.
 > `Kirigami.Card` needs an explicit `contentItem:` for the same reason.

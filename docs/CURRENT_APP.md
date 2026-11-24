@@ -20,6 +20,7 @@
 | `wallpaper-picker` | Выбор обоев через wofi с превью (ImageMagick) |
 | `wallpaper-next` / `wallpaper-prev` | Листание обоев по циклу |
 | `kolira-gui` | Qt/QML GUI: профили, обои, трей, Theme Inspector |
+| `kolira-quick-switch` | Полноэкранный оверлей быстрого переключения тем (отдельный процесс, слой layer-shell, собственная горячая клавиша) |
 
 ---
 
@@ -37,7 +38,9 @@
 | `kolira`, `theme-menu`, `wallpaper-*` | `~/.local/bin/` |
 | kolira (копия приложения) | `~/.local/share/kolira/` |
 | обёртка `kolira` | `~/.local/bin/` |
+| обёртка `kolira-quick-switch` | `~/.local/bin/` |
 | ярлык | `~/.local/share/applications/kolira.desktop` |
+| ярлык переключателя (для глобальной клавиши) | `~/.local/share/applications/kolira-quick-switch.desktop` |
 | иконка | `~/.local/share/icons/hicolor/scalable/apps/kolira-icon.svg` |
 
 Только CLI: `install-kolira.sh --only-cli`. Только GUI:

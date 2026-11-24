@@ -2289,6 +2289,59 @@
     </message>
 </context>
 <context>
+    <name>QuickSwitchContent</name>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="174"/>
+        <source>Поиск: %1</source>
+        <translation>Поиск: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="182"/>
+        <source>Предпросмотр — тема не применяется</source>
+        <translation>Предпросмотр — тема не применяется</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="183"/>
+        <source>← → выбор · Enter применить · Esc закрыть · печатайте для поиска</source>
+        <translation>← → выбор · Enter применить · Esc закрыть · печатайте для поиска</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="230"/>
+        <source>Подготовка…</source>
+        <translation>Подготовка…</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="231"/>
+        <source>Применение…</source>
+        <translation>Применение…</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="232"/>
+        <source>Готово</source>
+        <translation>Готово</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="255"/>
+        <source>Не удалось применить</source>
+        <translation>Не удалось применить</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="255"/>
+        <source>Тема требует внимания</source>
+        <translation>Тема требует внимания</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="292"/>
+        <source>Закрыть</source>
+        <translation>Закрыть</translation>
+    </message>
+    <message>
+        <location filename="../qml/quick-switch/QuickSwitchContent.qml" line="306"/>
+        <source>Открыть Kolira</source>
+        <translation>Открыть Kolira</translation>
+    </message>
+</context>
+<context>
     <name>SavedThemeDetails</name>
     <message>
         <location filename="../qml/pages/SavedThemeDetails.qml" line="43"/>
@@ -2817,11 +2870,136 @@
     </message>
     <message>
         <location filename="../qml/pages/SettingsPage.qml" line="365"/>
+        <source>Quick Switch</source>
+        <translation>Быстрое переключение</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="371"/>
+        <source>Fullscreen theme switcher: a fast overlay with its own hotkey.</source>
+        <translation>Полноэкранный переключатель тем: быстрый оверлей с горячей клавишей.</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="381"/>
+        <source>Enable Quick Switch</source>
+        <translation>Включить быстрое переключение</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="393"/>
+        <source>Hotkey</source>
+        <translation>Горячая клавиша</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="395"/>
+        <source>e.g. Meta+K</source>
+        <translation>например, Meta+K</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="409"/>
+        <source>Card shape</source>
+        <translation>Форма карточек</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="411"/>
+        <source>Rectangle</source>
+        <translation>Прямоугольник</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="412"/>
+        <source>Rounded rectangle</source>
+        <translation>Скруглённый прямоугольник</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="413"/>
+        <source>Parallelogram</source>
+        <translation>Параллелограмм</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="423"/>
+        <source>Card size</source>
+        <translation>Размер карточек</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="424"/>
+        <source>Small</source>
+        <translation>Маленький</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="424"/>
+        <source>Normal</source>
+        <translation>Обычный</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="424"/>
+        <source>Large</source>
+        <translation>Большой</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="445"/>
+        <source>Background dimming</source>
+        <translation>Затемнение фона</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="450"/>
+        <source>Border glow</source>
+        <translation>Свечение рамок</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="462"/>
+        <source>Animation speed</source>
+        <translation>Скорость анимаций</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="463"/>
+        <source>Fast</source>
+        <translation>Быстро</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="463"/>
+        <source>Standard</source>
+        <translation>Стандартно</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="463"/>
+        <source>Smooth</source>
+        <translation>Плавно</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="472"/>
+        <source>Apply animation</source>
+        <translation>Анимация применения</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="484"/>
+        <source>Reduced motion</source>
+        <translation>Уменьшенное движение</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="485"/>
+        <source>Follow system</source>
+        <translation>Как в системе</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="485"/>
+        <source>On</source>
+        <translation>Включено</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="485"/>
+        <source>Off</source>
+        <translation>Выключено</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="496"/>
+        <source>Preview</source>
+        <translation>Предпросмотр</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="519"/>
         <source>Save Settings</source>
         <translation>Сохранить настройки</translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="373"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="527"/>
         <source>Reset to Defaults</source>
         <translation>Сбросить настройки</translation>
     </message>

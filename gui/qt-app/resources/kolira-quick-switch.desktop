@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Kolira Quick Switch
+Name[ru]=Kolira — быстрое переключение тем
+Exec=kolira-quick-switch
+TryExec=kolira-quick-switch
+Icon=kolira-icon
+Terminal=false
+NoDisplay=true
+StartupNotify=false
+Categories=Settings;DesktopSettings;Qt;KDE;
+# KDE only registers the [services][…] shortcut group when this is set;
+# the key itself lives in ~/.config/kglobalshortcutsrc.
+X-KDE-GlobalAccel-CommandShortcut=true

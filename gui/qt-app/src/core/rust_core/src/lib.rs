@@ -34,6 +34,7 @@ pub mod palette;
 pub mod paths;
 pub mod profile;
 mod profile_edit;
+pub mod quick_switch;
 pub mod share;
 pub mod spicetify;
 pub mod status;

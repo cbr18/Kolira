@@ -78,6 +78,26 @@ fn label(path: &Path) -> String {
 pub fn build(args: &Value) -> Result<Value> {
     build_impl(args, true)
 }
+
+/// Fast pre-flight for the Quick Switch overlay: the same plan and
+/// confirmation token, without per-file text diffs. A full theme is 140+
+/// files and shelling out to `diff` for each of them costs seconds; the
+/// overlay needs the token, what is missing and what needs installing, not
+/// the diff text.
+pub fn prepare(args: &Value) -> Result<Value> {
+    let report = build_impl(args, false)?;
+    Ok(json!({
+        "name": report["name"],
+        "token": report["token"],
+        "fileCount": report["file_count"],
+        "missing": report["missing"],
+        "dependencies": report["dependencies"],
+        "actions": report["actions"],
+        "keptFields": report["kept_fields"],
+        "runtimeChanges": report["runtime_changes"],
+        "preserveWallpaper": report["keep_wallpaper"],
+    }))
+}
 fn build_impl(args: &Value, include_text_diff: bool) -> Result<Value> {
     let _lock = crate::operation::MutationGuard::acquire()?;
     let name = crate::gui_api::str_arg(args, "name")?;

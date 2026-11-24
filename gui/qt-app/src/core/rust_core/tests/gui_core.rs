@@ -3057,3 +3057,153 @@ fn app_errors_have_stable_templates_and_english_compatibility() {
         "Settings file not found: .config/zed/settings.json"
     );
 }
+
+fn quick_switch_theme(h: &Home, name: &str, accent: &str, wallpaper: Option<&str>) {
+    let package = json!({
+        "schema": "kolira/theme@2",
+        "name": name,
+        "created": "2026-11-24T00:00:00Z",
+        "palette": {
+            "name": name,
+            "variant": "dark",
+            "base": [
+                "#101014", "#17171d", "#2a2a32", "#3a3a42",
+                "#4a4a52", "#5a5a62", "#6a6a72", "#7a7a82",
+                "#da4453", "#f67400", "#f8a458", "#27ae60",
+                "#22a4aa", "#1d99f3", "#9b59b6", "#e85c2a"
+            ],
+            "accent": accent
+        },
+        "values": {
+            "accent_color": accent,
+            "selection_bg": accent,
+            "window_bg": "16,17,20",
+            "view_bg": "20,21,24",
+            "text_color": "240,240,240",
+            "color_scheme": name
+        },
+        "wallpaper": wallpaper.unwrap_or("")
+    });
+    h.write(
+        &format!(".config/kolira/themes/{name}/theme.json"),
+        &package.to_string(),
+    );
+    if let Some(relative) = wallpaper {
+        h.write(
+            &format!(".config/kolira/themes/{name}/{relative}"),
+            "not-a-real-image",
+        );
+    }
+}
+
+#[test]
+fn quick_switch_defaults_merge_and_reject_bad_values() {
+    let h = Home::new();
+    let defaults = h.rpc("quick_switch.get", json!({}));
+    assert_eq!(defaults["enabled"], false);
+    assert_eq!(defaults["hotkey"], "Meta+K");
+    assert_eq!(defaults["card_shape"], "rounded");
+    assert_eq!(defaults["dim"], 0.72);
+
+    h.rpc(
+        "quick_switch.set",
+        json!({"settings":{"enabled":true,"card_shape":"parallelogram","dim":0.5}}),
+    );
+    let saved = h.rpc("quick_switch.get", json!({}));
+    assert_eq!(saved["enabled"], true);
+    assert_eq!(saved["card_shape"], "parallelogram");
+    assert_eq!(saved["hotkey"], "Meta+K");
+
+    let before = fs::read(h.path(".config/kolira/app-preferences.json")).unwrap();
+    for bad in [
+        json!({"settings":{"card_shape":"hexagon"}}),
+        json!({"settings":{"dim":2.0}}),
+        json!({"settings":{"card_scale":"big"}}),
+        json!({"settings":{"hotkey":"Meta+"}}),
+        json!({"settings":{"enabled":"yes"}}),
+    ] {
+        assert_eq!(h.raw("quick_switch.set", bad)["ok"], false);
+    }
+    assert_eq!(
+        fs::read(h.path(".config/kolira/app-preferences.json")).unwrap(),
+        before
+    );
+    assert_eq!(
+        fs::metadata(h.path(".config/kolira/app-preferences.json"))
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777,
+        0o600
+    );
+}
+
+#[test]
+fn quick_switch_cards_stay_cheap_and_keep_foreign_themes() {
+    let h = Home::new();
+    quick_switch_theme(&h, "zeta", "#bd93f9", Some("wallpaper/z.png"));
+    quick_switch_theme(&h, "alpha", "#57d68a", Some("wallpaper/a.png"));
+    h.write(
+        ".config/kolira/themes/legacy/kdeglobals",
+        "[General]\nColorScheme=Base\n",
+    );
+
+    let data = h.rpc("quick_switch.cards", json!({}));
+    let themes = data["themes"].as_array().unwrap();
+    let names: Vec<_> = themes
+        .iter()
+        .map(|theme| theme["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(names, vec!["alpha", "legacy", "zeta"]);
+    assert_eq!(themes[0]["accent"], "#57d68a");
+    assert_eq!(themes[0]["variant"], "dark");
+    assert_eq!(themes[0]["hasPreview"], true);
+    assert!(themes[0]["preview"]["path"]
+        .as_str()
+        .unwrap()
+        .ends_with("wallpaper/a.png"));
+    assert_eq!(themes[0]["active"], false);
+    // A legacy snapshot has no palette; the card must still appear.
+    assert_eq!(themes[1]["accent"], "");
+    assert_eq!(themes[1]["hasPreview"], false);
+}
+
+#[test]
+fn quick_switch_hotkey_moves_voxtype_aside_and_backs_up() {
+    let h = Home::new();
+    h.write(
+        ".config/kglobalshortcutsrc",
+        "[services][voxtype-toggle.desktop]\n_launch=Meta+K\n\n[services][net.local.theme-menu.desktop]\n_launch=Meta+Y\n",
+    );
+    let mut command = h.command("quick_switch.set_hotkey");
+    // kwriteconfig6/kreadconfig6 must be reachable from the test.
+    let path = format!(
+        "{}:{}",
+        h.path("bin").display(),
+        std::env::var("PATH").unwrap_or_default()
+    );
+    command.env("PATH", &path);
+
+    let result = Home::send(command, json!({"hotkey":"Meta+K"}));
+    assert_eq!(result["ok"], true, "{result}");
+    let saved = fs::read_to_string(h.path(".config/kglobalshortcutsrc")).unwrap();
+    assert!(saved.contains("[services][kolira-quick-switch.desktop]\n_launch=Meta+K"));
+    assert!(saved.contains("[services][voxtype-toggle.desktop]\n_launch=Meta+Shift+K"));
+    assert!(saved.contains("[services][net.local.theme-menu.desktop]\n_launch=Meta+Y"));
+    assert!(
+        fs::read_dir(h.path(".config/kolira/backups/kglobalshortcutsrc"))
+            .unwrap()
+            .next()
+            .is_some()
+    );
+
+    let mut unbind = h.command("quick_switch.set_hotkey");
+    unbind.env("PATH", &path);
+    assert_eq!(Home::send(unbind, json!({"hotkey":""}))["ok"], true);
+    let saved = fs::read_to_string(h.path(".config/kglobalshortcutsrc")).unwrap();
+    assert!(saved.contains("[services][kolira-quick-switch.desktop]\n_launch=none"));
+
+    let mut bad = h.command("quick_switch.set_hotkey");
+    bad.env("PATH", &path);
+    assert_eq!(Home::send(bad, json!({"hotkey":"Hyper+X"}))["ok"], false);
+}

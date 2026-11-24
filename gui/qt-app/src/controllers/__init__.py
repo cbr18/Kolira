@@ -19,6 +19,7 @@ from core.protocol import (
     ProfileInfo, Component, AppStatus, AppSettings, CustomComponent
 )
 from core import CoreFactory
+from core.cli_core import resolve_cli_bin
 from core.paths import profile_dir, validate_profile_name
 from .theme_bundle import ThemeBundleController
 from .palette import PaletteController
@@ -1325,6 +1326,9 @@ class SettingsController(QObject):
         self._core: SettingsCore = CoreFactory.settings_core()
         self._settings: AppSettings = self._core.get_defaults()
         self._available_components: list[str] = []
+        # Quick Switch preferences are cached: one core call per read is too
+        # much for a settings page with ten controls.
+        self._quick_switch_cache: Optional[dict] = None
         # Optional reference to the tracked-apps controller (wired by
         # MainController) so this cache never triggers its own detection.
         self._tracked_apps: Optional[QObject] = None
@@ -1381,6 +1385,126 @@ class SettingsController(QObject):
     def setWallpaperDirectoryUrl(self, url: QUrl) -> None:
         if url.isLocalFile():
             self.wallpaperDirectory = url.toLocalFile()
+
+    # ── Quick Switch: overlay preferences, read on demand (like automation) ──
+    quickSwitchChanged = Signal()
+
+    def _quick_switch(self) -> dict:
+        if self._quick_switch_cache is None:
+            getter = getattr(self._core, "quick_switch_get", None)
+            self._quick_switch_cache = getter() if callable(getter) else {}
+        return self._quick_switch_cache
+
+    def _store_quick_switch(self, values: dict) -> None:
+        setter = getattr(self._core, "quick_switch_set", None)
+        if callable(setter):
+            merged = {**self._quick_switch(), **{k: v for k, v in values.items()}}
+            self._quick_switch_cache = setter(merged) or merged
+        self.quickSwitchChanged.emit()
+
+    @Property(bool, notify=quickSwitchChanged)
+    def quickSwitchEnabled(self) -> bool:
+        return bool(self._quick_switch().get("enabled", False))
+
+    @quickSwitchEnabled.setter
+    def quickSwitchEnabled(self, value: bool) -> None:
+        if bool(value) != self.quickSwitchEnabled:
+            self._store_quick_switch({"enabled": bool(value)})
+
+    @Property(str, notify=quickSwitchChanged)
+    def quickSwitchHotkey(self) -> str:
+        return str(self._quick_switch().get("hotkey", "") or "")
+
+    @quickSwitchHotkey.setter
+    def quickSwitchHotkey(self, value: str) -> None:
+        key = str(value).strip()
+        if key != self.quickSwitchHotkey:
+            setter = getattr(self._core, "quick_switch_set_hotkey", None)
+            if callable(setter):
+                try:
+                    setter(key)
+                except (ValueError, RuntimeError):
+                    pass
+            self._store_quick_switch({"hotkey": key})
+
+    @Property(str, notify=quickSwitchChanged)
+    def quickSwitchCardShape(self) -> str:
+        return str(self._quick_switch().get("card_shape", "rounded") or "rounded")
+
+    @quickSwitchCardShape.setter
+    def quickSwitchCardShape(self, value: str) -> None:
+        shape = str(value)
+        if shape != self.quickSwitchCardShape:
+            self._store_quick_switch({"card_shape": shape})
+
+    @Property(str, notify=quickSwitchChanged)
+    def quickSwitchAnimationSpeed(self) -> str:
+        return str(self._quick_switch().get("animation_speed", "standard") or "standard")
+
+    @quickSwitchAnimationSpeed.setter
+    def quickSwitchAnimationSpeed(self, value: str) -> None:
+        speed = str(value)
+        if speed != self.quickSwitchAnimationSpeed:
+            self._store_quick_switch({"animation_speed": speed})
+
+    @Property(str, notify=quickSwitchChanged)
+    def quickSwitchReducedMotion(self) -> str:
+        return str(self._quick_switch().get("reduced_motion", "system") or "system")
+
+    @quickSwitchReducedMotion.setter
+    def quickSwitchReducedMotion(self, value: str) -> None:
+        mode = str(value)
+        if mode != self.quickSwitchReducedMotion:
+            self._store_quick_switch({"reduced_motion": mode})
+
+    @Property(float, notify=quickSwitchChanged)
+    def quickSwitchCardScale(self) -> float:
+        value = self._quick_switch().get("card_scale", 1.0)
+        return float(value) if isinstance(value, (int, float)) else 1.0
+
+    @quickSwitchCardScale.setter
+    def quickSwitchCardScale(self, value: float) -> None:
+        scale = max(0.8, min(1.2, float(value)))
+        if abs(scale - self.quickSwitchCardScale) > 1e-6:
+            self._store_quick_switch({"card_scale": scale})
+
+    @Property(float, notify=quickSwitchChanged)
+    def quickSwitchDim(self) -> float:
+        value = self._quick_switch().get("dim", 0.72)
+        return float(value) if isinstance(value, (int, float)) else 0.72
+
+    @quickSwitchDim.setter
+    def quickSwitchDim(self, value: float) -> None:
+        dim = max(0.0, min(1.0, float(value)))
+        if abs(dim - self.quickSwitchDim) > 1e-6:
+            self._store_quick_switch({"dim": dim})
+
+    @Property(bool, notify=quickSwitchChanged)
+    def quickSwitchGlow(self) -> bool:
+        return bool(self._quick_switch().get("glow", True))
+
+    @quickSwitchGlow.setter
+    def quickSwitchGlow(self, value: bool) -> None:
+        if bool(value) != self.quickSwitchGlow:
+            self._store_quick_switch({"glow": bool(value)})
+
+    @Property(bool, notify=quickSwitchChanged)
+    def quickSwitchApplyAnimation(self) -> bool:
+        return bool(self._quick_switch().get("apply_animation", True))
+
+    @quickSwitchApplyAnimation.setter
+    def quickSwitchApplyAnimation(self, value: bool) -> None:
+        if bool(value) != self.quickSwitchApplyAnimation:
+            self._store_quick_switch({"apply_animation": bool(value)})
+
+    @Slot()
+    def previewQuickSwitch(self) -> None:
+        """Open the overlay in preview mode (apply is disabled there)."""
+        from PySide6.QtCore import QProcess
+
+        binary = resolve_cli_bin("kolira-quick-switch")
+        if binary:
+            QProcess.startDetached(binary, ["--preview"])
 
     # ── Automation: what applying a theme may do by itself (per user) ──
     automationChanged = Signal()
@@ -1552,8 +1676,10 @@ class SettingsController(QObject):
     @Slot()
     def load(self) -> None:
         self._settings = self._core.load()
+        self._quick_switch_cache = None
         self.refreshAvailableComponents()
         self.settingsChanged.emit()
+        self.quickSwitchChanged.emit()
 
     @Slot()
     def save(self) -> None:

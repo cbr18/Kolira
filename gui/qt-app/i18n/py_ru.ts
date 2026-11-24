@@ -771,28 +771,28 @@
 </context><context>
     <name>ProfileController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="464" />
-        <location filename="../src/controllers/__init__.py" line="396" />
+        <location filename="../src/controllers/__init__.py" line="465" />
+        <location filename="../src/controllers/__init__.py" line="397" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="529" />
+        <location filename="../src/controllers/__init__.py" line="530" />
         <source>Current appearance saved</source>
         <translation>Текущее оформление сохранено</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="673" />
+        <location filename="../src/controllers/__init__.py" line="674" />
         <source>The draft is unavailable</source>
         <translation>Черновик недоступен</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="814" />
+        <location filename="../src/controllers/__init__.py" line="815" />
         <source>System packages: see the terminal</source>
         <translation>Системные пакеты: смотрите терминал</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="827" />
+        <location filename="../src/controllers/__init__.py" line="828" />
         <source>Stopped: the theme was not applied</source>
         <translation>Остановлено: тема не применена</translation>
     </message>
@@ -2369,24 +2369,24 @@
 </context><context>
     <name>TrackedAppsController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="1091" />
+        <location filename="../src/controllers/__init__.py" line="1092" />
         <source>Installed</source>
         <translation>Установлено</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="1092" />
+        <location filename="../src/controllers/__init__.py" line="1093" />
         <source>Not installed</source>
         <translation>Не установлено</translation>
     </message>
     <message>
-        <location filename="../src/controllers/__init__.py" line="1093" />
+        <location filename="../src/controllers/__init__.py" line="1094" />
         <source>Partial</source>
         <translation>Частично</translation>
     </message>
 </context><context>
     <name>WallpaperController</name>
     <message>
-        <location filename="../src/controllers/__init__.py" line="996" />
+        <location filename="../src/controllers/__init__.py" line="997" />
         <source>Another operation is still running</source>
         <translation>Другая операция ещё выполняется</translation>
     </message>

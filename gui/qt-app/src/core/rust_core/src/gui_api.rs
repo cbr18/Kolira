@@ -357,6 +357,23 @@ pub fn request(method: &str, args: &Value) -> Result<Value> {
         }
         "settings.defaults" => Ok(settings_defaults()),
         "settings.get" => Ok(settings()),
+        "quick_switch.get" => Ok(crate::quick_switch::get()),
+        "quick_switch.cards" => crate::quick_switch::cards(),
+        "quick_switch.prepare" => crate::preview::prepare(args),
+        "quick_switch.set" => {
+            let update = args
+                .get("settings")
+                .and_then(Value::as_object)
+                .context("settings must be an object")?;
+            crate::quick_switch::set(&Value::Object(update.clone()))
+        }
+        "quick_switch.set_hotkey" => {
+            let key = args
+                .get("hotkey")
+                .and_then(Value::as_str)
+                .context("missing string hotkey")?;
+            crate::quick_switch::set_hotkey(key)
+        }
         "settings.set" => {
             let _lock = lock_file(&paths::theme_root().join("preferences.lock"))?;
             let update = args

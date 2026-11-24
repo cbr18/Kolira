@@ -267,6 +267,12 @@ def main() -> int:
     if "--help" in sys.argv or "-h" in sys.argv:
         return _show_help()
 
+    # Quick Switch is its own process: no tray, no Inspector, no MainController.
+    if "--quick-switch" in sys.argv[1:]:
+        from quick_switch_app import main as quick_switch_main
+
+        return quick_switch_main(sys.argv)
+
     # Handle --version
     if "--version" in sys.argv:
         print(f"kolira {APP_VERSION}")
