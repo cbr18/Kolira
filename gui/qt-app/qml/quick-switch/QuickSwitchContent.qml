@@ -188,16 +188,32 @@ Item {
     }
 
     // ── closing wave + blackout ──────────────────────────────────────────────
-    Rectangle {
-        id: wave
-        anchors.centerIn: parent
-        width: root.height
-        height: root.height
-        radius: width / 2
-        color: root.accent
-        opacity: 0
-        scale: 0
+    // The wave is a full-screen shader: progress drives it, u_reveal flips it
+    // between "paint the screen" and "open a hole". The blackout underneath is
+        // the guarantee — even if the shader fails, the screen still reaches
+    // full black before the Rust transaction starts.
+    ShaderEffect {
+        id: waveShader
+        anchors.fill: parent
+        fragmentShader: "shaders/wave.qsb"
         visible: false
+
+        property real u_progress: 0
+        property real u_reveal: 0
+        property vector2d u_resolution: Qt.vector2d(root.width, root.height)
+        property vector2d u_origin: Qt.point(0.5, 0.48)
+        property vector3d u_accent: Qt.vector3d(root.accent.r, root.accent.g, root.accent.b)
+        property vector3d u_c0: Qt.vector3d(colourAt(0).r, colourAt(0).g, colourAt(0).b)
+        property vector3d u_c2: Qt.vector3d(colourAt(2).r, colourAt(2).g, colourAt(2).b)
+    }
+
+    function colourAt(index) {
+        var list = (root.current && root.current.swatches) ? root.current.swatches : []
+        if (list.length > index) {
+            var value = Qt.color(list[index])
+            if (value.valid) return value
+        }
+        return index === 0 ? "#101014" : root.accent
     }
 
     Rectangle {
@@ -325,7 +341,9 @@ Item {
             return
         }
         if (phase === "revealing") {
-            applyScreen.opacity = 1
+            // The black wave covers the screen; hide the apply screen before
+            // it opens, otherwise it would show through the hole.
+            applyScreen.opacity = 0
             revealAnimation.start()
             return
         }
@@ -336,7 +354,6 @@ Item {
             return
         }
         // attention, error and select: drop the blackout.
-        wave.visible = false
         blackout.opacity = 0
         applyScreen.opacity = 0
     }
@@ -347,30 +364,52 @@ Item {
         id: closeAnimation
         ScriptAction {
             script: {
-                wave.visible = true
-                wave.opacity = 0.9
-                wave.scale = 0
+                waveShader.visible = true
+                waveShader.u_reveal = 0
+                waveShader.u_progress = 0
+                blackout.opacity = 0
             }
         }
         ParallelAnimation {
             NumberAnimation {
-                target: wave
-                property: "scale"
+                target: waveShader
+                property: "u_progress"
                 from: 0
-                to: Math.max(2, root.width / root.height)
+                to: 1
                 duration: 250
                 easing.type: Easing.InCubic
             }
-            NumberAnimation { target: wave; property: "opacity"; from: 0.9; to: 1; duration: 250 }
-            NumberAnimation { target: blackout; property: "opacity"; from: 0; to: 1; duration: 250 }
+            NumberAnimation {
+                target: blackout
+                property: "opacity"
+                from: 0
+                to: 1
+                duration: 250
+                easing.type: Easing.InCubic
+            }
         }
         ScriptAction { script: quickSwitch.beginApply() }
     }
 
-    // Reveal: the black opens and the new desktop appears.
+    // Reveal: the wave opens a hole and the new desktop appears.
     SequentialAnimation {
         id: revealAnimation
+        ScriptAction {
+            script: {
+                waveShader.u_reveal = 1
+                waveShader.u_progress = 0
+                waveShader.visible = true
+            }
+        }
         ParallelAnimation {
+            NumberAnimation {
+                target: waveShader
+                property: "u_progress"
+                from: 0
+                to: 1
+                duration: 250
+                easing.type: Easing.OutCubic
+            }
             NumberAnimation {
                 target: blackout
                 property: "opacity"
@@ -379,15 +418,13 @@ Item {
                 duration: 250
                 easing.type: Easing.OutCubic
             }
-            NumberAnimation {
-                target: applyScreen
-                property: "opacity"
-                from: 1
-                to: 0
-                duration: 250
+        }
+        ScriptAction {
+            script: {
+                waveShader.visible = false
+                quickSwitch.finishReveal()
             }
         }
-        ScriptAction { script: quickSwitch.finishReveal() }
     }
 
     // ── input ────────────────────────────────────────────────────────────────
