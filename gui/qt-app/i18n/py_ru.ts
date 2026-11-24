@@ -796,14 +796,6 @@
         <source>Stopped: the theme was not applied</source>
         <translation>Остановлено: тема не применена</translation>
     </message>
-    <message>
-        <source>Theme or live settings changed. Review the updated changes.</source>
-        <translation type="vanished">Тема или текущие настройки изменились. Проверьте обновлённые изменения.</translation>
-    </message>
-    <message>
-        <source>Interrupted apply %1. Backup: %2. You can continue or restore it with: kolira operations recover %1</source>
-        <translation type="vanished">Прерванное применение %1. Резервная копия: %2. Можно продолжить работу или восстановить командой: kolira operations recover %1</translation>
-    </message>
 </context><context>
     <name>QuickSwitchController</name>
     <message>
@@ -872,22 +864,6 @@
         <location filename="../src/quick_switch_controller.py" line="549" />
         <source>Kolira не отвечает. Esc закроет оверлей.</source>
         <translation>Kolira не отвечает. Esc закроет оверлей.</translation>
-    </message>
-    <message>
-        <source>Нет ресурса: %1 (%2)</source>
-        <translation type="vanished">Нет ресурса: %1 (%2)</translation>
-    </message>
-    <message>
-        <source>Зависимость: %1</source>
-        <translation type="vanished">Зависимость: %1</translation>
-    </message>
-    <message>
-        <source>Не удалось прочитать список тем: %1</source>
-        <translation type="vanished">Не удалось прочитать список тем: %1</translation>
-    </message>
-    <message>
-        <source>Не удалось запустить kolira: %1</source>
-        <translation type="vanished">Не удалось запустить kolira: %1</translation>
     </message>
 </context><context>
     <name>SystemTray</name>
@@ -1283,22 +1259,6 @@
         <location filename="../src/core/theme_bundle.py" line="356" />
         <source>Selected theme is not installed</source>
         <translation>Выбранная тема не установлена</translation>
-    </message>
-    <message>
-        <source>Global theme, Plasma Style, colors, decorations, icons, cursors and fonts</source>
-        <translation type="vanished">Глобальная тема, стиль Plasma, цвета, оформление окон, значки, курсоры и шрифты</translation>
-    </message>
-    <message>
-        <source>Installed KDE color scheme</source>
-        <translation type="vanished">Установленная цветовая схема KDE</translation>
-    </message>
-    <message>
-        <source>Not installed — only an old config was found</source>
-        <translation type="vanished">Не установлено — найден только старый конфиг</translation>
-    </message>
-    <message>
-        <source>Application not detected</source>
-        <translation type="vanished">Приложение не найдено</translation>
     </message>
 </context><context>
     <name>ThemeBundleController</name>
@@ -2110,22 +2070,6 @@
         <source>Obsidian CSS theme in the selected vault</source>
         <translation>CSS-тема Obsidian в выбранном хранилище</translation>
     </message>
-    <message>
-        <source>Zen transparency</source>
-        <translation type="vanished">Прозрачность Zen</translation>
-    </message>
-    <message>
-        <source>Allow transparent browser tabs in Zen</source>
-        <translation type="vanished">Разрешить прозрачные вкладки в Zen</translation>
-    </message>
-    <message>
-        <source>Zen background opacity</source>
-        <translation type="vanished">Непрозрачность фона Zen</translation>
-    </message>
-    <message>
-        <source>Obsidian base theme</source>
-        <translation type="vanished">Базовая тема Obsidian</translation>
-    </message>
 </context><context>
     <name>ThemeInspectorController</name>
     <message>
@@ -2430,26 +2374,6 @@
         <location filename="../src/core/i18n_strings.py" line="214" />
         <source>Walker 2.x existing theme CSS only; embedded defaults, SCSS and external themes are skipped</source>
         <translation>Только существующий CSS темы Walker 2.x; встроенное оформление, SCSS и внешние темы пропускаются</translation>
-    </message>
-    <message>
-        <source>Manual native theme extension load/reload/reset; never edits browser Preferences or policies</source>
-        <translation type="vanished">Ручная загрузка, обновление и сброс нативной темы; Preferences и policies браузера не меняются</translation>
-    </message>
-    <message>
-        <source>Manual native frame-accent theme; selection and reset stay in browser UI</source>
-        <translation type="vanished">Нативный акцент рамки с ручным выбором и сбросом в браузере</translation>
-    </message>
-    <message>
-        <source>Firefox-based browser with user.js + userChrome.css theming</source>
-        <translation type="vanished">Браузер на основе Firefox, темы через user.js и userChrome.css</translation>
-    </message>
-    <message>
-        <source>System info tool with custom logo/config</source>
-        <translation type="vanished">Сведения о системе со своим логотипом и конфигурацией</translation>
-    </message>
-    <message>
-        <source>Colour scheme generated from the palette (lua/kolira.lua + colors/)</source>
-        <translation type="vanished">Цветовая схема из палитры (lua/kolira.lua и colors/)</translation>
     </message>
 </context><context>
     <name>TrackedAppsController</name>
