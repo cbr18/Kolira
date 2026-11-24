@@ -510,6 +510,15 @@ class QuickSwitchController(QObject):
         self._set_phase(SELECT)
 
     @Slot()
+    def requestToggle(self) -> None:
+        """A second launch (the hotkey again) closes the open overlay."""
+        if self._phase in (PREPARING, APPLYING):
+            # Never hide a running transaction behind a hotkey.
+            self._log("toggle.ignored", phase=self._phase)
+            return
+        self.closed.emit()
+
+    @Slot()
     def dismiss(self) -> None:
         """Close without touching the desktop."""
         if self._phase == APPLYING and not self._hung:

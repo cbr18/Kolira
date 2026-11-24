@@ -292,9 +292,14 @@ qml/
 `QQmlApplicationEngine`, loads `qml/quick-switch/HostSurface.qml` once per screen
 and never touches the main window, the tray, the Inspector or `MainController`.
 
+The hotkey launches the desktop entry again, so the process is a **toggle**:
+a second launch connects to `QLocalServer("kolira-quick-switch")`, the running
+overlay closes and the new process exits. During `preparing`/`applying` the
+request is ignored — a hotkey must not hide a running transaction.
+
 ```
 src/
-├── quick_switch_app.py         # QGuiApplication, one surface per monitor, watchdog
+├── quick_switch_app.py         # QGuiApplication, one surface per monitor, watchdog, toggle
 ├── quick_switch_controller.py  # phases, pre-flight, apply, real stages
 └── qml_runtime.py              # system QML import paths (shared with __main__.py)
 

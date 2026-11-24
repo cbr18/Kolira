@@ -240,7 +240,7 @@ Item {
         width: Math.min(Math.round(root.width * 0.5), 560)
         implicitHeight: panelColumn.implicitHeight + 48
         radius: 14
-        color: "#15151bf0"
+        color: "#15151b"
         border.color: "#3a3a44"
         border.width: 1
         visible: root.phase === "attention" || root.phase === "error"
