@@ -673,14 +673,30 @@ the remaining `folder-*` names still show the plain chest.
 
 `kolira lint NAME [--json]` (also appended to the text output of `kolira check`
 and returned as `warnings` by `agent.prepare`) reports what availability checks
-cannot see: a bundled icon that replaces inherited icons (`N` shadows every
-inherited `N-*` without its own file; `-symbolic` variants and parents not
-installed here are ignored), KDE colour sets Window/View/Button/Tooltip/Header
-whose `ForegroundNormal` is below 4.5:1 or `ForegroundInactive` below 2:1 against
-`BackgroundNormal` (Selection is skipped — stock Breeze keeps its secondary
-selection colours near the accent), and kitty/Alacritty/Konsole palettes whose
-foreground is below 4.5:1 or bright black below 2:1 against the background
-(fish autosuggestions use bright black). `check --json` keeps its `missing` list.
+cannot see:
+
+- a bundled icon that replaces inherited icons (`N` shadows every inherited
+  `N-*` without its own file; `-symbolic` variants and parents not installed
+  here are ignored);
+- KDE colour sets Window/View/Button/Tooltip/Header whose `ForegroundNormal` is
+  below 4.5:1 or `ForegroundInactive` below 2:1 against `BackgroundNormal`
+  (Selection is skipped — stock Breeze keeps its secondary selection colours
+  near the accent);
+- a Kvantum `[GeneralColors]` block whose `tooltip.text.color` / `text.color` /
+  `highlight.text.color` is below 3:1 against its base (tooltip/window/highlight
+  base), catching a light tooltip foreground kept from a dark base (the widget
+  style paints real windows, menus and tooltips, so the KDE scheme check never
+  sees it);
+- a terminal palette (kitty, Alacritty, Konsole, ghostty, wezterm, foot) whose
+  foreground is below 4.5:1 or bright black below 2:1 against the background
+  (fish autosuggestions use bright black);
+- a GTK `colors.css` pair (theme fg/bg, selected fg/bg) whose foreground is below
+  4.5:1 against its background (GTK 3/4 apps read these, not the KDE scheme).
+
+`check --json` keeps its `missing` list. Lint thresholds are conservative on
+Kvantum/GTK to avoid false positives on artwork-backed themes; the checks read
+only files present in the theme's snapshot (an external Kvantum theme referenced
+by name, e.g. Sandstone, is linted only if its `*.kvconfig` is bundled).
 Its `[Colors:Selection]` uses dark foreground variants that stay readable on the
 green selection; with an explicit accent KDE recomputes the selection background
 on apply.

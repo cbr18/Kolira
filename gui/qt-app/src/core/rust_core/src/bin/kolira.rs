@@ -40,7 +40,7 @@ Usage:
                                --without-dependencies skips the dependency check,
                                --without-sync skips editor/messenger/terminal themes)
   kolira check NAME [--json]           (what applying NAME would miss; text output adds lint warnings)
-  kolira lint NAME [--json]            (icons shadowing Breeze, unreadable scheme/terminal colours)
+  kolira lint NAME [--json]            (icon shadowing, scheme/Kvantum/GTK/terminal contrast)
   kolira prune NAME|--all              (drop what is not part of the theme; backup first)
   kolira dependencies list|refresh|register-app|install|remove|reinstall|cancel|operation|orphaned
                                (registry of what themes need; orphaned lists installed-but-unused)

@@ -7,8 +7,16 @@
 //! * Unreadable text in a KDE colour scheme (Window/View/Button/Tooltip/Header;
 //!   Selection is left out — stock Breeze itself keeps its secondary
 //!   selection colours close to the accent).
-//! * A terminal "bright black" that disappears into the background: fish
-//!   autosuggestions, comments and `ls` dim text use it.
+//! * Unreadable text in a Kvantum `[GeneralColors]` block: tooltip/window text
+//!   on its base, and on-accent highlight text — the widget style paints real
+//!   windows, menus and tooltips, so a light foreground on a light base (e.g.
+//!   a recoloured light theme that kept a dark base's white tooltip text) is
+//!   invisible to the KDE colour-scheme check.
+//! * A terminal "bright black" that disappears into the background, or
+//!   unreadable foreground, in kitty, alacritty, konsole, ghostty, wezterm and
+//!   foot: fish autosuggestions, comments and `ls` dim text use bright black.
+//! * A GTK `colors.css` foreground that disappears into its background (normal
+//!   and selected pairs); GTK 3/4 apps read these, not the KDE scheme.
 use crate::{
     config_parser::ini_group_key,
     palette::{contrast, Rgb},
@@ -24,7 +32,7 @@ use std::{
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Warning {
-    /// icons | colors | terminal
+    /// icons | colors | terminal | kvantum | gtk
     pub kind: &'static str,
     /// Package-relative file or directory.
     pub path: String,
@@ -37,6 +45,9 @@ const MIN_TEXT: f64 = 4.5;
 const MIN_INACTIVE: f64 = 2.0;
 /// Terminal bright black on the background.
 const MIN_DIM: f64 = 2.0;
+/// Kvantum tooltip/on-accent text on its base: a softer bar than body text,
+/// because these are short labels and the artwork behind them may differ.
+const MIN_KVANTUM_TEXT: f64 = 3.0;
 /// Icon names listed in a warning.
 const EXAMPLES: usize = 4;
 
@@ -82,7 +93,9 @@ pub fn lint_package(dir: &Path, package: &theme::Package, icon_roots: &[PathBuf]
     for rel in schemes {
         out.extend(color_scheme(dir, &rel));
     }
+    out.extend(kvantum(dir));
     out.extend(terminals(dir));
+    out.extend(gtk(dir));
     out
 }
 
@@ -179,11 +192,16 @@ fn icon_names(root: &Path) -> HashSet<String> {
     names
 }
 
-/// `r,g,b[,a]` or `#rrggbb`.
+/// `r,g,b[,a]`, `#rrggbb`, `#rrggbbaa` or a bare `rrggbb`/`rrggbbaa` (foot,
+/// alacritty hex without `#`).
 fn parse_color(text: &str) -> Option<Rgb> {
     let text = text.trim().trim_matches('"').trim_matches('\'');
     if text.starts_with('#') {
+        // KDE/Kvantum may append an alpha byte: keep the leading #rrggbb.
         return Rgb::parse(text.get(..7)?).ok();
+    }
+    if let Some(rgb) = bare_hex(text) {
+        return Some(rgb);
     }
     let mut parts = text.split(',').map(|p| p.trim().parse::<u8>());
     Some(Rgb(
@@ -191,6 +209,16 @@ fn parse_color(text: &str) -> Option<Rgb> {
         parts.next()?.ok()?,
         parts.next()?.ok()?,
     ))
+}
+
+/// `rrggbb` / `rrggbbaa` without a leading `#` (foot, some TOML dialects).
+fn bare_hex(text: &str) -> Option<Rgb> {
+    let is_hex = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_hexdigit());
+    if (text.len() == 6 || text.len() == 8) && is_hex(text) {
+        Rgb::parse(&text[..6]).ok()
+    } else {
+        None
+    }
 }
 
 fn color_scheme(dir: &Path, rel: &str) -> Vec<Warning> {
@@ -297,6 +325,78 @@ fn terminal_palettes(dir: &Path) -> Vec<TerminalPalette> {
             get("Color0Intense"),
         ));
     }
+    // ghostty: `key = value`, bright black = `palette = 8=`.
+    for path in listed(".config/ghostty", "conf").into_iter().chain(
+        fs::read_dir(dir.join(".config/ghostty"))
+            .into_iter()
+            .flatten()
+            .flatten()
+            .map(|e| e.path())
+            .filter(|p| {
+                p.is_file()
+                    && p.file_name()
+                        .and_then(|n| n.to_str())
+                        .is_some_and(|n| n == "kolira")
+            }),
+    ) {
+        let Ok(text) = fs::read_to_string(&path) else {
+            continue;
+        };
+        let value = |key: &str| {
+            text.lines().find_map(|l| {
+                let (k, v) = l.split_once('=')?;
+                (k.trim() == key).then(|| parse_color(v.trim()))?
+            })
+        };
+        let bright_black = text.lines().find_map(|l| {
+            let (k, v) = l.split_once('=')?;
+            (k.trim() == "palette" && v.trim_start().starts_with("8="))
+                .then(|| parse_color(v.trim().strip_prefix("8=")?))?
+        });
+        if value("background").is_some() || bright_black.is_some() {
+            out.push((
+                rel_of(&path),
+                value("background"),
+                value("foreground"),
+                bright_black,
+            ));
+        }
+    }
+    // wezterm: a `colors = { ... }` inline table.
+    for path in listed(".config/wezterm", "toml") {
+        let Ok(doc) = crate::config_parser::parse_toml(&path) else {
+            continue;
+        };
+        let get = |key: &str| doc.get("colors")?.get(key)?.as_str().and_then(parse_color);
+        let bright_black = doc
+            .get("colors")
+            .and_then(|c| c.get("brights"))
+            .and_then(|b| b.as_array())
+            .and_then(|a| a.first())
+            .and_then(|v| v.as_str())
+            .and_then(parse_color);
+        if get("background").is_some() || bright_black.is_some() {
+            out.push((
+                rel_of(&path),
+                get("background"),
+                get("foreground"),
+                bright_black,
+            ));
+        }
+    }
+    // foot: `[colors-dark]` / `[colors-light]`, bare hex.
+    for path in listed(".config/foot", "ini") {
+        for section in ["colors-dark", "colors-light"] {
+            let get = |key: &str| ini_group_key(&path, section, key).and_then(|v| parse_color(&v));
+            let bright_black = get("bright0");
+            let bg = get("background");
+            let fg = get("foreground");
+            if bg.is_some() || bright_black.is_some() {
+                out.push((rel_of(&path), bg, fg, bright_black));
+                break; // one warning set per file is enough (both sections match)
+            }
+        }
+    }
     out
 }
 
@@ -322,6 +422,145 @@ fn terminals(dir: &Path) -> Vec<Warning> {
                         message: format!(
                             "{what} {} on background {}: contrast {ratio:.2} < {min} ({why})",
                             c.hex(),
+                            bg.hex()
+                        ),
+                    });
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Kvantum `[GeneralColors]`: a light foreground on a light base (tooltip text
+/// above all) is invisible in real windows, menus and tooltips. The KDE
+/// colour-scheme check never sees it because the widget style paints these.
+fn kvantum(dir: &Path) -> Vec<Warning> {
+    let mut out = vec![];
+    let mut files: Vec<PathBuf> = fs::read_dir(dir.join(".config/Kvantum"))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.is_dir())
+        .flat_map(|d| {
+            let name = d
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default();
+            let kv = d.join(format!("{name}.kvconfig"));
+            if kv.is_file() {
+                vec![kv]
+            } else {
+                // A bare kvantum.kvconfig (theme selected by name) has no colours.
+                vec![]
+            }
+        })
+        .collect();
+    files.sort();
+    for path in files {
+        let Ok(text) = fs::read_to_string(&path) else {
+            continue;
+        };
+        let get = |key: &str| general_colors(&text, key);
+        let rel = path
+            .strip_prefix(dir)
+            .unwrap_or(&path)
+            .to_string_lossy()
+            .into_owned();
+        // tooltip text on its base (or the window base if the theme sets none).
+        let tooltip_bg = get("tooltip.base.color").or_else(|| get("window.color"));
+        let mut pairs: Vec<(&str, Rgb, Rgb)> = Vec::new();
+        if let (Some(fg), Some(bg)) = (get("tooltip.text.color"), tooltip_bg) {
+            pairs.push(("tooltip.text.color", fg, bg));
+        }
+        if let (Some(fg), Some(bg)) = (get("text.color"), get("window.color")) {
+            pairs.push(("text.color", fg, bg));
+        }
+        if let (Some(fg), Some(bg)) = (get("highlight.text.color"), get("highlight.color")) {
+            pairs.push(("highlight.text.color", fg, bg));
+        }
+        for (key, fg, bg) in pairs {
+            let ratio = contrast(fg, bg);
+            if ratio < MIN_KVANTUM_TEXT {
+                out.push(Warning {
+                    kind: "kvantum",
+                    path: rel.clone(),
+                    message: format!(
+                        "[GeneralColors] {key} {} on {}: contrast {ratio:.2} < {MIN_KVANTUM_TEXT}",
+                        fg.hex(),
+                        bg.hex()
+                    ),
+                });
+            }
+        }
+    }
+    out
+}
+
+/// A `[GeneralColors]` value (`#rrggbb[aa]`), read from a kvconfig string.
+fn general_colors(text: &str, key: &str) -> Option<Rgb> {
+    let mut in_colors = false;
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('[') {
+            in_colors = trimmed == "[GeneralColors]";
+            continue;
+        }
+        if !in_colors {
+            continue;
+        }
+        if let Some((k, v)) = trimmed.split_once('=') {
+            if k.trim() == key {
+                return parse_color(v.trim());
+            }
+        }
+    }
+    None
+}
+
+/// GTK `colors.css`: `@define-color` foreground/background pairs. GTK 3/4 apps
+/// read these, not the KDE scheme.
+fn gtk(dir: &Path) -> Vec<Warning> {
+    let mut out = vec![];
+    let mut files: Vec<PathBuf> = [".config/gtk-3.0/colors.css", ".config/gtk-4.0/colors.css"]
+        .iter()
+        .map(|rel| dir.join(rel))
+        .filter(|p| p.is_file())
+        .collect();
+    files.sort();
+    for path in files {
+        let Ok(text) = fs::read_to_string(&path) else {
+            continue;
+        };
+        let color = |name: &str| {
+            text.lines().find_map(|l| {
+                let rest = l.trim().strip_prefix("@define-color ")?;
+                let (n, v) = rest.split_once(' ')?;
+                (n == name).then(|| parse_color(v.trim().trim_end_matches(';')))
+            })?
+        };
+        let rel = path
+            .strip_prefix(dir)
+            .unwrap_or(&path)
+            .to_string_lossy()
+            .into_owned();
+        for (fg_name, bg_name) in [
+            ("theme_fg_color_breeze", "theme_bg_color_breeze"),
+            (
+                "theme_selected_fg_color_breeze",
+                "theme_selected_bg_color_breeze",
+            ),
+        ] {
+            if let (Some(fg), Some(bg)) = (color(fg_name), color(bg_name)) {
+                let ratio = contrast(fg, bg);
+                if ratio < MIN_TEXT {
+                    out.push(Warning {
+                        kind: "gtk",
+                        path: rel.clone(),
+                        message: format!(
+                            "{fg_name} {} on {bg_name} {}: contrast {ratio:.2} < {MIN_TEXT}",
+                            fg.hex(),
                             bg.hex()
                         ),
                     });
@@ -484,5 +723,80 @@ mod tests {
         assert!(warnings
             .iter()
             .all(|w| w.kind == "terminal" && w.message.starts_with("bright black")));
+    }
+
+    #[test]
+    fn ghostty_wezterm_foot_bright_black_is_reported() {
+        let tmp = tempfile::tempdir().unwrap();
+        let pkg = tmp.path().join("pkg");
+        write(
+            &pkg.join(".config/ghostty/kolira"),
+            "background = #252525\nforeground = #cccccc\npalette = 0=#111111\npalette = 8=#3a3a3a\n",
+        );
+        write(
+            &pkg.join(".config/wezterm/kolira.toml"),
+            "colors = { background = \"#252525\", foreground = \"#cccccc\", ansi = [\"#111111\"], brights = [\"#3a3a3a\"] }\n",
+        );
+        write(
+            &pkg.join(".config/foot/foot.ini"),
+            "[colors-dark]\nbackground=252525\nforeground=cccccc\nbright0=3a3a3a\nregular0=111111\n",
+        );
+        let warnings = lint_package(&pkg, &package(&[]), &[]);
+        let mut paths: Vec<&str> = warnings.iter().map(|w| w.path.as_str()).collect();
+        paths.sort_unstable();
+        assert_eq!(
+            paths,
+            [
+                ".config/foot/foot.ini",
+                ".config/ghostty/kolira",
+                ".config/wezterm/kolira.toml",
+            ],
+            "{warnings:?}"
+        );
+        assert!(warnings.iter().all(|w| w.kind == "terminal"));
+    }
+
+    #[test]
+    fn kvantum_light_tooltip_text_on_light_base_is_reported() {
+        let tmp = tempfile::tempdir().unwrap();
+        let pkg = tmp.path().join("pkg");
+        // A light theme whose tooltip text stayed light (the Sandstone bug).
+        write(
+            &pkg.join(".config/Kvantum/X/X.kvconfig"),
+            "[GeneralColors]\nwindow.color=#ebdbb2\nbase.color=#ebdbb2\ntext.color=#3c3836\nwindow.text.color=#3c3836\nbutton.text.color=#3c3836\ntooltip.text.color=#ebdbb2\n",
+        );
+        let warnings = lint_package(&pkg, &package(&[]), &[]);
+        let msgs: Vec<&str> = warnings.iter().map(|w| w.message.as_str()).collect();
+        assert_eq!(warnings.len(), 1, "{msgs:?}");
+        assert!(warnings[0].kind == "kvantum");
+        assert!(warnings[0]
+            .message
+            .starts_with("[GeneralColors] tooltip.text.color"));
+    }
+
+    #[test]
+    fn kvantum_readable_tooltip_is_not_reported() {
+        let tmp = tempfile::tempdir().unwrap();
+        let pkg = tmp.path().join("pkg");
+        write(
+            &pkg.join(".config/Kvantum/X/X.kvconfig"),
+            "[GeneralColors]\nwindow.color=#ebdbb2\ntooltip.text.color=#3c3836\ntext.color=#3c3836\n",
+        );
+        let warnings = lint_package(&pkg, &package(&[]), &[]);
+        assert!(warnings.is_empty(), "{warnings:?}");
+    }
+
+    #[test]
+    fn gtk_low_contrast_pair_is_reported() {
+        let tmp = tempfile::tempdir().unwrap();
+        let pkg = tmp.path().join("pkg");
+        write(
+            &pkg.join(".config/gtk-3.0/colors.css"),
+            "@define-color theme_fg_color_breeze #cccccc;\n@define-color theme_bg_color_breeze #f0f0f0;\n@define-color theme_selected_fg_color_breeze #ffffff;\n@define-color theme_selected_bg_color_breeze #586d47;\n",
+        );
+        let warnings = lint_package(&pkg, &package(&[]), &[]);
+        assert_eq!(warnings.len(), 1, "{warnings:?}");
+        assert!(warnings[0].kind == "gtk");
+        assert!(warnings[0].message.starts_with("theme_fg_color_breeze"));
     }
 }
