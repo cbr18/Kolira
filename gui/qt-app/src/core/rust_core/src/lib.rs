@@ -62,6 +62,7 @@ pub mod resource_clone;
 pub mod obsidian;
 pub mod operation;
 mod restore_points;
+mod retention;
 
 pub mod change_plan;
 

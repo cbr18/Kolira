@@ -792,6 +792,10 @@ pub fn run<T>(profile: &str, work: impl FnOnce() -> Result<T>) -> Result<T> {
                 }
             }
             save(&record)?;
+            // Bounded retention for the apply's own footprint (best-effort):
+            // never fails an otherwise successful apply. The just-finished
+            // operation is protected from eviction inside the sweep.
+            crate::retention::run_after_apply(&record.id);
             Ok(value)
         }
         Err(error) => {
