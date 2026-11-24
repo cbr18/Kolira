@@ -16,8 +16,9 @@ FAILED=0
 pass() { echo "PASS  $1"; }
 fail() { echo "FAIL  $1"; FAILED=1; }
 
-export XDG_RUNTIME_DIR="/tmp/xdg-$(id -u)"
-mkdir -p -m 700 "$XDG_RUNTIME_DIR"
+XDG_RUNTIME_DIR="/tmp/xdg-$(id -u)"
+export XDG_RUNTIME_DIR
+mkdir -m 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
 export LANG=C.UTF-8 PATH="$HOME/.local/bin:$PATH"
 export LIBGL_ALWAYS_SOFTWARE=1 QT_QUICK_BACKEND=software KWIN_COMPOSE=Q
 export WAYLAND_DISPLAY=wayland-e2e QT_QPA_PLATFORM=wayland XDG_SESSION_TYPE=wayland
