@@ -539,7 +539,7 @@ dependencies = [
 
 [[package]]
 name = "kolira_core"
-version = "0.9.5"
+version = "0.9.6"
 dependencies = [
  "anyhow",
  "chrono",

@@ -1391,6 +1391,9 @@ fn install_from_store(d: &Dependency) -> Result<String> {
         if d.kind == "icons" && add_breeze_fallback(&prepared.join("index.theme")) {
             note = " (Breeze added as fallback for icons it lacks)".into();
         }
+        if d.kind == "gtk" && drop_theme_gtk_prefer_dark(&prepared) {
+            note.push_str(" (removed theme gtk-application-prefer-dark-theme)");
+        }
         fs::rename(&prepared, &dst)?;
         crate::dependency_registry::record_source(std::slice::from_ref(&dst), &d.id, &d.title)?;
         placed.push(format!("{name}{note}"));
@@ -1518,6 +1521,47 @@ pub(crate) fn install_unrecorded(d: &Dependency) -> Result<String> {
     Ok(result)
 }
 
+/// A GTK theme may ship its own `gtk-3.0/settings.ini` (or `gtk-4.0/`) that
+/// sets `gtk-application-prefer-dark-theme`. That key belongs to the user's own
+/// `~/.config/gtk-3.0/settings.ini`, and when a *theme* provides it GTK3 can
+/// spin in an infinite recursion at startup (seen with the Cyber Dusk /
+/// `cdrg-fedora` theme: libgtk-3 at 100 % CPU, no window ever maps). Drop the
+/// key from a theme's settings.ini before installing it. Returns the new text
+/// when something was removed.
+fn without_gtk_prefer_dark(text: &str) -> Option<String> {
+    let mut changed = false;
+    let mut out = String::with_capacity(text.len());
+    for line in text.split_inclusive('\n') {
+        if line
+            .trim_start()
+            .starts_with("gtk-application-prefer-dark-theme")
+        {
+            changed = true;
+            continue;
+        }
+        out.push_str(line);
+    }
+    changed.then_some(out)
+}
+
+/// Apply [`without_gtk_prefer_dark`] to a theme's `gtk-3.0`/`gtk-4.0`
+/// `settings.ini`. Returns whether any file changed.
+fn drop_theme_gtk_prefer_dark(theme_dir: &Path) -> bool {
+    let mut changed = false;
+    for gtk in ["gtk-3.0", "gtk-4.0"] {
+        let ini = theme_dir.join(gtk).join("settings.ini");
+        let Ok(text) = fs::read_to_string(&ini) else {
+            continue;
+        };
+        if let Some(new) = without_gtk_prefer_dark(&text) {
+            if fs::write(&ini, new).is_ok() {
+                changed = true;
+            }
+        }
+    }
+    changed
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1547,6 +1591,45 @@ mod tests {
             root_command(&[&bad]),
             None,
             "unsafe names never reach a shell"
+        );
+    }
+
+    #[test]
+    fn gtk_themes_lose_their_prefer_dark_key() {
+        let ini = "[Settings]\ngtk-theme-name=Cyber Dusk\ngtk-application-prefer-dark-theme=1\ngtk-font-name=Noto Sans, 10\n";
+        let out = without_gtk_prefer_dark(ini).unwrap();
+        assert!(!out.contains("gtk-application-prefer-dark-theme"), "{out}");
+        assert!(out.contains("gtk-theme-name=Cyber Dusk\n"), "{out}");
+        assert!(out.contains("gtk-font-name=Noto Sans, 10\n"), "{out}");
+        // idempotent, and a no-op when the key is absent
+        assert_eq!(without_gtk_prefer_dark(&out), None);
+        assert_eq!(
+            without_gtk_prefer_dark("[Settings]\ngtk-theme-name=Breeze\n"),
+            None
+        );
+
+        // the on-disk helper edits gtk-3.0/gtk-4.0 settings.ini under a theme dir
+        let tmp = tempfile::tempdir().unwrap();
+        for gtk in ["gtk-3.0", "gtk-4.0"] {
+            let dir = tmp.path().join(gtk);
+            fs::create_dir_all(&dir).unwrap();
+            fs::write(
+                dir.join("settings.ini"),
+                "[Settings]\ngtk-application-prefer-dark-theme=true\n",
+            )
+            .unwrap();
+        }
+        assert!(drop_theme_gtk_prefer_dark(tmp.path()));
+        for gtk in ["gtk-3.0", "gtk-4.0"] {
+            let text = fs::read_to_string(tmp.path().join(gtk).join("settings.ini")).unwrap();
+            assert!(
+                !text.contains("gtk-application-prefer-dark-theme"),
+                "{gtk}: {text}"
+            );
+        }
+        assert!(
+            !drop_theme_gtk_prefer_dark(tmp.path()),
+            "second pass is a no-op"
         );
     }
 
