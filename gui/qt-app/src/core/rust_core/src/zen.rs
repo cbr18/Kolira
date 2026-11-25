@@ -128,8 +128,15 @@ fn spec_for_profile(profile: &str, palette: Option<&Palette>) -> Option<Gradient
     };
 
     match () {
-        // Glass keeps the standard Zen gradient — do not touch.
-        _ if is("glass") => None,
+        // Glass: default transparent — neutral dark translucent, no texture.
+        _ if is("glass") => Some(GradientSpec {
+            stops: vec![
+                GradientStop { colour: "30,30,30".into(), is_primary: true },
+                GradientStop { colour: "#1e1e1e73".into(), is_primary: false },
+            ],
+            opacity: 0.4,
+            texture: Texture::none(),
+        }),
 
         // Sakura: two pinks, no texture.
         _ if is("sakura") => Some(GradientSpec {
@@ -282,7 +289,7 @@ pub fn apply_zen_gradient(profile: &str) -> Result<bool> {
 /// immediately. If Zen is not running the file is patched synchronously.
 ///
 /// Returns `Ok(true)` when a patch was scheduled or applied, `Ok(false)` when
-/// the profile is `glass` (left untouched) or the sessions file is missing.
+/// the sessions file is missing or `KTM_THEME_NO_APPLY=1`.
 pub fn apply_zen_gradient_with_palette(profile: &str, palette: Option<&Palette>) -> Result<bool> {
     if no_apply() {
         return Ok(false);
@@ -439,9 +446,11 @@ mod tests {
     }
 
     #[test]
-    fn glass_is_skipped() {
-        assert!(spec_for_profile("glass", None).is_none());
-        assert!(spec_for_profile("Glass", None).is_none());
+    fn glass_has_default_transparent() {
+        let spec = spec_for_profile("glass", None).unwrap();
+        assert_eq!(spec.stops[0].colour, "30,30,30");
+        assert_eq!(spec.texture.kind, "none");
+        assert!(spec_for_profile("Glass", None).is_some());
     }
 
     #[test]
