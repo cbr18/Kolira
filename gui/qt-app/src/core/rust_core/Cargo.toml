@@ -1,6 +1,6 @@
 [package]
 name = "kolira_core"
-version = "0.9.5"
+version = "0.9.6"
 edition = "2021"
 description = "Kolira - Rust core and CLI for KDE appearance"
 license = "MIT"
@@ -60,6 +60,7 @@ tar = { version = "0.4", default-features = false }
 zip = { version = "2", default-features = false, features = ["deflate"] }
 sha2 = "0.10"
 tempfile = "3"
+lz4 = "1.28.1"
 
 
 

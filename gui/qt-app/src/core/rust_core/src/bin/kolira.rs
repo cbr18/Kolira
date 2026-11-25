@@ -1522,6 +1522,19 @@ fn dispatch() -> ExitCode {
             }
             ExitCode::SUCCESS
         }
+        "__zen-deferred-patch" => {
+            // Hidden subcommand: detached child that waits for Zen to exit,
+            // then patches zen-sessions.jsonlz4. Args: <path> <spec-json>.
+            let path = args.get(1).map(String::as_str).unwrap_or("");
+            let spec = args.get(2).map(String::as_str).unwrap_or("");
+            if path.is_empty() || spec.is_empty() {
+                return fail("Usage: __zen-deferred-patch <path> <spec-json>");
+            }
+            match kolira_core::zen::run_deferred_patch(path, spec) {
+                Ok(()) => ExitCode::SUCCESS,
+                Err(e) => fail(format!("deferred Zen patch failed: {e}")),
+            }
+        }
         "--help" | "-h" => {
             print!("{USAGE}");
             ExitCode::SUCCESS

@@ -2056,6 +2056,19 @@ fn apply_with_paths_keeping_inner(
                 }
             }
             run_custom_reload_hooks(rel_paths);
+            // Zen gradient: patch zen-sessions.jsonlz4 after the theme is
+            // applied. If Zen is running the patch is deferred to a child
+            // process that waits for Zen to exit. The palette is read from
+            // the profile directory (not the live location, which may not
+            // have been updated yet for appearance-only themes).
+            if rel_paths.iter().any(|p| crate::browser_appearance::is_zen(p)) {
+                let palette = crate::palette::load(
+                    &dir.join(crate::palette::LIVE_PALETTE_REL),
+                ).ok();
+                if let Err(e) = crate::zen::apply_zen_gradient_with_palette(profile, palette.as_ref()) {
+                    eprintln!("Warning: could not apply Zen gradient: {e}");
+                }
+            }
             if let Some(package) = apps {
                 let mut plan = crate::change_plan::Plan::default();
                 crate::app_sync::plan_apps(&dir, package, &mut plan)?;

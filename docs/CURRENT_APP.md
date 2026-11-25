@@ -163,6 +163,12 @@ Obsidian…), плюс `theme.json` (описание, значения для G
 - Никаких переносимых UI CSS, opacity/density, privacy/addon prefs или записи prefs.js.
 - Контраст текста/иконок проверяется; отключённый личный CSS не включается молча.
 - Pywalfox — отдельный opt-in с существующим baseline wal/colors.json.
+- **Zen gradient** (`zen-sessions.jsonlz4`, mozLz4): после `apply` патчится градиент
+  рабочего пространства Space. `sakura`/`sakura-*` → два розовых без текстуры,
+  `paper`/`Paper` → светло-бежевый + grain, `glass` → не трогается, остальные →
+  base00 + accent из палитры профиля (grain на светлых, none на тёмных). Если Zen
+  запущен (`pgrep -x zen-bin`), патч откладывается в дочерний процесс
+  (`kolira __zen-deferred-patch`), который ждёт выхода Zen и атомарно перезаписывает файл.
 
 ### Notes (опционально)
 - Obsidian: vault index + явный локальный выбор при нескольких хранилищах.

@@ -44,6 +44,7 @@ pub mod tracked_apps;
 pub mod types;
 pub mod undo;
 pub mod wallpaper;
+pub mod zen;
 
 #[cfg(test)]
 mod tests;
