@@ -127,6 +127,7 @@ class QuickSwitchController(QObject):
         self._prepare_timer.timeout.connect(self._check_prepared)
         self._token = ""
         self._apply_process: Optional[QProcess] = None
+        self._apply_retries = 0
         self._hung = False
         self._poll = QTimer(self)
         self._poll.setInterval(700)
@@ -369,6 +370,7 @@ class QuickSwitchController(QObject):
             return
         self._set_status("")
         self._set_stage(0)
+        self._apply_retries = 0
         self._prefetch(name)
         self._set_phase(CLOSING)
 
@@ -485,6 +487,13 @@ class QuickSwitchController(QObject):
             self._fail(self.tr("Не удалось запустить kolira: {error}").format(error=process.errorString()))
             return
         if code != 0:
+            combined = f"{errors}\n{raw}"
+            if "PREVIEW_STALE" in combined and self._apply_retries < 1:
+                # The pre-flight token was built while browsing and the live
+                # state drifted before the apply. Re-prepare fresh and retry
+                # once instead of failing the whole switch.
+                self._retry_after_stale()
+                return
             self._fail(errors or raw or self.tr("Применение не удалось"))
             return
         try:
@@ -495,6 +504,27 @@ class QuickSwitchController(QObject):
         self._set_stage(2)
         self._set_status(self.tr("Готово"))
         self._set_phase(REVEALING)
+
+    def _retry_after_stale(self) -> None:
+        """Rebuild the pre-flight against the current live state and retry once.
+
+        The cached token came from `_prefetch` while the user was browsing; if
+        the desktop changed since (another apply, a wallpaper step, settings
+        edited), the core rejects it as PREVIEW_STALE. Dropping the cached plan
+        and re-running the normal PREPARING → apply path yields a fresh token.
+        """
+        name = self._pending_name or self._name_at(self._index)
+        self._apply_retries += 1
+        self._log("apply.retry_stale", name=name)
+        with self._prepared_lock:
+            self._prepared.pop(name, None)
+        self._token = ""
+        self._prepare_attempts = 0
+        self._set_stage(0)
+        self._set_status(self.tr("Обновляю предпросмотр…"))
+        self._set_phase(PREPARING)
+        self._prefetch(name)
+        self._prepare_timer.start()
 
     def _poll_operation(self) -> None:
         """Real stage from the durable operation record."""
@@ -535,6 +565,7 @@ class QuickSwitchController(QObject):
         """Back to the carousel after an error or a refused confirmation."""
         self._message = ""
         self._attention = []
+        self._apply_retries = 0
         self._set_stage(0)
         self._set_status("")
         self._set_phase(SELECT)
