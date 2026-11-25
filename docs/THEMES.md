@@ -31,7 +31,7 @@ takes the family from the theme and keeps the live size.
 | File | Stored and applied | Left alone |
 |---|---|---|
 | `kdeglobals` | `[Colors:*]`, `[ColorEffects:*]`, `[WM]`, `[Icons]`, `[General]` font families including the active window title font (`activeFont`, live sizes kept), ColorScheme/Accent*, `KDE` LookAndFeelPackage/widgetStyle/contrast/AnimationDurationFactor | `[KScreen]` scaling, `TerminalApplication`, `[KFileDialog Settings]`, `[PreviewSettings]`, other `[KDE]` behaviour |
-| `kwinrc` | `[Effect-*]`, `[Round-Corners]` (Rounded Corners effect), `[org.kde.kdecoration2]`, effect switches in `[Plugins]`. Better Blur DX in the bundled themes blurs everything except `WindowClasses=plasmashell\\nswaync`: forced blur covers the whole surface, so panels and notifications, whose surfaces have transparent margins, use the exact area they request instead of getting a halo. The settings of an effect the theme keeps off are left out (`<id>Enabled=false`, or no key for `translucency`/`blurplus`, which are off by default) | `[Desktops]`, `[Tiling]`, `[Windows]`, `[Wayland]`, KWin *scripts* in `[Plugins]` (krohnkite, snapping…); the live settings of an effect the theme keeps off |
+| `kwinrc` | `[Effect-*]`, `[Round-Corners]` (Rounded Corners effect), `[org.kde.kdecoration2]`, effect switches in `[Plugins]`. Better Blur DX in the bundled themes blurs everything except `WindowClasses=plasmashell\\nswaync\\norg.telegram.desktop\\nTelegramDesktop\\nkotatogramdesktop\\nKotatogramDesktop`: forced blur covers the whole surface, so panels and notifications, whose surfaces have transparent margins, use the exact area they request instead of getting a halo; Telegram and Kotatogram are excluded (their app_id and X11 `StartupWMClass`). The corner radius is one value per theme (see below). The settings of an effect the theme keeps off are left out (`<id>Enabled=false`, or no key for `translucency`/`blurplus`, which are off by default) | `[Desktops]`, `[Tiling]`, `[Windows]`, `[Wayland]`, KWin *scripts* in `[Plugins]` (krohnkite, snapping…); the live settings of an effect the theme keeps off |
 | `kwinrulesrc` | rules with a look property, reduced to their match keys (`Description`, `wmclass*`, `title*`, `types`, …) and look properties (`opacityactive/inactive`, `noborder`, `decocolor`, `decorationpolicy` + their `…rule`); merged by id — a live rule with the same id keeps its behaviour keys. The rule list is written in the live file's format (KWin 6: `Order=`, older: `count`/`rules`) | the user's other rules; position, size, desktops, shortcuts and other behaviour properties |
 | `plasmarc` | `[Theme]` | `[Wallpapers]` list |
 | `plasmashellrc` | per panel `[PlasmaViews][Panel N]` `floating`, `panelOpacity`; a live panel takes the theme panel with the same id, else the one on the same screen edge, else the first | thickness, lengths, alignment, offsets, auto-hide (`panelVisibility`), `[Updates]` |
@@ -62,6 +62,16 @@ theme's journal. Omitted individual settings such as `AccentColor`, fonts or
 icons keep their baseline values. A saved color scheme with color groups
 replaces those groups together. A profile with individual color roles and no
 scheme changes only the supplied roles.
+
+**Corner radius is one value per theme.** Each bundled theme uses a single
+radius R everywhere it is configurable: the Klassy `WindowCornerRadius` (or the
+KWin `Round-Corners` effect's `Size`/`InactiveCornerRadius` for the Aurorae
+themes), Better Blur DX `RefractionCornerRadius` (and `CornerRadius` when the
+key is present), and every wofi `border-radius` (outer window, `#input`,
+`#entry`, `#img`). The Aurorae SVG geometry (`Se7enAero`) is baked into the
+asset and is not a config key. Current R: glass/dracula/everforest 10,
+material-you 14, sakura-dream 12, minecraft-overworld-dark 0, Paper 0,
+frutiger-aero 10, frutiger-aero-light 10.
 
 VS Code, Code - OSS, Cursor, btop and Zed also overlay their supplied appearance
 keys on the restored baseline. A profile that sets only the app's theme

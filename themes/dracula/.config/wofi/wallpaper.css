@@ -1,7 +1,7 @@
 window {
     background-color: rgba(15, 15, 18, 0.70);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
+    border-radius: 10px;
 }
 
 #outer-box {
@@ -67,7 +67,7 @@ window {
 #img {
     margin: 0;
     background-color: transparent;
-    border-radius: 8px;
+    border-radius: 10px;
 }
 
 #text {

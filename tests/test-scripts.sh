@@ -2506,18 +2506,32 @@ else
   fail "update script dropped its options"
 fi
 
-# --- Forced blur leaves panels and notifications their own area ---------------------
+# --- Forced blur leaves panels, notifications, Telegram and Kotatogram their own area
 BLUR_OK=1
 for theme in "$SCRIPT_DIR"/themes/*/; do
   if grep -qxF 'better_blur_dxEnabled=false' "$theme/.config/kwinrc"; then
     continue
   fi
-  grep -qxF 'WindowClasses=plasmashell\nswaync' "$theme/.config/kwinrc" || BLUR_OK=0
+  grep -qxF 'WindowClasses=plasmashell\nswaync\norg.telegram.desktop\nTelegramDesktop\nkotatogramdesktop\nKotatogramDesktop' "$theme/.config/kwinrc" || BLUR_OK=0
 done
 if [ "$BLUR_OK" = 1 ]; then
-  ok "bundled themes with forced blur exclude plasmashell and swaync"
+  ok "bundled themes with forced blur exclude plasmashell, swaync, Telegram and Kotatogram"
 else
   fail "a bundled theme lacks the blur exceptions"
+fi
+
+# --- Blur corners are actually rounded (CornerRadius, not just Refraction) --------
+CORNER_OK=1
+for theme in "$SCRIPT_DIR"/themes/*/; do
+  if grep -qxF 'better_blur_dxEnabled=false' "$theme/.config/kwinrc"; then
+    continue
+  fi
+  grep -qE '^CornerRadius=[0-9.]+$' "$theme/.config/kwinrc" || CORNER_OK=0
+done
+if [ "$CORNER_OK" = 1 ]; then
+  ok "bundled themes with forced blur set CornerRadius (rounded blur, not square)"
+else
+  fail "a bundled theme lacks the BBDX CornerRadius (blur stays square)"
 fi
 
 # --- The first install saves the current look -------------------------------------

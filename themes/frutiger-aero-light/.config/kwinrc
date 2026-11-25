@@ -16,7 +16,7 @@ RefractionNormalPow=10
 RefractionRGBFringing=3
 RefractionStrength=19
 Saturation=100
-WindowClasses=plasmashell\nswaync
+WindowClasses=plasmashell\nswaync\norg.telegram.desktop\nTelegramDesktop\nkotatogramdesktop\nKotatogramDesktop
 
 [Effect-overview]
 BorderActivate=9

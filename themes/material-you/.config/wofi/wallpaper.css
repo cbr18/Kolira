@@ -1,7 +1,7 @@
 window {
     background-color: rgba(15, 15, 18, 0.70);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
+    border-radius: 14px;
 }
 
 #outer-box {
@@ -16,7 +16,7 @@ window {
     color: #ebebf0;
 
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
+    border-radius: 14px;
 
     box-shadow: none;
 }
@@ -41,7 +41,7 @@ window {
     background-image: none;
 
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: 14px;
     outline: none;
     box-shadow: none;
 }
@@ -52,7 +52,7 @@ window {
     background-image: none;
 
     border: 1px solid rgba(255, 255, 255, 0.20);
-    border-radius: 10px;
+    border-radius: 14px;
     outline: none;
     box-shadow: none;
 }
@@ -67,7 +67,7 @@ window {
 #img {
     margin: 0;
     background-color: transparent;
-    border-radius: 8px;
+    border-radius: 14px;
 }
 
 #text {

@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- **Согласованы радиусы скруглений во всех комплектных темах.** В каждой теме
+  выбран один радиус R (glass/dracula/everforest=10, material-you=14,
+  sakura-dream=12, minecraft-overworld-dark=0, Paper=0, frutiger-aero=10,
+  frutiger-aero-light=10) и применён во всех местах: Klassy
+  `WindowCornerRadius` (или KWin `Round-Corners` `Size`/`InactiveCornerRadius`
+  у Aurorae-тем), Better Blur DX `CornerRadius` и `RefractionCornerRadius`
+  (первый скругляет сам блюр, второй — только «линзу» по краям) и все
+  `border-radius` в wofi (внешнее окно, `#input`, `#entry`, `#img`). Раньше
+  радиусы расходились (например, окна Klassy 10, а Better Blur DX 15 и
+  wofi 16/10/9/8), а у Klassy-тем блюр был квадратным, потому что задавался
+  только `RefractionCornerRadius` без `CornerRadius`.
+- **Better Blur DX больше не размывает Telegram и Kotatogram.** В список
+  исключений `WindowClasses` каждой темы добавлены `org.telegram.desktop`
+  (Wayland app_id) и `TelegramDesktop` (X11 `StartupWMClass`), а также
+  `kotatogramdesktop` и `KotatogramDesktop`. Раньше размывались все окна,
+  кроме `plasmashell` и `swaync`.
 - **Quick Switch** применяет тему без токена предпросмотра (как CLI): пре-флайт используется только для проверки «требует внимания» (недостающие ресурсы/зависимости), а не для подтверждения. Поэтому устаревший токен больше не валит переключение с `PREVIEW_STALE` — применяется состояние на момент записи.
 - Добавлен лёгкий журнал ошибок: только сбои (например, «не удалось применить тема») пишутся одной строкой в `$XDG_CACHE_HOME/kolira/error.log` (по умолчанию `~/.cache/kolira/error.log`) с меткой времени. Хранятся ~1 день и не более 50 МБ (старые строки отбрасываются). Пишутся и ошибки ядра (`core …`), и ошибки CLI (`kolira apply …`); успехи и прогресс не логируются. Смотреть: `tail -f ~/.cache/kolira/error.log`.
 - **Quick Switch** больше не открывается, пока применяется тема: если нажать горячую клавишу во время транзакции, Kolira показывает уведомление и не открывает оверлей (раньше применение падало с «не удалось применить» из-за занятой блокировки оформления). Предпросмотр открывается всегда. Добавлена лёгкая проверка `operation.busy` в ядре.

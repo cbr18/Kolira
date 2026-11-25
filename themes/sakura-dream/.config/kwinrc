@@ -6,12 +6,13 @@ BlurMenus=true
 BlurNonMatching=true
 BlurStrength=8
 Contrast=60
-RefractionCornerRadius=15
+CornerRadius=12
+RefractionCornerRadius=12
 RefractionEdgeSize=14
 RefractionMode=1
 RefractionNormalPow=4
 RefractionStrength=14
-WindowClasses=plasmashell\nswaync
+WindowClasses=plasmashell\nswaync\norg.telegram.desktop\nTelegramDesktop\nkotatogramdesktop\nKotatogramDesktop
 
 [Effect-overview]
 BorderActivate=9

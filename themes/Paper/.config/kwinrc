@@ -9,7 +9,9 @@ Contrast=80
 RefractionEdgeSize=13
 RefractionNormalPow=4
 RefractionStrength=4
-WindowClasses=plasmashell\nswaync
+CornerRadius=0
+RefractionCornerRadius=0
+WindowClasses=plasmashell\nswaync\norg.telegram.desktop\nTelegramDesktop\nkotatogramdesktop\nKotatogramDesktop
 
 [Effect-overview]
 BorderActivate=9
