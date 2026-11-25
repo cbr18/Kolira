@@ -358,11 +358,12 @@ qml/quick-switch/
   `operation.list` while the transaction runs and maps the real record state
   (`preparing`, `applying`, `succeeded`, …) to the scale; the moving bar inside a
   stage is an animation, not a measurement.
-- **Stale preview.** The apply token is built by `_prefetch` while the user is
-  browsing. If the live state drifts before the apply, the core rejects it with
-  `PREVIEW_STALE`; the overlay then drops the cached plan, re-prepares against
-  the current state and retries the apply once (only a second stale result
-  fails). This keeps the fast path but removes the spurious "could not apply".
+- **No token in Quick Switch.** The overlay applies without a `preview_token`,
+  exactly like the CLI (`kolira apply NAME --without-dependencies`). The
+  pre-flight (`quick_switch.prepare`) is kept only for the attention check
+  (missing resources / dependencies); it never gates the apply. This removes
+  the whole class of `PREVIEW_STALE` failures caused by a token that went stale
+  while the user was browsing — the overlay applies the state at write time.
 - **Hotkey.** `~/.local/share/applications/kolira-quick-switch.desktop` carries
   `X-KDE-GlobalAccel-CommandShortcut=true`; the key itself lives in
   `[services][kolira-quick-switch.desktop]` in `~/.config/kglobalshortcutsrc` and
