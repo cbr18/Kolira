@@ -53,6 +53,22 @@ STAGE_BY_STATE = {
 }
 
 
+def appearance_is_busy() -> bool:
+    """True when another process is applying a theme right now.
+
+    The overlay must not open mid-transaction: both its pre-flight and its
+    apply take the cross-process appearance lock, so opening while a theme is
+    still being applied only ends in a confusing "could not apply" failure.
+    The probe fails open (returns False) when the core cannot be reached — a
+    broken check must never stop the overlay from opening.
+    """
+    try:
+        data = core_request("operation.busy") or {}
+    except (RuntimeError, ValueError):
+        return False
+    return bool(data.get("busy"))
+
+
 def _detect_system_reduced_motion() -> bool:
     """KDE's animation factor: 0 means the user turned animations off."""
     import subprocess

@@ -2061,11 +2061,15 @@ fn apply_with_paths_keeping_inner(
             // process that waits for Zen to exit. The palette is read from
             // the profile directory (not the live location, which may not
             // have been updated yet for appearance-only themes).
-            if rel_paths.iter().any(|p| crate::browser_appearance::is_zen(p)) {
-                let palette = crate::palette::load(
-                    &dir.join(crate::palette::LIVE_PALETTE_REL),
-                ).ok();
-                if let Err(e) = crate::zen::apply_zen_gradient_with_palette(profile, palette.as_ref()) {
+            if rel_paths
+                .iter()
+                .any(|p| crate::browser_appearance::is_zen(p))
+            {
+                let palette =
+                    crate::palette::load(&dir.join(crate::palette::LIVE_PALETTE_REL)).ok();
+                if let Err(e) =
+                    crate::zen::apply_zen_gradient_with_palette(profile, palette.as_ref())
+                {
                     eprintln!("Warning: could not apply Zen gradient: {e}");
                 }
             }

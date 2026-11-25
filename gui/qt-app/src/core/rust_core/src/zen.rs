@@ -38,15 +38,14 @@ fn moz_lz4_decompress(data: &[u8]) -> Result<Vec<u8>> {
     }
     let usize = u32::from_le_bytes([data[8], data[9], data[10], data[11]]) as usize;
     let block = &data[12..];
-    let decompressed = lz4::block::decompress(block, Some(usize as i32))
-        .context("lz4 decompression failed")?;
+    let decompressed =
+        lz4::block::decompress(block, Some(usize as i32)).context("lz4 decompression failed")?;
     Ok(decompressed)
 }
 
 /// Compress raw bytes into a `mozLz40` file.
 fn moz_lz4_compress(raw: &[u8]) -> Result<Vec<u8>> {
-    let compressed = lz4::block::compress(raw, None, false)
-        .context("lz4 compression failed")?;
+    let compressed = lz4::block::compress(raw, None, false).context("lz4 compression failed")?;
     let mut out = Vec::with_capacity(12 + compressed.len());
     out.extend_from_slice(MOZ_LZ4_MAGIC);
     out.extend_from_slice(&(raw.len() as u32).to_le_bytes());
@@ -99,10 +98,16 @@ struct Texture {
 
 impl Texture {
     fn none() -> Self {
-        Texture { kind: "none".to_string(), intensity: 0.0 }
+        Texture {
+            kind: "none".to_string(),
+            intensity: 0.0,
+        }
     }
     fn grain() -> Self {
-        Texture { kind: "grain".to_string(), intensity: 0.125 }
+        Texture {
+            kind: "grain".to_string(),
+            intensity: 0.125,
+        }
     }
 }
 
@@ -122,17 +127,21 @@ struct GradientSpec {
 fn spec_for_profile(profile: &str, palette: Option<&Palette>) -> Option<GradientSpec> {
     let name = profile.to_lowercase();
     let is = |needle: &str| {
-        name == needle
-            || name.starts_with(&format!("{needle}-"))
-            || name.starts_with(needle)
+        name == needle || name.starts_with(&format!("{needle}-")) || name.starts_with(needle)
     };
 
     match () {
         // Glass: default transparent — neutral dark translucent, no texture.
         _ if is("glass") => Some(GradientSpec {
             stops: vec![
-                GradientStop { colour: "30,30,30".into(), is_primary: true },
-                GradientStop { colour: "#1e1e1e73".into(), is_primary: false },
+                GradientStop {
+                    colour: "30,30,30".into(),
+                    is_primary: true,
+                },
+                GradientStop {
+                    colour: "#1e1e1e73".into(),
+                    is_primary: false,
+                },
             ],
             opacity: 0.4,
             texture: Texture::none(),
@@ -141,8 +150,14 @@ fn spec_for_profile(profile: &str, palette: Option<&Palette>) -> Option<Gradient
         // Sakura: two pinks, no texture.
         _ if is("sakura") => Some(GradientSpec {
             stops: vec![
-                GradientStop { colour: "255,64,129".into(), is_primary: true },   // #FF4081
-                GradientStop { colour: "#FF80AB73".into(), is_primary: false },   // light pink ~45%
+                GradientStop {
+                    colour: "255,64,129".into(),
+                    is_primary: true,
+                }, // #FF4081
+                GradientStop {
+                    colour: "#FF80AB73".into(),
+                    is_primary: false,
+                }, // light pink ~45%
             ],
             opacity: 0.4,
             texture: Texture::none(),
@@ -151,8 +166,14 @@ fn spec_for_profile(profile: &str, palette: Option<&Palette>) -> Option<Gradient
         // Paper: light beige + grain (paper/canvas feel).
         _ if is("paper") => Some(GradientSpec {
             stops: vec![
-                GradientStop { colour: "245,235,220".into(), is_primary: true },  // #F5EBDC
-                GradientStop { colour: "#E8D5B773".into(), is_primary: false },  // warm beige ~45%
+                GradientStop {
+                    colour: "245,235,220".into(),
+                    is_primary: true,
+                }, // #F5EBDC
+                GradientStop {
+                    colour: "#E8D5B773".into(),
+                    is_primary: false,
+                }, // warm beige ~45%
             ],
             opacity: 0.4,
             texture: Texture::grain(),
@@ -176,8 +197,14 @@ fn spec_from_palette(p: &Palette) -> GradientSpec {
     };
     GradientSpec {
         stops: vec![
-            GradientStop { colour: format!("{},{},{}", bg.0, bg.1, bg.2), is_primary: true },
-            GradientStop { colour: accent_hex, is_primary: false },
+            GradientStop {
+                colour: format!("{},{},{}", bg.0, bg.1, bg.2),
+                is_primary: true,
+            },
+            GradientStop {
+                colour: accent_hex,
+                is_primary: false,
+            },
         ],
         opacity: 0.4,
         texture,
@@ -249,8 +276,8 @@ fn patch_gradient_json(root: &mut Value, spec: &GradientSpec) -> Result<()> {
 
 /// Read the sessions file, patch the gradient, and write it back atomically.
 fn patch_sessions_file(path: &Path, spec: &GradientSpec) -> Result<()> {
-    let compressed = std::fs::read(path)
-        .with_context(|| format!("cannot read {}", path.display()))?;
+    let compressed =
+        std::fs::read(path).with_context(|| format!("cannot read {}", path.display()))?;
     let raw = moz_lz4_decompress(&compressed)
         .with_context(|| format!("cannot decompress {}", path.display()))?;
 
@@ -328,19 +355,13 @@ fn no_apply() -> bool {
 /// Spawn a detached child process that polls until Zen exits, then patches the
 /// sessions file. The child is reparented to init so it survives the parent.
 fn spawn_deferred_patch(path: &Path, spec: &GradientSpec) -> Result<()> {
-    let spec_json = serde_json::to_string(spec)
-        .context("failed to serialise gradient spec")?;
+    let spec_json = serde_json::to_string(spec).context("failed to serialise gradient spec")?;
     let path_str = path.to_string_lossy().to_string();
 
-    let exe = std::env::current_exe()
-        .context("cannot determine current executable")?;
+    let exe = std::env::current_exe().context("cannot determine current executable")?;
 
     Command::new(&exe)
-        .args([
-            "__zen-deferred-patch",
-            &path_str,
-            &spec_json,
-        ])
+        .args(["__zen-deferred-patch", &path_str, &spec_json])
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
@@ -364,8 +385,8 @@ pub fn run_deferred_patch(path: &str, spec_json: &str) -> Result<()> {
     // Small grace period so Zen can finish writing the file on exit.
     std::thread::sleep(std::time::Duration::from_millis(500));
 
-    let spec: GradientSpec = serde_json::from_str(spec_json)
-        .context("invalid gradient spec JSON")?;
+    let spec: GradientSpec =
+        serde_json::from_str(spec_json).context("invalid gradient spec JSON")?;
     patch_sessions_file(Path::new(path), &spec)
 }
 
@@ -474,7 +495,8 @@ mod tests {
              base0C: \"#1abc9c\"\nbase0D: \"#3498db\"\nbase0E: \"#9b59b6\"\n\
              base0F: \"#e74c3c\"\naccent: \"#e94560\"\n",
             "test",
-        ).unwrap();
+        )
+        .unwrap();
         let spec = spec_for_profile("custom", Some(&p)).unwrap();
         assert_eq!(spec.stops.len(), 2);
         assert!(spec.stops[0].is_primary);

@@ -3207,3 +3207,25 @@ fn quick_switch_hotkey_moves_voxtype_aside_and_backs_up() {
     bad.env("PATH", &path);
     assert_eq!(Home::send(bad, json!({"hotkey":"Hyper+X"}))["ok"], false);
 }
+
+#[test]
+fn failed_core_and_cli_calls_are_written_to_a_bounded_error_log() {
+    let h = Home::new();
+    // A failing core call (the main GUI path) is recorded with its method name.
+    assert_eq!(h.raw("no.such.method", json!({}))["ok"], false);
+    // A failing CLI command (the Quick Switch `kolira apply` path) is recorded.
+    let mut cli = Command::new(env!("CARGO_BIN_EXE_kolira"));
+    cli.args(["apply", "does-not-exist"])
+        .env("HOME", h.0.path())
+        .env("XDG_CONFIG_HOME", h.path(".config"))
+        .env("XDG_DATA_HOME", h.path(".local/share"))
+        .env("XDG_CACHE_HOME", h.path(".cache"))
+        .env("KTM_THEME_NO_APPLY", "1")
+        .env("KTM_OFFLINE", "1");
+    assert!(!cli.output().unwrap().status.success());
+    let log = fs::read_to_string(h.path(".cache/kolira/error.log")).unwrap();
+    assert!(log.contains("ERROR no.such.method:"), "{log}");
+    assert!(log.contains("ERROR cli:"), "{log}");
+    // Only errors land here: one line per failure, nothing else.
+    assert!(log.lines().all(|line| line.contains(" ERROR ")), "{log}");
+}

@@ -11,16 +11,18 @@ Usage:
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
 from PySide6.QtCore import QTimer, QUrl
-from PySide6.QtGui import QCursor, QGuiApplication
+from PySide6.QtGui import QCursor, QGuiApplication, QSurfaceFormat
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from qml_runtime import add_system_import_paths
-from quick_switch_controller import QuickSwitchController
+from quick_switch_controller import QuickSwitchController, appearance_is_busy
 
 QML_DIR = Path(__file__).resolve().parent.parent / "qml"
 HOST_SURFACE = QML_DIR / "quick-switch" / "HostSurface.qml"
@@ -59,6 +61,28 @@ def _acquire_single_instance(name: str, server: QLocalServer) -> bool:
     return not _ask_running_instance_to_close(name)
 
 
+def _notify_busy() -> None:
+    """Tell the user why the overlay did not open.
+
+    The hotkey launch is silent otherwise (its stderr goes to the journal), so
+    a passive desktop notification is the only visible feedback. Fire-and-forget
+    and best-effort: a missing notification daemon must not matter.
+    """
+    message = "Kolira: тема ещё применяется, переключатель откроется после завершения"
+    notify = shutil.which("notify-send")
+    if notify:
+        try:
+            subprocess.run(
+                [notify, "--app-name=Kolira", "Kolira", message],
+                capture_output=True,
+                timeout=5,
+                check=False,
+            )
+        except (OSError, subprocess.SubprocessError):
+            pass
+    print(f"kolira-quick-switch: {message}", file=sys.stderr, flush=True)
+
+
 def _primary_screen_index(app: QGuiApplication) -> int:
     """The monitor under the cursor, falling back to the primary screen."""
     screens = app.screens()
@@ -80,6 +104,14 @@ def main(argv: list[str] | None = None) -> int:
         if argument not in ("--preview", "--quick-switch")
     ]
 
+    # Multisample the overlay surface: the card outlines (rounded corners,
+    # parallelogram edges) are drawn straight to the window, and without MSAA
+    # their diagonals look stair-stepped. 4× is plenty for a fullscreen layer.
+    surface_format = QSurfaceFormat.defaultFormat()
+    if surface_format.samples() < 4:
+        surface_format.setSamples(4)
+        QSurfaceFormat.setDefaultFormat(surface_format)
+
     app = QGuiApplication(arguments)
     app.setApplicationName("kolira-quick-switch")
     app.setOrganizationName("cbr")
@@ -90,6 +122,18 @@ def main(argv: list[str] | None = None) -> int:
         print("kolira-quick-switch: closing the open overlay", file=sys.stderr)
         return 0
     app.aboutToQuit.connect(single_instance.close)
+
+    # Never open on top of a running transaction: the pre-flight and the apply
+    # both need the appearance lock, so the overlay would only fail. Preview
+    # never applies, so it is allowed through.
+    if not preview_only and appearance_is_busy():
+        print(
+            "kolira-quick-switch: an appearance operation is running; not opening",
+            file=sys.stderr,
+            flush=True,
+        )
+        _notify_busy()
+        return 0
 
     engine = QQmlApplicationEngine()
     add_system_import_paths(engine)

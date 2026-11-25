@@ -254,6 +254,7 @@ forbids implicit dependency installation. Stale state returns `PREVIEW_STALE`.
 | Метод | Вход | Результат / эффект |
 |---|---|---|
 | `operation.list` | `{}` или `limit: 1..100`, `offset?` | `busy`, `operations`, `last_profile_apply`, `next_offset`. Старый вызов возвращает 10 завершённых и все незавершённые записи с проверкой копий. При пагинации незавершённые входят в первую страницу, а копия проверяется полностью перед восстановлением. |
+| `operation.busy` | `{}` | `busy`: `true`, если сейчас держится живая блокировка оформления. Лёгкая проверка без чтения и верификации бэкапов — для быстрого prefight (Quick Switch). |
 | `operation.restore` | `id`, `confirmed: true`, `source?` | новая страховочная транзакция; `operation_id`, `restored_operation`, `backup` |
 | `operation.recover` | `id`, `force?` | восстановление прерванной операции; проверять `recovery_errors` |
 | `restore_point.list` | `{}` | `points`, `max_count`, `max_bytes`. Метаданные точек содержат `id`, `name`, `kind`, `created`, `pinned`, `bytes`. |

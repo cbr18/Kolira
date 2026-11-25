@@ -18,6 +18,7 @@ pub mod dependency_jobs;
 pub mod dependency_registry;
 pub mod deps;
 pub mod discord;
+pub mod error_log;
 pub mod extract;
 pub mod extras;
 pub mod field;

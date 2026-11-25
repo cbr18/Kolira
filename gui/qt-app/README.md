@@ -297,6 +297,14 @@ a second launch connects to `QLocalServer("kolira-quick-switch")`, the running
 overlay closes and the new process exits. During `preparing`/`applying` the
 request is ignored — a hotkey must not hide a running transaction.
 
+The overlay also refuses to open while another process is applying a theme.
+Before it builds any window it calls the cheap `operation.busy` probe; if the
+cross-process appearance lock is held it shows a passive notification and exits
+without opening (preview mode, which never applies, is still allowed). This
+avoids the confusing "could not apply" failure that used to happen when the hotkey
+was pressed mid-transaction. The probe fails open — an unreachable core never
+blocks the overlay.
+
 ```
 src/
 ├── quick_switch_app.py         # QGuiApplication, one surface per monitor, watchdog, toggle
@@ -322,6 +330,10 @@ qml/quick-switch/
   `MultiEffect` source paints itself unmasked and the preview spills outside
   the outline; `content` must be `layer.enabled` + invisible to be a texture
   provider, and the mask item is never drawn.
+- **Antialiasing.** The overlay surface is created with 4× MSAA
+  (`QSurfaceFormat.setSamples(4)` in `quick_switch_app.py`) and the card's
+  `content`/glow layers use `layer.samples: 4`, so the non-rectangular outlines
+  (rounded corners, parallelogram diagonals) are smooth instead of stair-stepped.
 - **Thumbnails.** The first open renders small JPEGs into
   `$XDG_CACHE_HOME/kolira/quick-switch/thumbs` (Rust calls `magick`, the same
   external tool the wallpaper picker uses); later opens read those. The card

@@ -155,6 +155,7 @@ pub fn request(method: &str, args: &Value) -> Result<Value> {
             crate::operation::list_page(offset.try_into()?, limit as usize, false)
         }
         "operation.list" => crate::operation::list(),
+        "operation.busy" => crate::operation::busy(),
         "restore_point.list"
         | "restore_point.create"
         | "restore_point.rename"
@@ -550,7 +551,9 @@ pub fn cli(method: Option<&String>) -> ExitCode {
             ExitCode::SUCCESS
         }
         Err(e) => {
-            println!("{}", json!({"api":1,"ok":false,"error":format!("{e:#}")}));
+            let error = format!("{e:#}");
+            crate::error_log::log_error(method.map(String::as_str).unwrap_or("core"), &error);
+            println!("{}", json!({"api":1,"ok":false,"error":error}));
             ExitCode::from(1)
         }
     }

@@ -309,6 +309,17 @@ fn concurrent_cli_core_and_inspector_are_refused_without_losing_staging() {
 }
 
 #[test]
+fn operation_busy_probe_tracks_the_live_lock_without_reading_backups() {
+    let h = Home::new();
+    // No live owner: the cheap probe must report idle without touching backups.
+    assert_eq!(h.rpc("operation.busy", json!({}))["data"]["busy"], false);
+    let mut running = h.blocked_apply();
+    assert_eq!(h.rpc("operation.busy", json!({}))["data"]["busy"], true);
+    running.kill();
+    assert_eq!(h.rpc("operation.busy", json!({}))["data"]["busy"], false);
+}
+
+#[test]
 fn killed_apply_is_detected_and_default_recovery_preserves_later_personal_changes() {
     let h = Home::new();
     let before = fs::read(h.path(".config/kdeglobals")).unwrap();

@@ -889,6 +889,18 @@ pub fn list() -> Result<serde_json::Value> {
     list_page(0, 10, true)
 }
 
+/// Cheapest possible "is a mutation running right now?" probe.
+///
+/// `list()` verifies every backup on disk, which is far too heavy for a
+/// pre-flight check (the Quick Switch overlay calls this before it opens).
+/// This only tries the cross-process appearance lock and reports whether a
+/// live owner holds it; interrupted records never block.
+pub fn busy() -> Result<serde_json::Value> {
+    let file = lock_path().exists().then(open_lock).transpose()?;
+    let busy = file.as_ref().is_some_and(|file| file.try_lock().is_err());
+    Ok(serde_json::json!({"busy": busy}))
+}
+
 pub(crate) fn list_page(offset: usize, limit: usize, verify: bool) -> Result<serde_json::Value> {
     let file = lock_path().exists().then(open_lock).transpose()?;
     let busy = file.as_ref().is_some_and(|file| file.try_lock().is_err());

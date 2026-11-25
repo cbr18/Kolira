@@ -146,7 +146,9 @@ fn component_suffix(raw: Option<&str>) -> String {
 }
 
 fn fail(msg: impl std::fmt::Display) -> ExitCode {
-    eprintln!("{msg}");
+    let message = msg.to_string();
+    kolira_core::error_log::log_error("cli", &message);
+    eprintln!("{message}");
     ExitCode::from(1)
 }
 

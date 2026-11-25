@@ -32,6 +32,7 @@ Item {
         anchors.fill: parent
         opacity: card.active ? 0.5 : 0.0
         layer.enabled: true
+        layer.samples: 4
         layer.effect: MultiEffect {
             blurEnabled: true
             blur: 1.0
@@ -58,6 +59,7 @@ Item {
         anchors.fill: parent
         visible: false
         layer.enabled: true
+        layer.samples: 4
 
         CardPreview {
             anchors.fill: parent

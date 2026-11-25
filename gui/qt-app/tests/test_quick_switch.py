@@ -258,3 +258,19 @@ def test_apply_screen_shader_is_shipped() -> None:
     assert (shaders / "apply.frag").is_file()
     assert (shaders / "apply.qsb").is_file()
     assert (shaders / "apply.qsb").stat().st_size > 0
+
+
+def test_appearance_is_busy_reflects_the_core_probe(monkeypatch) -> None:
+    monkeypatch.setattr(qs, "core_request", lambda method, **_kw: {"busy": True})
+    assert qs.appearance_is_busy() is True
+    monkeypatch.setattr(qs, "core_request", lambda method, **_kw: {"busy": False})
+    assert qs.appearance_is_busy() is False
+
+
+def test_appearance_is_busy_fails_open_when_the_core_is_unreachable(monkeypatch) -> None:
+    def boom(method, **_kwargs):
+        raise RuntimeError("core is gone")
+
+    monkeypatch.setattr(qs, "core_request", boom)
+    # A broken probe must never stop the overlay from opening.
+    assert qs.appearance_is_busy() is False
