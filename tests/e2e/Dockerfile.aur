@@ -1,0 +1,14 @@
+# Real AUR dependency cycle in a disposable Arch Linux container.
+# Builds a normal user with a real AUR helper (yay-bin, prebuilt) and runs the
+# theme dependency install/remove/reinstall cycle against a tiny AUR package.
+FROM archlinux:latest
+RUN pacman -Syu --noconfirm --needed base-devel git python sudo
+RUN useradd -m -G wheel builder \
+ && echo '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
+USER builder
+WORKDIR /home/builder
+# Bootstrap a real AUR helper from the AUR (yay-bin ships a prebuilt binary).
+RUN git clone --depth 1 https://aur.archlinux.org/yay-bin.git /tmp/yay-bin \
+ && cd /tmp/yay-bin && makepkg -si --noconfirm
+ENV KTM_DEPENDENCY_CONTAINER=1
+CMD ["python", "/src/tests/e2e/dependency-cycle.py", "/src/gui/qt-app/src/core/rust_core/target/release/kolira", "aur", "paru-bin", "paru"]

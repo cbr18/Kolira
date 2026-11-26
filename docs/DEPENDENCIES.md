@@ -163,6 +163,20 @@ docker run --rm -v "$PWD:/src:ro" ktm-dependencies
 ресурсы/идентификаторы магазинов могут изменяться; при недоступном источнике это
 не считается успешным полным циклом. Фактические результаты — в карточке задачи.
 
+Реальный цикл AUR (сборка из AUR обычным пользователем с настоящим helper):
+
+```bash
+docker build -f tests/e2e/Dockerfile.aur -t kolira-aur-test tests/e2e
+docker run --rm -v "$PWD:/src:ro" kolira-aur-test
+```
+
+Образ поднимает обычного пользователя и ставит реальный AUR-helper (`yay-bin`),
+затем прогоняет `install → list → remove → reinstall → remove` для небольшого
+AUR-пакета (`paru-bin`). Установка подтверждается фактическим пакетом (`pacman -Q`),
+а не нулевым кодом. В контейнере нет человека за терминалом, поэтому подставной
+терминал добавляет `--noconfirm` к `yay`/`paru`; сам пакет собирается и ставится
+по-настоящему.
+
 ### Асинхронные MCP jobs
 
 `list_dependency_registry` возвращает стабильные resource IDs;

@@ -45,11 +45,14 @@ if mode == "zed":
     dependency = dict(kind="zed", name=report["themes"][0], source="zed", id="everforest", exact=True)
 elif mode == "kde":
     dependency = dict(kind="color-scheme", name=sys.argv[4], source="kde-store", id=sys.argv[3], exact=True)
-elif mode == "package":
+elif mode in ("package", "aur"):
     assert os.environ.get("KTM_DEPENDENCY_CONTAINER") == "1", "Package lifecycle requires the test container"
-    dependency = dict(kind="command", name=sys.argv[4], source="package", id=sys.argv[3], exact=True)
+    source = "package" if mode == "package" else "aur"
+    dependency = dict(kind="command", name=sys.argv[4], source=source, id=sys.argv[3], exact=True)
     # Terminal transport only: pacman/sudo below are real. The adapter supplies
     # answers in a disposable container and preserves their output for review.
+    # AUR helpers (yay/paru) are run with --noconfirm because there is no human
+    # at the terminal; the install is still verified for real via pacman -Q.
     bin_dir = work / "bin"
     bin_dir.mkdir()
     terminal = bin_dir / "konsole"
@@ -57,6 +60,10 @@ elif mode == "package":
 from pathlib import Path
 args=sys.argv[1:]
 args=args[args.index('-e')+1:]
+for i,a in enumerate(args):
+    if a in ('yay','paru') and '--noconfirm' not in args:
+        args.insert(i+1,'--noconfirm')
+        break
 with (Path(os.environ['HOME'])/'package-terminal.log').open('a') as log:
     sys.exit(subprocess.run(args,input='\\n'*12,text=True,stdout=log,stderr=log).returncode)
 """)

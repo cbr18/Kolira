@@ -9,7 +9,6 @@
 
 | Задача | Что осталось |
 |---|---|
-| [Реальный цикл зависимостей из AUR](2026_11_08_aur-dependency-cycle.md) | Код поддерживает AUR (источник "aur", команда `yay -S {id}`, проверка наличия helper). Требует реального тестирования в изолированном Arch Linux контейнере. |
 | [Обои: несколько изображений и живые обои](2026_11_24_wallpapers-multi-and-live.md) | Крупная доработка: несколько обоев на тему (по монитору/слайд-шоу) и подключение живых обоев/провайдеров. Затрагивает формат темы, ядро, apply/undo, зависимости, export/import, GUI. Требует декомпозиции на подэтапы. |
 
 Блокирующие дефекты F01/F02 аудита и защита применения реализованы.
@@ -22,6 +21,7 @@ ID операций и бэкапы защиты применения; AUR и с
 
 ## Закрыто
 
+- [Реальный цикл зависимостей из AUR](2026_11_08_aur-dependency-cycle.md) — DONE 2026-11-26: реальная сборка и установка AUR-пакета (`paru-bin` 2.2.1) через настоящий helper (`yay-bin` 13.1.0) в одноразовом Arch-контейнере; полный цикл install/remove/reinstall, общий ресурс двух тем, без дубликатов. Harness: `tests/e2e/Dockerfile.aur` + режим `aur` в `dependency-cycle.py`.
 - [Радиусы скруглений и исключения Better Blur DX](2026_11_25_radius-consistency-and-blur-exclusions.md) — DONE 2026-11-26: единый радиус R на тему во всех местах (Klassy/Round-Corners, Better Blur DX `CornerRadius`+`RefractionCornerRadius`, wofi) и Telegram/Kotatogram в исключениях `WindowClasses` в 9 темах. Сам блюр скругляет `CornerRadius` (не `RefractionCornerRadius`); dracula проверена вживую на Plasma. Коммит `beb8b51`.
 - [Kolira Quick Switch](2026_11_24_kolira_quick_switch.md) — DONE 2026-11-25: оверлей, карусель, три формы, шейдер, настройки и хоткей реализованы и влиты; живой прогон на Plasma пройден, стабильно. По итогам прогона: оверлей не открывается во время применения (проверка `operation.busy`), добавлено сглаживание непрямоугольных карточек (4× MSAA), а `PREVIEW_STALE` теперь не валит переключение — оверлей сам перечитывает предпросмотр и повторяет применение один раз.
 - [Полная проработка kolira lint](2026_11_24_lint-full-coverage.md) — DONE 2026-11-24: lint теперь проверяет Kvantum (тултип/текст/акцент), терминалы ghostty/wezterm/foot (bright black + foreground) и GTK colors.css (fg/bg), помимо существующих icons/colors/kitty/alacritty/konsole. Ловит светлый тултип Sandstone (Paper). 363 Rust PASS, clippy/fmt чисты, 0 ложных на 9 bundled-темах.
