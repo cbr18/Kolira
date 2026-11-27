@@ -111,6 +111,35 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+# Fail early with a clear message when a build prerequisite is missing, and warn
+# about runtime tools that are optional but needed for the full experience.
+check_prerequisites() {
+  if [ "$MODE" != "gui" ] && ! command -v cargo >/dev/null 2>&1; then
+    warn "cargo (Rust) не найден — нужен для сборки CLI (kolira и др.)."
+    warn "Установите: sudo pacman -S --needed rust  (или поставьте rustup)."
+    exit 1
+  fi
+  if ! command -v python3 >/dev/null 2>&1; then
+    if [ "$MODE" != "cli" ] || [ "$WITH_DEPS" = "yes" ]; then
+      warn "python3 не найден — нужен для GUI и регистрации зависимостей."
+      warn "Установите: sudo pacman -S --needed python."
+      exit 1
+    fi
+    warn "python3 не найден (для --only-cli без --with-deps не требуется)."
+  fi
+  command -v wofi >/dev/null 2>&1 ||
+    warn "wofi не найден — меню (theme-menu, wallpaper-picker) не будут работать: sudo pacman -S wofi"
+  command -v magick >/dev/null 2>&1 ||
+    warn "imagemagick не найден — миниатюры обоев не будут работать: sudo pacman -S imagemagick"
+  if ! python3 -c 'import PySide6' >/dev/null 2>&1 &&
+     ! command -v uv >/dev/null 2>&1 &&
+     ! python3 -m pip --version >/dev/null 2>&1; then
+    warn "PySide6 не найден и нет uv/pip для venv — GUI не запустится."
+    warn "Установите: sudo pacman -S --needed pyside6  (или python-pip / uv)."
+  fi
+}
+check_prerequisites
+
 CLI_SCRIPTS=(
   "kolira"
   "theme-menu"

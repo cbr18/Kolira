@@ -97,6 +97,30 @@ Optional:
 - `dolphin` — "Open profile folder" button in `theme-menu`
 - `rg` (ripgrep) — used in `status` for VS Code / Cursor theme detection (falls back gracefully)
 
+## Requirements / Требования
+
+На чистом Arch Linux + KDE для установки и полноценной работы:
+
+**Сборка и установка** (`install-kolira.sh`):
+- `rust` (cargo) — собирает CLI; без него установщик сразу просит поставить.
+- `python` (python3) — нужен GUI и регистрации зависимостей.
+- PySide6: системный пакет `pyside6` **или** `uv` / `python-pip` (тогда ставится venv).
+- `base-devel` + `git` — только чтобы собрать AUR-helper.
+- `yay` или `paru` — для AUR-зависимостей тем (см. `--with-deps`).
+
+```bash
+sudo pacman -S --needed rust python pyside6 wofi imagemagick base-devel git
+# затем AUR-helper (yay/paru) — вручную, из AUR
+```
+
+**Рантайм** (для меню, обоев и полного поведения):
+- `plasma-workspace` — уже есть в KDE (`kreadconfig6`, `kwriteconfig6`, `plasma-apply-wallpaperimage`, `qdbus6`).
+- `wofi` — меню `theme-menu` / `wallpaper-picker`.
+- `imagemagick` (`magick`) — миниатюры обоев.
+- опционально: `kitty` (живой reload темы терминала), `dolphin` (кнопка «Открыть папку»), `ripgrep` (определение тем VS Code/Cursor в `status`).
+
+Установщик проверяет cargo/python3 и предупреждает про wofi/imagemagick/PySide6.
+
 ## Installation / Установка
 
 ```bash
