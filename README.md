@@ -107,6 +107,14 @@ Installs the command line scripts **and** the GUI (app copy, launcher, desktop
 entry). Creates timestamped backups of every replaced file in
 `~/.config/kolira/backups/`.
 
+**Install theme dependencies in one pass.** Add `--with-deps` to also install
+every dependency of the bundled themes through the Rust CLI (KDE Store items,
+repo packages, AUR packages). Package/AUR dependencies open a terminal where you
+type your sudo password; AUR packages need an AUR helper (`yay` or `paru`)
+installed beforehand — the installer warns if one is missing. Without the flag
+the installer only registers dependencies; you install them later from the app's
+*Dependencies* page or when applying a theme.
+
 | Installed | Where |
 |---|---|
 | `kolira`, `theme-menu`, `wallpaper-picker`, `wallpaper-next`, `wallpaper-prev` | `~/.local/bin/` |

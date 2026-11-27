@@ -28,6 +28,7 @@ VENV_MODE="auto" # auto | yes | no
 RESTART="no"     # yes: restart a running kolira after install
 THEMES="yes"     # no: do not add the bundled themes (themes/)
 ORIGINAL="yes"   # no: do not save the current look on the first install
+WITH_DEPS="no"   # yes: install the bundled themes' dependencies after install
 ORIGINAL_THEME="my-original-look"
 
 usage() {
@@ -52,6 +53,8 @@ Options:
   --no-original-theme
                 Do not save the current look as the theme "my-original-look"
                 (by default done on the first install, when you have no themes yet)
+  --with-deps   After install, install the dependencies of the bundled themes
+                (AUR packages need an AUR helper — yay or paru — installed first)
   -h, --help    Show this help message and exit.
 
 Binaries installed to ${XDG_BIN_HOME:-~/.local/bin}:
@@ -95,6 +98,9 @@ while [ $# -gt 0 ]; do
       ;;
     --no-original-theme)
       ORIGINAL="no"
+      ;;
+    --with-deps)
+      WITH_DEPS="yes"
       ;;
     *)
       say "Unknown option: $1" >&2
@@ -406,6 +412,50 @@ register_app_dependencies() {
   fi
 }
 
+# Install every not-yet-installed dependency of the bundled themes through the
+# Rust CLI (the single core). Package/AUR dependencies run in a terminal the
+# user sees, where they type their own sudo password; AUR ones need yay/paru.
+install_theme_dependencies() {
+  local cli="$BINDIR/kolira"
+  [ -x "$cli" ] || { warn "--with-deps: CLI не найден ($cli); пропускаю."; return 0; }
+  local json
+  if ! json="$("$cli" dependencies list 2>/dev/null)"; then
+    warn "--with-deps: не удалось получить список зависимостей."
+    return 0
+  fi
+  local helper aur_missing todo
+  helper="$(command -v yay || command -v paru || true)"
+  aur_missing="$(printf '%s' "$json" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+print(sum(1 for r in d if not r.get("installed") and r.get("can_install")
+          and r["dependency"]["source"] == "aur"))
+' 2>/dev/null || echo 0)"
+  if [ "${aur_missing:-0}" -gt 0 ] && [ -z "$helper" ]; then
+    warn "--with-deps: есть AUR-зависимости, но yay/paru не найден."
+    warn "Установите AUR-helper (yay или paru) и повторите с --with-deps."
+  fi
+  todo="$(printf '%s' "$json" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+for r in d:
+    if not r.get("installed") and r.get("can_install"):
+        print(r["id"])
+' 2>/dev/null || true)"
+  if [ -z "$todo" ]; then
+    say "Зависимости тем уже установлены."
+    return 0
+  fi
+  say "Установка зависимостей тем (нужен интернет; для пакетов — sudo в терминале)…"
+  # shellcheck disable=SC2086 # word splitting of the id list is intended
+  if "$cli" dependencies install $todo; then
+    say "Зависимости тем установлены."
+  else
+    warn "--with-deps: часть зависимостей не установилась."
+    warn "Откройте «Зависимости» и повторите; AUR-пакеты требуют yay/paru."
+  fi
+}
+
 case "$MODE" in
   cli)
     install_cli
@@ -428,3 +478,7 @@ case "$MODE" in
     register_app_dependencies
     ;;
 esac
+
+if [ "$WITH_DEPS" = "yes" ]; then
+  install_theme_dependencies
+fi

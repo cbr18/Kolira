@@ -127,6 +127,12 @@ else
   ok "install-kolira.sh rejects unknown options"
 fi
 
+if "$SCRIPT_DIR/scripts/install-kolira.sh" --help 2>&1 | grep -q -- '--with-deps'; then
+  ok "install-kolira.sh documents --with-deps"
+else
+  fail "install-kolira.sh --help should mention --with-deps"
+fi
+
 # --- 4. kolira: invalid profile names rejected -------------------------
 echo "=== Section 4: Profile name validation ==="
 
